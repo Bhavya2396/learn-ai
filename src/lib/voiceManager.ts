@@ -27,6 +27,10 @@ export function cleanTextForTTS(text: string): string {
     .replace(/\$[^$\n]+\$/g, "formula")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
     .replace(/[_~*]/g, "")
+    // Strip all emoji (Unicode emoji ranges)
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, "")
+    .replace(/[\u{2600}-\u{27BF}]/gu, "")
+    .replace(/[\u{FE00}-\u{FEFF}]/gu, "")
     .replace(/\n+/g, " ")
     .replace(/\s{2,}/g, " ")
     .trim();

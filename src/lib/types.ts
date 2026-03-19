@@ -78,7 +78,8 @@ export type CanvasAction =
   | { type: "quiz"; data: { questions: QuizQuestion[]; conceptName: string; conceptId: string } }
   | { type: "flashcards"; data: { cards: Flashcard[]; conceptName: string; lang: string } }
   | { type: "mastery"; data: { subjects: SubjectSummary[] } }
-  | { type: "demo"; data: { url: string; title: string } }
+  | { type: "demo"; data: { url: string; title: string; sectionIndex?: number } }
+  | { type: "generated_demo"; data: { html: string; title: string } }
   | { type: "exercise"; data: { exercise: Exercise; concept: Concept } }
   | { type: "quiz_result"; data: { score: number; total: number; results: QuizResultItem[]; conceptName: string } }
   | { type: "topic_list"; data: { subjectName: string; subjectIcon: string; color: string; chapters: { name: string; mastery: number; conceptCount: number }[] } };

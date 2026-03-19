@@ -34,7 +34,7 @@ export default function AppShell() {
   }, [isMobile, setSidebarOpen]);
 
   return (
-    <div className="h-screen flex overflow-hidden bg-background">
+    <div className="h-screen flex overflow-hidden">
       {/* Desktop sidebar */}
       {!isMobile && (
         <motion.div

@@ -18,13 +18,15 @@ export default function UserBubble({ message }: UserBubbleProps) {
       className="flex justify-end mb-6 sm:mb-7"
     >
       <div
-        className="rounded-[20px] rounded-br-md max-w-[85%] sm:max-w-[80%] px-[18px] py-[11px]"
+        className="rounded-[22px] rounded-br-md max-w-[85%] sm:max-w-[80%] px-[18px] py-[12px]"
         style={{
           background: "var(--bubble-user)",
           border: "1px solid var(--bubble-user-border)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
         }}
       >
-        <p className="text-[15px] sm:text-[16px] leading-[1.5] text-foreground">
+        <p className="text-[15px] sm:text-[16px] leading-[1.5]" style={{ color: "var(--bubble-user-text)" }}>
           {message.content}
         </p>
       </div>

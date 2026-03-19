@@ -16,14 +16,19 @@ export default function Sidebar() {
 
   return (
     <motion.aside
-      className="h-full flex flex-col bg-sidebar border-r border-sidebar-border"
+      className="h-full flex flex-col border-r border-sidebar-border"
+      style={{
+        background: "var(--sidebar)",
+        backdropFilter: "blur(var(--glass-blur))",
+        WebkitBackdropFilter: "blur(var(--glass-blur))",
+      }}
       initial={false}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 h-14 flex-shrink-0">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-accent" />
-          <span className="text-[15px] font-bold tracking-tight text-foreground">
+          <span className="text-[15px] font-extrabold tracking-tight text-foreground">
             LearnAI
           </span>
         </div>
@@ -67,10 +72,10 @@ export default function Sidebar() {
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold text-foreground truncate">
+            <p className="text-[13px] font-bold text-foreground truncate">
               {studentProfile.name}
             </p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] font-medium text-foreground/60">
               Class {studentProfile.grade}
             </p>
           </div>

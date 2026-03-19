@@ -17,10 +17,10 @@ export default function SubjectNav() {
           <button
             key={cls}
             onClick={() => setSelectedClass(cls)}
-            className="flex-1 text-center py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200"
+            className="flex-1 text-center py-1.5 rounded-lg text-[11px] font-bold transition-all duration-200"
             style={{
               background: selectedClass === cls ? "var(--accent)" : "var(--surface)",
-              color: selectedClass === cls ? "var(--accent-foreground)" : "var(--muted-foreground)",
+              color: selectedClass === cls ? "var(--accent-foreground)" : "var(--foreground)",
             }}
           >
             Class {cls}
@@ -28,7 +28,7 @@ export default function SubjectNav() {
         ))}
       </div>
 
-      <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+      <p className="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-foreground/50">
         Subjects
       </p>
       <Accordion multiple className="space-y-0.5">

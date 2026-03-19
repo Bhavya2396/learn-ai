@@ -177,10 +177,10 @@ export default function InputBar() {
               size="icon"
               onClick={handleSend}
               disabled={!input.trim() || isListening}
-              className="h-9 w-9 rounded-xl transition-all duration-200 disabled:opacity-20"
+              className="h-9 w-9 rounded-full transition-all duration-200 disabled:opacity-20"
               style={{
-                background: input.trim() ? "var(--accent)" : "var(--secondary)",
-                color: input.trim() ? "var(--accent-foreground)" : "var(--muted-foreground)",
+                background: input.trim() ? "#2d2a28" : "var(--secondary)",
+                color: input.trim() ? "#ffffff" : "var(--muted-foreground)",
               }}
             >
               <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2.5} />

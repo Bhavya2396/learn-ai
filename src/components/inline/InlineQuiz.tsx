@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QuizQuestion } from "@/lib/types";
+import { type QuizAttempt } from "@/lib/progressStore";
 import {
   CheckCircle,
   XCircle,
@@ -14,11 +15,13 @@ import {
 interface InlineQuizProps {
   questions: QuizQuestion[];
   conceptName: string;
+  onComplete?: (attempts: QuizAttempt[]) => void;
 }
 
 export default function InlineQuiz({
   questions,
   conceptName,
+  onComplete,
 }: InlineQuizProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -44,6 +47,12 @@ export default function InlineQuiz({
       setIsRevealed(false);
     } else {
       setIsComplete(true);
+      // Build per-question attempts with difficulty for BKT+ELO
+      const attempts: QuizAttempt[] = next.map((r, i) => ({
+        correct: r.correct,
+        difficulty: (questions[i]?.difficulty as "easy" | "medium" | "hard") ?? "medium",
+      }));
+      onComplete?.(attempts);
     }
   };
 

@@ -1,21 +1,50 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ExternalLink, Sparkles, Maximize2, Minimize2 } from "lucide-react";
+import { getSectionsForDemo } from "@/lib/sectionIndex";
 
 interface InlineDemoProps {
   url: string;
   title: string;
+  sectionIndex?: number;
 }
 
-export default function InlineDemo({ url, title }: InlineDemoProps) {
+export default function InlineDemo({ url, title, sectionIndex }: InlineDemoProps) {
   const [expanded, setExpanded] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const encodedUrl = encodeURI(decodeURI(url));
 
   const toggleExpand = useCallback(() => setExpanded((v) => !v), []);
+
+  useEffect(() => {
+    if (sectionIndex == null) return;
+
+    const meta = getSectionsForDemo(url);
+    if (!meta) return;
+
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const navigate = () => {
+      try {
+        const win = iframe.contentWindow as Record<string, unknown> | null;
+        if (!win) return;
+
+        const fn = win[meta.navFunction];
+        if (typeof fn === "function") {
+          (fn as (idx: number) => void)(sectionIndex);
+        }
+      } catch {
+        // cross-origin or not loaded yet — ignore
+      }
+    };
+
+    iframe.addEventListener("load", navigate);
+    return () => iframe.removeEventListener("load", navigate);
+  }, [url, sectionIndex]);
 
   return (
     <motion.div
@@ -24,21 +53,21 @@ export default function InlineDemo({ url, title }: InlineDemoProps) {
       transition={{ duration: 0.35 }}
       className="rounded-2xl overflow-hidden"
       style={{
-        background:
-          "linear-gradient(145deg, rgba(48,209,88,0.07) 0%, rgba(255,255,255,0.04) 100%)",
-        border: "1px solid rgba(48,209,88,0.14)",
-        // Break out of the 680px chat column — extend to ~1360px centered
+        background: "var(--glass-bg)",
+        backdropFilter: "blur(var(--glass-blur))",
+        WebkitBackdropFilter: "blur(var(--glass-blur))",
+        border: "1px solid var(--glass-border)",
         width: "min(1360px, calc(100vw - 2rem))",
         marginLeft: "calc((min(1360px, calc(100vw - 2rem)) - 100%) / -2)",
       }}
     >
       <div
         className="px-5 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between"
-        style={{ borderBottom: "1px solid rgba(48,209,88,0.10)" }}
+        style={{ borderBottom: "1px solid var(--border)" }}
       >
         <div className="flex items-center gap-2.5 min-w-0">
-          <Sparkles className="w-4 h-4 shrink-0" style={{ color: "#30d158" }} />
-          <span className="text-[13px] sm:text-[14px] font-semibold truncate text-[#30d158]">
+          <Sparkles className="w-4 h-4 shrink-0" style={{ color: "var(--accent-warm)" }} />
+          <span className="text-[13px] sm:text-[14px] font-semibold truncate" style={{ color: "var(--accent-warm)" }}>
             {title}
           </span>
         </div>

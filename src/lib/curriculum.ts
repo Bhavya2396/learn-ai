@@ -54,7 +54,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Motion',
               name: 'Motion',
 
-              contentPath: '/FinalContent/Class 9th/Science/Physics/Motion/index.html',
+              contentPath: '/FinalContent/Class 9th/Science/Physics/Motion/7.1_motion.html',
               pdfPath: '/FinalContent/Class 9th/Science/Physics/Motion/Motion.pdf',
               subtopics: [
                 {
@@ -99,7 +99,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Force and Laws of Motion',
               name: 'Force and Laws of Motion',
 
-              contentPath: '/FinalContent/Class 9th/Science/Physics/Force and Laws of Motion/index.html',
+              contentPath: '/FinalContent/Class 9th/Science/Physics/Force and Laws of Motion/8.1_balanced_and_unbalanced_forces.html',
               pdfPath: '/FinalContent/Class 9th/Science/Physics/Force and Laws of Motion/Force and laws of motion.pdf',
               subtopics: [
                 {
@@ -144,7 +144,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Gravitation',
               name: 'Gravitation',
 
-              contentPath: '/FinalContent/Class 9th/Science/Physics/Gravitation/index.html',
+              contentPath: '/FinalContent/Class 9th/Science/Physics/Gravitation/9.1_Gravitation.html',
               pdfPath: '/FinalContent/Class 9th/Science/Physics/Gravitation/Gravitation.pdf',
               subtopics: [
                 {
@@ -183,7 +183,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Work and Energy',
               name: 'Work and Energy',
 
-              contentPath: '/FinalContent/Class 9th/Science/Physics/Work and Energy/index.html',
+              contentPath: '/FinalContent/Class 9th/Science/Physics/Work and Energy/10.1_work.html',
               pdfPath: '/FinalContent/Class 9th/Science/Physics/Work and Energy/Work and Energy.pdf',
               subtopics: [
                 {
@@ -210,7 +210,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Sound',
               name: 'Sound',
 
-              contentPath: '/FinalContent/Class 9th/Science/Physics/Sound/index.html',
+              contentPath: '/FinalContent/Class 9th/Science/Physics/Sound/11.1_Production_of_Sound.html',
               pdfPath: '/FinalContent/Class 9th/Science/Physics/Sound/Sound.pdf',
               subtopics: [
                 {
@@ -257,7 +257,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Matter In Our Surroundings',
               name: 'Matter In Our Surroundings',
 
-              contentPath: '/FinalContent/Class 9th/Science/Chemistry/Matter In Our Surroundings/index.html',
+              contentPath: '/FinalContent/Class 9th/Science/Chemistry/Matter In Our Surroundings/1_Physical Nature of Matter.html',
               pdfPath: '/FinalContent/Class 9th/Science/Chemistry/Matter In Our Surroundings/Matter in our Surroundings.pdf',
               subtopics: [
                 {
@@ -296,7 +296,7 @@ export const curriculum: ClassCurriculum = {
               id: 'IS MATTER AROUND US PURE_',
               name: 'Is Matter Around Us Pure?',
 
-              contentPath: '/FinalContent/Class 9th/Science/Chemistry/IS MATTER AROUND US PURE_/index.html',
+              contentPath: '/FinalContent/Class 9th/Science/Chemistry/IS MATTER AROUND US PURE_/mixtures-interactive (3).html',
               pdfPath: '/FinalContent/Class 9th/Science/Chemistry/IS MATTER AROUND US PURE_/IS MATTER AROUND US PURE_.pdf',
               subtopics: [
                 {
@@ -311,7 +311,7 @@ export const curriculum: ClassCurriculum = {
               id: 'ATOMS AND MOLECULES',
               name: 'Atoms and Molecules',
 
-              contentPath: '/FinalContent/Class 9th/Science/Chemistry/ATOMS AND MOLECULES/index.html',
+              contentPath: '/FinalContent/Class 9th/Science/Chemistry/ATOMS AND MOLECULES/3.1 Laws of Chemical Combination.html',
               pdfPath: '/FinalContent/Class 9th/Science/Chemistry/ATOMS AND MOLECULES/Atoms and Molecules.pdf',
               subtopics: [
                 {
@@ -362,7 +362,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Structure of an atom',
               name: 'Structure of the Atom',
 
-              contentPath: '/FinalContent/Class 9th/Science/Chemistry/Structure of an atom/index.html',
+              contentPath: '/FinalContent/Class 9th/Science/Chemistry/Structure of an atom/4.1_charged_particles.html',
               pdfPath: '/FinalContent/Class 9th/Science/Chemistry/Structure of an atom/Structure of the atom.pdf',
               subtopics: [
                 {
@@ -415,7 +415,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Fundamental Unit of Life',
               name: 'Cell—The Fundamental Unit of Life',
 
-              contentPath: '/FinalContent/Class 9th/Science/Biology/Fundamental Unit of Life/index.html',
+              contentPath: '/FinalContent/Class 9th/Science/Biology/Fundamental Unit of Life/Human Heart.html',
               pdfPath: '/FinalContent/Class 9th/Science/Biology/Fundamental Unit of Life/The fundamental unit of life.pdf',
               subtopics: [
                 {
@@ -472,7 +472,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Tissues',
               name: 'Tissues',
 
-              contentPath: '/FinalContent/Class 9th/Science/Biology/Tissues/index.html',
+              contentPath: '/FinalContent/Class 9th/Science/Biology/Tissues/complex_tissues_protection.html',
               pdfPath: '/FinalContent/Class 9th/Science/Biology/Tissues/Tissues.pdf',
               subtopics: [
                 {
@@ -517,7 +517,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Improvement in Food Resources',
               name: 'Improvement in Food Resources',
 
-              contentPath: '/FinalContent/Class 9th/Science/Biology/Improvement in Food Resources/index.html',
+              contentPath: '/FinalContent/Class 9th/Science/Biology/Improvement in Food Resources/animal_husbandry_exhibit.html',
               pdfPath: '/FinalContent/Class 9th/Science/Biology/Improvement in Food Resources/Improvement in food resources.pdf',
               subtopics: [
                 {
@@ -1368,7 +1368,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Electricity',
               name: 'Electricity',
 
-              contentPath: '/FinalContent/Class 10th/Science/Physics/Electricity/index.html',
+              contentPath: '/FinalContent/Class 10th/Science/Physics/Electricity/ohms_law.html',
               pdfPath: '/FinalContent/Class 10th/Science/Physics/Electricity/Electricity.pdf',
               subtopics: [
                 {
@@ -1407,7 +1407,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Light Refraction',
               name: 'Light - Reflection and Refraction',
 
-              contentPath: '/FinalContent/Class 10th/Science/Physics/Light Refraction/index.html',
+              contentPath: '/FinalContent/Class 10th/Science/Physics/Light Refraction/1_reflection-of-light.html',
               pdfPath: '/FinalContent/Class 10th/Science/Physics/Light Refraction/Light – Reflection and Refraction.pdf',
               subtopics: [
                 {
@@ -1440,7 +1440,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Human Eye and the Colourful World',
               name: 'Human Eye and the Colourful World',
 
-              contentPath: '/FinalContent/Class 10th/Science/Physics/Human Eye and the Colourful World/index.html',
+              contentPath: '/FinalContent/Class 10th/Science/Physics/Human Eye and the Colourful World/1_The Human Eye.html',
               pdfPath: '/FinalContent/Class 10th/Science/Physics/Human Eye and the Colourful World/The Human Eye and the Colourful World.pdf',
               subtopics: [
                 {
@@ -1485,7 +1485,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Magnetic Effects of Electric Current',
               name: 'Magnetic Effects of Electric Current',
 
-              contentPath: '/FinalContent/Class 10th/Science/Physics/Magnetic Effects of Electric Current/index.html',
+              contentPath: '/FinalContent/Class 10th/Science/Physics/Magnetic Effects of Electric Current/12.1 magnetic effect.html',
               pdfPath: '/FinalContent/Class 10th/Science/Physics/Magnetic Effects of Electric Current/Magnetic Effects of Electric Current.pdf',
               subtopics: [
                 {
@@ -1526,7 +1526,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Carbon and its Compound',
               name: 'Carbon and its Compounds',
 
-              contentPath: '/FinalContent/Class 10th/Science/Chemistry/Carbon and its Compound/index.html',
+              contentPath: '/FinalContent/Class 10th/Science/Chemistry/Carbon and its Compound/ionic_bonds.html',
               pdfPath: '/FinalContent/Class 10th/Science/Chemistry/Carbon and its Compound/Carbon and its Compounds.pdf',
               subtopics: [
                 {
@@ -1573,7 +1573,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Life Processes',
               name: 'Life Processes',
 
-              contentPath: '/FinalContent/Class 10th/Science/Biology/Life Processes/index.html',
+              contentPath: '/FinalContent/Class 10th/Science/Biology/Life Processes/life_processes_exhibit.html',
               pdfPath: '/FinalContent/Class 10th/Science/Biology/Life Processes/Life Processes.pdf',
               subtopics: [
                 {
@@ -1678,7 +1678,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Control and Coordination',
               name: 'Control and Coordination',
 
-              contentPath: '/FinalContent/Class 10th/Science/Biology/Control and Coordination/index.html',
+              contentPath: '/FinalContent/Class 10th/Science/Biology/Control and Coordination/control_coordination_exhibit.html',
               pdfPath: '/FinalContent/Class 10th/Science/Biology/Control and Coordination/Control and Coordination.pdf',
               subtopics: [
                 {
@@ -1741,7 +1741,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Reproduction',
               name: 'How do Organisms Reproduce?',
 
-              contentPath: '/FinalContent/Class 10th/Science/Biology/Reproduction/index.html',
+              contentPath: '/FinalContent/Class 10th/Science/Biology/Reproduction/reproduction-dna-exhibit.html',
               pdfPath: '/FinalContent/Class 10th/Science/Biology/Reproduction/Reproduction.pdf',
               subtopics: [
                 {
@@ -1816,7 +1816,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Hereditary',
               name: 'Heredity and Evolution',
 
-              contentPath: '/FinalContent/Class 10th/Science/Biology/Hereditary/index.html',
+              contentPath: '/FinalContent/Class 10th/Science/Biology/Hereditary/inherited_traits_exhibit.html',
               pdfPath: '/FinalContent/Class 10th/Science/Biology/Hereditary/Heredity.pdf',
               subtopics: [
                 {
@@ -1867,7 +1867,7 @@ export const curriculum: ClassCurriculum = {
               id: 'Our Environment',
               name: 'Our Environment',
 
-              contentPath: '/FinalContent/Class 10th/Science/Biology/Our Environment/index.html',
+              contentPath: '/FinalContent/Class 10th/Science/Biology/Our Environment/ecosystem_exhibit.html',
               pdfPath: '/FinalContent/Class 10th/Science/Biology/Our Environment/Our Environment.pdf',
               subtopics: [
                 {

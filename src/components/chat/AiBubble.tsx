@@ -5,9 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import { BookOpen, Beaker, Brain, MessageCircle } from "lucide-react";
+import { BookOpen, Beaker, Brain, MessageCircle, ArrowRight } from "lucide-react";
 import type { ChatMessage, CanvasAction } from "@/lib/types";
 import { useAppStore, type ContentCard } from "@/lib/store";
+import { useProgressStore } from "@/lib/progressStore";
 import { useVoiceOutput } from "@/hooks/useVoice";
 import { getVoiceManager } from "@/lib/voiceManager";
 import { splitIntoCards, type ChunkType } from "@/lib/splitChunks";
@@ -18,15 +19,16 @@ import InlineContent from "@/components/inline/InlineContent";
 import InlineDemo from "@/components/inline/InlineDemo";
 import InlineMastery from "@/components/inline/InlineMastery";
 import InlineTopicList from "@/components/inline/InlineTopicList";
+import GeneratedDemo from "@/components/inline/GeneratedDemo";
 
 const EASE = [0.25, 0.1, 0.25, 1.0] as const;
 
 const CHUNK_STYLES: Record<ChunkType, { border: string; bg: string; icon: string }> = {
-  question: { border: "border-amber-500/30", bg: "bg-amber-500/[0.04]", icon: "🤔" },
-  explanation: { border: "border-blue-400/20", bg: "bg-blue-400/[0.03]", icon: "📖" },
-  keypoints: { border: "border-emerald-400/25", bg: "bg-emerald-400/[0.04]", icon: "💡" },
-  formula: { border: "border-purple-400/25", bg: "bg-purple-400/[0.04]", icon: "📐" },
-  hint: { border: "border-cyan-400/25", bg: "bg-cyan-400/[0.04]", icon: "💡" },
+  question: { border: "border-orange-300/30", bg: "bg-orange-200/[0.12]", icon: "🤔" },
+  explanation: { border: "border-stone-300/20", bg: "bg-white/[0.35]", icon: "📖" },
+  keypoints: { border: "border-emerald-300/25", bg: "bg-emerald-100/[0.15]", icon: "💡" },
+  formula: { border: "border-purple-300/25", bg: "bg-purple-100/[0.12]", icon: "📐" },
+  hint: { border: "border-sky-300/25", bg: "bg-sky-100/[0.12]", icon: "💡" },
   text: { border: "border-transparent", bg: "", icon: "" },
 };
 
@@ -51,6 +53,9 @@ function WaveformBars() {
 // ── Rich blocks (demo, quiz, etc.) ──
 
 function RichBlock({ action }: { action: CanvasAction }) {
+  const topicId = useAppStore((s) => s.activeTopicId);
+  const recordQuizAttempts = useProgressStore((s) => s.recordQuizAttempts);
+
   switch (action.type) {
     case "welcome":
     case "mastery":
@@ -58,11 +63,19 @@ function RichBlock({ action }: { action: CanvasAction }) {
     case "content":
       return <InlineContent concept={action.data.concept} />;
     case "quiz":
-      return <InlineQuiz questions={action.data.questions} conceptName={action.data.conceptName} />;
+      return (
+        <InlineQuiz
+          questions={action.data.questions}
+          conceptName={action.data.conceptName}
+          onComplete={(attempts) => { if (topicId) recordQuizAttempts(topicId, attempts); }}
+        />
+      );
     case "flashcards":
       return <InlineFlashcards cards={action.data.cards} conceptName={action.data.conceptName} initialLang={action.data.lang} />;
     case "demo":
-      return <InlineDemo url={action.data.url} title={action.data.title} />;
+      return <InlineDemo url={action.data.url} title={action.data.title} sectionIndex={action.data.sectionIndex} />;
+    case "generated_demo":
+      return <GeneratedDemo html={action.data.html} title={action.data.title} />;
     case "topic_list":
       return <InlineTopicList subjectName={action.data.subjectName} subjectIcon={action.data.subjectIcon} color={action.data.color} chapters={action.data.chapters} />;
     default:
@@ -89,7 +102,7 @@ function CompactCard({ card }: { card: ContentCard }) {
   }
 
   return (
-    <div className={`rounded-lg border px-3 py-2 ${style.border} ${style.bg} opacity-90`}>
+    <div className={`rounded-xl border px-3 py-2 ${style.border} ${style.bg} opacity-90`}>
       {style.icon && <span className="text-xs mr-1 inline-block">{style.icon}</span>}
       <div className="msg-md inline text-[14px] sm:text-[15px]">
         <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
@@ -122,8 +135,12 @@ function SpotlightCard({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.45, ease: EASE }}
       onClick={onClick}
-      className={`relative cursor-pointer rounded-xl border px-5 py-4 spotlight-glow ${
-        isPlain ? "border-border/50" : `${style.border} ${style.bg}`
+      style={{
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+      }}
+      className={`relative cursor-pointer rounded-2xl border px-5 py-4 spotlight-glow ${
+        isPlain ? "border-border/50 bg-white/30 dark:bg-white/[0.06]" : `${style.border} ${style.bg}`
       }`}
     >
       {isSpeaking && (
@@ -156,22 +173,17 @@ interface QuickAction {
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
+  { key: "next", label: "Next subtopic", icon: ArrowRight, message: "I'm ready to move on. Teach me the next subtopic following the NCERT textbook order." },
   { key: "explain", label: "Explain differently", icon: BookOpen, message: "Can you explain this in a different way?" },
-  { key: "demo", label: "Show demo", icon: Beaker, message: "Show me an interactive demo to understand this better.", needsDemo: true },
+  { key: "demo", label: "Show demo", icon: Beaker, message: "Generate an interactive visual demo that lets me explore this concept hands-on with sliders or controls." },
   { key: "quiz", label: "Quiz me", icon: Brain, message: "Test my understanding with a quiz question." },
   { key: "question", label: "Ask a question", icon: MessageCircle, message: "" },
 ];
 
 function ActionBar() {
-  const { sendQuickAction, getActiveContext } = useAppStore();
-  const ctx = getActiveContext();
+  const { sendQuickAction } = useAppStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const [askMode, setAskMode] = useState(false);
-
-  const hasDemos = !!(
-    ctx?.topic.contentPath ||
-    (ctx?.topic.subtopics || []).some((s) => s.contentPath)
-  );
 
   const handleAction = (action: QuickAction) => {
     if (action.key === "question") {
@@ -199,7 +211,7 @@ function ActionBar() {
       className="mt-4 space-y-3"
     >
       <div className="flex flex-wrap gap-2">
-        {QUICK_ACTIONS.filter((a) => !a.needsDemo || hasDemos).map((action, i) => {
+        {QUICK_ACTIONS.map((action, i) => {
           const Icon = action.icon;
           return (
             <motion.button

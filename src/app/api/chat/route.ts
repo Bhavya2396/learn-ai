@@ -92,6 +92,25 @@ function mapFunctionCallToAction(
         },
       };
 
+    case "show_demo_section":
+      return {
+        type: "demo" as const,
+        data: {
+          url: fc.args.url as string,
+          title: (fc.args.title as string) || topicName,
+          sectionIndex: fc.args.sectionIndex != null ? (fc.args.sectionIndex as number) : undefined,
+        },
+      };
+
+    case "generate_interactive_demo":
+      return {
+        type: "generated_demo" as const,
+        data: {
+          html: fc.args.html as string,
+          title: (fc.args.title as string) || topicName,
+        },
+      };
+
     case "pose_quiz_question": {
       const options = fc.args.options as string[];
       const correctIndex = fc.args.correct_index as number;

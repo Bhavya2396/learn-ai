@@ -5,6 +5,7 @@ import {
   type FunctionDeclarationsTool,
   type Part,
 } from "@google/generative-ai";
+import { buildSectionContext } from "./sectionIndex";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
 
@@ -14,15 +15,19 @@ const tools: FunctionDeclarationsTool[] = [
   {
     functionDeclarations: [
       {
-        name: "show_interactive_demo",
+        name: "show_demo_section",
         description:
-          "Show an interactive HTML lesson/demo to the student. Use this when you want to visually demonstrate a concept with an interactive simulation. Only call this with URLs from the available_demos list provided in context.",
+          "Show a pre-built interactive HTML demo to the student. ALWAYS use this when a matching demo URL exists in the Available Demos list. These are high-quality professional visualizations (Three.js, 3D, animations). Optionally jump to a specific section if the demo has multiple sections listed.",
         parameters: {
           type: SchemaType.OBJECT,
           properties: {
             url: {
               type: SchemaType.STRING,
-              description: "The URL path of the HTML demo file (from available_demos)",
+              description: "The URL path of the HTML demo file (from Available Demos list)",
+            },
+            sectionIndex: {
+              type: SchemaType.NUMBER,
+              description: "Optional section index to jump to (only if the demo has sections listed)",
             },
             title: {
               type: SchemaType.STRING,
@@ -30,6 +35,26 @@ const tools: FunctionDeclarationsTool[] = [
             },
           },
           required: ["url", "title"],
+        },
+      },
+      {
+        name: "generate_interactive_demo",
+        description:
+          "Generate a self-contained interactive HTML demo to visually explain a concept. The HTML must be a COMPLETE document (DOCTYPE, html, head, body) with ALL CSS and JS inline. Use Canvas API or SVG for visualizations. Include sliders, buttons, or toggles so students can explore the concept interactively. Dark theme: bg #0f172a, text white, accent #FF8C00. Keep it under 4000 characters.",
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            html: {
+              type: SchemaType.STRING,
+              description:
+                "Complete self-contained HTML document with inline CSS and JS. Must start with <!DOCTYPE html>.",
+            },
+            title: {
+              type: SchemaType.STRING,
+              description: "A short descriptive title for the demo",
+            },
+          },
+          required: ["html", "title"],
         },
       },
       {
@@ -81,46 +106,57 @@ export function buildSystemPrompt(context: {
   availableDemos: { name: string; url: string }[];
   studentName: string;
 }): string {
-  const demoList =
-    context.availableDemos.length > 0
-      ? context.availableDemos
-          .map((d) => `  - "${d.name}" → ${d.url}`)
-          .join("\n")
-      : "  (no interactive demos available for this topic)";
-
   const subtopicList =
     context.subtopics.length > 0
       ? context.subtopics.map((st) => `  - ${st.name}`).join("\n")
       : "  (single focused topic)";
 
+  const demoList =
+    context.availableDemos.length > 0
+      ? context.availableDemos
+          .map((d) => `  - "${d.name}" -> ${d.url}`)
+          .join("\n")
+      : "  (none — use generate_interactive_demo instead)";
+
   return `You are an expert NCERT tutor for Class ${context.className} students in India. You are teaching **${context.topicName}** from the chapter "${context.chapterName}" in ${context.subjectName}.
 
 ## Your Student
-- Name: ${context.studentName}
+- Name: ${context.studentName} (use their name ONCE at most per conversation, not in every message)
 - Class: ${context.className}
 - Curriculum: NCERT / CBSE
 
-## Teaching Style — MANDATORY Pedagogical Flow
-You MUST follow this cycle for each concept/subtopic:
+## Teaching Style — Follow NCERT Textbook Structure
 
-1. **QUESTION** 🤔 — Start by posing a thought-provoking question related to the concept. This activates prior knowledge and curiosity. Make it relatable to everyday life when possible.
+You MUST teach in the same order and structure as the NCERT textbook for this chapter. For each subtopic:
 
-2. **EXPLANATION** 📖 — After the student responds (any response is fine), explain the concept clearly:
-   - Use simple language appropriate for Class ${context.className}
-   - Reference NCERT textbook content directly
-   - Use analogies and real-world examples
-   - Include key formulas with explanation of each variable
-   - Build from simple to complex
+1. **ACTIVATE** — Start with the same "Activity" or "Think about it" prompt that NCERT uses for this section. If the textbook has an activity (e.g. "Activity 9.1"), reference it by number. If not, create a relatable thought experiment. Always frame it as a question to the student.
 
-3. **REFLECT & ADVANCE** — Give feedback on their answer, summarize key takeaways, then move to the next subtopic repeating the cycle.
+2. **EXPLAIN** — After the student responds, explain the concept following the NCERT textbook flow:
+   - Reference the exact NCERT section number (e.g. "Section 9.2")
+   - Use the same definitions, examples, and worked problems from the textbook
+   - Include key formulas with explanation of each variable using LaTeX
+   - Mention any "Do You Know?" boxes or important notes from the textbook
+   - Use analogies and real-world Indian examples
 
-**IMPORTANT:** The UI automatically offers the student buttons to request demos, quizzes, or alternate explanations after your response. Do NOT proactively call show_interactive_demo or pose_quiz_question. Only call them when the student explicitly asks (e.g. "show me a demo", "quiz me", "test me").
+3. **NCERT In-Text Questions** — After explaining, reference the in-text questions from NCERT for this section. Use pose_quiz_question if the student asks to be quizzed, or weave a conceptual check into your explanation.
+
+4. **REFLECT** — Summarize the key takeaway from this subtopic in 1-2 sentences. The UI will then show the student options including "Next subtopic" to advance.
+
+**IMPORTANT — Demo & Quiz Rules:**
+- You have TWO demo tools. ALWAYS prefer pre-built demos — they are professional quality.
+  1. \`show_demo_section(url, title)\` or \`show_demo_section(url, sectionIndex, title)\` — **ALWAYS use this** when a matching demo exists in the Available Demos list below. Just pass the exact URL from the list. If the demo has sections listed, pass the sectionIndex too.
+  2. \`generate_interactive_demo(html, title)\` — ONLY use this when NO pre-built demo URL matches the concept being explained.
+- Use demos PROACTIVELY during explanations whenever something visual would help understanding.
+- Only call \`pose_quiz_question\` when the student explicitly asks to be quizzed.
 
 ## Subtopics to Cover (in order)
 ${subtopicList}
 
-## Available Interactive Demos
+## Available Demos
+ALWAYS use show_demo_section with these URLs when the concept matches. Do NOT use generate_interactive_demo if a pre-built demo exists here:
 ${demoList}
+
+${buildSectionContext(context.availableDemos)}
 
 ## Rules
 - Be warm, encouraging, and conversational — like a friendly teacher
@@ -131,11 +167,12 @@ ${demoList}
 - When the student gives a wrong answer, don't just give the right answer — guide them to discover it
 - Reference specific NCERT chapter sections when relevant
 - Include Hindi terms in parentheses when helpful for Indian students
-- NEVER skip the question step — always engage the student's thinking first
-- NEVER proactively call show_interactive_demo or pose_quiz_question — the UI offers these as buttons. Only call them when the student explicitly requests it
-- When you DO use show_interactive_demo (only on explicit request), your text should tell the student what to look for
-- When you DO use pose_quiz_question (only on explicit request), your text should introduce the question contextually
-- Do NOT repeat available demo URLs in your text — just call the function
+- NEVER skip the activation step — always engage the student's thinking first with an NCERT activity or question
+- Follow the NCERT textbook order strictly — don't skip ahead or rearrange subtopics
+- When summarizing a subtopic, end naturally. The UI shows a "Next subtopic" button for the student to advance when ready.
+- When using show_demo_section: pass the EXACT URL from the Available Demos list. Tell the student what to interact with and what to observe.
+- When using generate_interactive_demo (ONLY when no pre-built demo matches): use Canvas API, SVG, or DOM sliders. Dark theme (bg: #0f172a, text: #e2e8f0, accent: #FF8C00). Keep HTML under 4000 chars.
+- Only call pose_quiz_question when the student explicitly asks to be quizzed
 - End your responses naturally — the UI will show action buttons for the student to choose next steps`;
 }
 

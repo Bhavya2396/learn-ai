@@ -11,6 +11,7 @@ import {
 import { studentProfile } from "./mock-data";
 import { getVoiceManager } from "./voiceManager";
 import { type ContentCard, splitIntoCards } from "./splitChunks";
+import { useProgressStore } from "./progressStore";
 
 export type { ContentCard };
 
@@ -159,6 +160,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
 
+    // Init progress tracking for this topic
+    const subtopicCount = (topic.subtopics || []).length || 1;
+    const demosAvailable = (topic.subtopics || []).filter((s) => s.contentPath).length
+      + (topic.contentPath ? 1 : 0);
+    useProgressStore.getState().initTopic(topicId, cls, subtopicCount, demosAvailable);
+
     const loadingMsg = makeMsg("assistant", `Loading **${topic.name}**...`);
     loadingMsg.isStreaming = true;
 
@@ -232,6 +239,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     const userMsg = makeMsg("user", text.trim());
     const updatedMessages = [...chat.messages, userMsg];
 
+    // Signal: subtopic engaged (user sent a message in this topic)
+    useProgressStore.getState().markSubtopicEngaged(activeTopicId, activeTopicId);
+
     set({
       chats: {
         ...chats,
@@ -258,6 +268,15 @@ export const useAppStore = create<AppState>((set, get) => ({
         const current = get();
         const currentChat = current.chats[activeTopicId];
         if (!currentChat) return;
+
+        // Signal: cycle completed (AI responded to user's message = Q->A->E)
+        const ps = useProgressStore.getState();
+        ps.incrementCycle(activeTopicId);
+
+        // Signal: demo viewed if response includes a demo action
+        if (action && (action.type === "demo" || action.type === "generated_demo")) {
+          ps.markDemoViewed(activeTopicId, action.type === "demo" ? action.data.url : "generated");
+        }
 
         set({
           chats: {
