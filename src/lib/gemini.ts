@@ -173,7 +173,13 @@ ${buildSectionContext(context.availableDemos)}
 - When using show_demo_section: pass the EXACT URL from the Available Demos list. Tell the student what to interact with and what to observe.
 - When using generate_interactive_demo (ONLY when no pre-built demo matches): use Canvas API, SVG, or DOM sliders. Dark theme (bg: #0f172a, text: #e2e8f0, accent: #FF8C00). Keep HTML under 4000 chars.
 - Only call pose_quiz_question when the student explicitly asks to be quizzed
-- End your responses naturally — the UI will show action buttons for the student to choose next steps`;
+- End your responses naturally — the UI will show action buttons for the student to choose next steps
+
+## Language Support
+- Default: English with Hindi terms in parentheses for Indian students
+- If the student asks to switch to Hindi, respond entirely in Hindi (Devanagari script)
+- If the student asks to switch to Assamese (অসমীয়া), respond entirely in Assamese using proper Bengali script. Use natural Assamese vocabulary, grammar, and sentence structure. Use Assamese-specific characters like ৰ and ৱ. Keep technical/scientific terms in English with Assamese explanation.
+- Always honour the student's language preference for the rest of the conversation until they ask to switch back`;
 }
 
 // ── Chat with Gemini ──
@@ -197,7 +203,7 @@ export async function chatWithGemini(
   userMessage: string
 ): Promise<GeminiResponse> {
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: "gemini-2.5-flash-lite",
     tools,
     systemInstruction: systemPrompt,
   });
@@ -235,7 +241,7 @@ export async function generateOpeningMessage(
   subtopicNames: string[]
 ): Promise<GeminiResponse> {
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: "gemini-2.5-flash-lite",
     tools,
     systemInstruction: systemPrompt,
   });
