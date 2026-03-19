@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graphical Method of Linear Equations</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(126, 87, 194, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(126, 87, 194, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3.2rem;
+            background: linear-gradient(45deg, #00ff88, #00bbff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .animation-stage {
+            background: linear-gradient(to bottom, #1a1a2e 0%, #16213e 100%);
+            border-radius: 25px;
+            height: 600px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            border: 4px solid rgba(0, 255, 136, 0.4);
+        }
+
+        .grid-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.3;
+        }
+
+        .stage-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .animation-scene {
+            display: none;
+            opacity: 0;
+            transition: opacity 1s ease;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 40px;
+        }
+
+        .animation-scene.visible {
+            display: flex;
+            opacity: 1;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .welcome-scene {
+            text-align: center;
+        }
+
+        .welcome-title {
+            font-size: 2.5rem;
+            color: #00ff88;
+            margin-bottom: 20px;
+            animation: titleGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+            50% { text-shadow: 0 0 20px rgba(0, 255, 136, 0.8); }
+        }
+
+        .solution-types {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .type-card {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 187, 255, 0.15));
+            border: 2px solid rgba(0, 255, 136, 0.4);
+            border-radius: 20px;
+            padding: 25px;
+            flex: 1;
+            min-width: 250px;
+            text-align: center;
+            transform: scale(0);
+            animation: cardAppear 0.5s ease forwards;
+            backdrop-filter: blur(10px);
+        }
+
+        .type-card:nth-child(1) { animation-delay: 0.2s; }
+        .type-card:nth-child(2) { animation-delay: 0.4s; }
+        .type-card:nth-child(3) { animation-delay: 0.6s; }
+
+        @keyframes cardAppear {
+            to { transform: scale(1); }
+        }
+
+        .type-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .type-title {
+            font-size: 1.4rem;
+            color: #00ff88;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .type-description {
+            font-size: 1rem;
+            color: #e2e8f0;
+            line-height: 1.5;
+        }
+
+        .ratio-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 0.95rem;
+            color: #ffd700;
+            font-family: 'Courier New', monospace;
+        }
+
+        .graph-content {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .graph-canvas {
+            width: 100%;
+            max-width: 550px;
+            height: 380px;
+            background: rgba(22, 33, 62, 0.9);
+            border-radius: 10px;
+        }
+
+        .graph-legend {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 1rem;
+            padding: 10px;
+        }
+
+        .legend-item {
+            display: inline-block;
+            margin: 0 15px;
+            font-weight: 600;
+        }
+
+        .equation-display {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .equation-box {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 187, 255, 0.1));
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            border-radius: 20px;
+            padding: 25px;
+            margin: 15px 0;
+            font-size: 1.8rem;
+            font-family: 'Courier New', monospace;
+            color: #00ff88;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: equationSlide 0.5s ease forwards;
+        }
+
+        .equation-box:nth-child(2) { animation-delay: 0.3s; }
+        .equation-box:nth-child(3) { animation-delay: 0.6s; }
+
+        @keyframes equationSlide {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .variable-highlight {
+            color: #ffff00;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+        }
+
+        .solution-result {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 105, 180, 0.2));
+            border: 3px solid rgba(255, 215, 0, 0.5);
+            border-radius: 25px;
+            padding: 30px;
+            margin: 20px auto;
+            max-width: 500px;
+            text-align: center;
+            transform: scale(0);
+            animation: solutionPop 0.5s ease forwards;
+        }
+
+        @keyframes solutionPop {
+            to { transform: scale(1); }
+        }
+
+        .solution-title {
+            font-size: 1.6rem;
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+
+        .solution-value {
+            font-size: 2rem;
+            color: #ff69b4;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .info-display {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 15px 20px;
+            text-align: center;
+            font-size: 1.1rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            backdrop-filter: blur(10px);
+            margin: 20px 0;
+            border: 2px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .info-display.visible {
+            opacity: 1;
+        }
+
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            color: #00ff88;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #764ba2, #667eea);
+            border: none;
+            color: white;
+            padding: 16px 28px;
+            border-radius: 35px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(118, 75, 162, 0.3);
+            min-width: 200px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(118, 75, 162, 0.4);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #00ff88, #00bbff);
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.4);
+        }
+
+        .analysis {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(0, 255, 136, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .analysis-title {
+            font-size: 1.6rem;
+            color: #00ff88;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .analysis-content {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            text-align: center;
+            color: #e2e8f0;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .animation-stage {
+                height: 500px;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .solution-types {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Graphical Method of Linear Equations</h1>
+            <p>Discover the three types of solutions and master the graphical approach to solving linear equation systems!</p>
+        </div>
+
+        <div class="animation-stage">
+            <div class="grid-background"></div>
+            
+            <div class="stage-content">
+                <div class="animation-scene visible" id="welcome-scene">
+                    <div class="welcome-scene">
+                        <h2 class="welcome-title">Understanding Solution Types</h2>
+                        <p style="font-size: 1.3rem; color: #00bbff;">
+                            Linear equation pairs can have one solution,<br>
+                            infinitely many solutions, or no solution at all!
+                        </p>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="types-scene">
+                    <div class="solution-types">
+                        <div class="type-card">
+                            <div class="type-icon">✖️</div>
+                            <div class="type-title">Intersecting Lines</div>
+                            <div class="type-description">
+                                Lines meet at ONE point<br>
+                                <strong>Unique Solution</strong><br>
+                                (Consistent)
+                            </div>
+                            <div class="ratio-box">
+                                a₁/a₂ ≠ b₁/b₂
+                            </div>
+                        </div>
+                        <div class="type-card">
+                            <div class="type-icon">∞</div>
+                            <div class="type-title">Coincident Lines</div>
+                            <div class="type-description">
+                                Lines overlap completely<br>
+                                <strong>Infinite Solutions</strong><br>
+                                (Dependent)
+                            </div>
+                            <div class="ratio-box">
+                                a₁/a₂ = b₁/b₂ = c₁/c₂
+                            </div>
+                        </div>
+                        <div class="type-card">
+                            <div class="type-icon">∥</div>
+                            <div class="type-title">Parallel Lines</div>
+                            <div class="type-description">
+                                Lines never meet<br>
+                                <strong>No Solution</strong><br>
+                                (Inconsistent)
+                            </div>
+                            <div class="ratio-box">
+                                a₁/a₂ = b₁/b₂ ≠ c₁/c₂
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="intersecting-scene">
+                    <div class="graph-content">
+                        <h2 style="font-size: 1.8rem; color: #00ff88; margin-bottom: 15px; text-align: center;">
+                            Intersecting Lines - Unique Solution
+                        </h2>
+                        <canvas id="graph-intersecting" class="graph-canvas"></canvas>
+                        <div class="graph-legend">
+                            <span class="legend-item" style="color: #00ff88;">━ x + 3y = 6</span>
+                            <span class="legend-item" style="color: #00bbff;">━ 2x - 3y = 12</span>
+                            <span class="legend-item" style="color: #ffff00;">● Solution (6, 0)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="coincident-scene">
+                    <div class="graph-content">
+                        <h2 style="font-size: 1.8rem; color: #00ff88; margin-bottom: 15px; text-align: center;">
+                            Coincident Lines - Infinite Solutions
+                        </h2>
+                        <canvas id="graph-coincident" class="graph-canvas"></canvas>
+                        <div class="graph-legend">
+                            <span class="legend-item" style="color: #00ff88;">━ 5x - 8y + 1 = 0</span>
+                            <span class="legend-item" style="color: #ff69b4;">━ 3x - (24/5)y + 3/5 = 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="parallel-scene">
+                    <div class="graph-content">
+                        <h2 style="font-size: 1.8rem; color: #00ff88; margin-bottom: 15px; text-align: center;">
+                            Parallel Lines - No Solution
+                        </h2>
+                        <canvas id="graph-parallel" class="graph-canvas"></canvas>
+                        <div class="graph-legend">
+                            <span class="legend-item" style="color: #00ff88;">━ x + 2y - 4 = 0</span>
+                            <span class="legend-item" style="color: #ff6b6b;">━ 2x + 4y - 12 = 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example3-problem">
+                    <div class="equation-display">
+                        <h2 style="font-size: 2rem; color: #ffd700; margin-bottom: 20px;">
+                            🛍️ Champa's Shopping Problem
+                        </h2>
+                        <p style="font-size: 1.25rem; margin-bottom: 20px; line-height: 1.8; color: #e2e8f0;">
+                            Champa went to a sale to purchase pants and skirts.<br><br>
+                            When asked how many of each she bought, she said:<br>
+                            <span style="color: #00ff88;">"The number of skirts is two less than twice the number of pants."</span><br><br>
+                            <span style="color: #00bbff;">"Also, the number of skirts is four less than four times the number of pants."</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example3-equations">
+                    <div class="equation-display">
+                        <h2 style="font-size: 2rem; color: #00ff88; margin-bottom: 30px;">
+                            Building the Equations
+                        </h2>
+                        <p style="font-size: 1.2rem; margin-bottom: 20px;">
+                            Let x = number of pants<br>
+                            Let y = number of skirts
+                        </p>
+                        <div class="equation-box">
+                            <span class="variable-highlight">y</span> = 2<span class="variable-highlight">x</span> - 2
+                        </div>
+                        <div class="equation-box">
+                            <span class="variable-highlight">y</span> = 4<span class="variable-highlight">x</span> - 4
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example3-solving">
+                    <div class="equation-display">
+                        <h2 style="font-size: 2rem; color: #00ff88; margin-bottom: 30px;">
+                            Solving Algebraically
+                        </h2>
+                        <div style="font-size: 1.3rem; line-height: 2; text-align: left; max-width: 500px; margin: 0 auto;">
+                            <p>Since both equal y:</p>
+                            <p style="color: #00bbff; margin: 15px 0;">2x - 2 = 4x - 4</p>
+                            <p style="color: #e2e8f0; margin: 15px 0;">-2 + 4 = 4x - 2x</p>
+                            <p style="color: #00ff88; margin: 15px 0;">2 = 2x</p>
+                            <p style="color: #ffd700; margin: 15px 0; font-size: 1.5rem;"><strong>x = 1</strong></p>
+                            <p style="margin-top: 20px;">Substitute back:</p>
+                            <p style="color: #ff69b4; margin: 15px 0;">y = 2(1) - 2 = 0</p>
+                            <p style="color: #ffd700; margin: 15px 0; font-size: 1.5rem;"><strong>y = 0</strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example3-graph">
+                    <div class="graph-content">
+                        <h2 style="font-size: 1.8rem; color: #ffd700; margin-bottom: 15px; text-align: center;">
+                            Graphical Solution
+                        </h2>
+                        <canvas id="graph-example3" class="graph-canvas"></canvas>
+                        <div class="graph-legend">
+                            <span class="legend-item" style="color: #00ff88;">━ y = 2x - 2</span>
+                            <span class="legend-item" style="color: #00bbff;">━ y = 4x - 4</span>
+                            <span class="legend-item" style="color: #ffff00;">● Solution (1, 0)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example3-result">
+                    <div class="equation-display">
+                        <div class="solution-result">
+                            <div class="solution-title">Final Answer</div>
+                            <div class="solution-value">
+                                Pants (x) = 1<br>
+                                Skirts (y) = 0
+                            </div>
+                            <p style="font-size: 1.2rem; color: #e2e8f0; margin-top: 20px; line-height: 1.6;">
+                                Champa bought 1 pair of pants<br>
+                                and did not buy any skirts
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-display visible" id="info-display">
+            Click any button below to explore different solution types!
+        </div>
+
+        <div class="controls">
+            <div class="controls-title" id="lesson-title">Explore Solution Types</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playCompleteLesson()">📚 Complete Lesson</button>
+                <button class="demo-btn" onclick="showSolutionTypes()">📊 Solution Types</button>
+                <button class="demo-btn" onclick="showIntersecting()">✖️ Intersecting Lines</button>
+                <button class="demo-btn" onclick="showCoincident()">∞ Coincident Lines</button>
+                <button class="demo-btn" onclick="showParallel()">∥ Parallel Lines</button>
+                <button class="demo-btn" onclick="showExample3()">🛍️ Champa's Problem</button>
+                <button class="demo-btn" onclick="resetAll()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <div class="analysis">
+            <div class="analysis-title">📐 Key Concepts</div>
+            <div class="analysis-content" id="analysis-content">
+                A pair of linear equations can be consistent (having solutions) or inconsistent (having no solution). 
+                Use the ratio test to determine the type of solution without graphing!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Narrator {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.95, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+            }
+        }
+
+        let globalAudioEnabled = true;
+        let currentNarrator = null;
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let currentTaskId = null;
+        let currentRunId = null;
+        let animationTimeouts = [];
+        let currentCharts = {};
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentTaskId = null;
+            
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            Object.values(currentCharts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            currentCharts = {};
+            
+            updateInfo("Click any button below to start exploring!");
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null, runId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            if (runId && currentRunId && runId !== currentRunId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewNarrator(taskId = null, runId = null) {
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentRunId = runId;
+            currentNarrator = new Narrator();
+            return currentNarrator;
+        }
+
+        function switchToScene(sceneId, taskId = null, runId = null) {
+            if (!shouldContinue(taskId, runId)) return;
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            const timeout = setTimeout(() => {
+                if (!shouldContinue(taskId, runId)) return;
+                const scene = document.getElementById(sceneId);
+                if (scene) {
+                    scene.classList.add('visible');
+                }
+            }, 300);
+            
+            animationTimeouts.push(timeout);
+        }
+
+        function getNewRunId() {
+            return Date.now();
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        function updateInfo(text) {
+            const info = document.getElementById('info-display');
+            info.textContent = text;
+            info.classList.add('visible');
+        }
+
+        function updateAnalysis(text) {
+            document.getElementById('analysis-content').textContent = text;
+        }
+
+        function updateTitle(title) {
+            document.getElementById('lesson-title').textContent = title;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function plotIntersecting() {
+            const canvas = document.getElementById('graph-intersecting');
+            if (!canvas || currentCharts.intersecting) return;
+            
+            const line1Data = [];
+            const line2Data = [];
+            for (let x = -2; x <= 8; x += 0.5) {
+                line1Data.push({x: x, y: (6 - x) / 3});
+                line2Data.push({x: x, y: (2*x - 12) / 3});
+            }
+            
+            currentCharts.intersecting = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {
+                            label: 'x + 3y = 6',
+                            data: line1Data,
+                            borderColor: '#00ff88',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: '2x - 3y = 12',
+                            data: line2Data,
+                            borderColor: '#00bbff',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: 'Solution',
+                            data: [{x: 6, y: 0}],
+                            borderColor: '#ffff00',
+                            backgroundColor: '#ffff00',
+                            pointRadius: 12,
+                            showLine: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: -2,
+                            max: 8,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#ffffff' }
+                        },
+                        y: {
+                            min: -6,
+                            max: 4,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#ffffff' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function plotCoincident() {
+            const canvas = document.getElementById('graph-coincident');
+            if (!canvas || currentCharts.coincident) return;
+            
+            const lineData = [];
+            for (let x = -2; x <= 5; x += 0.5) {
+                lineData.push({x: x, y: (5*x + 1) / 8});
+            }
+            
+            currentCharts.coincident = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {
+                            label: '5x - 8y + 1 = 0',
+                            data: lineData,
+                            borderColor: '#00ff88',
+                            borderWidth: 5,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: '3x - (24/5)y + 3/5 = 0',
+                            data: lineData,
+                            borderColor: '#ff69b4',
+                            borderWidth: 3,
+                            borderDash: [10, 5],
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: -2,
+                            max: 5,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#ffffff' }
+                        },
+                        y: {
+                            min: -1,
+                            max: 4,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#ffffff' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function plotParallel() {
+            const canvas = document.getElementById('graph-parallel');
+            if (!canvas || currentCharts.parallel) return;
+            
+            const line1Data = [];
+            const line2Data = [];
+            for (let x = -2; x <= 8; x += 0.5) {
+                line1Data.push({x: x, y: (4 - x) / 2});
+                line2Data.push({x: x, y: (12 - 2*x) / 4});
+            }
+            
+            currentCharts.parallel = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {
+                            label: 'x + 2y - 4 = 0',
+                            data: line1Data,
+                            borderColor: '#00ff88',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: '2x + 4y - 12 = 0',
+                            data: line2Data,
+                            borderColor: '#ff6b6b',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: -2,
+                            max: 8,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#ffffff' }
+                        },
+                        y: {
+                            min: -1,
+                            max: 5,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#ffffff' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function plotExample3() {
+            const canvas = document.getElementById('graph-example3');
+            if (!canvas || currentCharts.example3) return;
+            
+            const line1Data = [];
+            const line2Data = [];
+            for (let x = -1; x <= 3; x += 0.2) {
+                line1Data.push({x: x, y: 2*x - 2});
+                line2Data.push({x: x, y: 4*x - 4});
+            }
+            
+            currentCharts.example3 = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {
+                            label: 'y = 2x - 2',
+                            data: line1Data,
+                            borderColor: '#00ff88',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: 'y = 4x - 4',
+                            data: line2Data,
+                            borderColor: '#00bbff',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: 'Solution',
+                            data: [{x: 1, y: 0}],
+                            borderColor: '#ffff00',
+                            backgroundColor: '#ffff00',
+                            pointRadius: 12,
+                            showLine: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: -1,
+                            max: 3,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#ffffff' }
+                        },
+                        y: {
+                            min: -5,
+                            max: 5,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#ffffff' }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function playCompleteLesson() {
+            const taskId = 'complete-lesson';
+            const runId = getNewRunId();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("📚 Complete Graphical Method Lesson");
+            updateInfo("Starting comprehensive lesson...");
+            
+            await narrator.speak("Welcome to the graphical method of solving linear equations! Let's cover each case fully, one by one.");
+            if (!shouldContinue(taskId, runId)) return;
+
+            // Run each lesson identically to individual tabs
+            await runSolutionTypesLesson(narrator, taskId, runId);
+            if (!shouldContinue(taskId, runId)) return;
+            await runIntersectingLesson(narrator, taskId, runId);
+            if (!shouldContinue(taskId, runId)) return;
+            await runCoincidentLesson(narrator, taskId, runId);
+            if (!shouldContinue(taskId, runId)) return;
+            await runParallelLesson(narrator, taskId, runId);
+            if (!shouldContinue(taskId, runId)) return;
+            await runExample3Lesson(narrator, taskId, runId);
+            if (!shouldContinue(taskId, runId)) return;
+
+            updateInfo("Lesson complete! You covered all cases sequentially.");
+            updateAnalysis("Completed: Intersecting (unique), Coincident (infinite), Parallel (none), and Example problem solved both ways.");
+            
+            isPlaying = false;
+        }
+
+        async function showSolutionTypes() {
+            const taskId = 'types';
+            const runId = getNewRunId();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await runSolutionTypesLesson(narrator, taskId, runId);
+            
+            isPlaying = false;
+        }
+
+        async function showIntersecting() {
+            const taskId = 'intersecting';
+            const runId = getNewRunId();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await runIntersectingLesson(narrator, taskId, runId);
+            
+            isPlaying = false;
+        }
+
+        async function showCoincident() {
+            const taskId = 'coincident';
+            const runId = getNewRunId();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await runCoincidentLesson(narrator, taskId, runId);
+            
+            isPlaying = false;
+        }
+
+        async function showParallel() {
+            const taskId = 'parallel';
+            const runId = getNewRunId();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(4);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await runParallelLesson(narrator, taskId, runId);
+            
+            isPlaying = false;
+        }
+
+        async function showExample3() {
+            const taskId = 'example3';
+            const runId = getNewRunId();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(5);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await runExample3Lesson(narrator, taskId, runId);
+            
+            isPlaying = false;
+        }
+
+        // Reusable lesson runners to ensure identical behavior between tabs and complete lesson
+        async function runSolutionTypesLesson(narrator, taskId, runId) {
+            updateTitle("📊 Three Types of Solutions");
+            switchToScene('types-scene', taskId, runId);
+            updateInfo("Understanding all solution types");
+            
+            await narrator.speak("Linear equation pairs fall into three categories based on their graphical representation.");
+            if (!shouldContinue(taskId, runId)) return;
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("Intersecting lines give one unique solution. Coincident lines give infinite solutions. Parallel lines give no solution.");
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateAnalysis("Use ratio tests: Check a₁/a₂ compared to b₁/b₂ and c₁/c₂ to determine solution type without graphing!");
+        }
+
+        async function runIntersectingLesson(narrator, taskId, runId) {
+            updateTitle("✖️ Intersecting Lines");
+            switchToScene('intersecting-scene', taskId, runId);
+            await wait(500);
+            if (!shouldContinue(taskId, runId)) return;
+            plotIntersecting();
+            updateInfo("Lines meet at point (6, 0)");
+            
+            await narrator.speak("x plus 3y equals 6 and 2x minus 3y equals 12. These lines intersect at the point 6, 0.");
+            if (!shouldContinue(taskId, runId)) return;
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateAnalysis("Unique solution found! x = 6, y = 0. This is a consistent pair with exactly one solution.");
+        }
+
+        async function runCoincidentLesson(narrator, taskId, runId) {
+            updateTitle("∞ Coincident Lines");
+            switchToScene('coincident-scene', taskId, runId);
+            await wait(500);
+            if (!shouldContinue(taskId, runId)) return;
+            plotCoincident();
+            updateInfo("Lines overlap - infinite solutions");
+            
+            await narrator.speak("These equations represent the same line! Every point on the line is a solution, giving infinitely many solutions.");
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateAnalysis("Dependent consistent pair! The equations are equivalent: 5x - 8y + 1 = 0 is the same as 3x - (24/5)y + 3/5 = 0");
+        }
+
+        async function runParallelLesson(narrator, taskId, runId) {
+            updateTitle("∥ Parallel Lines");
+            switchToScene('parallel-scene', taskId, runId);
+            await wait(500);
+            if (!shouldContinue(taskId, runId)) return;
+            plotParallel();
+            updateInfo("Lines never meet - no solution");
+            
+            await narrator.speak("x plus 2y minus 4 equals 0 and 2x plus 4y minus 12 equals 0. These lines are parallel and never intersect.");
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateAnalysis("Inconsistent pair! Parallel lines have no common solution. The ratio a₁/a₂ equals b₁/b₂ but not c₁/c₂.");
+        }
+
+        async function runExample3Lesson(narrator, taskId, runId) {
+            updateTitle("🛍️ Champa's Shopping Problem");
+            
+            switchToScene('example3-problem', taskId, runId);
+            updateInfo("Understanding the problem");
+            await narrator.speak("Champa went to a sale to purchase pants and skirts. Let's understand what she told her friends.");
+            if (!shouldContinue(taskId, runId)) return;
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("The number of skirts is two less than twice the number of pants purchased.");
+            if (!shouldContinue(taskId, runId)) return;
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("Also, the number of skirts is four less than four times the number of pants purchased.");
+            if (!shouldContinue(taskId, runId)) return;
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example3-equations', taskId, runId);
+            updateInfo("Converting words to equations");
+            await narrator.speak("Let's use variables. Let x represent the number of pants and y represent the number of skirts.");
+            if (!shouldContinue(taskId, runId)) return;
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("From the first statement: y equals 2x minus 2. From the second statement: y equals 4x minus 4.");
+            if (!shouldContinue(taskId, runId)) return;
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example3-solving', taskId, runId);
+            updateInfo("Solving the equations algebraically");
+            await narrator.speak("Now let's solve these equations. Since both equal y, we can set them equal to each other.");
+            if (!shouldContinue(taskId, runId)) return;
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("2x minus 2 equals 4x minus 4. Rearranging: 2 equals 2x. Therefore x equals 1.");
+            if (!shouldContinue(taskId, runId)) return;
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("Substituting back: y equals 2 times 1 minus 2, which equals 0.");
+            if (!shouldContinue(taskId, runId)) return;
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example3-graph', taskId, runId);
+            await wait(500);
+            if (!shouldContinue(taskId, runId)) return;
+            plotExample3();
+            updateInfo("Visualizing the solution graphically");
+            await narrator.speak("Let's verify this graphically. We plot both equations on a coordinate plane.");
+            if (!shouldContinue(taskId, runId)) return;
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("The green line represents y equals 2x minus 2, and the blue line represents y equals 4x minus 4.");
+            if (!shouldContinue(taskId, runId)) return;
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("The lines intersect at the point 1, 0, confirming our algebraic solution!");
+            if (!shouldContinue(taskId, runId)) return;
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example3-result', taskId, runId);
+            updateInfo("Final answer interpretation");
+            await narrator.speak("Therefore, Champa bought 1 pair of pants and 0 skirts. She purchased only pants, no skirts!");
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateAnalysis("Problem solved both algebraically and graphically! x = 1, y = 0. This means Champa bought 1 pair of pants and no skirts.");
+        }
+
+        async function resetAll() {
+            if (currentNarrator) currentNarrator.stop();
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            Object.values(currentCharts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            currentCharts = {};
+            
+            await wait(50);
+            document.getElementById('welcome-scene').classList.add('visible');
+            
+            updateTitle("Explore Solution Types");
+            updateInfo("Click any button below to start exploring!");
+            updateAnalysis("A pair of linear equations can be consistent (having solutions) or inconsistent (having no solution). Use the ratio test to determine the type of solution without graphing!");
+            
+            setActiveButton(-1);
+            
+            await wait(50);
+        }
+
+        window.addEventListener('load', () => {
+            document.getElementById('welcome-scene').classList.add('visible');
+            const narrator = createNewNarrator('initialization', getNewRunId());
+            narrator.speak("Welcome! Let's explore the graphical method for solving linear equations and understand the three types of solutions.");
+        });
+
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            if (currentNarrator) {
+                currentNarrator.isEnabled = globalAudioEnabled;
+                if (!globalAudioEnabled) {
+                    currentNarrator.stop();
+                }
+            }
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+        });
+    </script>
+</body>
+</html>

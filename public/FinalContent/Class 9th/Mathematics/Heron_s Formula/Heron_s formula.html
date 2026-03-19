@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heron's Formula - Master Triangle Areas</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header - Compact */
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Layout */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Demo Stage */
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+        }
+
+        /* Stage Content */
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--accent-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Triangle SVG Container */
+        .triangle-container {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto;
+        }
+
+        /* Formula Display */
+        .formula-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 1.2rem;
+            font-family: 'Courier New', monospace;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .formula-highlight {
+            color: var(--text-accent);
+            font-weight: bold;
+        }
+
+        /* Calculation Steps */
+        .calculation-steps {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .step {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border-left: 4px solid var(--text-accent);
+            opacity: 0;
+            transform: translateX(-20px);
+            animation: slideInStep 0.5s ease-out forwards;
+        }
+
+        @keyframes slideInStep {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Interactive Elements */
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .input-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .input-box label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .input-box input {
+            width: 80px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--glass-border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            text-align: center;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .input-box input:focus {
+            outline: none;
+            border-color: var(--text-accent);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .calculate-btn {
+            padding: 12px 30px;
+            background: var(--success-gradient);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: var(--transition);
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(67, 233, 123, 0.4);
+        }
+
+        /* Result Display */
+        .result-display {
+            background: var(--success-gradient);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+            box-shadow: var(--shadow-primary);
+            animation: bounceIn 0.5s ease-out;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Quiz Styles */
+        .quiz-container {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .question {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .question h3 {
+            color: var(--text-accent);
+            margin-bottom: 15px;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .option-btn {
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--glass-border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            text-align: left;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .option-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .option-btn.correct {
+            background: var(--success-gradient);
+            border-color: transparent;
+        }
+
+        .option-btn.incorrect {
+            background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+            border-color: transparent;
+        }
+
+        /* Theory Cards Styles */
+        .theory-section {
+            margin-top: 30px;
+            padding: 20px;
+        }
+
+        .theory-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .theory-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 0;
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .theory-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            border-color: var(--text-accent);
+        }
+
+        .card-header {
+            background: var(--accent-gradient);
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .card-header h3 {
+            color: white;
+            font-size: 1.2rem;
+            margin: 0;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-content {
+            padding: 25px;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .card-content p {
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+
+        .card-content ul, .card-content ol {
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+
+        .card-content li {
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .card-content strong {
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        .card-content .formula-highlight {
+            background: rgba(251, 191, 36, 0.1);
+            border: 2px solid var(--text-accent);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            color: var(--text-accent);
+            font-weight: bold;
+        }
+
+        /* Card animations */
+        .theory-card {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: cardSlideIn 0.6s ease-out forwards;
+        }
+
+        .theory-card:nth-child(1) { animation-delay: 0.1s; }
+        .theory-card:nth-child(2) { animation-delay: 0.2s; }
+        .theory-card:nth-child(3) { animation-delay: 0.3s; }
+        .theory-card:nth-child(4) { animation-delay: 0.4s; }
+        .theory-card:nth-child(5) { animation-delay: 0.5s; }
+        .theory-card:nth-child(6) { animation-delay: 0.6s; }
+        .theory-card:nth-child(7) { animation-delay: 0.7s; }
+        .theory-card:nth-child(8) { animation-delay: 0.8s; }
+
+        @keyframes cardSlideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .triangle-container {
+                height: 300px;
+            }
+
+            .formula-box {
+                font-size: 1rem;
+                padding: 15px;
+            }
+            
+            /* Make park example stack vertically on mobile */
+            .park-example-grid {
+                grid-template-columns: 1fr !important;
+                gap: 20px !important;
+            }
+
+            /* Theory cards responsive */
+            .theory-cards-container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                padding: 0 10px;
+            }
+
+            .theory-card {
+                margin: 0;
+            }
+
+            .card-header h3 {
+                font-size: 1.1rem;
+            }
+
+            .card-content {
+                padding: 20px;
+            }
+
+            .card-content p, .card-content li {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>Heron's Formula Mastery</h1>
+        <p>Learn to find the area of any triangle using just its sides!</p>
+    </div>
+
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="mute-icon">🔇</span>
+            <span class="unmute-icon">🔊</span>
+        </button>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Demo Stage -->
+        <div class="demo-stage" id="demo-stage">
+            <div class="stage-content active">
+                <h2 style="color: var(--text-accent); margin-bottom: 20px;">Welcome to Heron's Formula!</h2>
+                <div class="triangle-container">
+                    <svg width="300" height="250" viewBox="0 0 300 250">
+                        <polygon points="150,50 50,200 250,200" 
+                                 fill="none" 
+                                 stroke="var(--text-accent)" 
+                                 stroke-width="3" 
+                                 opacity="0.8"/>
+                        <text x="150" y="35" text-anchor="middle" fill="var(--text-primary)">A</text>
+                        <text x="35" y="210" text-anchor="middle" fill="var(--text-primary)">B</text>
+                        <text x="265" y="210" text-anchor="middle" fill="var(--text-primary)">C</text>
+                    </svg>
+                </div>
+                <p style="text-align: center; max-width: 600px; color: var(--text-secondary);">
+                    Discover how to find the area of any triangle when you only know the lengths of its sides!
+                </p>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">Introduction</button>
+            <button class="demo-btn" data-demo="formula">The Formula</button>
+            <button class="demo-btn" data-demo="example1">Park Example</button>
+            <button class="demo-btn" data-demo="example2">More Examples</button>
+            <button class="demo-btn" data-demo="calculator">Calculator</button>
+            <button class="demo-btn" data-demo="quiz">Test Yourself</button>
+            <button class="demo-btn" data-demo="reset">Reset</button>
+        </div>
+
+        <!-- Theory Cards Section -->
+        <div class="theory-section">
+            <h2 style="color: var(--text-accent); text-align: center; margin-bottom: 30px; font-size: 1.8rem;">📚 Theory Cards</h2>
+            <div class="theory-cards-container">
+                <!-- Card 1: What is Heron's Formula -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <h3>🔍 What is Heron's Formula?</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Heron's Formula is a mathematical formula used to find the area of a triangle when you know the lengths of all three sides, but not the height.</p>
+                        <div class="formula-highlight">Area = √[s(s-a)(s-b)(s-c)]</div>
+                        <p><strong>Where:</strong> s = semi-perimeter = (a + b + c) / 2</p>
+                    </div>
+                </div>
+
+                <!-- Card 2: Historical Background -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <h3>📜 Historical Background</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Named after <strong>Heron of Alexandria</strong> (also known as Hero), a Greek mathematician and engineer who lived around 10-70 AD.</p>
+                        <p>Heron was famous for his work in geometry and mechanics, and this formula was one of his most significant contributions to mathematics.</p>
+                        <p>The formula was actually known to Archimedes earlier, but Heron provided the first clear proof.</p>
+                    </div>
+                </div>
+
+                <!-- Card 3: When to Use -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <h3>⚡ When to Use Heron's Formula</h3>
+                    </div>
+                    <div class="card-content">
+                        <ul>
+                            <li>✅ When you know all three sides of a triangle</li>
+                            <li>✅ When the height is difficult to measure or calculate</li>
+                            <li>✅ For surveying and land measurement</li>
+                            <li>✅ In engineering and construction</li>
+                            <li>❌ Don't use when you already know the base and height</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Card 4: Triangle Inequality -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <h3>📐 Triangle Inequality Theorem</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Before using Heron's Formula, ensure the sides can form a valid triangle:</p>
+                        <div class="formula-highlight">
+                            a + b > c<br>
+                            a + c > b<br>
+                            b + c > a
+                        </div>
+                        <p><strong>Example:</strong> Sides 3, 4, 5 form a valid triangle because 3+4>5, 3+5>4, and 4+5>3.</p>
+                    </div>
+                </div>
+
+                <!-- Card 5: Special Cases -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <h3>⭐ Special Triangle Cases</h3>
+                    </div>
+                    <div class="card-content">
+                        <p><strong>Right Triangle:</strong> If a² + b² = c², it's a right triangle</p>
+                        <p><strong>Equilateral Triangle:</strong> All sides equal (a = b = c)</p>
+                        <p><strong>Isosceles Triangle:</strong> Two sides equal (a = b ≠ c)</p>
+                        <p><strong>Scalene Triangle:</strong> All sides different lengths</p>
+                        <p>Heron's Formula works for ALL types of triangles!</p>
+                    </div>
+                </div>
+
+                <!-- Card 6: Advantages -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <h3>🎯 Advantages of Heron's Formula</h3>
+                    </div>
+                    <div class="card-content">
+                        <ul>
+                            <li>No need to find or measure height</li>
+                            <li>Works for any triangle type</li>
+                            <li>Only requires three side lengths</li>
+                            <li>Useful in real-world applications</li>
+                            <li>Provides exact area calculation</li>
+                            <li>Great for computer programming</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Card 7: Step-by-Step Process -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <h3>📋 Step-by-Step Process</h3>
+                    </div>
+                    <div class="card-content">
+                        <ol>
+                            <li><strong>Identify the sides:</strong> Label them as a, b, c</li>
+                            <li><strong>Check validity:</strong> Ensure triangle inequality holds</li>
+                            <li><strong>Calculate semi-perimeter:</strong> s = (a + b + c) / 2</li>
+                            <li><strong>Find differences:</strong> Calculate (s-a), (s-b), (s-c)</li>
+                            <li><strong>Apply formula:</strong> Area = √[s(s-a)(s-b)(s-c)]</li>
+                            <li><strong>Simplify:</strong> Take the square root</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Card 8: Real-World Applications -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <h3>🌍 Real-World Applications</h3>
+                    </div>
+                    <div class="card-content">
+                        <ul>
+                            <li><strong>Surveying:</strong> Measuring land areas</li>
+                            <li><strong>Architecture:</strong> Calculating floor areas</li>
+                            <li><strong>Engineering:</strong> Structural design calculations</li>
+                            <li><strong>Navigation:</strong> GPS and mapping systems</li>
+                            <li><strong>Computer Graphics:</strong> 3D modeling and rendering</li>
+                            <li><strong>Physics:</strong> Force and motion calculations</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let currentTeacher = null;
+        let currentDemo = null;
+        let globalAudioEnabled = true;
+        let charts = {};
+        let animationTimeouts = [];
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let currentRunId = 0;
+        let currentTaskId = null;
+
+        // Teacher Voice System
+        class TeacherVoice {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.voice = null;
+                this.rate = 0.8;
+                this.pitch = 1.0;
+                this.volume = 0.9;
+                this.isEnabled = true;
+                this.currentUtterance = null;
+                this.isDestroyed = false;
+                this.setupVoice();
+            }
+
+            setupVoice() {
+                const loadVoices = () => {
+                    const voices = this.synth.getVoices();
+                    this.voice = voices.find(v => v.lang.includes('en')) || voices[0];
+                };
+                loadVoices();
+                this.synth.onvoiceschanged = loadVoices;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !globalAudioEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.voice = this.voice;
+                        utterance.rate = this.rate;
+                        utterance.pitch = this.pitch;
+                        utterance.volume = this.volume;
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        this.synth.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+            }
+        }
+
+        // State management functions
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            clearStage();
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentTeacher = new TeacherVoice();
+            currentTeacher.isEnabled = globalAudioEnabled;
+            return currentTeacher;
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        // Clear stage
+        function clearStage() {
+            const stage = document.getElementById('demo-stage');
+            stage.innerHTML = '';
+            
+            // Clear all timeouts
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            // Destroy all charts
+            Object.values(charts).forEach(chart => {
+                if (chart && chart.destroy) {
+                    chart.destroy();
+                }
+            });
+            charts = {};
+        }
+
+        // Create stage content
+        function createStageContent() {
+            clearStage();
+            const content = document.createElement('div');
+            content.className = 'stage-content active';
+            document.getElementById('demo-stage').appendChild(content);
+            return content;
+        }
+
+        // Draw Triangle Function
+        function drawTriangle(container, a, b, c, showLabels = true, animate = true, isLarge = false) {
+            // Calculate triangle vertices using coordinate geometry
+            const padding = 40;
+            const width = isLarge ? 600 : 500;
+            const height = isLarge ? 350 : 400;
+            
+            // Place first vertex at origin
+            const A = { x: padding, y: height - padding };
+            const B = { x: A.x + a * 3, y: A.y };
+            
+            // Calculate third vertex using law of cosines
+            const cosAngle = (a * a + b * b - c * c) / (2 * a * b);
+            const angle = Math.acos(cosAngle);
+            
+            const C = {
+                x: A.x + b * Math.cos(angle) * 3,
+                y: A.y - b * Math.sin(angle) * 3
+            };
+            
+            // Center and scale the triangle
+            const centerX = (A.x + B.x + C.x) / 3;
+            const centerY = (A.y + B.y + C.y) / 3;
+            const offsetX = width / 2 - centerX;
+            const offsetY = height / 2 - centerY;
+            
+            container.innerHTML = `
+                <svg width="${width}" height="${height}" style="width: 100%; height: 100%;">
+                    <polygon id="triangle" 
+                             points="${A.x + offsetX},${A.y + offsetY} ${B.x + offsetX},${B.y + offsetY} ${C.x + offsetX},${C.y + offsetY}"
+                             fill="rgba(79, 172, 254, 0.2)"
+                             stroke="var(--text-accent)"
+                             stroke-width="3"
+                             opacity="${animate ? '0' : '1'}"/>
+                    ${showLabels ? `
+                        <text x="${A.x + offsetX - 20}" y="${A.y + offsetY + 20}" fill="var(--text-primary)" font-size="18">A</text>
+                        <text x="${B.x + offsetX + 20}" y="${B.y + offsetY + 20}" fill="var(--text-primary)" font-size="18">B</text>
+                        <text x="${C.x + offsetX}" y="${C.y + offsetY - 20}" fill="var(--text-primary)" font-size="18">C</text>
+                        <text x="${(A.x + B.x) / 2 + offsetX}" y="${(A.y + B.y) / 2 + offsetY + 20}" fill="var(--text-secondary)" font-size="16">${a}m</text>
+                        <text x="${(B.x + C.x) / 2 + offsetX + 10}" y="${(B.y + C.y) / 2 + offsetY}" fill="var(--text-secondary)" font-size="16">${c}m</text>
+                        <text x="${(A.x + C.x) / 2 + offsetX - 20}" y="${(A.y + C.y) / 2 + offsetY}" fill="var(--text-secondary)" font-size="16">${b}m</text>
+                    ` : ''}
+                </svg>
+            `;
+            
+            if (animate) {
+                gsap.to('#triangle', { opacity: 1, duration: 1 });
+            }
+        }
+
+        // Demo Functions
+        async function showIntroduction() {
+            const taskId = 'introduction';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 style="color: var(--text-accent); margin-bottom: 15px;">The Challenge</h2>
+                <div class="triangle-container" id="intro-triangle" style="height: 350px; max-width: 600px; margin: 10px auto;"></div>
+                <div style="text-align: center; max-width: 600px; margin-top: 15px;">
+                    <p style="font-size: 1.1rem; margin: 15px 0;">
+                        We usually find the area of a triangle using:<br><br>
+                        <span class="formula-highlight">Area = ½ × base × height</span>
+                    </p>
+                    <p style="color: var(--text-secondary); margin-top: 15px;">
+                        But what if we don't know the height? 🤔
+                    </p>
+                </div>
+            `;
+            
+            drawTriangle(document.getElementById('intro-triangle'), 40, 32, 24, true, true, true);
+            
+            await teacher.speak("Hello! Today we're going to solve an interesting problem. We usually find the area of a triangle using half times base times height.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await teacher.speak("But look at this triangular park. We know all three sides are 40 meters, 32 meters, and 24 meters. But we don't know the height!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await teacher.speak("How can we find its area? This is where Heron's Formula comes to the rescue!");
+        }
+
+        async function showFormula() {
+            const taskId = 'formula';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 style="color: var(--text-accent); margin-bottom: 20px;">Heron's Formula</h2>
+                <div class="formula-box" style="font-size: 1.5rem;">
+                    Area = √[s(s-a)(s-b)(s-c)]
+                </div>
+                <div style="text-align: center; margin-top: 30px;">
+                    <p style="font-size: 1.2rem; margin-bottom: 20px;">Where:</p>
+                    <div class="calculation-steps">
+                        <div class="step" style="animation-delay: 0.5s;">
+                            <strong>a, b, c</strong> = the three sides of the triangle
+                        </div>
+                        <div class="step" style="animation-delay: 1s;">
+                            <strong>s</strong> = semi-perimeter = <span class="formula-highlight">(a + b + c) / 2</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            await teacher.speak("This is Heron's Formula, discovered by Heron of Alexandria around 10 AD.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1500);
+            
+            await teacher.speak("The formula uses something called the semi-perimeter, which is just half of the triangle's perimeter.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1500);
+            
+            await teacher.speak("Once we have s, we can find the area by calculating the square root of s times s minus a, times s minus b, times s minus c.");
+        }
+
+        async function showExample1() {
+            const taskId = 'example1';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 style="color: var(--text-accent); margin-bottom: 20px;">Park Example</h2>
+                <div class="park-example-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
+                    <div class="triangle-container" id="park-triangle" style="height: 400px;"></div>
+                    <div class="calculation-steps" id="park-steps" style="height: 400px; overflow-y: auto;"></div>
+                </div>
+            `;
+            
+            drawTriangle(document.getElementById('park-triangle'), 40, 32, 24, true, true);
+            
+            const steps = document.getElementById('park-steps');
+            
+            await teacher.speak("Let's solve our triangular park problem step by step. The sides are 40 meters, 32 meters, and 24 meters.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Step 1
+            steps.innerHTML += `
+                <div class="step" style="animation-delay: 0s;">
+                    <strong>Step 1:</strong> Find the semi-perimeter<br>
+                    s = (40 + 24 + 32) / 2 = 96 / 2 = <span class="formula-highlight">48m</span>
+                </div>
+            `;
+            
+            await teacher.speak("First, we find the semi-perimeter. Add all sides: 40 plus 24 plus 32 equals 96. Divide by 2 to get 48 meters.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Step 2
+            steps.innerHTML += `
+                <div class="step" style="animation-delay: 0s;">
+                    <strong>Step 2:</strong> Calculate (s - a), (s - b), (s - c)<br>
+                    s - a = 48 - 40 = <span class="formula-highlight">8m</span><br>
+                    s - b = 48 - 24 = <span class="formula-highlight">24m</span><br>
+                    s - c = 48 - 32 = <span class="formula-highlight">16m</span>
+                </div>
+            `;
+            
+            await teacher.speak("Next, we calculate s minus each side. 48 minus 40 is 8, 48 minus 24 is 24, and 48 minus 32 is 16.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Step 3
+            steps.innerHTML += `
+                <div class="step" style="animation-delay: 0s;">
+                    <strong>Step 3:</strong> Apply Heron's Formula<br>
+                    Area = √[48 × 8 × 24 × 16]<br>
+                    Area = √[147,456]<br>
+                    Area = <span class="formula-highlight">384 m²</span>
+                </div>
+            `;
+            
+            await teacher.speak("Now we multiply: 48 times 8 times 24 times 16 equals 147,456. The square root of this is 384 square meters!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Verification
+            steps.innerHTML += `
+                <div class="step" style="animation-delay: 0s; background: var(--success-gradient); color: white;">
+                    <strong>Interesting fact!</strong><br>
+                    32² + 24² = 1024 + 576 = 1600 = 40²<br>
+                    This is a right triangle! We can verify:<br>
+                    Area = ½ × 32 × 24 = 384 m² ✓
+                </div>
+            `;
+            
+            await teacher.speak("Here's something interesting! If we check, 32 squared plus 24 squared equals 40 squared. This means it's a right triangle! We can verify our answer using the regular formula.");
+        }
+
+        async function showExample2() {
+            const taskId = 'example2';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 style="color: var(--text-accent); margin-bottom: 20px;">More Examples</h2>
+                <div id="examples-container"></div>
+            `;
+            
+            const container = document.getElementById('examples-container');
+            
+            // Example 1: Equilateral Triangle
+            await teacher.speak("Let's try Heron's formula on different types of triangles. First, an equilateral triangle with sides of 10 centimeters each.");
+            if (!shouldContinue(taskId)) return;
+            
+            container.innerHTML = `
+                <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                    <h3 style="color: var(--text-accent);">Equilateral Triangle (10cm each side)</h3>
+                    <div class="calculation-steps">
+                        <div class="step">
+                            s = (10 + 10 + 10) / 2 = <span class="formula-highlight">15 cm</span>
+                        </div>
+                        <div class="step">
+                            s - a = s - b = s - c = 15 - 10 = <span class="formula-highlight">5 cm</span>
+                        </div>
+                        <div class="step">
+                            Area = √[15 × 5 × 5 × 5] = √[1875] = <span class="formula-highlight">25√3 cm²</span> ≈ 43.3 cm²
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Example 2: Isosceles Triangle
+            await teacher.speak("Now, let's try an isosceles triangle with two equal sides of 5 centimeters and one side of 8 centimeters.");
+            if (!shouldContinue(taskId)) return;
+            
+            container.innerHTML += `
+                <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px;">
+                    <h3 style="color: var(--text-accent);">Isosceles Triangle (5cm, 5cm, 8cm)</h3>
+                    <div class="calculation-steps">
+                        <div class="step">
+                            s = (5 + 5 + 8) / 2 = <span class="formula-highlight">9 cm</span>
+                        </div>
+                        <div class="step">
+                            s - a = 9 - 8 = <span class="formula-highlight">1 cm</span><br>
+                            s - b = s - c = 9 - 5 = <span class="formula-highlight">4 cm</span>
+                        </div>
+                        <div class="step">
+                            Area = √[9 × 1 × 4 × 4] = √[144] = <span class="formula-highlight">12 cm²</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            await wait(1000);
+            
+            await teacher.speak("Perfect! Heron's formula works for all types of triangles - equilateral, isosceles, or scalene!");
+        }
+
+        async function showCalculator() {
+            const taskId = 'calculator';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 style="color: var(--text-accent); margin-bottom: 20px;">Triangle Area Calculator</h2>
+                <div style="max-width: 600px; width: 100%;">
+                    <div class="input-group">
+                        <div class="input-box">
+                            <label>Side a</label>
+                            <input type="number" id="side-a" value="3" min="1">
+                        </div>
+                        <div class="input-box">
+                            <label>Side b</label>
+                            <input type="number" id="side-b" value="4" min="1">
+                        </div>
+                        <div class="input-box">
+                            <label>Side c</label>
+                            <input type="number" id="side-c" value="5" min="1">
+                        </div>
+                    </div>
+                    <button class="calculate-btn" onclick="calculateArea()">Calculate Area</button>
+                    <div id="calc-result"></div>
+                </div>
+            `;
+            
+            // No initial triangle needed
+            
+            await teacher.speak("Now it's your turn! Enter the sides of any triangle and I'll calculate its area using Heron's formula. Try different values!");
+            
+            // Add calculation function
+            window.calculateArea = function() {
+                const a = parseFloat(document.getElementById('side-a').value);
+                const b = parseFloat(document.getElementById('side-b').value);
+                const c = parseFloat(document.getElementById('side-c').value);
+                
+                // Check if triangle is valid
+                if (a + b <= c || a + c <= b || b + c <= a) {
+                    document.getElementById('calc-result').innerHTML = `
+                        <div style="background: var(--warning-gradient); color: white; padding: 15px; border-radius: 10px; margin-top: 20px;">
+                            ⚠️ These sides cannot form a triangle! The sum of any two sides must be greater than the third side.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const s = (a + b + c) / 2;
+                const area = Math.sqrt(s * (s - a) * (s - b) * (s - c));
+                
+                document.getElementById('calc-result').innerHTML = `
+                    <div class="calculation-steps">
+                        <div class="step">
+                            <strong>Semi-perimeter:</strong> s = (${a} + ${b} + ${c}) / 2 = ${s.toFixed(2)}
+                        </div>
+                        <div class="step">
+                            <strong>Area calculation:</strong><br>
+                            Area = √[${s.toFixed(2)} × ${(s-a).toFixed(2)} × ${(s-b).toFixed(2)} × ${(s-c).toFixed(2)}]
+                        </div>
+                        <div class="result-display">
+                            Area = ${area.toFixed(2)} square units
+                        </div>
+                    </div>
+                `;
+                
+                if (currentTeacher && currentTeacher.isEnabled) {
+                    currentTeacher.speak(`Great! The area of your triangle is ${area.toFixed(2)} square units.`);
+                }
+            };
+        }
+
+        async function showQuiz() {
+            const taskId = 'quiz';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            const questions = [
+                {
+                    question: "What is the semi-perimeter of a triangle with sides 6m, 8m, and 10m?",
+                    options: ["12m", "24m", "14m", "10m"],
+                    correct: 0,
+                    explanation: "s = (6 + 8 + 10) / 2 = 24 / 2 = 12m"
+                },
+                {
+                    question: "A triangle has sides 3, 4, and 5. What is its area?",
+                    options: ["6 square units", "12 square units", "7.5 square units", "10 square units"],
+                    correct: 0,
+                    explanation: "This is a 3-4-5 right triangle. Area = ½ × 3 × 4 = 6 square units"
+                },
+                {
+                    question: "When should you use Heron's Formula?",
+                    options: [
+                        "When you know the height",
+                        "When you only know the three sides",
+                        "Only for right triangles",
+                        "Only for equilateral triangles"
+                    ],
+                    correct: 1,
+                    explanation: "Heron's Formula is perfect when you know all three sides but not the height!"
+                }
+            ];
+            
+            let currentQuestion = 0;
+            let score = 0;
+            
+            function showQuestion() {
+                if (currentQuestion >= questions.length) {
+                    content.innerHTML = `
+                        <h2 style="color: var(--text-accent);">Quiz Complete!</h2>
+                        <div class="result-display">
+                            Your Score: ${score} / ${questions.length}
+                        </div>
+                        <p style="text-align: center; margin-top: 20px;">
+                            ${score === questions.length ? "Perfect! You're a Heron's Formula expert! 🌟" : 
+                              score >= questions.length/2 ? "Good job! Keep practicing! 👏" : 
+                              "Keep learning! You'll get it! 💪"}
+                        </p>
+                    `;
+                    return;
+                }
+                
+                const q = questions[currentQuestion];
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 style="color: var(--text-accent);">Question ${currentQuestion + 1} of ${questions.length}</h2>
+                        <div class="question">
+                            <h3>${q.question}</h3>
+                            <div class="options">
+                                ${q.options.map((opt, i) => `
+                                    <button class="option-btn" onclick="checkAnswer(${i})">${opt}</button>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div id="feedback"></div>
+                    </div>
+                `;
+            }
+            
+            window.checkAnswer = function(selected) {
+                const q = questions[currentQuestion];
+                const buttons = document.querySelectorAll('.option-btn');
+                
+                if (selected === q.correct) {
+                    buttons[selected].classList.add('correct');
+                    score++;
+                    document.getElementById('feedback').innerHTML = `
+                        <div style="color: #43e97b; margin-top: 20px; font-weight: bold;">
+                            ✓ Correct! ${q.explanation}
+                        </div>
+                    `;
+                } else {
+                    buttons[selected].classList.add('incorrect');
+                    buttons[q.correct].classList.add('correct');
+                    document.getElementById('feedback').innerHTML = `
+                        <div style="color: #f5576c; margin-top: 20px;">
+                            ✗ Not quite. ${q.explanation}
+                        </div>
+                    `;
+                }
+                
+                buttons.forEach(btn => btn.style.pointerEvents = 'none');
+                
+                setTimeout(() => {
+                    currentQuestion++;
+                    showQuestion();
+                }, 3000);
+            };
+            
+            await teacher.speak("Let's test your knowledge with a quick quiz! Answer each question carefully.");
+            showQuestion();
+        }
+
+        // Content functions for complete lesson (don't call stopCurrentDemo)
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 style="color: var(--text-accent); margin-bottom: 15px;">The Challenge</h2>
+                <div class="triangle-container" id="intro-triangle" style="height: 350px; max-width: 600px; margin: 10px auto;"></div>
+                <div style="text-align: center; max-width: 600px; margin-top: 15px;">
+                    <p style="font-size: 1.1rem; margin: 15px 0;">
+                        We usually find the area of a triangle using:<br><br>
+                        <span class="formula-highlight">Area = ½ × base × height</span>
+                    </p>
+                    <p style="color: var(--text-secondary); margin-top: 15px;">
+                        But what if we don't know the height? 🤔
+                    </p>
+                </div>
+            `;
+            
+            drawTriangle(document.getElementById('intro-triangle'), 40, 32, 24, true, true, true);
+            
+            await teacher.speak("Hello! Today we're going to solve an interesting problem. We usually find the area of a triangle using half times base times height.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await teacher.speak("But look at this triangular park. We know all three sides are 40 meters, 32 meters, and 24 meters. But we don't know the height!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await teacher.speak("How can we find its area? This is where Heron's Formula comes to the rescue!");
+        }
+
+        async function showFormulaContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 style="color: var(--text-accent); margin-bottom: 20px;">Heron's Formula</h2>
+                <div class="formula-box" style="font-size: 1.5rem;">
+                    Area = √[s(s-a)(s-b)(s-c)]
+                </div>
+                <div style="text-align: center; margin-top: 30px;">
+                    <p style="font-size: 1.2rem; margin-bottom: 20px;">Where:</p>
+                    <div class="calculation-steps">
+                        <div class="step" style="animation-delay: 0.5s;">
+                            <strong>a, b, c</strong> = the three sides of the triangle
+                        </div>
+                        <div class="step" style="animation-delay: 1s;">
+                            <strong>s</strong> = semi-perimeter = <span class="formula-highlight">(a + b + c) / 2</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            await teacher.speak("This is Heron's Formula, discovered by Heron of Alexandria around 10 AD.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1500);
+            
+            await teacher.speak("The formula uses something called the semi-perimeter, which is just half of the triangle's perimeter.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1500);
+            
+            await teacher.speak("Once we have s, we can find the area by calculating the square root of s times s minus a, times s minus b, times s minus c.");
+        }
+
+        async function showExample1Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 style="color: var(--text-accent); margin-bottom: 20px;">Park Example</h2>
+                <div class="park-example-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
+                    <div class="triangle-container" id="park-triangle" style="height: 400px;"></div>
+                    <div class="calculation-steps" id="park-steps" style="height: 400px; overflow-y: auto;"></div>
+                </div>
+            `;
+            
+            drawTriangle(document.getElementById('park-triangle'), 40, 32, 24, true, true);
+            
+            const steps = document.getElementById('park-steps');
+            
+            await teacher.speak("Let's solve our triangular park problem step by step. The sides are 40 meters, 32 meters, and 24 meters.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Step 1
+            steps.innerHTML += `
+                <div class="step" style="animation-delay: 0s;">
+                    <strong>Step 1:</strong> Find the semi-perimeter<br>
+                    s = (40 + 24 + 32) / 2 = 96 / 2 = <span class="formula-highlight">48m</span>
+                </div>
+            `;
+            
+            await teacher.speak("First, we find the semi-perimeter. Add all sides: 40 plus 24 plus 32 equals 96. Divide by 2 to get 48 meters.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Step 2
+            steps.innerHTML += `
+                <div class="step" style="animation-delay: 0s;">
+                    <strong>Step 2:</strong> Calculate (s - a), (s - b), (s - c)<br>
+                    s - a = 48 - 40 = <span class="formula-highlight">8m</span><br>
+                    s - b = 48 - 24 = <span class="formula-highlight">24m</span><br>
+                    s - c = 48 - 32 = <span class="formula-highlight">16m</span>
+                </div>
+            `;
+            
+            await teacher.speak("Next, we calculate s minus each side. 48 minus 40 is 8, 48 minus 24 is 24, and 48 minus 32 is 16.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Step 3
+            steps.innerHTML += `
+                <div class="step" style="animation-delay: 0s;">
+                    <strong>Step 3:</strong> Apply Heron's Formula<br>
+                    Area = √[48 × 8 × 24 × 16]<br>
+                    Area = √[147,456]<br>
+                    Area = <span class="formula-highlight">384 m²</span>
+                </div>
+            `;
+            
+            await teacher.speak("Now we multiply: 48 times 8 times 24 times 16 equals 147,456. The square root of this is 384 square meters!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Verification
+            steps.innerHTML += `
+                <div class="step" style="animation-delay: 0s; background: var(--success-gradient); color: white;">
+                    <strong>Interesting fact!</strong><br>
+                    32² + 24² = 1024 + 576 = 1600 = 40²<br>
+                    This is a right triangle! We can verify:<br>
+                    Area = ½ × 32 × 24 = 384 m² ✓
+                </div>
+            `;
+            
+            await teacher.speak("Here's something interesting! If we check, 32 squared plus 24 squared equals 40 squared. This means it's a right triangle! We can verify our answer using the regular formula.");
+        }
+
+        async function showExample2Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 style="color: var(--text-accent); margin-bottom: 20px;">More Examples</h2>
+                <div id="examples-container"></div>
+            `;
+            
+            const container = document.getElementById('examples-container');
+            
+            // Example 1: Equilateral Triangle
+            await teacher.speak("Let's try Heron's formula on different types of triangles. First, an equilateral triangle with sides of 10 centimeters each.");
+            if (!shouldContinue(taskId)) return;
+            
+            container.innerHTML = `
+                <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                    <h3 style="color: var(--text-accent);">Equilateral Triangle (10cm each side)</h3>
+                    <div class="calculation-steps">
+                        <div class="step">
+                            s = (10 + 10 + 10) / 2 = <span class="formula-highlight">15 cm</span>
+                        </div>
+                        <div class="step">
+                            s - a = s - b = s - c = 15 - 10 = <span class="formula-highlight">5 cm</span>
+                        </div>
+                        <div class="step">
+                            Area = √[15 × 5 × 5 × 5] = √[1875] = <span class="formula-highlight">25√3 cm²</span> ≈ 43.3 cm²
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Example 2: Isosceles Triangle
+            await teacher.speak("Now, let's try an isosceles triangle with two equal sides of 5 centimeters and one side of 8 centimeters.");
+            if (!shouldContinue(taskId)) return;
+            
+            container.innerHTML += `
+                <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px;">
+                    <h3 style="color: var(--text-accent);">Isosceles Triangle (5cm, 5cm, 8cm)</h3>
+                    <div class="calculation-steps">
+                        <div class="step">
+                            s = (5 + 5 + 8) / 2 = <span class="formula-highlight">9 cm</span>
+                        </div>
+                        <div class="step">
+                            s - a = 9 - 8 = <span class="formula-highlight">1 cm</span><br>
+                            s - b = s - c = 9 - 5 = <span class="formula-highlight">4 cm</span>
+                        </div>
+                        <div class="step">
+                            Area = √[9 × 1 × 4 × 4] = √[144] = <span class="formula-highlight">12 cm²</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            await wait(1000);
+            
+            await teacher.speak("Perfect! Heron's formula works for all types of triangles - equilateral, isosceles, or scalene!");
+        }
+
+        async function showCompleteLesson() {
+            const taskId = `complete-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            // Welcome
+            const welcomeContent = createStageContent();
+            welcomeContent.innerHTML = `
+                <h2 style="color: var(--text-accent);">Complete Heron's Formula Lesson</h2>
+                <div style="font-size: 1.2rem; margin-top: 20px;">Let's Master Triangle Areas! 📐</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px; color: var(--text-secondary);">
+                    We'll go through everything step by step, from the problem to the solution!
+                </p>
+            `;
+            
+            await teacher.speak("Welcome to the complete Heron's Formula lesson! We'll learn everything about finding triangle areas when we only know the sides.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Introduction
+            await showIntroductionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Formula
+            await showFormulaContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Example 1
+            await showExample1Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Example 2
+            await showExample2Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Final message
+            const finalContent = createStageContent();
+            finalContent.innerHTML = `
+                <h2 style="color: var(--text-accent);">Congratulations! 🎉</h2>
+                <div style="font-size: 1.2rem; margin: 20px 0;">You've mastered Heron's Formula!</div>
+                <div class="formula-box" style="margin: 30px auto;">
+                    Remember: Area = √[s(s-a)(s-b)(s-c)]
+                </div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Now you can find the area of ANY triangle just by knowing its three sides!
+                    Try the calculator or take the quiz to practice more.
+                </p>
+            `;
+            
+            await teacher.speak("Congratulations! You've completed the full lesson on Heron's Formula. You can now find the area of any triangle using just its three sides. Keep practicing!");
+            
+            isPlaying = false;
+        }
+
+        function resetApplication() {
+            stopCurrentDemo();
+            
+            // Clear stage and show welcome
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 style="color: var(--text-accent); margin-bottom: 20px;">Welcome to Heron's Formula!</h2>
+                <div class="triangle-container">
+                    <svg width="300" height="250" viewBox="0 0 300 250">
+                        <polygon points="150,50 50,200 250,200" 
+                                 fill="none" 
+                                 stroke="var(--text-accent)" 
+                                 stroke-width="3" 
+                                 opacity="0.8"/>
+                        <text x="150" y="35" text-anchor="middle" fill="var(--text-primary)">A</text>
+                        <text x="35" y="210" text-anchor="middle" fill="var(--text-primary)">B</text>
+                        <text x="265" y="210" text-anchor="middle" fill="var(--text-primary)">C</text>
+                    </svg>
+                </div>
+                <p style="text-align: center; max-width: 600px; color: var(--text-secondary);">
+                    Choose a lesson below to start your journey!
+                </p>
+            `;
+            
+            // Clear active button states
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Reset current demo
+            currentDemo = null;
+            
+            // Create new teacher and welcome message
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to continue learning about Heron's Formula!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize teacher
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome to Heron's Formula Mastery! Choose any lesson to learn how to find the area of any triangle!");
+            }, 500);
+            
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Clear active states
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'formula':
+                            showFormula();
+                            break;
+                        case 'example1':
+                            showExample1();
+                            break;
+                        case 'example2':
+                            showExample2();
+                            break;
+                        case 'calculator':
+                            showCalculator();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+            
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

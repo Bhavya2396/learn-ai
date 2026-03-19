@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding Position in a Plane - Interactive Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --equation-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            --solution-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 10px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: var(--equation-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 3px;
+        }
+
+        .header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            gap: 15px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .demo-stage {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 15px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 600px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .stage-content {
+            width: 100%;
+            max-width: 1100px;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+            overflow: hidden;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1) translateY(0); }
+            to { opacity: 0; transform: scale(0.95) translateY(-20px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 12px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 10px 20px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--equation-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--equation-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .math-title {
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .math-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 10px auto;
+            line-height: 1.5;
+            padding: 5px;
+        }
+
+        .formula-box {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 12px;
+            margin: 8px 0;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .content-card {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 10px 0;
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        .content-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(79, 172, 254, 0.3);
+        }
+
+        .value-display {
+            font-size: 1.6rem;
+            font-weight: 700;
+            text-align: center;
+            background: var(--success-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 10px 0;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 300px;
+            margin: 10px auto;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .dot {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: var(--warning-gradient);
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(250, 112, 154, 0.8);
+            animation: pulse 2s infinite;
+        }
+
+        .grid-container {
+            display: grid;
+            gap: 4px;
+            padding: 15px;
+            background: var(--glass-bg);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            margin: 10px auto;
+        }
+
+        .grid-cell {
+            background: rgba(102, 126, 234, 0.2);
+            border: 2px solid var(--glass-border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            transition: var(--transition);
+            cursor: pointer;
+            min-height: 40px;
+            min-width: 40px;
+            font-size: 0.85rem;
+        }
+
+        .grid-cell:hover {
+            background: rgba(102, 126, 234, 0.5);
+            transform: scale(1.05);
+        }
+
+        .grid-cell.highlight {
+            background: var(--success-gradient);
+            animation: pulse 1s infinite;
+        }
+
+        .street-label {
+            color: var(--text-accent);
+            font-weight: 700;
+            padding: 5px 10px;
+            background: var(--glass-bg);
+            border-radius: 8px;
+        }
+
+        .house-marker {
+            width: 30px;
+            height: 30px;
+            background: var(--warning-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .coordinate-label {
+            position: absolute;
+            background: var(--accent-gradient);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: var(--shadow-primary);
+        }
+
+        .historical-card {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            padding: 15px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            margin: 10px 0;
+        }
+
+        .portrait {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            box-shadow: var(--shadow-primary);
+            flex-shrink: 0;
+        }
+
+        .quiz-option {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(10px);
+        }
+
+        .quiz-option.correct {
+            background: var(--success-gradient);
+            border-color: transparent;
+            animation: pulse 0.5s;
+        }
+
+        .quiz-option.incorrect {
+            background: var(--secondary-gradient);
+            border-color: transparent;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--glass-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-gradient);
+            transition: width 0.5s ease;
+        }
+
+        .glow-effect {
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(67, 233, 123, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(67, 233, 123, 0.8); }
+        }
+
+        .step-indicator {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: var(--accent-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin-right: 10px;
+        }
+
+        .key-point {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin: 8px 0;
+            background: var(--glass-bg);
+            border-left: 4px solid;
+            border-image: var(--success-gradient) 1;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .example-box {
+            background: var(--solution-gradient);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 10px 0;
+            color: #1a1a2e;
+            font-weight: 600;
+        }
+
+        .flex-container {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+            flex-wrap: nowrap;
+        }
+
+        .flex-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        .flex-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        .compact-title {
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .demo-stage {
+                height: 550px;
+            }
+            
+            .header h1 {
+                font-size: 1.4rem;
+            }
+            
+            .math-title {
+                font-size: 1rem;
+            }
+            
+            .demo-btn {
+                font-size: 0.75rem;
+                padding: 8px 14px;
+            }
+            
+            .grid-cell {
+                min-height: 30px;
+                min-width: 30px;
+                font-size: 0.7rem;
+            }
+            
+            .historical-card {
+                flex-direction: column;
+            }
+            
+            .portrait {
+                width: 70px;
+                height: 70px;
+                font-size: 2rem;
+            }
+            
+            .canvas-container {
+                height: 200px;
+            }
+            
+            .math-description {
+                font-size: 0.8rem;
+            }
+            
+            .flex-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .flex-left, .flex-right {
+                width: 100%;
+            }
+            
+            .value-display {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Understanding Position in a Plane</h1>
+        <p>Interactive Learning with Animations & Real-world Examples</p>
+    </div>
+
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage">
+            <div id="stage-content" class="stage-content active">
+                <!-- Dynamic content will be inserted here -->
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">📚 Complete Lesson</button>
+            <button class="demo-btn" data-demo="problem">🎯 The Problem</button>
+            <button class="demo-btn" data-demo="street-map">🗺️ Street Map</button>
+            <button class="demo-btn" data-demo="dot-paper">📍 Dot on Paper</button>
+            <button class="demo-btn" data-demo="classroom">🏫 Classroom Activity</button>
+            <button class="demo-btn" data-demo="history">👨‍🔬 Historical Context</button>
+            <button class="demo-btn" data-demo="interactive">🎮 Interactive Demo</button>
+            <button class="demo-btn" data-demo="quiz">🏆 Quiz</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+    </div>
+
+    <script>
+        // Teacher class for text-to-speech
+        class Teacher {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.isEnabled = true;
+                this.currentUtterance = null;
+            }
+
+            speak(text) {
+                if (!this.isEnabled) return;
+                
+                this.stop();
+                
+                this.currentUtterance = new SpeechSynthesisUtterance(text);
+                this.currentUtterance.rate = 0.9;
+                this.currentUtterance.pitch = 1;
+                this.currentUtterance.volume = 1;
+                
+                this.synth.speak(this.currentUtterance);
+            }
+
+            stop() {
+                if (this.synth.speaking) {
+                    this.synth.cancel();
+                }
+            }
+        }
+
+        // Global variables
+        let currentTeacher = new Teacher();
+        let globalAudioEnabled = true;
+        let currentDemo = null;
+        let quizScore = 0;
+        let currentQuizQuestion = 0;
+        let currentAnimations = [];
+        let activeTimeouts = []; // Track all active timeouts
+
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            currentTeacher = new Teacher();
+            currentTeacher.isEnabled = globalAudioEnabled;
+            return currentTeacher;
+        }
+
+        function stopCurrentDemo() {
+            currentAnimations.forEach(anim => {
+                if (anim && anim.kill) anim.kill();
+            });
+            currentAnimations = [];
+            
+            // Clear all active timeouts
+            activeTimeouts.forEach(timeout => clearTimeout(timeout));
+            activeTimeouts = [];
+            
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+        }
+
+        function transitionToNextStep(contentHTML) {
+            const stageContent = document.getElementById('stage-content');
+            
+            gsap.to(stageContent, {
+                opacity: 0,
+                scale: 0.95,
+                duration: 0.3,
+                onComplete: () => {
+                    stageContent.innerHTML = contentHTML;
+                    gsap.to(stageContent, {
+                        opacity: 1,
+                        scale: 1,
+                        duration: 0.3
+                    });
+                }
+            });
+        }
+
+        // Complete Lesson
+        function showCompleteLesson() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+            
+            let step = 0;
+            const lessons = [
+                { func: showProblemIntro, duration: 25000 },
+                { func: showStreetMapExample, duration: 30000 },
+                { func: showDotPaperExample, duration: 30000 },
+                { func: showClassroomActivity, duration: 30000 },
+                { func: showHistoricalContext, duration: 35000 },
+                { func: showKeyTakeaways, duration: 30000 }
+            ];
+
+            function nextLesson() {
+                if (step < lessons.length) {
+                    lessons[step].func();
+                    const duration = lessons[step].duration;
+                    step++;
+                    const timeoutId = setTimeout(nextLesson, duration);
+                    activeTimeouts.push(timeoutId); // Track this timeout
+                }
+            }
+
+            nextLesson();
+        }
+
+        // The Problem: Locating Points
+        function showProblemIntro() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="margin-bottom: 10px;">🎯 The Problem: Locating Points</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="canvas-container" style="height: 280px; margin: 0;">
+                            <div id="animated-dot" class="dot" style="top: 40%; left: 45%; display: none;"></div>
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div class="math-description" style="text-align: left; font-size: 1rem; margin-bottom: 15px;">
+                            Imagine you put a dot on a piece of paper.<br>
+                            How would you tell someone EXACTLY where that dot is?
+                        </div>
+                        <div class="content-card" style="padding: 15px; margin: 0;">
+                            <div class="key-point" style="margin: 0; padding: 12px;">
+                                <span style="font-size: 1.8rem; margin-right: 12px;">💡</span>
+                                <div style="font-size: 0.95rem;">
+                                    <strong style="color: #fbbf24;">Key Insight:</strong><br>
+                                    One reference line is NOT enough!<br>
+                                    We need <strong>TWO</strong> independent pieces of information.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            setTimeout(() => {
+                const dot = document.getElementById('animated-dot');
+                if (dot) {
+                    dot.style.display = 'block';
+                    gsap.from(dot, {
+                        scale: 0,
+                        opacity: 0,
+                        duration: 1,
+                        ease: "elastic.out(1, 0.5)"
+                    });
+                }
+            }, 500);
+
+            teacher.speak("Imagine you put a dot on a piece of paper. How would you tell someone EXACTLY where that dot is? Let's explore why this simple question leads to an important mathematical concept. One reference line is NOT enough! We need TWO independent pieces of information.");
+        }
+
+        // Street Map Example
+        function showStreetMapExample() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="margin-bottom: 10px;">🗺️ Example 1: The Street Map</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="math-description" style="text-align: left; margin-bottom: 8px; font-size: 0.9rem;">
+                            In a city with numbered streets
+                        </div>
+                        <div id="street-grid" class="grid-container" style="grid-template-columns: repeat(7, 1fr); max-width: 100%; padding: 10px; margin: 0;">
+                            <!-- Grid will be generated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div class="content-card" style="padding: 12px; margin: 0;">
+                            <div class="example-box" style="padding: 10px; margin-bottom: 10px;">
+                                <p style="margin: 5px 0; font-size: 0.85rem;">❌ "I live on Street 2"</p>
+                                <p style="margin: 5px 0; font-size: 0.85rem; color: #c41e3a;">Can you find the house? <strong>NO!</strong></p>
+                            </div>
+                            <div class="example-box" style="padding: 10px; margin-bottom: 10px;">
+                                <p style="margin: 5px 0; font-size: 0.85rem;">✅ "Street 2, House 5"</p>
+                                <p style="margin: 5px 0; font-size: 0.85rem; color: #0f5132;">Now you can locate it exactly!</p>
+                            </div>
+                            <div style="margin-top: 10px; padding: 10px; background: var(--glass-bg); border-radius: 10px;">
+                                <p style="color: #43e97b; font-size: 0.9rem; font-weight: 600; margin: 3px 0;">
+                                    🏠 Point H: (Street 2, House 5)
+                                </p>
+                                <p style="color: #4facfe; font-size: 0.9rem; font-weight: 600; margin: 3px 0;">
+                                    🏠 Point P: (Street 7, House 4)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            setTimeout(() => {
+                const grid = document.getElementById('street-grid');
+                if (!grid) return;
+
+                // Build the entire grid HTML first
+                let gridHTML = '<div class="grid-cell" style="background: transparent; border: none; font-size: 0.7rem;"></div>';
+                
+                // Add column headers (house numbers)
+                for (let i = 1; i <= 6; i++) {
+                    gridHTML += `<div class="street-label" style="font-size: 0.7rem; padding: 3px;">H${i}</div>`;
+                }
+
+                // Create rows with street numbers and houses
+                for (let street = 1; street <= 6; street++) {
+                    gridHTML += `<div class="street-label" style="font-size: 0.7rem; padding: 3px;">S${street}</div>`;
+                    for (let house = 1; house <= 6; house++) {
+                        const isH = (street === 2 && house === 5);
+                        const isP = (street === 7 && house === 4);
+                        const cellClass = isH || isP ? 'grid-cell highlight' : 'grid-cell';
+                        const label = isH ? 'H' : (isP ? 'P' : '');
+                        gridHTML += `<div class="${cellClass}" style="min-height: 32px; min-width: 32px; font-size: 0.75rem; opacity: 1;">${label}</div>`;
+                    }
+                }
+                
+                // Set all HTML at once
+                grid.innerHTML = gridHTML;
+
+                // No animation - all cells including highlights appear immediately
+            }, 500);
+
+            teacher.speak("In a city with numbered streets running East-West and North-South. If someone says 'I live on Street 2', can you find the house? NO! But if they say 'Street 2, House Number 5', now you can locate it exactly! Point H is at Street 2, House 5. Point P is at Street 7, House 4. TWO pieces of information pinpoint the exact location.");
+        }
+
+        // Dot on Paper Example
+        function showDotPaperExample() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="margin-bottom: 10px;">📍 Example 2: The Dot on Paper</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="canvas-container" style="height: 280px; background: white; margin: 0;">
+                            <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: #667eea;"></div>
+                            <div style="position: absolute; top: 0; bottom: 0; left: 0; width: 2px; background: #667eea;"></div>
+                            <div id="measuring-dot" class="dot" style="top: 30%; left: 25%; background: #fa709a;"></div>
+                            <div id="h-line" style="position: absolute; top: 30%; left: 0; width: 25%; height: 2px; background: #43e97b; display: none;"></div>
+                            <div id="v-line" style="position: absolute; top: 30%; left: 25%; width: 2px; height: 70%; background: #43e97b; display: none;"></div>
+                            <div id="h-label" class="coordinate-label" style="top: 28%; left: 10%; display: none; font-size: 0.7rem; padding: 3px 6px;">5 cm ←</div>
+                            <div id="v-label" class="coordinate-label" style="top: 60%; left: 27%; display: none; font-size: 0.7rem; padding: 3px 6px;">9 cm ↑</div>
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div class="content-card" style="padding: 12px; margin: 0;">
+                            <div style="font-size: 0.9rem; line-height: 1.8;">
+                                <p style="margin: 8px 0;">❌ "The dot is in the upper half"</p>
+                                <p style="margin: 0 0 8px 20px; font-size: 0.85rem; color: #f5576c;">→ Too vague</p>
+                                
+                                <p style="margin: 8px 0;">❌ "The dot is near the left edge"</p>
+                                <p style="margin: 0 0 8px 20px; font-size: 0.85rem; color: #f5576c;">→ Still not precise</p>
+                                
+                                <p style="margin: 8px 0;">✅ "5 cm from left AND 9 cm from bottom"</p>
+                                <p style="margin: 0 0 8px 20px; font-size: 0.85rem; color: #43e97b;">→ <strong>Perfect!</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            setTimeout(() => {
+                const hLine = document.getElementById('h-line');
+                const vLine = document.getElementById('v-line');
+                const hLabel = document.getElementById('h-label');
+                const vLabel = document.getElementById('v-label');
+
+                setTimeout(() => {
+                    if (hLine) hLine.style.display = 'block';
+                    if (hLabel) hLabel.style.display = 'block';
+                    gsap.from(hLine, { scaleX: 0, duration: 1, transformOrigin: 'left' });
+                    gsap.from(hLabel, { opacity: 0, x: -20, duration: 0.5, delay: 1 });
+                }, 1000);
+
+                setTimeout(() => {
+                    if (vLine) vLine.style.display = 'block';
+                    if (vLabel) vLabel.style.display = 'block';
+                    gsap.from(vLine, { scaleY: 0, duration: 1, transformOrigin: 'top' });
+                    gsap.from(vLabel, { opacity: 0, y: 20, duration: 0.5, delay: 1 });
+                }, 2500);
+            }, 500);
+
+            teacher.speak("The dot is in the upper half. Too vague! The dot is near the left edge. Still not precise! But if we say: The dot is 5 centimeters from the left edge AND 9 centimeters from the bottom. Perfect! Now we know exactly where it is. We need TWO measurements to locate any point precisely.");
+        }
+
+        // Classroom Seating Activity
+        function showClassroomActivity() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="margin-bottom: 10px;">🏫 Interactive: Classroom Seating</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="math-description" style="text-align: left; margin-bottom: 8px; font-size: 0.9rem;">
+                            Click on any seat to see its position!
+                        </div>
+                        <div id="classroom-grid" class="grid-container" style="grid-template-columns: repeat(6, 1fr); max-width: 100%; padding: 10px; margin: 0;">
+                            <!-- Grid will be generated by JavaScript -->
+                        </div>
+                        <div id="position-display" class="value-display" style="font-size: 1rem; min-height: 35px; margin: 8px 0;">
+                            Select a desk
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div class="content-card" style="padding: 15px; margin: 0;">
+                            <div class="key-point" style="padding: 12px; margin: 0;">
+                                <span style="font-size: 1.8rem; margin-right: 10px;">❗</span>
+                                <div style="font-size: 0.95rem;">
+                                    <strong style="color: #fbbf24;">Important Question:</strong><br><br>
+                                    Is (5, 3) the same as (3, 5)?<br>
+                                    <span style="color: #f5576c; font-size: 1.4rem;"><strong>NO!</strong></span><br><br>
+                                    <span style="color: #e2e8f0; font-size: 0.9rem;">
+                                        Order matters in position coordinates!<br>
+                                        (Column, Row) ≠ (Row, Column)
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            setTimeout(() => {
+                const grid = document.getElementById('classroom-grid');
+                if (!grid) return;
+
+                // Build the entire grid HTML first
+                let gridHTML = '<div class="grid-cell" style="background: transparent; border: none; font-size: 0.7rem;"></div>';
+                
+                // Add column headers
+                for (let col = 1; col <= 5; col++) {
+                    gridHTML += `<div class="street-label" style="font-size: 0.7rem; padding: 3px;">C${col}</div>`;
+                }
+
+                // Create all rows at once
+                for (let row = 1; row <= 5; row++) {
+                    gridHTML += `<div class="street-label" style="font-size: 0.7rem; padding: 3px;">R${row}</div>`;
+                    for (let col = 1; col <= 5; col++) {
+                        gridHTML += `
+                            <div class="grid-cell desk-cell" onclick="selectDesk(${col}, ${row})" data-col="${col}" data-row="${row}" style="min-height: 32px; min-width: 32px; font-size: 0.9rem; opacity: 1;">
+                                🪑
+                            </div>
+                        `;
+                    }
+                }
+                
+                // Set all HTML at once
+                grid.innerHTML = gridHTML;
+                
+                // No animation - all seats appear immediately
+            }, 500);
+
+            teacher.speak("Let's try an interactive activity! This is a classroom seating plan. Each desk is represented by a square. Click on any desk to see its position. The position is described by column number and row number. For example, a student at Column 5, Row 3 has position 5, 3. Important question: Is position 5, 3 the same as position 3, 5? NO! Order matters in position coordinates!");
+        }
+
+        window.selectDesk = function(col, row) {
+            const display = document.getElementById('position-display');
+            if (display) {
+                display.innerHTML = `(${col}, ${row})<br><span style="font-size: 0.8rem; color: #e2e8f0;">Col ${col}, Row ${row}</span>`;
+                
+                // Remove previous highlights
+                document.querySelectorAll('.grid-cell').forEach(cell => {
+                    cell.classList.remove('highlight');
+                });
+                
+                // Highlight selected cell
+                const selectedCell = document.querySelector(`[data-col="${col}"][data-row="${row}"]`);
+                if (selectedCell) {
+                    selectedCell.classList.add('highlight');
+                }
+
+                if (currentTeacher) {
+                    currentTeacher.speak(`You selected Column ${col}, Row ${row}. The position is ${col}, ${row}.`);
+                }
+            }
+        };
+
+        // Historical Context
+        function showHistoricalContext() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="margin-bottom: 10px;">👨‍🔬 Historical Context</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="historical-card" style="flex-direction: column; padding: 15px; margin: 0; align-items: center;">
+                            <div class="portrait" style="margin-bottom: 12px;">📐</div>
+                            <div style="text-align: center;">
+                                <h3 style="color: #fbbf24; font-size: 1.1rem; margin-bottom: 8px;">René Descartes</h3>
+                                <p style="color: #e2e8f0; font-size: 0.85rem; margin-bottom: 5px;">(1596-1650)</p>
+                                <p style="line-height: 1.5; color: #e2e8f0; font-size: 0.85rem;">
+                                    French mathematician who liked to think in bed!
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div class="content-card glow-effect" style="padding: 15px; margin-bottom: 10px;">
+                            <h3 style="color: #43e97b; font-size: 1rem; margin-bottom: 8px;">💡 His Discovery</h3>
+                            <p style="font-size: 0.85rem; line-height: 1.6; color: #e2e8f0;">
+                                One day while resting, he solved the problem of describing positions in a plane. 
+                                His method developed from latitude and longitude.
+                            </p>
+                        </div>
+                        <div class="content-card" style="padding: 15px; margin: 0;">
+                            <h3 style="color: #4facfe; font-size: 1rem; margin-bottom: 8px;">🎯 The Cartesian System</h3>
+                            <p style="font-size: 0.85rem; line-height: 1.6; color: #e2e8f0;">
+                                Named in his honor, this system is used everywhere: 
+                                maps, GPS, computer screens, graphs!
+                            </p>
+                        </div>
+                        <div class="formula-box" style="padding: 8px; margin-top: 10px;">
+                            <p style="font-size: 0.85rem; color: #43e97b;">
+                                🌍 Lat + Long = Location<br>
+                                📊 X + Y = Cartesian
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            setTimeout(() => {
+                gsap.from('.portrait', {
+                    rotation: 360,
+                    scale: 0,
+                    duration: 1.5,
+                    ease: "elastic.out(1, 0.5)"
+                });
+            }, 500);
+
+            teacher.speak("René Descartes, the French mathematician who lived from 1596 to 1650, liked to think in bed! One day while resting, he solved the problem of describing positions in a plane. His method developed from the older ideas of latitude and longitude. This revolutionary system is called the Cartesian System in honor of René Descartes. It forms the foundation of coordinate geometry and is used everywhere today: in maps, GPS, computer screens, and graphs!");
+        }
+
+        // Key Takeaways
+        function showKeyTakeaways() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="margin-bottom: 15px;">✨ Key Takeaways</h2>
+                <div style="width: 100%; max-width: 900px; display: flex; gap: 20px;">
+                    <div style="flex: 1;">
+                        <div class="key-point" style="animation: fadeIn 0.5s ease-out 0.2s both; padding: 12px; margin: 8px 0;">
+                            <div class="step-indicator" style="width: 28px; height: 28px; font-size: 0.95rem;">1</div>
+                            <div style="font-size: 0.9rem;">
+                                <strong style="color: #fbbf24;">TWO reference measurements needed</strong><br>
+                                <span style="color: #e2e8f0; font-size: 0.8rem;">One dimension cannot precisely locate a point</span>
+                            </div>
+                        </div>
+                        
+                        <div class="key-point" style="animation: fadeIn 0.5s ease-out 0.4s both; padding: 12px; margin: 8px 0;">
+                            <div class="step-indicator" style="width: 28px; height: 28px; font-size: 0.95rem;">2</div>
+                            <div style="font-size: 0.9rem;">
+                                <strong style="color: #fbbf24;">Order matters</strong><br>
+                                <span style="color: #e2e8f0; font-size: 0.8rem;">(5, 3) ≠ (3, 5) - Different meanings</span>
+                            </div>
+                        </div>
+                        
+                        <div class="key-point" style="animation: fadeIn 0.5s ease-out 0.6s both; padding: 12px; margin: 8px 0;">
+                            <div class="step-indicator" style="width: 28px; height: 28px; font-size: 0.95rem;">3</div>
+                            <div style="font-size: 0.9rem;">
+                                <strong style="color: #fbbf24;">Used everywhere</strong><br>
+                                <span style="color: #e2e8f0; font-size: 0.8rem;">Maps, GPS, screens, graphs, games</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="flex: 1; display: flex; align-items: center;">
+                        <div class="content-card glow-effect" style="animation: fadeIn 0.5s ease-out 0.8s both; padding: 20px; width: 100%;">
+                            <p style="font-size: 1.2rem; text-align: center; color: #43e97b; line-height: 1.6;">
+                                🎯 You now understand why we need<br>
+                                <strong style="font-size: 1.3rem;">TWO pieces of information</strong><br>
+                                to locate any point in a plane!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            teacher.speak("Let's review the key takeaways. First, any point in a plane needs TWO reference measurements. One dimension alone cannot precisely locate a point. Second, order matters in coordinates. Position 5, 3 is NOT the same as position 3, 5. The first number and second number have different meanings. Third, this concept is used everywhere: in maps, GPS, computer screens, graphs, video games, and more! You now understand why we need TWO pieces of information to locate any point in a plane!");
+        }
+
+        // Interactive Demo
+        function showInteractiveDemo() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="margin-bottom: 10px;">🎮 Interactive Demo: Place the Point!</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="math-description" style="text-align: left; margin-bottom: 8px; font-size: 0.9rem;">
+                            Click anywhere to place a point
+                        </div>
+                        <div id="interactive-canvas" style="position: relative; width: 100%; height: 320px; 
+                            background: white; border-radius: 15px; cursor: crosshair;
+                            box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                            <!-- Axes -->
+                            <div style="position: absolute; bottom: 40px; left: 0; right: 0; height: 2px; background: #667eea;"></div>
+                            <div style="position: absolute; top: 0; bottom: 0; left: 40px; width: 2px; background: #667eea;"></div>
+                            
+                            <!-- Labels -->
+                            <div style="position: absolute; bottom: 8px; right: 8px; color: #667eea; font-weight: 700; font-size: 0.85rem;">X →</div>
+                            <div style="position: absolute; top: 8px; left: 8px; color: #667eea; font-weight: 700; font-size: 0.85rem;">↑ Y</div>
+                            
+                            <!-- Origin -->
+                            <div style="position: absolute; bottom: 35px; left: 35px; color: #667eea; font-weight: 700; font-size: 0.8rem;">O (0,0)</div>
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div id="coordinates-display" class="value-display" style="font-size: 1.3rem; margin-bottom: 15px;">
+                            Click to place!
+                        </div>
+                        <div class="content-card" style="padding: 15px; margin: 0;">
+                            <p style="font-size: 1rem; color: #fbbf24; text-align: center; margin-bottom: 12px;">
+                                <strong>Notice:</strong>
+                            </p>
+                            <p style="font-size: 0.9rem; color: #e2e8f0; text-align: center; line-height: 1.6;">
+                                You need <strong>BOTH</strong> X and Y coordinates to describe where your point is located! 📍
+                            </p>
+                            <div class="formula-box" style="margin-top: 15px; padding: 10px;">
+                                <p style="font-size: 0.85rem; color: #43e97b;">
+                                    Coordinate = (X, Y)<br>
+                                    X = Horizontal position<br>
+                                    Y = Vertical position
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            setTimeout(() => {
+                const canvas = document.getElementById('interactive-canvas');
+                if (!canvas) return;
+
+                canvas.addEventListener('click', function(e) {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    // Remove previous points
+                    const oldPoints = canvas.querySelectorAll('.placed-point');
+                    oldPoints.forEach(p => p.remove());
+                    
+                    // Create new point
+                    const point = document.createElement('div');
+                    point.className = 'placed-point dot';
+                    point.style.left = (x - 10) + 'px';
+                    point.style.top = (y - 10) + 'px';
+                    point.style.background = 'var(--warning-gradient)';
+                    canvas.appendChild(point);
+                    
+                    // Calculate coordinates (relative to origin at 40, 280)
+                    const coordX = Math.round((x - 40) / 25);
+                    const coordY = Math.round((280 - y) / 25);
+                    
+                    // Update display
+                    const display = document.getElementById('coordinates-display');
+                    if (display) {
+                        display.innerHTML = `Point at (${coordX}, ${coordY})`;
+                    }
+                    
+                    // Animate point
+                    gsap.from(point, {
+                        scale: 0,
+                        duration: 0.5,
+                        ease: "elastic.out(1, 0.5)"
+                    });
+                    
+                    if (currentTeacher) {
+                        currentTeacher.speak(`Point placed at coordinates ${coordX}, ${coordY}`);
+                    }
+                });
+            }, 500);
+
+            teacher.speak("Try the interactive demo! Click anywhere in the coordinate system to place a point. Notice how you need BOTH X and Y coordinates to describe where your point is located. This is the fundamental concept of the Cartesian coordinate system!");
+        }
+
+        // Quiz
+        function showQuiz() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+            currentQuizQuestion = 0;
+            quizScore = 0;
+
+            const questions = [
+                {
+                    question: "How many pieces of information do we need to locate a point in a plane?",
+                    options: [
+                        "One",
+                        "Two",
+                        "Three",
+                        "It depends on the situation"
+                    ],
+                    correct: 1,
+                    explanation: "We always need TWO pieces of information to uniquely locate a point in a plane - one for each dimension."
+                },
+                {
+                    question: "Is the position (5, 3) the same as (3, 5)?",
+                    options: [
+                        "Yes, they represent the same point",
+                        "No, they are different points",
+                        "Sometimes yes, sometimes no",
+                        "They are the same if we rotate the plane"
+                    ],
+                    correct: 1,
+                    explanation: "No! Order matters in coordinates. (5, 3) means 5 units in the first direction and 3 in the second. (3, 5) means 3 units in the first direction and 5 in the second - these are different locations."
+                },
+                {
+                    question: "What is the Cartesian coordinate system named after?",
+                    options: [
+                        "A type of map",
+                        "René Descartes",
+                        "A Latin word for 'coordinates'",
+                        "A city in France"
+                    ],
+                    correct: 1,
+                    explanation: "The Cartesian coordinate system is named after René Descartes, the French mathematician who developed this method of describing positions in a plane."
+                },
+                {
+                    question: "Which real-world system uses the concept of two coordinates to locate positions?",
+                    options: [
+                        "GPS navigation",
+                        "Computer screens",
+                        "Maps (latitude and longitude)",
+                        "All of the above"
+                    ],
+                    correct: 3,
+                    explanation: "All of the above! GPS, computer screens, and maps all use two-coordinate systems to precisely locate positions. This concept is fundamental to modern technology."
+                },
+                {
+                    question: "If someone says 'The point is on Street 5', can you find its exact location?",
+                    options: [
+                        "Yes, that's enough information",
+                        "No, we need the house number too",
+                        "Only if it's the first house",
+                        "Yes, if we know the city"
+                    ],
+                    correct: 1,
+                    explanation: "No! Saying 'Street 5' only gives us ONE piece of information. We need the house number (the second coordinate) to pinpoint the exact location on that street."
+                }
+            ];
+
+            function showQuestion() {
+                const q = questions[currentQuizQuestion];
+                const content = `
+                    <h2 class="math-title" style="font-size: 1.2rem; margin-bottom: 8px;">Quiz Time! 🏆</h2>
+                    <div style="width: 100%; max-width: 700px; padding: 0 10px;">
+                        <div class="progress-bar" style="margin: 8px 0;">
+                            <div class="progress-fill" style="width: ${(currentQuizQuestion / questions.length) * 100}%"></div>
+                        </div>
+                        <div class="content-card" style="padding: 12px;">
+                            <p style="font-size: 0.85rem; color: #e2e8f0; margin-bottom: 6px;">
+                                Question ${currentQuizQuestion + 1} of ${questions.length}
+                            </p>
+                            <h3 style="color: #fbbf24; font-size: 1rem; margin: 10px 0;">
+                                ${q.question}
+                            </h3>
+                            <div id="quiz-options">
+                                ${q.options.map((opt, idx) => `
+                                    <div class="quiz-option" onclick="checkAnswer(${idx})" style="font-size: 0.9rem; padding: 12px; margin: 6px 0;">
+                                        ${opt}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="value-display" style="font-size: 1.4rem; margin-top: 10px;">
+                            Score: ${quizScore} / ${questions.length}
+                        </div>
+                    </div>
+                `;
+                transitionToNextStep(content);
+            }
+
+            window.checkAnswer = function(selectedIdx) {
+                const q = questions[currentQuizQuestion];
+                const options = document.querySelectorAll('.quiz-option');
+                
+                options.forEach(opt => opt.style.pointerEvents = 'none');
+                
+                if (selectedIdx === q.correct) {
+                    options[selectedIdx].classList.add('correct');
+                    quizScore++;
+                    if (currentTeacher) {
+                        currentTeacher.speak("Correct! " + q.explanation);
+                    }
+                } else {
+                    options[selectedIdx].classList.add('incorrect');
+                    options[q.correct].classList.add('correct');
+                    if (currentTeacher) {
+                        currentTeacher.speak("Incorrect. " + q.explanation);
+                    }
+                }
+
+                setTimeout(() => {
+                    currentQuizQuestion++;
+                    if (currentQuizQuestion < questions.length) {
+                        showQuestion();
+                    } else {
+                        showQuizResults();
+                    }
+                }, 4000);
+            };
+
+            function showQuizResults() {
+                const percentage = (quizScore / questions.length) * 100;
+                const content = `
+                    <h2 class="math-title">Quiz Complete! 🎉</h2>
+                    <div style="width: 100%; max-width: 700px; padding: 0 10px;">
+                        <div class="value-display" style="font-size: 2rem;">${quizScore} / ${questions.length}</div>
+                        <div class="content-card glow-effect" style="padding: 18px;">
+                            <p style="font-size: 1.3rem; color: ${percentage >= 80 ? '#43e97b' : '#f5576c'};">
+                                ${percentage}% Correct
+                            </p>
+                            <p style="font-size: 0.95rem; color: #e2e8f0; margin-top: 10px;">
+                                ${percentage >= 80 ? '🌟 Excellent work! You understand position in a plane!' : 
+                                  percentage >= 60 ? '👍 Good effort! Review the concepts and try again!' :
+                                  '📚 Keep practicing! Go through the lessons once more!'}
+                            </p>
+                        </div>
+                        <div class="formula-box" style="margin-top: 12px; padding: 10px;">
+                            <p style="font-size: 0.95rem; color: #43e97b;">
+                                Remember: Any point needs TWO coordinates!<br>
+                                Order matters: (x, y) ≠ (y, x)
+                            </p>
+                        </div>
+                    </div>
+                `;
+                transitionToNextStep(content);
+                
+                if (currentTeacher) {
+                    currentTeacher.speak(`Quiz complete! You scored ${quizScore} out of ${questions.length}. That's ${percentage} percent. ${percentage >= 80 ? 'Excellent work! You understand position in a plane!' : 'Good effort! Keep practicing!'}`);
+                }
+            }
+
+            showQuestion();
+            teacher.speak("Let's test your knowledge! Answer these questions about understanding position in a plane.");
+        }
+
+        // Reset
+        function resetApplication() {
+            stopCurrentDemo();
+            quizScore = 0;
+            currentQuizQuestion = 0;
+
+            const content = `
+                <h2 class="math-title">Welcome! ✨</h2>
+                <div class="value-display" style="font-size: 1.8rem;">Understanding Position in a Plane</div>
+                <div class="math-description">
+                    Discover why we need TWO pieces of information to locate any point!<br>
+                    Explore real-world applications with stunning animations!
+                </div>
+                <div class="formula-box" style="padding: 12px;">
+                    <p style="font-size: 1rem; color: #43e97b;">
+                        🗺️ Street Maps | 📍 Coordinate Systems<br>
+                        👨‍🔬 Historical Context | 🎮 Interactive Activities
+                    </p>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            currentDemo = null;
+
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to explore why we need two pieces of information to locate points in a plane!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+
+            const initialContent = `
+                <h2 class="math-title">Welcome! ✨</h2>
+                <div class="value-display" style="font-size: 1.8rem;">Understanding Position in a Plane</div>
+                <div class="math-description">
+                    Experience mathematics like never before!<br>
+                    Discover why we need TWO pieces of information to locate any point<br>
+                    with stunning animations and interactive visualizations!
+                </div>
+                <div class="formula-box" style="padding: 12px;">
+                    <p style="font-size: 1rem; color: #43e97b;">
+                        🗺️ Street Maps | 📍 Dot on Paper<br>
+                        🏫 Classroom Seating | 👨‍🔬 René Descartes<br>
+                        🎮 Interactive Demos | 🏆 Quiz
+                    </p>
+                </div>
+            `;
+
+            transitionToNextStep(initialContent);
+
+            setTimeout(() => {
+                teacher.speak("Welcome to Understanding Position in a Plane! Discover why we need two pieces of information to locate any point, with amazing visualizations and real-world examples!");
+            }, 500);
+
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'problem':
+                            showProblemIntro();
+                            break;
+                        case 'street-map':
+                            showStreetMapExample();
+                            break;
+                        case 'dot-paper':
+                            showDotPaperExample();
+                            break;
+                        case 'classroom':
+                            showClassroomActivity();
+                            break;
+                        case 'history':
+                            showHistoricalContext();
+                            break;
+                        case 'interactive':
+                            showInteractiveDemo();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

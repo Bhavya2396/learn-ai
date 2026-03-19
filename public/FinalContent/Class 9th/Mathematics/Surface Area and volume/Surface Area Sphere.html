@@ -1,0 +1,2349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surface Area of Spheres - Master 3D Geometry</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header - Compact */
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Layout */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Demo Stage - Takes most space */
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+        }
+
+        /* Stage Content */
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Controls - Below Demo */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--accent-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* 3D Visualization */
+        .sphere-3d-container {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            margin: 20px auto;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Formula Display */
+        .formula-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            font-size: 1.2rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .formula {
+            font-size: 1.4rem;
+            color: var(--text-accent);
+            margin: 10px 0;
+            font-weight: 600;
+        }
+
+        /* Value Display */
+        .value-display {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--text-accent);
+            margin: 20px 0;
+        }
+
+        /* Calculator Input */
+        .calculator-input {
+            margin: 15px 0;
+            padding: 0 20px;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+
+        .input-group label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            min-width: 80px;
+        }
+
+        .input-group input[type="range"] {
+            width: 200px;
+            height: 8px;
+            border-radius: 5px;
+            background: var(--glass-bg);
+            outline: none;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .input-group input[type="range"]:hover {
+            opacity: 1;
+        }
+
+        .input-group input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            cursor: pointer;
+        }
+
+        .input-group input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            cursor: pointer;
+            border: none;
+        }
+
+        .value-label {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--text-accent);
+            min-width: 60px;
+        }
+
+        /* Example Cards */
+        .example-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+            max-width: 1000px;
+        }
+
+        .example-card {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        .example-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .example-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: var(--text-accent);
+            text-align: center;
+        }
+
+        .example-content {
+            font-size: 1rem;
+            line-height: 1.6;
+            text-align: left;
+        }
+
+        .calculation-step {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid var(--text-accent);
+            padding: 10px 15px;
+            margin: 10px 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            height: 400px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        /* Quiz Styles */
+        .quiz-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Step indicator */
+        .step-indicator {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            transition: var(--transition);
+            border: 2px solid transparent;
+        }
+
+        .step.active {
+            background: var(--accent-gradient);
+            transform: scale(1.2);
+        }
+
+        .step.completed {
+            background: var(--success-gradient);
+        }
+
+        .question {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .question h3 {
+            color: var(--text-accent);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .option:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .option.selected {
+            background: var(--accent-gradient);
+            border-color: transparent;
+        }
+
+        .option.correct {
+            background: var(--success-gradient);
+            border-color: transparent;
+        }
+
+        .option.incorrect {
+            background: var(--warning-gradient);
+            border-color: transparent;
+        }
+
+        /* Result Display */
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .result.correct {
+            background: var(--success-gradient);
+            color: white;
+        }
+
+        .result.incorrect {
+            background: var(--warning-gradient);
+            color: white;
+        }
+
+        /* Real World Application Cards */
+        .application-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+            padding: 20px;
+        }
+
+        .application-card {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px 25px;
+            backdrop-filter: blur(15px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .application-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent-gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .application-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+            border-color: rgba(79, 172, 254, 0.5);
+            box-shadow: 0 20px 40px rgba(79, 172, 254, 0.2);
+        }
+
+        .application-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .application-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            display: block;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        }
+
+        .application-card:hover .application-icon {
+            transform: scale(1.1) rotate(5deg);
+            filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.3));
+        }
+
+        .application-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-accent);
+            margin-bottom: 15px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            letter-spacing: 0.5px;
+        }
+
+        .application-description {
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            text-align: left;
+            padding: 0 10px;
+        }
+
+        .application-description strong {
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        /* Add subtle background pattern */
+        .application-grid::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(79, 172, 254, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .application-grid {
+            position: relative;
+        }
+
+        /* Enhanced card animations */
+        .application-card:nth-child(1) { animation-delay: 0.1s; }
+        .application-card:nth-child(2) { animation-delay: 0.2s; }
+        .application-card:nth-child(3) { animation-delay: 0.3s; }
+        .application-card:nth-child(4) { animation-delay: 0.4s; }
+        .application-card:nth-child(5) { animation-delay: 0.5s; }
+        .application-card:nth-child(6) { animation-delay: 0.6s; }
+
+        .application-card {
+            animation: slideInUp 0.6s ease-out forwards;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        @keyframes slideInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--text-accent);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .main-container {
+                padding: 15px;
+                gap: 15px;
+            }
+
+            .demo-stage {
+                padding: 20px;
+                min-height: 300px;
+            }
+
+            .controls {
+                padding: 15px;
+            }
+
+            .demo-btn {
+                padding: 10px 16px;
+                font-size: 0.9rem;
+            }
+
+            .example-container {
+                grid-template-columns: 1fr;
+            }
+
+            .application-grid {
+                grid-template-columns: 1fr;
+                padding: 15px;
+                gap: 20px;
+            }
+
+            .application-card {
+                padding: 25px 20px;
+            }
+
+            .application-icon {
+                font-size: 3.5rem;
+            }
+
+            .application-title {
+                font-size: 1.2rem;
+            }
+
+            .application-description {
+                font-size: 1rem;
+                padding: 0 5px;
+            }
+
+            .input-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .input-group input[type="range"] {
+                width: 250px;
+            }
+        }
+
+        /* Animation utilities */
+        .animate-bounce {
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 53%, 80%, 100% {
+                transform: translate3d(0,0,0);
+            }
+            40%, 43% {
+                transform: translate3d(0,-30px,0);
+            }
+            70% {
+                transform: translate3d(0,-15px,0);
+            }
+            90% {
+                transform: translate3d(0,-4px,0);
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
+        }
+
+        /* String Activity Animation Styles */
+        .derivation-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 20px 0;
+            align-items: start;
+        }
+
+        .string-activity-demo {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(15px);
+            position: relative;
+            min-height: 400px;
+        }
+
+        .sphere-demo {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            margin: 20px auto;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+            transition: all 0.5s ease;
+        }
+
+        .sphere-demo.wrapping {
+            animation: sphereRotate 3s ease-in-out;
+        }
+
+        .string-line {
+            position: absolute;
+            background: #ffd700;
+            height: 4px;
+            border-radius: 2px;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.5);
+            transform-origin: center;
+            opacity: 0;
+        }
+
+        .string-line.visible {
+            opacity: 1;
+            animation: stringWrap 3s ease-in-out forwards;
+        }
+
+        .circles-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .circle-demo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+            margin: 0 auto;
+            position: relative;
+            opacity: 0;
+            transform: scale(0);
+        }
+
+        .circle-demo.filled {
+            opacity: 1;
+            animation: circleFill 0.8s ease-out forwards;
+        }
+
+        .circle-demo::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            background: #ffd700;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .circle-demo.filled::after {
+            animation: stringAppear 0.5s ease-out 0.3s forwards;
+        }
+
+        .step-indicator-derivation {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .step-derivation {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .step-derivation.active {
+            background: var(--accent-gradient);
+            transform: scale(1.1);
+            border-color: rgba(79, 172, 254, 0.5);
+        }
+
+        .step-derivation.completed {
+            background: var(--success-gradient);
+        }
+
+        .formula-derivation {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(15px);
+        }
+
+        .formula-step {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid var(--text-accent);
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 0 15px 15px 0;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+
+        .formula-step.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .formula-step.highlighted {
+            background: rgba(79, 172, 254, 0.1);
+            border-left-color: #4facfe;
+        }
+
+        @keyframes sphereRotate {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(180deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes stringWrap {
+            0% { 
+                width: 0; 
+                top: 50%; 
+                left: 50%; 
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+            100% { 
+                width: 100%; 
+                top: 50%; 
+                left: 50%; 
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        @keyframes circleFill {
+            0% { 
+                transform: scale(0); 
+                opacity: 0; 
+            }
+            100% { 
+                transform: scale(1); 
+                opacity: 1; 
+            }
+        }
+
+        @keyframes stringAppear {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* Theory Cards Styles */
+        .theory-section {
+            margin: 30px 0;
+            padding: 0 20px;
+        }
+
+        .theory-title {
+            text-align: center;
+            font-size: 2rem;
+            color: var(--text-accent);
+            margin-bottom: 30px;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .theory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .theory-card {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(15px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .theory-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent-gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .theory-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+            border-color: rgba(79, 172, 254, 0.5);
+            box-shadow: 0 20px 40px rgba(79, 172, 254, 0.2);
+        }
+
+        .theory-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .theory-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+            text-align: center;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        }
+
+        .theory-card:hover .theory-icon {
+            transform: scale(1.1) rotate(5deg);
+            filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.3));
+        }
+
+        .theory-card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-accent);
+            margin-bottom: 15px;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            letter-spacing: 0.5px;
+        }
+
+        .theory-content {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .theory-content p {
+            margin-bottom: 12px;
+        }
+
+        .theory-content ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .theory-content li {
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        .theory-content li::marker {
+            color: var(--text-accent);
+        }
+
+        .formula-highlight {
+            background: rgba(79, 172, 254, 0.2);
+            border: 2px solid rgba(79, 172, 254, 0.4);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin: 10px 0;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-accent);
+            font-family: 'Courier New', monospace;
+        }
+
+        .theory-content strong {
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        .theory-content em {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .derivation-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .string-activity-demo {
+                min-height: 300px;
+            }
+            
+            .sphere-demo {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .circles-container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            
+            .circle-demo {
+                width: 50px;
+                height: 50px;
+            }
+
+            .theory-section {
+                padding: 0 15px;
+                margin: 20px 0;
+            }
+
+            .theory-title {
+                font-size: 1.5rem;
+                margin-bottom: 20px;
+            }
+
+            .theory-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .theory-card {
+                padding: 20px;
+            }
+
+            .theory-icon {
+                font-size: 2.5rem;
+            }
+
+            .theory-card-title {
+                font-size: 1.1rem;
+            }
+
+            .theory-content {
+                font-size: 0.95rem;
+            }
+
+            .formula-highlight {
+                font-size: 1rem;
+                padding: 10px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn" title="Toggle Audio">
+            <span class="mute-icon">🔊</span>
+            <span class="unmute-icon">🔇</span>
+        </button>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <h1>Surface Area of Spheres</h1>
+        <p>Master the mathematics of 3D spheres and hemispheres</p>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Demo Stage -->
+        <div class="demo-stage" id="demo-stage">
+            <!-- Content will be dynamically loaded here -->
+            <div class="stage-content active">
+                <h2 style="font-size: 2rem; margin-bottom: 20px;">Welcome to Sphere Geometry!</h2>
+                <div class="value-display">Let's Explore 3D Shapes!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Spheres are perfect 3D shapes all around us - from balls to planets! 
+                    Choose a lesson below to start your mathematical journey!
+                </p>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">🎯 Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">🌟 Introduction</button>
+            <button class="demo-btn" data-demo="derivation">📐 Formula Derivation</button>
+            <button class="demo-btn" data-demo="examples">📝 Worked Examples</button>
+            <button class="demo-btn" data-demo="realworld">🌍 Applications</button>
+            <button class="demo-btn" data-demo="chart">📊 Visual Analysis</button>
+            <button class="demo-btn" data-demo="quiz">🧠 Knowledge Quiz</button>
+            <button class="demo-btn" data-demo="calculator">🧮 Calculator</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+
+        <!-- Theory Cards Section -->
+        <div class="theory-section">
+            <h2 class="theory-title">📚 Key Theory Concepts</h2>
+            <div class="theory-grid">
+                <div class="theory-card">
+                    <div class="theory-icon">🔵</div>
+                    <h3 class="theory-card-title">What is a Sphere?</h3>
+                    <div class="theory-content">
+                        <p>A sphere is a 3D shape where every point on its surface is equidistant from the center point.</p>
+                        <ul>
+                            <li>No edges or vertices</li>
+                            <li>Perfectly round in all directions</li>
+                            <li>Only one curved surface</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-icon">📐</div>
+                    <h3 class="theory-card-title">Surface Area Formula</h3>
+                    <div class="theory-content">
+                        <div class="formula-highlight">Surface Area = 4πr²</div>
+                        <p>Where:</p>
+                        <ul>
+                            <li><strong>r</strong> = radius of the sphere</li>
+                            <li><strong>π</strong> ≈ 3.14159 (or 22/7)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-icon">🌗</div>
+                    <h3 class="theory-card-title">Hemisphere Formulas</h3>
+                    <div class="theory-content">
+                        <p><strong>Curved Surface Area:</strong></p>
+                        <div class="formula-highlight">CSA = 2πr²</div>
+                        <p><strong>Total Surface Area:</strong></p>
+                        <div class="formula-highlight">TSA = 3πr²</div>
+                        <p><em>Includes the flat circular base</em></p>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-icon">🔍</div>
+                    <h3 class="theory-card-title">Key Properties</h3>
+                    <div class="theory-content">
+                        <ul>
+                            <li>Surface area grows quadratically with radius</li>
+                            <li>Doubling radius = 4× surface area</li>
+                            <li>Sphere has maximum volume for given surface area</li>
+                            <li>Hemisphere CSA = ½ of sphere surface area</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-icon">🧮</div>
+                    <h3 class="theory-card-title">Quick Calculations</h3>
+                    <div class="theory-content">
+                        <p><strong>Common Values:</strong></p>
+                        <ul>
+                            <li>r = 1 → SA = 4π ≈ 12.57</li>
+                            <li>r = 2 → SA = 16π ≈ 50.27</li>
+                            <li>r = 3 → SA = 36π ≈ 113.10</li>
+                            <li>r = 7 → SA = 196π ≈ 615.75</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-icon">💡</div>
+                    <h3 class="theory-card-title">Remember This!</h3>
+                    <div class="theory-content">
+                        <ul>
+                            <li>Always use radius, not diameter</li>
+                            <li>If given diameter, divide by 2 first</li>
+                            <li>Surface area units are square units</li>
+                            <li>Hemisphere has 2 types of surface area</li>
+                            <li>Sphere surface = 4 × circle area</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let currentTeacher = null;
+        let currentDemo = null;
+        let globalAudioEnabled = true;
+        let animationTimeouts = [];
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let currentRunId = 0;
+        let currentTaskId = null;
+        let sphere3DScene = null;
+        let sphere3DRenderer = null;
+        let sphere3DCamera = null;
+        let sphereMesh = null;
+
+        // Teacher Voice System
+        class TeacherVoice {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.voice = null;
+                this.rate = 0.8;
+                this.pitch = 1.0;
+                this.volume = 0.9;
+                this.isEnabled = true;
+                this.currentUtterance = null;
+                this.isDestroyed = false;
+                this.setupVoice();
+            }
+
+            setupVoice() {
+                const loadVoices = () => {
+                    const voices = this.synth.getVoices();
+                    this.voice = voices.find(v => v.lang.includes('en')) || voices[0];
+                };
+                loadVoices();
+                this.synth.onvoiceschanged = loadVoices;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !globalAudioEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.voice = this.voice;
+                        utterance.rate = this.rate;
+                        utterance.pitch = this.pitch;
+                        utterance.volume = this.volume;
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        this.synth.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+            }
+        }
+
+        // State management functions
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            if (sphere3DRenderer) {
+                sphere3DRenderer.setAnimationLoop(null);
+            }
+            
+            clearStage();
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            // If demo is aborted, always return false
+            if (currentDemoAborted) {
+                return false;
+            }
+            
+            // If we have a taskId and currentTaskId, they must match
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            
+            // If we have a taskId but no currentTaskId, it means we're in a reset state
+            if (taskId && !currentTaskId) {
+                return false;
+            }
+            
+            return true;
+        }
+
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentTeacher = new TeacherVoice();
+            currentTeacher.isEnabled = globalAudioEnabled;
+            return currentTeacher;
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        // Clear stage
+        function clearStage() {
+            const stage = document.getElementById('demo-stage');
+            stage.innerHTML = '';
+            
+            // Clear all timeouts
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+        }
+
+        // Create stage content
+        function createStageContent() {
+            clearStage();
+            const content = document.createElement('div');
+            content.className = 'stage-content active';
+            document.getElementById('demo-stage').appendChild(content);
+            // Reset any internal scroll in the stage and prevent page from jumping down
+            const stage = document.getElementById('demo-stage');
+            if (stage) {
+                stage.scrollTop = 0;
+            }
+            try {
+                window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+            } catch (_) {
+                window.scrollTo(0, 0);
+            }
+            return content;
+        }
+
+        // 3D Sphere Visualization
+        function create3DSphere(container, radius = 5) {
+            // Clean up existing scene
+            if (sphere3DRenderer) {
+                sphere3DRenderer.dispose();
+                sphere3DRenderer = null;
+            }
+
+            // Scene setup
+            sphere3DScene = new THREE.Scene();
+            sphere3DCamera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            sphere3DRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            sphere3DRenderer.setSize(container.clientWidth, container.clientHeight);
+            sphere3DRenderer.setClearColor(0x000000, 0);
+            container.appendChild(sphere3DRenderer.domElement);
+
+            // Create sphere geometry
+            const geometry = new THREE.SphereGeometry(radius, 32, 32);
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x4facfe,
+                transparent: true,
+                opacity: 0.8,
+                shininess: 100
+            });
+            sphereMesh = new THREE.Mesh(geometry, material);
+            sphere3DScene.add(sphereMesh);
+
+            // Add wireframe
+            const wireframeGeometry = new THREE.SphereGeometry(radius, 16, 16);
+            const wireframeMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.3
+            });
+            const wireframeMesh = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
+            sphere3DScene.add(wireframeMesh);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            sphere3DScene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            sphere3DScene.add(directionalLight);
+
+            // Camera position
+            sphere3DCamera.position.z = 15;
+
+            // Animation loop
+            function animate() {
+                if (sphereMesh) {
+                    sphereMesh.rotation.y += 0.01;
+                    sphereMesh.rotation.x += 0.005;
+                }
+                sphere3DRenderer.render(sphere3DScene, sphere3DCamera);
+            }
+            sphere3DRenderer.setAnimationLoop(animate);
+
+            return { scene: sphere3DScene, camera: sphere3DCamera, renderer: sphere3DRenderer };
+        }
+
+        // Content Functions
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">What is a Sphere?</h2>
+                <div class="sphere-3d-container" id="intro-sphere"></div>
+                <div class="formula-box">
+                    <p style="margin-bottom: 15px;">A sphere is a 3D figure made up of all points in space that lie at a constant distance (radius) from a fixed point (center).</p>
+                    <div class="formula">Like the surface of a ball! 🏀</div>
+                </div>
+            `;
+
+            // Create 3D sphere
+            const container = document.getElementById('intro-sphere');
+            create3DSphere(container, 4);
+
+            await teacher.speak("A sphere is a fascinating three-dimensional shape! Unlike a circle which is flat, a sphere is completely round in all directions.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("Think of a ball - every point on its surface is exactly the same distance from the center. This distance is called the radius.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("A sphere has only one curved surface - no edges or vertices! It's the most perfect shape in geometry.");
+        }
+
+        async function showDerivationContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">Formula Derivation - The String Activity</h2>
+                <div class="step-indicator-derivation">
+                    <div class="step-derivation" id="step1">1</div>
+                    <div class="step-derivation" id="step2">2</div>
+                    <div class="step-derivation" id="step3">3</div>
+                    <div class="step-derivation" id="step4">4</div>
+                </div>
+                <div class="derivation-container">
+                    <div class="string-activity-demo">
+                        <h3 style="text-align: center; color: var(--text-accent); margin-bottom: 20px;">Interactive Demonstration</h3>
+                        <div class="sphere-demo" id="sphere-demo">
+                            <div class="string-line" id="string-line"></div>
+                        </div>
+                        <div class="circles-container" id="circles-container">
+                            <div class="circle-demo" id="circle1"></div>
+                            <div class="circle-demo" id="circle2"></div>
+                            <div class="circle-demo" id="circle3"></div>
+                            <div class="circle-demo" id="circle4"></div>
+                        </div>
+                        <p style="text-align: center; margin-top: 20px; color: var(--text-secondary); font-size: 0.9rem;">
+                            Watch the string wrap around the sphere, then see it fill exactly 4 circles!
+                        </p>
+                    </div>
+                    <div class="formula-derivation">
+                        <h3 style="color: var(--text-accent); margin-bottom: 20px;">Step-by-Step Process</h3>
+                        <div class="formula-step" id="formula-step1">
+                            <strong>Step 1:</strong> Wind string completely around a sphere
+                        </div>
+                        <div class="formula-step" id="formula-step2">
+                            <strong>Step 2:</strong> Unwind the string from the sphere
+                        </div>
+                        <div class="formula-step" id="formula-step3">
+                            <strong>Step 3:</strong> Use the string to fill exactly 4 circles of radius r
+                        </div>
+                        <div class="formula-step" id="formula-step4">
+                            <strong>Conclusion:</strong> Surface area of sphere = 4 × Area of circle
+                        </div>
+                        <div class="formula" style="margin-top: 25px; text-align: center; font-size: 1.8rem; color: var(--text-accent);">
+                            Surface Area = 4πr²
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Animation sequence
+            await teacher.speak("Let's discover how we get the formula for surface area of a sphere through a fascinating string activity!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            // Step 1: Show first step
+            document.getElementById('step1').classList.add('active');
+            document.getElementById('formula-step1').classList.add('visible');
+            await teacher.speak("First, we wind a string completely around a ball, covering its entire surface.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            // Animate string wrapping
+            const sphereDemo = document.getElementById('sphere-demo');
+            const stringLine = document.getElementById('string-line');
+            sphereDemo.classList.add('wrapping');
+            stringLine.classList.add('visible');
+
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+
+            // Step 2: Complete first step, show second
+            document.getElementById('step1').classList.remove('active');
+            document.getElementById('step1').classList.add('completed');
+            document.getElementById('step2').classList.add('active');
+            document.getElementById('formula-step2').classList.add('visible');
+            await teacher.speak("Now we unwind the string from the sphere.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Step 3: Show third step
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('step2').classList.add('completed');
+            document.getElementById('step3').classList.add('active');
+            document.getElementById('formula-step3').classList.add('visible');
+            await teacher.speak("Amazingly, this string can exactly fill four circles, each with the same radius as the original ball!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            // Animate circles filling
+            const circles = ['circle1', 'circle2', 'circle3', 'circle4'];
+            for (let i = 0; i < circles.length; i++) {
+                if (!shouldContinue(taskId)) return;
+                document.getElementById(circles[i]).classList.add('filled');
+                await wait(800);
+            }
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            // Step 4: Show conclusion
+            document.getElementById('step3').classList.remove('active');
+            document.getElementById('step3').classList.add('completed');
+            document.getElementById('step4').classList.add('active');
+            document.getElementById('formula-step4').classList.add('visible');
+            document.getElementById('formula-step4').classList.add('highlighted');
+            
+            await teacher.speak("Since the area of one circle is pi r squared, and we need four circles, the surface area of a sphere is 4 times pi r squared!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            document.getElementById('step4').classList.remove('active');
+            document.getElementById('step4').classList.add('completed');
+            
+            await teacher.speak("This gives us our fundamental formula: Surface Area equals 4 pi r squared, where r is the radius of the sphere. This elegant proof shows the beautiful relationship between spheres and circles!");
+        }
+
+        async function showExamplesContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">Worked Examples</h2>
+                <div class="example-container">
+                    <div class="example-card">
+                        <h3 style="color: var(--text-accent); margin-bottom: 15px;">Example 1: Simple Sphere</h3>
+                        <div class="example-content">
+                            <p><strong>Problem:</strong> Find the surface area of a sphere with radius 7 cm.</p>
+                            <div class="calculation-step">
+                                Given: r = 7 cm
+                            </div>
+                            <div class="calculation-step">
+                                Formula: Surface Area = 4πr²
+                            </div>
+                            <div class="calculation-step">
+                                = 4 × (22/7) × 7 × 7
+                            </div>
+                            <div class="calculation-step">
+                                = 4 × 22 × 7 = 616 cm²
+                            </div>
+                        </div>
+                    </div>
+                    <div class="example-card">
+                        <h3 style="color: var(--text-accent); margin-bottom: 15px;">Example 2: Hemisphere</h3>
+                        <div class="example-content">
+                            <p><strong>Problem:</strong> Find curved and total surface area of hemisphere with radius 21 cm.</p>
+                            <div class="calculation-step">
+                                Curved Surface Area = 2πr²
+                            </div>
+                            <div class="calculation-step">
+                                = 2 × (22/7) × 21 × 21 = 2772 cm²
+                            </div>
+                            <div class="calculation-step">
+                                Total Surface Area = 3πr²
+                            </div>
+                            <div class="calculation-step">
+                                = 3 × (22/7) × 21 × 21 = 4158 cm²
+                            </div>
+                        </div>
+                    </div>
+                    <div class="example-card">
+                        <h3 style="color: var(--text-accent); margin-bottom: 15px;">Example 3: Real World</h3>
+                        <div class="example-content">
+                            <p><strong>Problem:</strong> A circus motorcycle sphere has diameter 7 m. Find riding area.</p>
+                            <div class="calculation-step">
+                                Diameter = 7 m, so radius = 3.5 m
+                            </div>
+                            <div class="calculation-step">
+                                Surface Area = 4πr²
+                            </div>
+                            <div class="calculation-step">
+                                = 4 × (22/7) × 3.5 × 3.5
+                            </div>
+                            <div class="calculation-step">
+                                = 154 m²
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("Let's work through some examples to master sphere surface area calculations!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("First example: For a sphere with radius 7 centimeters, we use the formula 4 pi r squared. This gives us 4 times 22 over 7 times 7 times 7, which equals 616 square centimeters.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("For hemispheres, remember we have two types of surface area. Curved surface area is half of the sphere's surface area, which is 2 pi r squared.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("Total surface area of a hemisphere includes the flat circular base, so we add pi r squared to get 3 pi r squared total.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("The circus example shows real-world applications. A motorcycle riding inside a spherical cage needs to know the surface area to understand the available riding space!");
+        }
+
+        async function showRealWorldContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">Real World Applications</h2>
+                <p style="text-align: center; font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 30px; max-width: 800px; margin-left: auto; margin-right: auto;">
+                    Discover how sphere surface area calculations shape our world in fascinating ways!
+                </p>
+                <div class="application-grid">
+                    <div class="application-card">
+                        <div class="application-icon">🏀</div>
+                        <div class="application-title">Sports Equipment</div>
+                        <div class="application-description">
+                            <strong>Material Optimization:</strong> Manufacturers calculate exact leather, rubber, or synthetic material needed for basketballs, tennis balls, and golf balls. This ensures consistent quality and cost efficiency.
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.9rem; color: var(--text-accent); font-weight: 600;">
+                            💡 Fun Fact: A basketball needs ~0.75 m² of material!
+                        </div>
+                    </div>
+                    <div class="application-card">
+                        <div class="application-icon">🌍</div>
+                        <div class="application-title">Planetary Science</div>
+                        <div class="application-description">
+                            <strong>Earth Studies:</strong> Scientists use Earth's surface area (510 million km²) to study climate patterns, ocean coverage, and atmospheric modeling. Essential for understanding our planet's systems.
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.9rem; color: var(--text-accent); font-weight: 600;">
+                            🌊 71% of Earth's surface is water!
+                        </div>
+                    </div>
+                    <div class="application-card">
+                        <div class="application-icon">🏗️</div>
+                        <div class="application-title">Architecture & Design</div>
+                        <div class="application-description">
+                            <strong>Iconic Structures:</strong> From the geodesic domes of Buckminster Fuller to modern planetariums, architects use sphere calculations for structural integrity and material estimation.
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.9rem; color: var(--text-accent); font-weight: 600;">
+                            🏛️ Domes are the strongest architectural shape!
+                        </div>
+                    </div>
+                    <div class="application-card">
+                        <div class="application-icon">💊</div>
+                        <div class="application-title">Medical Technology</div>
+                        <div class="application-description">
+                            <strong>Drug Delivery:</strong> Pharmaceutical companies calculate coating thickness on spherical pills for controlled release. Also used in designing medical implants and diagnostic equipment.
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.9rem; color: var(--text-accent); font-weight: 600;">
+                            ⚕️ Precise coating ensures proper drug release!
+                        </div>
+                    </div>
+                    <div class="application-card">
+                        <div class="application-icon">🎪</div>
+                        <div class="application-title">Entertainment Industry</div>
+                        <div class="application-description">
+                            <strong>Spectacular Shows:</strong> Circus performers in spherical cages, IMAX dome theaters, and spherical projection systems all rely on surface area calculations for safety and design.
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.9rem; color: var(--text-accent); font-weight: 600;">
+                            🎭 Safety calculations save lives!
+                        </div>
+                    </div>
+                    <div class="application-card">
+                        <div class="application-icon">🚀</div>
+                        <div class="application-title">Space Technology</div>
+                        <div class="application-description">
+                            <strong>Space Exploration:</strong> Satellite design, space capsules, and fuel tank calculations depend on sphere surface area for thermal management, structural design, and resource planning.
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.9rem; color: var(--text-accent); font-weight: 600;">
+                            🛰️ Every satellite needs precise calculations!
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("Spheres and their surface areas are everywhere in our world! Let's explore some fascinating applications.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("In sports, manufacturers need to know exactly how much material is required to make a basketball or tennis ball. They use sphere surface area formulas for this!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("Astronomers use these calculations to study planets. Earth's surface area helps us understand climate, ocean coverage, and land distribution patterns.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("Architects designing domes and planetariums must calculate surface areas to determine material costs and structural requirements. Even circus performers riding in spherical cages need these calculations!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("In medicine and space technology, spherical designs are common. From pill coatings to satellite surfaces, these calculations are essential for modern innovation!");
+        }
+
+        async function showChartContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">Surface Area Analysis</h2>
+                <div class="chart-container">
+                    <canvas id="sphereChart"></canvas>
+                </div>
+                <div class="formula-box">
+                    <div class="formula">Surface Area = 4πr²</div>
+                    <p>Watch how surface area grows quadratically with radius!</p>
+                </div>
+            `;
+
+            // Create chart
+            const ctx = document.getElementById('sphereChart').getContext('2d');
+            const radii = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+            const surfaceAreas = radii.map(r => 4 * Math.PI * r * r);
+            const hemisphereAreas = radii.map(r => 3 * Math.PI * r * r);
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: radii,
+                    datasets: [{
+                        label: 'Sphere Surface Area',
+                        data: surfaceAreas,
+                        borderColor: '#4facfe',
+                        backgroundColor: 'rgba(79, 172, 254, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'Hemisphere Total Surface Area',
+                        data: hemisphereAreas,
+                        borderColor: '#f093fb',
+                        backgroundColor: 'rgba(240, 147, 251, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Radius (units)',
+                                color: '#ffffff'
+                            },
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Surface Area (square units)',
+                                color: '#ffffff'
+                            },
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            await teacher.speak("Let's analyze how sphere surface area changes with radius using this visual chart!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("Notice how the surface area grows much faster than the radius. This is because surface area follows a quadratic relationship - it's proportional to r squared!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("The blue line shows sphere surface area, while the pink line shows hemisphere total surface area. See how the hemisphere is always three-fourths of the sphere's area!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("This quadratic growth means that doubling the radius makes the surface area four times larger! This is crucial in real-world applications like material cost calculations.");
+        }
+
+        async function showCalculatorContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">Interactive Calculator</h2>
+                <div class="sphere-3d-container" id="calc-sphere"></div>
+                <div class="calculator-input">
+                    <div class="input-group">
+                        <label for="radius-slider">Radius:</label>
+                        <input type="range" id="radius-slider" min="1" max="10" value="5" step="0.1">
+                        <span class="value-label" id="radius-value">5.0</span>
+                    </div>
+                </div>
+                <div class="formula-box">
+                    <div class="formula">Surface Area = 4πr²</div>
+                    <div class="value-display" id="surface-area-value">314.16</div>
+                    <div style="margin-top: 20px;">
+                        <p><strong>Hemisphere Curved Surface:</strong> <span id="hemisphere-curved">157.08</span></p>
+                        <p><strong>Hemisphere Total Surface:</strong> <span id="hemisphere-total">235.62</span></p>
+                    </div>
+                </div>
+            `;
+
+            // Create 3D sphere
+            const container = document.getElementById('calc-sphere');
+            create3DSphere(container, 5);
+
+            // Calculator functionality
+            const radiusSlider = document.getElementById('radius-slider');
+            const radiusValue = document.getElementById('radius-value');
+            const surfaceAreaValue = document.getElementById('surface-area-value');
+            const hemisphereCurved = document.getElementById('hemisphere-curved');
+            const hemisphereTotal = document.getElementById('hemisphere-total');
+
+            function updateCalculations() {
+                const r = parseFloat(radiusSlider.value);
+                radiusValue.textContent = r.toFixed(1);
+                
+                const sphereSurfaceArea = 4 * Math.PI * r * r;
+                const hemisphereCurvedArea = 2 * Math.PI * r * r;
+                const hemisphereTotalArea = 3 * Math.PI * r * r;
+                
+                surfaceAreaValue.textContent = sphereSurfaceArea.toFixed(2);
+                hemisphereCurved.textContent = hemisphereCurvedArea.toFixed(2);
+                hemisphereTotal.textContent = hemisphereTotalArea.toFixed(2);
+
+                // Update 3D sphere size
+                if (sphereMesh) {
+                    sphereMesh.scale.setScalar(r / 5);
+                }
+            }
+
+            radiusSlider.addEventListener('input', updateCalculations);
+            updateCalculations();
+
+            await teacher.speak("Welcome to the interactive sphere calculator! Use the slider to change the radius and watch how the surface area values change.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("Notice how the 3D sphere changes size as you adjust the radius. The surface area calculations update in real-time according to our formulas!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("Try different values to see the relationship between radius and surface area. Remember, sphere surface area is 4 pi r squared, while hemisphere total surface area is 3 pi r squared!");
+        }
+
+        async function showQuizContent(taskId) {
+            const teacher = currentTeacher;
+            
+            let score = 0;
+            let currentQuestion = 0;
+
+            const questions = [
+                {
+                    question: "What is the surface area of a sphere with radius 3 units?",
+                    options: [
+                        "12π square units",
+                        "24π square units", 
+                        "36π square units",
+                        "48π square units"
+                    ],
+                    correct: 2
+                },
+                {
+                    question: "What is the curved surface area of a hemisphere with radius 6 units?",
+                    options: [
+                        "36π square units",
+                        "72π square units",
+                        "108π square units", 
+                        "144π square units"
+                    ],
+                    correct: 1
+                },
+                {
+                    question: "If a sphere has diameter 14 units, what is its surface area?",
+                    options: [
+                        "98π square units",
+                        "154π square units",
+                        "196π square units",
+                        "392π square units"
+                    ],
+                    correct: 2
+                }
+            ];
+
+            async function showQuestion(index) {
+                if (!shouldContinue(taskId) || index >= questions.length) {
+                    showResults();
+                    return;
+                }
+
+                const q = questions[index];
+                const content = createStageContent();
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="example-title">Sphere Surface Area Quiz</h2>
+                        <div class="step-indicator">
+                            ${questions.map((_, i) => `<div class="step ${i < index ? 'completed' : i === index ? 'active' : ''}">${i + 1}</div>`).join('')}
+                        </div>
+                        <div class="question">
+                            <h3>Question ${index + 1}: ${q.question}</h3>
+                            <div class="options">
+                                ${q.options.map((opt, i) => `
+                                    <div class="option" data-index="${i}">${String.fromCharCode(65 + i)}) ${opt}</div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                await teacher.speak(q.question);
+
+                // Add click handlers
+                const options = content.querySelectorAll('.option');
+                options.forEach(option => {
+                    option.addEventListener('click', async function() {
+                        const selectedIndex = parseInt(this.getAttribute('data-index'));
+                        const isCorrect = selectedIndex === q.correct;
+                        
+                        // Mark all options
+                        options.forEach((opt, i) => {
+                            opt.classList.remove('selected', 'correct', 'incorrect');
+                            if (i === selectedIndex) {
+                                opt.classList.add('selected');
+                                if (isCorrect) {
+                                    opt.classList.add('correct');
+                                    score++;
+                                } else {
+                                    opt.classList.add('incorrect');
+                                }
+                            }
+                            if (i === q.correct) {
+                                opt.classList.add('correct');
+                            }
+                        });
+
+                        // Disable further clicks
+                        options.forEach(opt => opt.style.pointerEvents = 'none');
+
+                        // Move to next question
+                        await wait(2000);
+                        currentQuestion++;
+                        showQuestion(currentQuestion);
+                    });
+                });
+            }
+
+            function showResults() {
+                const content = createStageContent();
+                const percentage = (score / questions.length * 100).toFixed(0);
+                
+                content.innerHTML = `
+                    <div class="score-display">
+                        <h2 class="example-title">Quiz Complete!</h2>
+                        <div class="value-display">${score} / ${questions.length}</div>
+                        <p>You scored ${percentage}%</p>
+                        <p style="margin-top: 20px;">
+                            ${percentage >= 80 ? "Excellent work! You've mastered sphere surface area! 🎉" :
+                              percentage >= 60 ? "Good job! Review the concepts you missed. 📚" :
+                              "Keep practicing! Try the lessons again to improve. 💪"}
+                        </p>
+                    </div>
+                `;
+
+                teacher.speak(`Quiz complete! You scored ${score} out of ${questions.length}. ${
+                    percentage >= 80 ? "Excellent work!" : 
+                    percentage >= 60 ? "Good job!" : 
+                    "Keep practicing!"
+                }`);
+
+                isPlaying = false;
+            }
+
+            await teacher.speak("Let's test your knowledge about sphere surface area! Answer each question by clicking on the correct option.");
+            await wait(1000);
+            
+            showQuestion(0);
+        }
+
+        async function showIntroduction() {
+            const taskId = 'introduction';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            await showIntroductionContent(taskId);
+            isPlaying = false;
+        }
+
+        async function showDerivation() {
+            const taskId = 'derivation';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            await showDerivationContent(taskId);
+            isPlaying = false;
+        }
+
+        async function showExamples() {
+            const taskId = 'examples';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            await showExamplesContent(taskId);
+            isPlaying = false;
+        }
+
+        async function showRealWorld() {
+            const taskId = 'realworld';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            await showRealWorldContent(taskId);
+            isPlaying = false;
+        }
+
+        async function showChart() {
+            const taskId = 'chart';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            await showChartContent(taskId);
+            isPlaying = false;
+        }
+
+        async function showCalculator() {
+            const taskId = 'calculator';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            await showCalculatorContent(taskId);
+            isPlaying = false;
+        }
+
+        async function showQuiz() {
+            const taskId = 'quiz';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            await showQuizContent(taskId);
+            isPlaying = false;
+        }
+
+
+        async function showCompleteLesson() {
+            const taskId = 'complete';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            // Welcome message
+            const welcomeContent = createStageContent();
+            welcomeContent.innerHTML = `
+                <h2 class="example-title">Complete Sphere Lesson</h2>
+                <div class="value-display">Let's Learn Everything!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    We'll explore spheres step by step, from basic concepts to real applications.
+                </p>
+            `;
+            
+            await teacher.speak("Welcome to the complete lesson on the surface area of spheres! Let's begin our journey through the fascinating world of three-dimensional geometry.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Introduction
+            await showIntroductionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Derivation
+            await teacher.speak("Let's understand where the surface area formula comes from through the string activity.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showDerivationContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Examples
+            await teacher.speak("Time to practice with some examples!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showExamplesContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Real World Applications
+            await teacher.speak("Let's see how spheres are used in real life!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showRealWorldContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Chart Analysis
+            await teacher.speak("Let's analyze the mathematical relationships through visual charts!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showChartContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Final message
+            const finalContent = createStageContent();
+            finalContent.innerHTML = `
+                <h2 class="example-title">Congratulations!</h2>
+                <div class="value-display">🎉 Lesson Complete! 🎉</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    You've mastered the surface area of spheres! You understand the concepts,
+                    can derive the formula, and solve problems. Try the quiz to test your knowledge further!
+                </p>
+            `;
+            
+            await teacher.speak("Congratulations! You've completed the full lesson on sphere surface area. You now understand what spheres are, how to find their surface area, and where this knowledge is useful. Excellent work!");
+            
+            isPlaying = false;
+        }
+
+        function resetApplication() {
+            // Force stop any running demo
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            isPlaying = false;
+            
+            // Stop and destroy current teacher
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            // Clear all timeouts
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            // Stop 3D renderer
+            if (sphere3DRenderer) {
+                sphere3DRenderer.setAnimationLoop(null);
+            }
+            
+            // Clear stage and show welcome
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 style="font-size: 2rem; margin-bottom: 20px;">Welcome to Sphere Geometry!</h2>
+                <div class="value-display">Let's Explore 3D Shapes!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Spheres are perfect 3D shapes all around us - from balls to planets! 
+                    Choose a lesson below to start your mathematical journey!
+                </p>
+            `;
+            
+            // Clear active button states
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Reset current demo
+            currentDemo = null;
+            
+            // Create new teacher and welcome message
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to continue exploring the fascinating world of spheres!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize teacher
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome to the surface area of spheres! Choose any lesson to begin your mathematical journey!");
+            }, 500);
+            
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Clear active states
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    
+                    // Prevent any unintended scroll jumps when switching sections
+                    const stage = document.getElementById('demo-stage');
+                    if (stage) {
+                        stage.scrollTop = 0;
+                    }
+                    try {
+                        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+                    } catch (_) {
+                        window.scrollTo(0, 0);
+                    }
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'derivation':
+                            showDerivation();
+                            break;
+                        case 'examples':
+                            showExamples();
+                            break;
+                        case 'realworld':
+                            showRealWorld();
+                            break;
+                        case 'chart':
+                            showChart();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'calculator':
+                            showCalculator();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+            
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

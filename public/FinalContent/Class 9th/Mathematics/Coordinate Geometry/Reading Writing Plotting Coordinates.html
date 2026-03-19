@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading, Writing, and Plotting Coordinates - Interactive Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --equation-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            --solution-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 10px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: var(--equation-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 3px;
+        }
+
+        .header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            padding: 5px 10px;
+            gap: 10px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .demo-stage {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 10px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 700px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+            overflow: hidden;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 12px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 10px 20px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--equation-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--equation-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .math-title {
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .math-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 10px auto;
+            line-height: 1.5;
+            padding: 5px;
+        }
+
+        .formula-box {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 12px;
+            margin: 8px 0;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .content-card {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 10px 0;
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        .content-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(79, 172, 254, 0.3);
+        }
+
+        .value-display {
+            font-size: 1.6rem;
+            font-weight: 700;
+            text-align: center;
+            background: var(--success-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 10px 0;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 98%;
+            height: 500px;
+            margin: 10px auto;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .key-point {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin: 8px 0;
+            background: var(--glass-bg);
+            border-left: 4px solid;
+            border-image: var(--success-gradient) 1;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .example-box {
+            background: var(--solution-gradient);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 10px 0;
+            color: #1a1a2e;
+            font-weight: 600;
+        }
+
+        .flex-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+            flex-wrap: nowrap;
+        }
+
+        .flex-left {
+            flex: 2.5;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        .flex-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        .coordinate-plane {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: white;
+        }
+
+        .axis-line {
+            position: absolute;
+            background: #1a1a2e;
+        }
+
+        .axis-horizontal {
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            transform: translateY(-50%);
+        }
+
+        .axis-vertical {
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            transform: translateX(-50%);
+        }
+
+        .point {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        .point-label {
+            position: absolute;
+            font-weight: 700;
+            font-size: 1rem;
+            transform: translate(-50%, -50%);
+            padding: 4px;
+        }
+
+        .perpendicular-line {
+            position: absolute;
+            background: rgba(67, 233, 123, 0.6);
+            border: 1px dashed #43e97b;
+        }
+
+        .coordinate-label {
+            position: absolute;
+            background: var(--warning-gradient);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            box-shadow: var(--shadow-primary);
+        }
+
+        .quadrant-label {
+            position: absolute;
+            font-size: 2.5rem;
+            font-weight: 700;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .sign-box {
+            position: absolute;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            backdrop-filter: blur(10px);
+        }
+
+        .quiz-option {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(10px);
+        }
+
+        .quiz-option.correct {
+            background: var(--success-gradient);
+            border-color: transparent;
+            animation: pulse 0.5s;
+        }
+
+        .quiz-option.incorrect {
+            background: var(--secondary-gradient);
+            border-color: transparent;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--glass-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-gradient);
+            transition: width 0.5s ease;
+        }
+
+        .glow-effect {
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 10px rgba(79, 172, 254, 0.5); }
+            50% { box-shadow: 0 0 30px rgba(79, 172, 254, 0.8); }
+        }
+
+        .grid-line {
+            position: absolute;
+            background: rgba(200, 200, 200, 0.3);
+        }
+
+        .tick-mark {
+            position: absolute;
+            background: #1a1a2e;
+        }
+
+        .tick-label {
+            position: absolute;
+            font-size: 0.75rem;
+            color: #1a1a2e;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.3rem;
+            }
+            
+            .demo-stage {
+                height: 500px;
+            }
+            
+            .math-title {
+                font-size: 1.1rem;
+            }
+            
+            .flex-container {
+                flex-direction: column;
+            }
+            
+            .flex-left, .flex-right {
+                width: 100%;
+            }
+            
+            .canvas-container {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Reading, Writing, and Plotting Coordinates</h1>
+        <p>Master the Art of Locating Points in the Cartesian Plane</p>
+    </div>
+
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage">
+            <div id="stage-content" class="stage-content active">
+                <!-- Dynamic content will be inserted here -->
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">📚 Complete Lesson</button>
+            <button class="demo-btn" data-demo="write-coords">✍️ Writing Coordinates</button>
+            <button class="demo-btn" data-demo="example1">🎯 Worked Example</button>
+            <button class="demo-btn" data-demo="axes-points">📐 Points on Axes</button>
+            <button class="demo-btn" data-demo="sign-patterns">➕➖ Sign Patterns</button>
+            <button class="demo-btn" data-demo="practice">📝 Practice Problems</button>
+            <button class="demo-btn" data-demo="interactive">🎮 Interactive Plotting</button>
+            <button class="demo-btn" data-demo="quiz">🏆 Quiz</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+    </div>
+
+    <script>
+        // Teacher class for text-to-speech
+        class Teacher {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.isEnabled = true;
+                this.currentUtterance = null;
+            }
+
+            speak(text) {
+                if (!this.isEnabled) return;
+                
+                this.stop();
+                
+                this.currentUtterance = new SpeechSynthesisUtterance(text);
+                this.currentUtterance.rate = 0.9;
+                this.currentUtterance.pitch = 1;
+                this.currentUtterance.volume = 1;
+                
+                this.synth.speak(this.currentUtterance);
+            }
+
+            stop() {
+                if (this.synth.speaking) {
+                    this.synth.cancel();
+                }
+            }
+        }
+
+        // Global variables
+        let currentTeacher = new Teacher();
+        let globalAudioEnabled = true;
+        let currentDemo = null;
+        let quizScore = 0;
+        let currentQuizQuestion = 0;
+        let activeTimeouts = [];
+
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            currentTeacher = new Teacher();
+            currentTeacher.isEnabled = globalAudioEnabled;
+            return currentTeacher;
+        }
+
+        function stopCurrentDemo() {
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            
+            activeTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+            activeTimeouts = [];
+        }
+
+        function transitionToNextStep(newContent) {
+            const stageContent = document.getElementById('stage-content');
+            stageContent.innerHTML = newContent;
+        }
+
+        // Complete Lesson
+        function showCompleteLesson() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+            
+            let currentStep = 0;
+            const steps = [
+                showWritingCoordinates,
+                showWorkedExample,
+                showAxesPoints,
+                showSignPatterns,
+                showPracticeProblems
+            ];
+
+            function nextStep() {
+                if (currentStep < steps.length) {
+                    steps[currentStep]();
+                    currentStep++;
+                    const timeoutId = setTimeout(nextStep, 15000);
+                    activeTimeouts.push(timeoutId);
+                }
+            }
+
+            nextStep();
+        }
+
+        // Writing Coordinates
+        function showWritingCoordinates() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">✍️ How to Write Coordinates</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="canvas-container" style="height: 500px; background: white; margin: 0; position: relative;">
+                            <div class="axis-line axis-horizontal"></div>
+                            <div class="axis-line axis-vertical"></div>
+                            
+                            <!-- Grid lines -->
+                            ${Array.from({length: 9}, (_, i) => {
+                                const pos = 10 + i * 10;
+                                return `
+                                    <div class="grid-line" style="left: ${pos}%; top: 0; bottom: 0; width: 1px;"></div>
+                                    <div class="grid-line" style="top: ${pos}%; left: 0; right: 0; height: 1px;"></div>
+                                `;
+                            }).join('')}
+                            
+                            <!-- Tick marks and labels -->
+                            ${Array.from({length: 9}, (_, i) => {
+                                const val = i - 4;
+                                if (val === 0) return '';
+                                const pos = 10 + i * 10;
+                                return `
+                                    <div class="tick-mark" style="left: ${pos}%; top: 50%; width: 2px; height: 8px; transform: translate(-50%, -50%);"></div>
+                                    <div class="tick-label" style="left: ${pos}%; top: 53%; transform: translateX(-50%);">${val}</div>
+                                    <div class="tick-mark" style="top: ${pos}%; left: 50%; height: 2px; width: 8px; transform: translate(-50%, -50%);"></div>
+                                    <div class="tick-label" style="top: ${pos}%; left: 47%; transform: translateX(-50%);">${-val}</div>
+                                `;
+                            }).join('')}
+                            
+                            <!-- Point P -->
+                            <div id="point-p" class="point" style="left: 90%; top: 20%; background: #fa709a; display: none;"></div>
+                            <div id="label-p" class="point-label" style="left: 92%; top: 18%; color: #fa709a; display: none;">P</div>
+                            
+                            <!-- Perpendiculars for P -->
+                            <div id="perp-pm" class="perpendicular-line" style="left: 90%; top: 20%; height: 30%; width: 2px; display: none;"></div>
+                            <div id="perp-pn" class="perpendicular-line" style="left: 50%; top: 20%; width: 40%; height: 2px; display: none;"></div>
+                            
+                            <!-- Coordinate labels for P -->
+                            <div id="coord-x-p" class="coordinate-label" style="left: 90%; top: 55%; display: none;">x = +4</div>
+                            <div id="coord-y-p" class="coordinate-label" style="left: 70%; top: 20%; display: none;">y = +3</div>
+                            
+                            <!-- Origin -->
+                            <div class="point-label" style="left: 48%; top: 53%; color: #667eea; font-size: 0.9rem;">O</div>
+                            
+                            <!-- Axis labels -->
+                            <div class="point-label" style="right: 2%; top: 49%; color: #667eea;">X</div>
+                            <div class="point-label" style="left: 49%; top: 2%; color: #667eea;">Y</div>
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div class="content-card" style="padding: 15px; margin: 0;">
+                            <h3 style="color: #fbbf24; font-size: 1rem; margin-bottom: 10px;">📝 The Process for Point P:</h3>
+                            <div style="font-size: 0.9rem; line-height: 1.8;">
+                                <p style="margin: 8px 0;">
+                                    <strong style="color: #4facfe;">1. Find x-coordinate (abscissa):</strong><br>
+                                    <span style="font-size: 0.85rem; color: #e2e8f0;">
+                                    • Drop perpendicular to y-axis<br>
+                                    • P is 4 units RIGHT → x = +4
+                                    </span>
+                                </p>
+                                <p style="margin: 8px 0;">
+                                    <strong style="color: #43e97b;">2. Find y-coordinate (ordinate):</strong><br>
+                                    <span style="font-size: 0.85rem; color: #e2e8f0;">
+                                    • Drop perpendicular to x-axis<br>
+                                    • P is 3 units UP → y = +3
+                                    </span>
+                                </p>
+                                <p style="margin: 8px 0;">
+                                    <strong style="color: #fa709a;">3. Write coordinates:</strong><br>
+                                    <span style="font-size: 0.85rem; color: #e2e8f0;">
+                                    • P = (4, 3)
+                                    </span>
+                                </p>
+                            </div>
+                            <div class="formula-box" style="margin-top: 10px; padding: 10px;">
+                                <p style="font-size: 0.95rem; color: #fbbf24;">
+                                    ⚠️ CRITICAL RULE<br>
+                                    Coordinates: (x, y)<br>
+                                    x FIRST, y SECOND<br>
+                                    (4, 3) ≠ (3, 4)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            // Animate point and perpendiculars
+            setTimeout(() => {
+                const point = document.getElementById('point-p');
+                const label = document.getElementById('label-p');
+                const perpPM = document.getElementById('perp-pm');
+                const perpPN = document.getElementById('perp-pn');
+                const coordX = document.getElementById('coord-x-p');
+                const coordY = document.getElementById('coord-y-p');
+
+                if (point) {
+                    point.style.display = 'block';
+                    label.style.display = 'block';
+                    gsap.from(point, { scale: 0, duration: 0.8, ease: "elastic.out(1, 0.5)" });
+                    gsap.from(label, { opacity: 0, duration: 0.5, delay: 0.8 });
+                }
+
+                setTimeout(() => {
+                    if (perpPM) {
+                        perpPM.style.display = 'block';
+                        gsap.from(perpPM, { scaleY: 0, duration: 1, transformOrigin: 'top' });
+                    }
+                }, 1500);
+
+                setTimeout(() => {
+                    if (perpPN) {
+                        perpPN.style.display = 'block';
+                        gsap.from(perpPN, { scaleX: 0, duration: 1, transformOrigin: 'left' });
+                    }
+                }, 2500);
+
+                setTimeout(() => {
+                    if (coordX) {
+                        coordX.style.display = 'block';
+                        gsap.from(coordX, { opacity: 0, scale: 0, duration: 0.5 });
+                    }
+                }, 3500);
+
+                setTimeout(() => {
+                    if (coordY) {
+                        coordY.style.display = 'block';
+                        gsap.from(coordY, { opacity: 0, scale: 0, duration: 0.5 });
+                    }
+                }, 4000);
+            }, 500);
+
+            teacher.speak("Let's learn how to write coordinates. To find the coordinates of point P, follow three steps. First, find the x-coordinate, called the abscissa. Drop a perpendicular to the y-axis. Point P is 4 units to the right, so x equals positive 4. Second, find the y-coordinate, called the ordinate. Drop a perpendicular to the x-axis. Point P is 3 units up, so y equals positive 3. Third, write the coordinates as P equals 4 comma 3. Remember the critical rule: coordinates are always written as x comma y. X comes FIRST, y comes SECOND. The point 4 comma 3 is NOT the same as 3 comma 4!");
+        }
+
+        // Worked Example
+        function showWorkedExample() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">🎯 Worked Example: Finding Coordinates</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="canvas-container" style="height: 500px; background: white; margin: 0; position: relative;">
+                            <div class="axis-line axis-horizontal"></div>
+                            <div class="axis-line axis-vertical"></div>
+                            
+                            <!-- Quadrant labels -->
+                            <div class="quadrant-label" style="left: 70%; top: 20%; color: #43e97b;">I</div>
+                            <div class="quadrant-label" style="left: 25%; top: 20%; color: #4facfe;">II</div>
+                            <div class="quadrant-label" style="left: 25%; top: 70%; color: #fa709a;">III</div>
+                            <div class="quadrant-label" style="left: 70%; top: 70%; color: #fee140;">IV</div>
+                            
+                            <!-- Grid -->
+                            ${Array.from({length: 9}, (_, i) => {
+                                const pos = 10 + i * 10;
+                                return `
+                                    <div class="grid-line" style="left: ${pos}%; top: 0; bottom: 0; width: 1px;"></div>
+                                    <div class="grid-line" style="top: ${pos}%; left: 0; right: 0; height: 1px;"></div>
+                                `;
+                            }).join('')}
+                            
+                            <!-- Points -->
+                            <div class="point" style="left: 90%; top: 20%; background: #43e97b;"></div>
+                            <div class="point-label" style="left: 92%; top: 18%; color: #43e97b;">B</div>
+                            
+                            <div class="point" style="left: 20%; top: 10%; background: #4facfe;"></div>
+                            <div class="point-label" style="left: 18%; top: 8%; color: #4facfe;">M</div>
+                            
+                            <div class="point" style="left: 10%; top: 90%; background: #fa709a;"></div>
+                            <div class="point-label" style="left: 8%; top: 88%; color: #fa709a;">L</div>
+                            
+                            <div class="point" style="left: 80%; top: 90%; background: #fee140;"></div>
+                            <div class="point-label" style="left: 82%; top: 88%; color: #fee140;">S</div>
+                            
+                            <!-- Axis labels -->
+                            <div class="point-label" style="right: 2%; top: 49%; color: #667eea;">X</div>
+                            <div class="point-label" style="left: 49%; top: 2%; color: #667eea;">Y</div>
+                            <div class="point-label" style="left: 48%; top: 53%; color: #667eea; font-size: 0.9rem;">O</div>
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div class="content-card" style="padding: 12px; margin: 0;">
+                            <h3 style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 8px;">📍 Coordinates:</h3>
+                            <div style="font-size: 0.85rem; line-height: 1.6;">
+                                <p style="margin: 6px 0; padding: 8px; background: rgba(67, 233, 123, 0.2); border-radius: 8px;">
+                                    <strong style="color: #43e97b;">Point B:</strong><br>
+                                    4 right, 3 up<br>
+                                    <strong>B = (4, 3)</strong><br>
+                                    Quadrant: I
+                                </p>
+                                <p style="margin: 6px 0; padding: 8px; background: rgba(79, 172, 254, 0.2); border-radius: 8px;">
+                                    <strong style="color: #4facfe;">Point M:</strong><br>
+                                    3 left, 4 up<br>
+                                    <strong>M = (−3, 4)</strong><br>
+                                    Quadrant: II
+                                </p>
+                                <p style="margin: 6px 0; padding: 8px; background: rgba(250, 112, 154, 0.2); border-radius: 8px;">
+                                    <strong style="color: #fa709a;">Point L:</strong><br>
+                                    5 left, 4 down<br>
+                                    <strong>L = (−5, −4)</strong><br>
+                                    Quadrant: III
+                                </p>
+                                <p style="margin: 6px 0; padding: 8px; background: rgba(254, 225, 64, 0.2); border-radius: 8px;">
+                                    <strong style="color: #fee140;">Point S:</strong><br>
+                                    3 right, 4 down<br>
+                                    <strong>S = (3, −4)</strong><br>
+                                    Quadrant: IV
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            teacher.speak("Here's a worked example. Point B is 4 units right and 3 units up, so B equals 4 comma 3, in Quadrant 1. Point M is 3 units left and 4 units up, so M equals negative 3 comma 4, in Quadrant 2. Point L is 5 units left and 4 units down, so L equals negative 5 comma negative 4, in Quadrant 3. Point S is 3 units right and 4 units down, so S equals 3 comma negative 4, in Quadrant 4.");
+        }
+
+        // Points on Axes
+        function showAxesPoints() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">📐 Special Case: Points on the Axes</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="canvas-container" style="height: 500px; background: white; margin: 0; position: relative;">
+                            <div class="axis-line axis-horizontal"></div>
+                            <div class="axis-line axis-vertical"></div>
+                            
+                            <!-- Grid -->
+                            ${Array.from({length: 9}, (_, i) => {
+                                const pos = 10 + i * 10;
+                                return `
+                                    <div class="grid-line" style="left: ${pos}%; top: 0; bottom: 0; width: 1px;"></div>
+                                    <div class="grid-line" style="top: ${pos}%; left: 0; right: 0; height: 1px;"></div>
+                                `;
+                            }).join('')}
+                            
+                            <!-- Points on axes -->
+                            <div class="point" style="left: 90%; top: 50%; background: #43e97b;"></div>
+                            <div class="point-label" style="left: 90%; top: 45%; color: #43e97b;">A (4, 0)</div>
+                            
+                            <div class="point" style="left: 50%; top: 20%; background: #4facfe;"></div>
+                            <div class="point-label" style="left: 55%; top: 20%; color: #4facfe;">B (0, 3)</div>
+                            
+                            <div class="point" style="left: 10%; top: 50%; background: #fa709a;"></div>
+                            <div class="point-label" style="left: 10%; top: 55%; color: #fa709a;">C (−5, 0)</div>
+                            
+                            <div class="point" style="left: 50%; top: 90%; background: #fee140;"></div>
+                            <div class="point-label" style="left: 55%; top: 90%; color: #fee140;">D (0, −4)</div>
+                            
+                            <div class="point" style="left: 70%; top: 50%; background: #764ba2;"></div>
+                            <div class="point-label" style="left: 70%; top: 45%; color: #764ba2; font-size: 0.8rem;">E (⅔, 0)</div>
+                            
+                            <!-- Origin -->
+                            <div class="point" style="left: 50%; top: 50%; background: #667eea;"></div>
+                            <div class="point-label" style="left: 48%; top: 53%; color: #667eea; font-size: 0.9rem;">O (0, 0)</div>
+                            
+                            <!-- Axis labels -->
+                            <div class="point-label" style="right: 2%; top: 49%; color: #667eea;">X</div>
+                            <div class="point-label" style="left: 49%; top: 2%; color: #667eea;">Y</div>
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div class="content-card" style="padding: 15px; margin: 0;">
+                            <h3 style="color: #fbbf24; font-size: 1rem; margin-bottom: 10px;">📋 Important Rules:</h3>
+                            <div style="font-size: 0.85rem; line-height: 1.8;">
+                                <div style="margin: 8px 0; padding: 10px; background: rgba(67, 233, 123, 0.2); border-radius: 8px;">
+                                    <strong style="color: #43e97b;">On x-axis:</strong><br>
+                                    Format: (x, 0)<br>
+                                    Examples: (5, 0), (−3, 0)
+                                </div>
+                                <div style="margin: 8px 0; padding: 10px; background: rgba(79, 172, 254, 0.2); border-radius: 8px;">
+                                    <strong style="color: #4facfe;">On y-axis:</strong><br>
+                                    Format: (0, y)<br>
+                                    Examples: (0, 4), (0, −2)
+                                </div>
+                                <div style="margin: 8px 0; padding: 10px; background: rgba(102, 126, 234, 0.2); border-radius: 8px;">
+                                    <strong style="color: #667eea;">Origin:</strong><br>
+                                    (0, 0)<br>
+                                    Only one point!
+                                </div>
+                            </div>
+                            <div class="formula-box" style="margin-top: 10px; padding: 10px;">
+                                <p style="font-size: 0.85rem; color: #fbbf24;">
+                                    💡 Why?<br>
+                                    Points on x-axis have<br>
+                                    zero distance from x-axis → y = 0
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            teacher.speak("Special case: points on the axes. Point A is on the x-axis at 4 comma 0. Point B is on the y-axis at 0 comma 3. Point C is on the x-axis at negative 5 comma 0. Point D is on the y-axis at 0 comma negative 4. Point E shows coordinates can be fractions: two-thirds comma 0. The origin is at 0 comma 0 - the only point where both coordinates are zero. Remember: points on the x-axis have y equals 0, and points on the y-axis have x equals 0.");
+        }
+
+        // Sign Patterns
+        function showSignPatterns() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">➕➖ Quick Reference: Sign Patterns</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="canvas-container" style="height: 500px; background: white; margin: 0; position: relative;">
+                            <div class="axis-line axis-horizontal"></div>
+                            <div class="axis-line axis-vertical"></div>
+                            
+                            <!-- Quadrant backgrounds with subtle colors -->
+                            <div style="position: absolute; left: 50%; top: 0; right: 0; bottom: 50%; background: rgba(67, 233, 123, 0.1);"></div>
+                            <div style="position: absolute; left: 0; top: 0; right: 50%; bottom: 50%; background: rgba(79, 172, 254, 0.1);"></div>
+                            <div style="position: absolute; left: 0; top: 50%; right: 50%; bottom: 0; background: rgba(250, 112, 154, 0.1);"></div>
+                            <div style="position: absolute; left: 50%; top: 50%; right: 0; bottom: 0; background: rgba(254, 225, 64, 0.1);"></div>
+                            
+                            <!-- Quadrant labels and signs -->
+                            <div class="quadrant-label" style="left: 70%; top: 20%; color: #43e97b;">I</div>
+                            <div class="sign-box" style="left: 65%; top: 30%; color: #43e97b; border-color: #43e97b;">(+, +)</div>
+                            
+                            <div class="quadrant-label" style="left: 25%; top: 20%; color: #4facfe;">II</div>
+                            <div class="sign-box" style="left: 15%; top: 30%; color: #4facfe; border-color: #4facfe;">(−, +)</div>
+                            
+                            <div class="quadrant-label" style="left: 25%; top: 70%; color: #fa709a;">III</div>
+                            <div class="sign-box" style="left: 15%; top: 60%; color: #fa709a; border-color: #fa709a;">(−, −)</div>
+                            
+                            <div class="quadrant-label" style="left: 70%; top: 70%; color: #fee140;">IV</div>
+                            <div class="sign-box" style="left: 65%; top: 60%; color: #fee140; border-color: #fee140;">(+, −)</div>
+                            
+                            <!-- Arrows showing anticlockwise direction -->
+                            <div style="position: absolute; left: 50%; top: 15%; font-size: 2rem; transform: translateX(-50%);">↺</div>
+                            <div class="point-label" style="left: 50%; top: 10%; font-size: 0.8rem; transform: translateX(-50%); color: #667eea;">Anticlockwise</div>
+                            
+                            <!-- Axis labels -->
+                            <div class="point-label" style="right: 2%; top: 49%; color: #667eea;">X</div>
+                            <div class="point-label" style="left: 49%; top: 2%; color: #667eea;">Y</div>
+                            <div class="point-label" style="left: 48%; top: 53%; color: #667eea; font-size: 0.9rem;">O</div>
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div class="content-card" style="padding: 15px; margin: 0;">
+                            <h3 style="color: #fbbf24; font-size: 1rem; margin-bottom: 10px;">🎯 Memory Tip:</h3>
+                            <div style="font-size: 0.85rem; line-height: 1.8;">
+                                <p style="margin: 8px 0; padding: 10px; background: rgba(67, 233, 123, 0.2); border-radius: 8px;">
+                                    <strong style="color: #43e97b;">Start from Quadrant I</strong><br>
+                                    (top-right): (+, +)<br>
+                                    Both positive!
+                                </p>
+                                <p style="margin: 8px 0; padding: 10px; background: rgba(79, 172, 254, 0.2); border-radius: 8px;">
+                                    <strong style="color: #4facfe;">Move anticlockwise</strong><br>
+                                    Change one sign at a time
+                                </p>
+                                <p style="margin: 6px 0; font-size: 0.8rem;">
+                                    • <strong style="color: #4facfe;">Quadrant II:</strong> x becomes negative → (−, +)<br>
+                                    • <strong style="color: #fa709a;">Quadrant III:</strong> y becomes negative → (−, −)<br>
+                                    • <strong style="color: #fee140;">Quadrant IV:</strong> x becomes positive → (+, −)
+                                </p>
+                            </div>
+                            <div class="formula-box" style="margin-top: 10px; padding: 10px;">
+                                <p style="font-size: 0.85rem; color: #43e97b;">
+                                    💡 Pattern:<br>
+                                    I: (+, +) → II: (−, +)<br>
+                                    III: (−, −) → IV: (+, −)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            teacher.speak("Let's learn the sign patterns for each quadrant. Start from Quadrant 1, the top-right: both coordinates are positive, plus plus. Move anticlockwise and change one sign at a time. Quadrant 2: x becomes negative, giving minus plus. Quadrant 3: y becomes negative, giving minus minus. Quadrant 4: x becomes positive, giving plus minus. Remember: start at plus plus in quadrant 1, then go anticlockwise changing one sign each time!");
+        }
+
+        // Practice Problems
+        function showPracticeProblems() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">📝 Practice: Find the Coordinates</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="canvas-container" style="height: 500px; background: white; margin: 0; position: relative;">
+                            <div class="axis-line axis-horizontal"></div>
+                            <div class="axis-line axis-vertical"></div>
+                            
+                            <!-- Grid -->
+                            ${Array.from({length: 13}, (_, i) => {
+                                const pos = 5 + i * 7.5;
+                                return `
+                                    <div class="grid-line" style="left: ${pos}%; top: 0; bottom: 0; width: 1px;"></div>
+                                    <div class="grid-line" style="top: ${pos}%; left: 0; right: 0; height: 1px;"></div>
+                                `;
+                            }).join('')}
+                            
+                            <!-- Points from the practice problem -->
+                            <div class="point" style="left: 50%; top: 35%; background: #43e97b;"></div>
+                            <div class="point-label" style="left: 52%; top: 33%; color: #43e97b; font-size: 0.9rem;">B</div>
+                            
+                            <div class="point" style="left: 95%; top: 87.5%; background: #4facfe;"></div>
+                            <div class="point-label" style="left: 97%; top: 85%; color: #4facfe; font-size: 0.9rem;">C</div>
+                            
+                            <div class="point" style="left: 20%; top: 87.5%; background: #fa709a;"></div>
+                            <div class="point-label" style="left: 18%; top: 85%; color: #fa709a; font-size: 0.9rem;">E</div>
+                            
+                            <div class="point" style="left: 65%; top: 80%; background: #fee140;"></div>
+                            <div class="point-label" style="left: 67%; top: 78%; color: #fee140; font-size: 0.9rem;">G</div>
+                            
+                            <div class="point" style="left: 95%; top: 35%; background: #764ba2;"></div>
+                            <div class="point-label" style="left: 97%; top: 33%; color: #764ba2; font-size: 0.9rem;">D</div>
+                            
+                            <div class="point" style="left: 20%; top: 12.5%; background: #f093fb;"></div>
+                            <div class="point-label" style="left: 18%; top: 10%; color: #f093fb; font-size: 0.9rem;">H</div>
+                            
+                            <div class="point" style="left: 12.5%; top: 12.5%; background: #00f2fe;"></div>
+                            <div class="point-label" style="left: 10%; top: 10%; color: #00f2fe; font-size: 0.9rem;">L</div>
+                            
+                            <div class="point" style="left: 27.5%; top: 50%; background: #38f9d7;"></div>
+                            <div class="point-label" style="left: 25%; top: 52%; color: #38f9d7; font-size: 0.9rem;">M</div>
+                            
+                            <!-- Axis labels -->
+                            <div class="point-label" style="right: 2%; top: 49%; color: #667eea;">X</div>
+                            <div class="point-label" style="left: 49%; top: 2%; color: #667eea;">Y</div>
+                            <div class="point-label" style="left: 48%; top: 53%; color: #667eea; font-size: 0.8rem;">O</div>
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div class="content-card" style="padding: 12px; margin: 0; font-size: 0.8rem;">
+                            <h3 style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 8px;">✅ Answers:</h3>
+                            <div style="line-height: 1.6;">
+                                <p style="margin: 4px 0;"><strong style="color: #43e97b;">B:</strong> (0, 2) - on y-axis</p>
+                                <p style="margin: 4px 0;"><strong style="color: #4facfe;">C:</strong> (6, −5)</p>
+                                <p style="margin: 4px 0;"><strong style="color: #fa709a;">E:</strong> (−3, −5)</p>
+                                <p style="margin: 4px 0;"><strong style="color: #fee140;">G:</strong> (2, −4)</p>
+                                <p style="margin: 4px 0;"><strong style="color: #764ba2;">D:</strong> (6, 2)</p>
+                                <p style="margin: 4px 0; padding: 6px; background: rgba(102, 126, 234, 0.2); border-radius: 6px;">
+                                    <strong>Abscissa of D:</strong> x = 6
+                                </p>
+                                <p style="margin: 4px 0;"><strong style="color: #f093fb;">H:</strong> (−3, −3)</p>
+                                <p style="margin: 4px 0; padding: 6px; background: rgba(102, 126, 234, 0.2); border-radius: 6px;">
+                                    <strong>Ordinate of H:</strong> y = −3
+                                </p>
+                                <p style="margin: 4px 0;"><strong style="color: #00f2fe;">L:</strong> (−5, 5)</p>
+                                <p style="margin: 4px 0;"><strong style="color: #38f9d7;">M:</strong> (−3, 0) - on x-axis</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            teacher.speak("Let's practice finding coordinates. Point B is on the y-axis at 0 comma 2. Point C is at 6 comma negative 5. Point E is at negative 3 comma negative 5. Point G is at 2 comma negative 4. The abscissa of point D is 6. The ordinate of point H is negative 3. Point L is at negative 5 comma 5. Point M is on the x-axis at negative 3 comma 0.");
+        }
+
+        // Interactive Demo
+        function showInteractiveDemo() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">🎮 Interactive: Click to Plot Points</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div id="interactive-canvas" class="canvas-container" style="height: 500px; background: white; margin: 0; position: relative; cursor: crosshair;">
+                            <div class="axis-line axis-horizontal"></div>
+                            <div class="axis-line axis-vertical"></div>
+                            
+                            <!-- Grid -->
+                            ${Array.from({length: 9}, (_, i) => {
+                                const pos = 10 + i * 10;
+                                return `
+                                    <div class="grid-line" style="left: ${pos}%; top: 0; bottom: 0; width: 1px;"></div>
+                                    <div class="grid-line" style="top: ${pos}%; left: 0; right: 0; height: 1px;"></div>
+                                `;
+                            }).join('')}
+                            
+                            <!-- Tick marks -->
+                            ${Array.from({length: 9}, (_, i) => {
+                                const val = i - 4;
+                                if (val === 0) return '';
+                                const pos = 10 + i * 10;
+                                return `
+                                    <div class="tick-mark" style="left: ${pos}%; top: 50%; width: 2px; height: 8px; transform: translate(-50%, -50%);"></div>
+                                    <div class="tick-label" style="left: ${pos}%; top: 53%; transform: translateX(-50%);">${val}</div>
+                                    <div class="tick-mark" style="top: ${pos}%; left: 50%; height: 2px; width: 8px; transform: translate(-50%, -50%);"></div>
+                                    <div class="tick-label" style="top: ${pos}%; left: 47%; transform: translateX(-50%);">${-val}</div>
+                                `;
+                            }).join('')}
+                            
+                            <!-- Axis labels -->
+                            <div class="point-label" style="right: 2%; top: 49%; color: #667eea;">X</div>
+                            <div class="point-label" style="left: 49%; top: 2%; color: #667eea;">Y</div>
+                            <div class="point-label" style="left: 48%; top: 53%; color: #667eea; font-size: 0.9rem;">O</div>
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div class="content-card" style="padding: 15px; margin: 0;">
+                            <h3 style="color: #fbbf24; font-size: 1rem; margin-bottom: 10px;">📍 Click on the plane!</h3>
+                            <div id="clicked-coords" class="value-display" style="font-size: 1.3rem; margin: 10px 0;">
+                                Click to plot...
+                            </div>
+                            <div class="formula-box" style="padding: 10px;">
+                                <p style="font-size: 0.85rem; color: #43e97b;">
+                                    Your clicked coordinates<br>
+                                    will appear above!
+                                </p>
+                            </div>
+                            <div style="font-size: 0.85rem; line-height: 1.6; margin-top: 10px;">
+                                <p style="margin: 6px 0;">🎯 Try clicking in different quadrants</p>
+                                <p style="margin: 6px 0;">📐 Try clicking on the axes</p>
+                                <p style="margin: 6px 0;">🎨 Each click plots a new point!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            // Add click event listener
+            setTimeout(() => {
+                const canvas = document.getElementById('interactive-canvas');
+                if (canvas) {
+                    canvas.addEventListener('click', function(e) {
+                        const rect = canvas.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        
+                        const percentX = (x / rect.width) * 100;
+                        const percentY = (y / rect.height) * 100;
+                        
+                        // Convert to coordinate system (-4 to 4 for x, -4 to 4 for y)
+                        const coordX = Math.round(((percentX - 50) / 10));
+                        const coordY = Math.round(((50 - percentY) / 10));
+                        
+                        // Create a point
+                        const point = document.createElement('div');
+                        point.className = 'point';
+                        point.style.left = percentX + '%';
+                        point.style.top = percentY + '%';
+                        point.style.background = 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
+                        canvas.appendChild(point);
+                        
+                        // Animate the point
+                        gsap.from(point, { scale: 0, duration: 0.5, ease: "elastic.out(1, 0.5)" });
+                        
+                        // Update coordinates display
+                        const coordsDisplay = document.getElementById('clicked-coords');
+                        if (coordsDisplay) {
+                            coordsDisplay.textContent = `(${coordX}, ${coordY})`;
+                            gsap.from(coordsDisplay, { scale: 1.2, duration: 0.3 });
+                        }
+                        
+                        // Determine quadrant
+                        let quadrant = '';
+                        if (coordX === 0 && coordY === 0) quadrant = 'Origin';
+                        else if (coordX === 0) quadrant = 'On Y-axis';
+                        else if (coordY === 0) quadrant = 'On X-axis';
+                        else if (coordX > 0 && coordY > 0) quadrant = 'Quadrant I';
+                        else if (coordX < 0 && coordY > 0) quadrant = 'Quadrant II';
+                        else if (coordX < 0 && coordY < 0) quadrant = 'Quadrant III';
+                        else if (coordX > 0 && coordY < 0) quadrant = 'Quadrant IV';
+                        
+                        if (currentTeacher) {
+                            currentTeacher.speak(`Point at ${coordX}, ${coordY}. ${quadrant}.`);
+                        }
+                    });
+                }
+            }, 500);
+
+            teacher.speak("Now it's your turn! Click anywhere on the coordinate plane to plot points. The coordinates will be displayed, and I'll tell you which quadrant or axis the point is on. Try clicking in different locations!");
+        }
+
+        // Quiz
+        function showQuiz() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            quizScore = 0;
+            currentQuizQuestion = 0;
+
+            const questions = [
+                {
+                    question: "What is the correct format for writing coordinates?",
+                    options: [
+                        "(y, x)",
+                        "(x, y)",
+                        "x and y",
+                        "y then x"
+                    ],
+                    correct: 1,
+                    explanation: "Coordinates are always written as (x, y). The x-coordinate (abscissa) comes FIRST, followed by the y-coordinate (ordinate)."
+                },
+                {
+                    question: "A point is 3 units left and 4 units up. What are its coordinates?",
+                    options: [
+                        "(3, 4)",
+                        "(−3, 4)",
+                        "(4, −3)",
+                        "(−4, 3)"
+                    ],
+                    correct: 1,
+                    explanation: "Left means negative x, up means positive y. So the coordinates are (−3, 4)."
+                },
+                {
+                    question: "What are the coordinates of a point on the y-axis at height 5?",
+                    options: [
+                        "(5, 0)",
+                        "(0, 5)",
+                        "(5, 5)",
+                        "(0, 0)"
+                    ],
+                    correct: 1,
+                    explanation: "Points on the y-axis have x-coordinate = 0. So it's (0, 5)."
+                },
+                {
+                    question: "Which quadrant contains the point (−2, −3)?",
+                    options: [
+                        "Quadrant I",
+                        "Quadrant II",
+                        "Quadrant III",
+                        "Quadrant IV"
+                    ],
+                    correct: 2,
+                    explanation: "Both coordinates are negative (−, −), so the point is in Quadrant III."
+                },
+                {
+                    question: "What is the abscissa of the point (7, −4)?",
+                    options: [
+                        "7",
+                        "−4",
+                        "(7, −4)",
+                        "11"
+                    ],
+                    correct: 0,
+                    explanation: "The abscissa is the x-coordinate, which is 7."
+                },
+                {
+                    question: "Which point is different from the others?",
+                    options: [
+                        "(3, 5)",
+                        "(5, 3)",
+                        "(3, 5)",
+                        "(3, 5)"
+                    ],
+                    correct: 1,
+                    explanation: "(5, 3) is different because order matters! (3, 5) and (5, 3) are different points."
+                },
+                {
+                    question: "What are the coordinates of the origin?",
+                    options: [
+                        "(1, 1)",
+                        "(0, 1)",
+                        "(1, 0)",
+                        "(0, 0)"
+                    ],
+                    correct: 3,
+                    explanation: "The origin is at (0, 0), where both axes intersect."
+                },
+                {
+                    question: "A point in Quadrant IV has which sign pattern?",
+                    options: [
+                        "(+, +)",
+                        "(−, +)",
+                        "(−, −)",
+                        "(+, −)"
+                    ],
+                    correct: 3,
+                    explanation: "Quadrant IV has positive x and negative y: (+, −)."
+                }
+            ];
+
+            function showQuestion() {
+                const q = questions[currentQuizQuestion];
+                const content = `
+                    <h2 class="math-title">🏆 Quiz Time!</h2>
+                    <div style="width: 100%; max-width: 700px; padding: 0 10px; margin: 0 auto;">
+                        <div class="progress-bar" style="margin: 8px 0;">
+                            <div class="progress-fill" style="width: ${(currentQuizQuestion / questions.length) * 100}%"></div>
+                        </div>
+                        <div class="content-card" style="padding: 12px;">
+                            <p style="font-size: 0.85rem; color: #e2e8f0; margin-bottom: 6px;">
+                                Question ${currentQuizQuestion + 1} of ${questions.length}
+                            </p>
+                            <h3 style="color: #fbbf24; font-size: 1rem; margin: 10px 0;">
+                                ${q.question}
+                            </h3>
+                            <div id="quiz-options">
+                                ${q.options.map((opt, idx) => `
+                                    <div class="quiz-option" onclick="checkAnswer(${idx})" style="font-size: 0.9rem; padding: 12px; margin: 6px 0;">
+                                        ${opt}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="value-display" style="font-size: 1.4rem; margin-top: 10px;">
+                            Score: ${quizScore} / ${questions.length}
+                        </div>
+                    </div>
+                `;
+                transitionToNextStep(content);
+            }
+
+            window.checkAnswer = function(selectedIdx) {
+                const q = questions[currentQuizQuestion];
+                const options = document.querySelectorAll('.quiz-option');
+                
+                options.forEach(opt => opt.style.pointerEvents = 'none');
+                
+                if (selectedIdx === q.correct) {
+                    options[selectedIdx].classList.add('correct');
+                    quizScore++;
+                    if (currentTeacher) {
+                        currentTeacher.speak("Correct! " + q.explanation);
+                    }
+                } else {
+                    options[selectedIdx].classList.add('incorrect');
+                    options[q.correct].classList.add('correct');
+                    if (currentTeacher) {
+                        currentTeacher.speak("Incorrect. " + q.explanation);
+                    }
+                }
+
+                const timeoutId = setTimeout(() => {
+                    currentQuizQuestion++;
+                    if (currentQuizQuestion < questions.length) {
+                        showQuestion();
+                    } else {
+                        showQuizResults();
+                    }
+                }, 4000);
+                activeTimeouts.push(timeoutId);
+            };
+
+            function showQuizResults() {
+                const percentage = (quizScore / questions.length) * 100;
+                const content = `
+                    <h2 class="math-title">Quiz Complete! 🎉</h2>
+                    <div style="width: 100%; max-width: 700px; padding: 0 10px; margin: 0 auto;">
+                        <div class="value-display" style="font-size: 2rem;">${quizScore} / ${questions.length}</div>
+                        <div class="content-card glow-effect" style="padding: 18px;">
+                            <p style="font-size: 1.3rem; color: ${percentage >= 80 ? '#43e97b' : '#f5576c'};">
+                                ${percentage}% Correct
+                            </p>
+                            <p style="font-size: 0.95rem; color: #e2e8f0; margin-top: 10px;">
+                                ${percentage >= 80 ? '🌟 Excellent! You understand coordinates!' : 
+                                  percentage >= 60 ? '👍 Good effort! Review and try again!' :
+                                  '📚 Keep practicing! Go through the lessons once more!'}
+                            </p>
+                        </div>
+                        <div class="formula-box" style="margin-top: 12px; padding: 10px;">
+                            <p style="font-size: 0.95rem; color: #43e97b;">
+                                Remember: (x, y)<br>
+                                x FIRST, y SECOND!
+                            </p>
+                        </div>
+                    </div>
+                `;
+                transitionToNextStep(content);
+                
+                if (currentTeacher) {
+                    currentTeacher.speak(`Quiz complete! You scored ${quizScore} out of ${questions.length}. That's ${percentage} percent. ${percentage >= 80 ? 'Excellent work!' : 'Keep practicing!'}`);
+                }
+            }
+
+            showQuestion();
+            teacher.speak("Let's test your knowledge about coordinates!");
+        }
+
+        // Reset
+        function resetApplication() {
+            stopCurrentDemo();
+            quizScore = 0;
+            currentQuizQuestion = 0;
+
+            const content = `
+                <h2 class="math-title">Welcome! ✨</h2>
+                <div class="value-display" style="font-size: 1.8rem;">Reading, Writing, and Plotting Coordinates</div>
+                <div class="math-description">
+                    Learn how to find coordinates of points, plot points given coordinates,<br>
+                    and master special cases: points on axes, the origin, and quadrant sign patterns!
+                </div>
+                <div class="formula-box" style="padding: 12px;">
+                    <p style="font-size: 1rem; color: #43e97b;">
+                        ✍️ Writing Coordinates | 🎯 Worked Examples<br>
+                        📐 Points on Axes | ➕➖ Sign Patterns<br>
+                        📝 Practice | 🎮 Interactive
+                    </p>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            currentDemo = null;
+
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome! Let's learn how to read, write, and plot coordinates in the Cartesian plane!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+
+            const initialContent = `
+                <h2 class="math-title">Welcome! ✨</h2>
+                <div class="value-display" style="font-size: 1.8rem;">Reading, Writing, and Plotting Coordinates</div>
+                <div class="math-description">
+                    Experience the magic of coordinate geometry!<br>
+                    Learn to locate any point in a plane with stunning animations!
+                </div>
+                <div class="formula-box" style="padding: 12px;">
+                    <p style="font-size: 1rem; color: #43e97b;">
+                        ✍️ How to Write Coordinates<br>
+                        🎯 Worked Examples | 📐 Points on Axes<br>
+                        ➕➖ Sign Patterns | 📝 Practice Problems<br>
+                        🎮 Interactive Plotting
+                    </p>
+                </div>
+            `;
+
+            transitionToNextStep(initialContent);
+
+            setTimeout(() => {
+                teacher.speak("Welcome to Reading, Writing, and Plotting Coordinates! Learn how to locate any point in the Cartesian plane with amazing step-by-step animations!");
+            }, 500);
+
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'write-coords':
+                            showWritingCoordinates();
+                            break;
+                        case 'example1':
+                            showWorkedExample();
+                            break;
+                        case 'axes-points':
+                            showAxesPoints();
+                            break;
+                        case 'sign-patterns':
+                            showSignPatterns();
+                            break;
+                        case 'practice':
+                            showPracticeProblems();
+                            break;
+                        case 'interactive':
+                            showInteractiveDemo();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

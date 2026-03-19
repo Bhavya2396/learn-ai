@@ -1,0 +1,2178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 11: Resistance and Resistor Combinations</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --electric-gradient: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            --current-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --resistance-gradient: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+            --series-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --parallel-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --shadow-primary: 0 25px 50px rgba(0, 0, 0, 0.4);
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(255, 216, 155, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-particles {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            margin: 0 auto 30px;
+        }
+
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: scatter 3s ease-in-out infinite;
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        .particle:nth-child(1) { background: #ffd89b; left: 100px; top: 100px; animation-delay: 0s; }
+        .particle:nth-child(2) { background: #19547b; left: 100px; top: 100px; animation-delay: 0.3s; }
+        .particle:nth-child(3) { background: #f093fb; left: 100px; top: 100px; animation-delay: 0.6s; }
+        .particle:nth-child(4) { background: #667eea; left: 100px; top: 100px; animation-delay: 0.9s; }
+        .particle:nth-child(5) { background: #764ba2; left: 100px; top: 100px; animation-delay: 1.2s; }
+
+        @keyframes scatter {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(calc(var(--x) * 50px), calc(var(--y) * 50px)) scale(1.5);
+                opacity: 0.7;
+            }
+            100% {
+                transform: translate(calc(var(--x) * 100px), calc(var(--y) * 100px)) scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        .particle:nth-child(1) { --x: 1; --y: -1; }
+        .particle:nth-child(2) { --x: -1; --y: -1; }
+        .particle:nth-child(3) { --x: -1; --y: 1; }
+        .particle:nth-child(4) { --x: 1; --y: 1; }
+        .particle:nth-child(5) { --x: 0; --y: -1.5; }
+
+        .loading-text {
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            font-weight: 600;
+            background: var(--electric-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 2s linear infinite;
+            background-size: 200% auto;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header {
+            text-align: center;
+            padding: 60px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: var(--electric-gradient);
+            opacity: 0.3;
+            z-index: -1;
+            border-radius: 30px;
+            animation: electricPulse 5s ease-in-out infinite;
+        }
+
+        @keyframes electricPulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.02); }
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: var(--electric-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: 800;
+            animation: titleFloat 3s ease-in-out infinite;
+            text-shadow: 0 0 30px rgba(255, 216, 155, 0.3);
+        }
+
+        @keyframes titleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .main-display {
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-radius: 30px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .demo-container {
+            height: 500px;
+            overflow: hidden;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+        }
+
+        .demo-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .demo-stage canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #chartContainer {
+            width: 100%;
+            height: 450px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            display: none;
+        }
+
+        #audio-toggle {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--electric-gradient);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+        }
+
+        #audio-toggle:hover {
+            transform: scale(1.1) rotate(10deg);
+        }
+
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            min-width: 180px;
+            position: relative;
+            overflow: hidden;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .control-btn.active {
+            background: var(--electric-gradient);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 216, 155, 0.4);
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            margin-top: 20px;
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.2));
+            padding: 30px;
+            border-radius: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #ffd89b;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .info-title {
+            color: #ffd89b;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(255, 216, 155, 0.3);
+        }
+
+        .formula-display {
+            text-align: center;
+            font-size: 2rem;
+            margin: 30px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, rgba(255, 216, 155, 0.1), rgba(25, 84, 123, 0.1));
+            border-radius: 15px;
+            font-family: 'Georgia', serif;
+            color: #ffd89b;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 216, 155, 0.2);
+        }
+
+        .example-box {
+            background: linear-gradient(135deg, rgba(0, 150, 100, 0.15), rgba(0, 100, 0, 0.1));
+            border-left: 5px solid #4ecdc4;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .example-box h4 {
+            color: #4ecdc4;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .question-box {
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.15), rgba(100, 0, 100, 0.1));
+            border-left: 5px solid #f093fb;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .question-box h4 {
+            color: #f093fb;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .lesson-section {
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1));
+            border-radius: 20px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .lesson-title {
+            color: #ffd89b;
+            font-size: 2.2rem;
+            margin-bottom: 25px;
+            text-align: center;
+            text-shadow: 0 3px 15px rgba(255, 216, 155, 0.3);
+        }
+
+        .lesson-text {
+            font-size: 1.15rem;
+            line-height: 1.9;
+            color: #e2e8f0;
+        }
+
+        .data-table {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .data-table th {
+            background: var(--electric-gradient);
+            padding: 18px;
+            text-align: left;
+            font-weight: 600;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .data-table td {
+            padding: 15px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background 0.3s;
+        }
+
+        .data-table tr:hover td {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .solution-step {
+            margin: 15px 0;
+            padding-left: 25px;
+            color: #e2e8f0;
+            font-size: 1.1rem;
+            position: relative;
+        }
+
+        .solution-step::before {
+            content: '▸';
+            position: absolute;
+            left: 5px;
+            color: #4ecdc4;
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 216, 155, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(255, 216, 155, 0.8); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .control-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-particles">
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+            </div>
+            <div class="loading-text">Preparing Resistance Lab...</div>
+        </div>
+    </div>
+
+    <!-- Audio Control -->
+    <button id="audio-toggle" title="Toggle Audio Narration">🔊</button>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>⚡ Resistance & Resistor Combinations</h1>
+            <p>Chapter 11.5 & 11.6 - Understanding resistance factors and circuit combinations</p>
+        </div>
+
+        <!-- Main Display Area -->
+        <div class="main-display">
+            <!-- Demo Container -->
+            <div class="demo-container">
+                <div class="demo-stage">
+                    <canvas id="demoCanvas" width="1200" height="500"></canvas>
+                    <div id="chartContainer">
+                        <canvas id="dataChart"></canvas>
+                    </div>
+                    <div id="lessonContent" style="display: none; padding: 20px; color: white;"></div>
+                </div>
+            </div>
+
+            <!-- Information Panels -->
+            <div class="info-panel" id="resistanceFactorsPanel" style="display: none;">
+                <div class="info-title">🔬 11.5 Factors Affecting Resistance</div>
+                <p>The resistance of a conductor depends on three main factors: its length, cross-sectional area, and the material it's made from.</p>
+                
+                <div class="formula-display">
+                    R = ρ × (l/A)
+                </div>
+                
+                <p>Where:</p>
+                <ul style="margin-left: 20px; line-height: 2;">
+                    <li><strong>R</strong> = Resistance (Ohms, Ω)</li>
+                    <li><strong>ρ</strong> = Resistivity (Ohm-meters, Ω·m)</li>
+                    <li><strong>l</strong> = Length (meters, m)</li>
+                    <li><strong>A</strong> = Cross-sectional area (square meters, m²)</li>
+                </ul>
+                
+                <p style="margin-top: 20px;"><strong>Key Facts:</strong></p>
+                <ul style="margin-left: 20px; line-height: 2;">
+                    <li>Resistance is directly proportional to length (R ∝ l)</li>
+                    <li>Resistance is inversely proportional to area (R ∝ 1/A)</li>
+                    <li>Different materials have different resistivities</li>
+                    <li>Metals: 10⁻⁸ to 10⁻⁶ Ω·m</li>
+                    <li>Insulators: 10¹² to 10¹⁷ Ω·m</li>
+                </ul>
+            </div>
+
+            <div class="info-panel" id="seriesPanel" style="display: none;">
+                <div class="info-title">➡️ 11.6.1 Resistors in Series</div>
+                <p>When resistors are connected end-to-end, they are in series. The current through each resistor is the same.</p>
+                
+                <div class="formula-display">
+                    R<sub>s</sub> = R₁ + R₂ + R₃ + ...
+                </div>
+                
+                <p>Where:</p>
+                <ul style="margin-left: 20px; line-height: 2;">
+                    <li><strong>R<sub>s</sub></strong> = Total series resistance</li>
+                    <li><strong>R₁, R₂, R₃</strong> = Individual resistances</li>
+                </ul>
+                
+                <p style="margin-top: 20px;"><strong>Key Properties:</strong></p>
+                <ul style="margin-left: 20px; line-height: 2;">
+                    <li>Same current through all resistors</li>
+                    <li>Voltage divides across resistors</li>
+                    <li>V = V₁ + V₂ + V₃</li>
+                    <li>Total resistance increases</li>
+                    <li>Used in voltage dividers</li>
+                </ul>
+            </div>
+
+            <div class="info-panel" id="parallelPanel" style="display: none;">
+                <div class="info-title">⚡ 11.6.2 Resistors in Parallel</div>
+                <p>When resistors are connected across the same two points, they are in parallel. The voltage across each resistor is the same.</p>
+                
+                <div class="formula-display">
+                    1/R<sub>p</sub> = 1/R₁ + 1/R₂ + 1/R₃ + ...
+                </div>
+                
+                <p>Where:</p>
+                <ul style="margin-left: 20px; line-height: 2;">
+                    <li><strong>R<sub>p</sub></strong> = Total parallel resistance</li>
+                    <li><strong>R₁, R₂, R₃</strong> = Individual resistances</li>
+                </ul>
+                
+                <p style="margin-top: 20px;"><strong>Key Properties:</strong></p>
+                <ul style="margin-left: 20px; line-height: 2;">
+                    <li>Same voltage across all resistors</li>
+                    <li>Current divides among resistors</li>
+                    <li>I = I₁ + I₂ + I₃</li>
+                    <li>Total resistance decreases</li>
+                    <li>Used in home wiring</li>
+                </ul>
+            </div>
+
+            <!-- Example Problems -->
+            <div class="example-box" id="example1" style="display: none;">
+                <h4>Example 11.6 - Resistance with Different Dimensions</h4>
+                <p><strong>Problem:</strong> A wire of given material having length l and area of cross-section A has a resistance of 4 Ω. What would be the resistance of another wire of the same material having length l/2 and area of cross-section 2A?</p>
+                
+                <p style="margin-top: 15px;"><strong>Solution:</strong></p>
+                <div class="solution-step">For first wire: R₁ = ρ(l/A) = 4 Ω</div>
+                <div class="solution-step">For second wire: R₂ = ρ(l/2)/(2A)</div>
+                <div class="solution-step">R₂ = ρ × (1/4) × (l/A)</div>
+                <div class="solution-step">R₂ = (1/4) × R₁ = (1/4) × 4 Ω</div>
+                <div class="solution-step"><strong>Answer: R₂ = 1 Ω</strong></div>
+            </div>
+
+            <div class="example-box" id="example2" style="display: none;">
+                <h4>Example 11.8 - Parallel Resistors</h4>
+                <p><strong>Problem:</strong> Three resistors of 5 Ω, 10 Ω, and 30 Ω are connected in parallel to a 12 V battery. Calculate the current through each resistor and the total current.</p>
+                
+                <p style="margin-top: 15px;"><strong>Solution:</strong></p>
+                <div class="solution-step">I₁ = V/R₁ = 12V/5Ω = 2.4 A</div>
+                <div class="solution-step">I₂ = V/R₂ = 12V/10Ω = 1.2 A</div>
+                <div class="solution-step">I₃ = V/R₃ = 12V/30Ω = 0.4 A</div>
+                <div class="solution-step">Total current: I = 2.4 + 1.2 + 0.4 = 4.0 A</div>
+                <div class="solution-step">Total resistance: 1/Rₚ = 1/5 + 1/10 + 1/30 = 10/30</div>
+                <div class="solution-step"><strong>Answer: Rₚ = 3 Ω</strong></div>
+            </div>
+
+            <!-- Activity Questions -->
+            <div class="question-box" id="activity" style="display: none;">
+                <h4>Activity 11.3 - Exploring Resistance Factors</h4>
+                <ol style="line-height: 2;">
+                    <li>Does the current depend on the length of the conductor?</li>
+                    <li>Does the current depend on the area of cross-section of the wire?</li>
+                    <li>How does material affect resistance?</li>
+                </ol>
+                
+                <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                    <p><strong>Observations:</strong></p>
+                    <p>• Current decreases to half when length is doubled</p>
+                    <p>• Current increases when thicker wire is used</p>
+                    <p>• Different materials show different currents</p>
+                </div>
+            </div>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Material</th>
+                        <th>Resistivity (Ω·m)</th>
+                        <th>Type</th>
+                        <th>Common Use</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Silver</td>
+                        <td>1.60 × 10⁻⁸</td>
+                        <td>Conductor</td>
+                        <td>Premium electronics</td>
+                    </tr>
+                    <tr>
+                        <td>Copper</td>
+                        <td>1.62 × 10⁻⁸</td>
+                        <td>Conductor</td>
+                        <td>Electrical wiring</td>
+                    </tr>
+                    <tr>
+                        <td>Nichrome</td>
+                        <td>100 × 10⁻⁶</td>
+                        <td>Alloy</td>
+                        <td>Heating elements</td>
+                    </tr>
+                    <tr>
+                        <td>Glass</td>
+                        <td>10¹⁰ - 10¹⁴</td>
+                        <td>Insulator</td>
+                        <td>Electrical insulation</td>
+                    </tr>
+                    <tr>
+                        <td>Rubber</td>
+                        <td>10¹³ - 10¹⁶</td>
+                        <td>Insulator</td>
+                        <td>Wire coating</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button class="control-btn active" data-mode="lesson">📚 Complete Lesson</button>
+            <button class="control-btn" data-mode="resistance-factors">🔬 Resistance Factors</button>
+            <button class="control-btn" data-mode="activity">🧪 Activity 11.3</button>
+            <button class="control-btn" data-mode="series">➡️ Series Resistors</button>
+            <button class="control-btn" data-mode="parallel">⚡ Parallel Resistors</button>
+            <button class="control-btn" data-mode="comparison">📊 Series vs Parallel</button>
+            <button class="control-btn" data-mode="datachart">📈 Data Visualization</button>
+            <button class="control-btn" data-mode="solving">✏️ Problem Solving</button>
+        </div>
+        
+        <!-- Reset Button -->
+        <div style="text-align: center;">
+            <button class="control-btn reset-btn" id="resetBtn">🔄 Reset Everything</button>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let currentMode = 'lesson';
+        let animationFrame = null;
+        let time = 0;
+        let lessonSequence = null;
+        let lessonStarted = false;
+        let audioEnabled = true;
+        let chartInstance = null;
+
+        // Canvas and Context
+        const canvas = document.getElementById('demoCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Audio Narrator Class
+        class AudioNarrator {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.enabled = true;
+                this.speaking = false;
+            }
+
+            speak(text, priority = false) {
+                if (!this.enabled) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    if (priority) {
+                        this.stop();
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.9;
+                    
+                    utterance.onend = () => {
+                        this.speaking = false;
+                        resolve();
+                    };
+                    
+                    this.synth.speak(utterance);
+                    this.speaking = true;
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.speaking = false;
+            }
+
+            toggle() {
+                this.enabled = !this.enabled;
+                if (!this.enabled) this.stop();
+                return this.enabled;
+            }
+        }
+
+        const narrator = new AudioNarrator();
+
+        // Lesson Sequence Class
+        class LessonSequence {
+            constructor() {
+                this.sections = [
+                    { id: 'intro', name: 'Introduction', duration: 5000 },
+                    { id: 'resistance-factors', name: 'Resistance Factors', duration: 10000 },
+                    { id: 'activity', name: 'Activity 11.3', duration: 8000 },
+                    { id: 'series', name: 'Series Resistors', duration: 10000 },
+                    { id: 'parallel', name: 'Parallel Resistors', duration: 10000 },
+                    { id: 'comparison', name: 'Comparison', duration: 8000 },
+                    { id: 'datachart', name: 'Data Visualization', duration: 8000 },
+                    { id: 'solving', name: 'Problem Solving', duration: 10000 }
+                ];
+                this.currentSection = 0;
+                this.running = false;
+                this.timeout = null;
+            }
+
+            async start() {
+                this.stop();
+                this.running = true;
+                this.currentSection = 0;
+                
+                document.getElementById('demoCanvas').style.display = 'none';
+                document.getElementById('chartContainer').style.display = 'none';
+                document.getElementById('lessonContent').style.display = 'block';
+                hideAllPanels();
+                
+                await narrator.speak("Welcome to the study of resistance and resistor combinations. Let's explore how resistance depends on various factors and how resistors behave in different configurations!");
+                
+                await this.runNextSection();
+            }
+
+            async runNextSection() {
+                if (!this.running || this.currentSection >= this.sections.length) {
+                    if (this.running) {
+                        await narrator.speak("Excellent work! You've mastered resistance factors and resistor combinations. These concepts are fundamental to understanding and designing electrical circuits.");
+                        this.showCompletionMessage();
+                    }
+                    return;
+                }
+
+                const section = this.sections[this.currentSection];
+                
+                // Update display based on section
+                this.updateDisplay(section.id);
+                
+                // Set mode for animation
+                currentMode = section.id;
+                
+                // Start narration for each section
+                await this.narrate(section.id);
+                
+                await this.wait(section.duration);
+                
+                if (this.running) {
+                    this.currentSection++;
+                    await this.runNextSection();
+                }
+            }
+
+            updateDisplay(sectionId) {
+                hideAllPanels();
+                document.getElementById('chartContainer').style.display = 'none';
+                document.getElementById('lessonContent').style.display = 'none';
+                document.getElementById('demoCanvas').style.display = 'block';
+                
+                switch(sectionId) {
+                    case 'intro':
+                        document.getElementById('demoCanvas').style.display = 'none';
+                        document.getElementById('lessonContent').style.display = 'block';
+                        this.showIntroContent();
+                        break;
+                    case 'resistance-factors':
+                        document.getElementById('resistanceFactorsPanel').style.display = 'block';
+                        break;
+                    case 'activity':
+                        document.getElementById('activity').style.display = 'block';
+                        document.getElementById('resistanceFactorsPanel').style.display = 'block';
+                        break;
+                    case 'series':
+                        document.getElementById('seriesPanel').style.display = 'block';
+                        break;
+                    case 'parallel':
+                        document.getElementById('parallelPanel').style.display = 'block';
+                        break;
+                    case 'comparison':
+                        document.getElementById('seriesPanel').style.display = 'block';
+                        document.getElementById('parallelPanel').style.display = 'block';
+                        break;
+                    case 'datachart':
+                        document.getElementById('demoCanvas').style.display = 'none';
+                        document.getElementById('chartContainer').style.display = 'block';
+                        createDataChart();
+                        break;
+                    case 'solving':
+                        document.getElementById('example1').style.display = 'block';
+                        document.getElementById('example2').style.display = 'block';
+                        break;
+                }
+            }
+
+            async narrate(sectionId) {
+                switch(sectionId) {
+                    case 'intro':
+                        await narrator.speak("Resistance is a fundamental property of conductors that opposes the flow of electric current. Understanding what affects resistance and how to combine resistors is crucial for circuit design. In this lesson, we'll explore the factors that determine resistance, discover how resistors behave when connected in series and parallel, and learn to calculate equivalent resistance in complex circuits. These concepts are essential for everything from simple LED circuits to complex electronic systems.");
+                        break;
+                    case 'resistance-factors':
+                        await narrator.speak("The resistance of a conductor depends on three key factors. First, length: doubling the length doubles the resistance, as electrons must travel farther through the material. Second, cross-sectional area: doubling the area halves the resistance, as more paths are available for current flow. Third, material: different materials have different resistivities. The formula R equals rho times L over A captures all three factors. Notice how the nichrome wire changes resistance as we vary its dimensions. Metals like copper have low resistivity, making them excellent conductors, while insulators like rubber have extremely high resistivity.");
+                        break;
+                    case 'activity':
+                        await narrator.speak("In Activity 11.3, we systematically investigate how resistance depends on physical properties. Watch as we test different wire configurations. With the original nichrome wire, we observe a baseline current. When we double the length, the current drops to half, proving resistance doubles. Using a thicker wire increases current, showing resistance decreases with larger area. Switching to copper wire gives higher current due to copper's lower resistivity. These observations confirm that resistance is directly proportional to length, inversely proportional to area, and depends on the material's resistivity.");
+                        break;
+                    case 'series':
+                        await narrator.speak("In a series circuit, resistors are connected end-to-end, creating a single path for current. The same current flows through each resistor, but voltage divides among them. The total resistance is simply the sum: R total equals R1 plus R2 plus R3. Watch the animation showing how current remains constant through each resistor. The voltage drops across each resistor proportionally to its resistance. Series circuits are useful for voltage dividers and applications where we need to limit current. However, if one component fails, the entire circuit breaks, like old Christmas lights where one dead bulb darkened the whole string.");
+                        break;
+                    case 'parallel':
+                        await narrator.speak("In parallel circuits, resistors connect across the same two points, providing multiple paths for current. All resistors experience the same voltage, but current divides among them. The reciprocal formula shows total resistance always decreases: one over R total equals one over R1 plus one over R2 plus one over R3. Watch how current splits at the junction, with more current flowing through smaller resistances. This configuration is used in household wiring, where each appliance operates independently at full voltage. If one component fails, others continue working, making parallel circuits more reliable for most applications.");
+                        break;
+                    case 'comparison':
+                        await narrator.speak("Let's compare series and parallel configurations. In series, resistance adds up, current is constant, and voltage divides. This creates higher total resistance. In parallel, conductances add up, voltage is constant, and current divides. This creates lower total resistance. The visual comparison shows how current behaves differently in each configuration. Series is like a single-lane road where all traffic must follow the same path. Parallel is like a multi-lane highway where traffic can choose different routes. Most practical circuits combine both configurations to achieve desired electrical characteristics.");
+                        break;
+                    case 'datachart':
+                        await narrator.speak("This chart visualizes the relationship between resistance configurations and electrical parameters. The blue line shows how series resistance increases linearly as we add more resistors. The orange curve demonstrates how parallel resistance decreases and approaches a limit. The green line represents current distribution in parallel branches. Notice how adding resistors in series always increases total resistance, while adding them in parallel always decreases it. These mathematical relationships are fundamental to circuit analysis and help engineers design circuits with specific resistance values.");
+                        break;
+                    case 'solving':
+                        await narrator.speak("Let's solve practical problems. In Example 11.6, we apply the resistance formula to find how changing dimensions affects resistance. Halving length and doubling area each reduce resistance by half, so together they reduce it to one-fourth. In Example 11.8, we calculate currents in parallel resistors using Ohm's law. Each resistor has the same 12 volts across it, so we find individual currents, then add them for total current. The equivalent resistance of 3 ohms is less than any individual resistance, confirming our parallel resistance formula. These problem-solving techniques are essential for circuit analysis and design.");
+                        break;
+                }
+            }
+
+            showIntroContent() {
+                const html = `
+                    <div class="lesson-section">
+                        <h2 class="lesson-title">Understanding Resistance</h2>
+                        <div class="lesson-text">
+                            <p>In this comprehensive lesson, we'll explore:</p>
+                            <ul style="margin: 20px; line-height: 2;">
+                                <li>🔬 What factors affect electrical resistance?</li>
+                                <li>📏 How does length and area influence resistance?</li>
+                                <li>⚡ Why do different materials have different resistivities?</li>
+                                <li>➡️ How do series resistors combine?</li>
+                                <li>⚡ How do parallel resistors combine?</li>
+                                <li>📊 When to use series vs parallel configurations?</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            showCompletionMessage() {
+                const html = `
+                    <div style="text-align: center; padding: 40px;">
+                        <h2 style="color: #ffd89b; margin-bottom: 20px;">
+                            🎉 Lesson Complete!
+                        </h2>
+                        <p style="font-size: 1.2rem;">You've mastered:</p>
+                        <ul style="margin: 20px auto; max-width: 400px; text-align: left; list-style: none;">
+                            <li style="margin: 10px 0; color: #4ecdc4;">✓ Resistance Formula (R = ρl/A)</li>
+                            <li style="margin: 10px 0; color: #4ecdc4;">✓ Length and Area Effects</li>
+                            <li style="margin: 10px 0; color: #4ecdc4;">✓ Material Resistivity</li>
+                            <li style="margin: 10px 0; color: #4ecdc4;">✓ Series Combinations</li>
+                            <li style="margin: 10px 0; color: #4ecdc4;">✓ Parallel Combinations</li>
+                        </ul>
+                        <p style="margin-top: 30px;">
+                            Explore individual sections or reset to review.
+                        </p>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+                document.getElementById('lessonContent').style.display = 'block';
+                document.getElementById('demoCanvas').style.display = 'none';
+            }
+
+            wait(ms) {
+                return new Promise(resolve => {
+                    this.timeout = setTimeout(resolve, ms);
+                });
+            }
+
+            stop() {
+                this.running = false;
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                    this.timeout = null;
+                }
+                narrator.stop();
+            }
+        }
+
+        // Helper function to hide all panels
+        function hideAllPanels() {
+            document.getElementById('resistanceFactorsPanel').style.display = 'none';
+            document.getElementById('seriesPanel').style.display = 'none';
+            document.getElementById('parallelPanel').style.display = 'none';
+            document.getElementById('example1').style.display = 'none';
+            document.getElementById('example2').style.display = 'none';
+            document.getElementById('activity').style.display = 'none';
+        }
+
+        // Create Data Chart
+        function createDataChart() {
+            const chartCanvas = document.getElementById('dataChart');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            
+            const chartData = {
+                labels: ['1R', '2R', '3R', '4R', '5R', '6R', '7R', '8R', '9R', '10R'],
+                datasets: [
+                    {
+                        label: 'Series Total Resistance (Ω)',
+                        data: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+                        borderColor: '#4facfe',
+                        backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                        borderWidth: 3,
+                        tension: 0,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: '#4facfe',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    },
+                    {
+                        label: 'Parallel Total Resistance (Ω)',
+                        data: [10, 5, 3.33, 2.5, 2, 1.67, 1.43, 1.25, 1.11, 1],
+                        borderColor: '#43e97b',
+                        backgroundColor: 'rgba(67, 233, 123, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: '#43e97b',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    },
+                    {
+                        label: 'Current in Parallel Branch (A) at 10V',
+                        data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                        borderColor: '#f093fb',
+                        backgroundColor: 'rgba(240, 147, 251, 0.1)',
+                        borderWidth: 3,
+                        borderDash: [5, 5],
+                        tension: 0,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: '#f093fb',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }
+                ]
+            };
+            
+            chartInstance = new Chart(chartCanvas, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Series vs Parallel Resistance Behavior',
+                            color: '#ffd89b',
+                            font: {
+                                size: 20,
+                                weight: 'bold'
+                            },
+                            padding: 20
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                },
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffd89b',
+                            bodyColor: '#ffffff',
+                            borderColor: '#ffd89b',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    if (context.dataset.label.includes('Series')) {
+                                        return 'Rs = R₁ + R₂ + ... + Rn';
+                                    } else if (context.dataset.label.includes('Parallel')) {
+                                        return '1/Rp = 1/R₁ + 1/R₂ + ... + 1/Rn';
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                borderColor: 'rgba(255, 255, 255, 0.3)'
+                            },
+                            ticks: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Value',
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                borderColor: 'rgba(255, 255, 255, 0.3)'
+                            },
+                            ticks: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Number of 10Ω Resistors',
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+        }
+
+        // Animation Functions
+        function animateResistanceFactors() {
+            // Clear canvas with gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 1200, 500);
+            gradient.addColorStop(0, '#0a0a0a');
+            gradient.addColorStop(1, '#1a1a2e');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Draw three wires showing different factors
+            const wireY = 150;
+            
+            // Wire 1: Original (length l, area A)
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 20;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(100, wireY);
+            ctx.lineTo(300, wireY);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '14px Arial';
+            ctx.fillText('Length: l', 150, wireY - 30);
+            ctx.fillText('Area: A', 150, wireY + 40);
+            ctx.fillStyle = '#ffd89b';
+            ctx.fillText('R = 4Ω', 180, wireY + 5);
+            
+            // Wire 2: Double length (2l, area A)
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 20;
+            ctx.beginPath();
+            ctx.moveTo(400, wireY);
+            ctx.lineTo(700, wireY);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('Length: 2l', 520, wireY - 30);
+            ctx.fillText('Area: A', 520, wireY + 40);
+            ctx.fillStyle = '#ff6b6b';
+            ctx.fillText('R = 8Ω', 550, wireY + 5);
+            
+            // Wire 3: Thicker (length l, area 2A)
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 40;
+            ctx.beginPath();
+            ctx.moveTo(800, wireY);
+            ctx.lineTo(1000, wireY);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '14px Arial';
+            ctx.fillText('Length: l', 870, wireY - 40);
+            ctx.fillText('Area: 2A', 870, wireY + 50);
+            ctx.fillStyle = '#4ecdc4';
+            ctx.fillText('R = 2Ω', 880, wireY + 5);
+            
+            // Animate electrons through wires with different speeds
+            for (let i = 0; i < 4; i++) {
+                // Wire 1 electrons (normal speed)
+                const x1 = 100 + ((time * 2 + i * 50) % 200);
+                ctx.fillStyle = '#ffff00';
+                ctx.beginPath();
+                ctx.arc(x1, wireY, 6, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Wire 2 electrons (slower - higher resistance)
+                const x2 = 400 + ((time * 1 + i * 75) % 300);
+                ctx.fillStyle = '#ffff00';
+                ctx.beginPath();
+                ctx.arc(x2, wireY, 6, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Wire 3 electrons (faster - lower resistance)
+                const x3 = 800 + ((time * 4 + i * 50) % 200);
+                ctx.fillStyle = '#ffff00';
+                ctx.beginPath();
+                ctx.arc(x3, wireY, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Material comparison
+            const matY = 350;
+            
+            // Copper wire
+            ctx.strokeStyle = '#d2691e';
+            ctx.lineWidth = 25;
+            ctx.beginPath();
+            ctx.moveTo(200, matY);
+            ctx.lineTo(350, matY);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#d2691e';
+            ctx.font = '16px Arial';
+            ctx.fillText('Copper', 240, matY - 30);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '14px Arial';
+            ctx.fillText('ρ = 1.62×10⁻⁸ Ω·m', 210, matY + 40);
+            
+            // Nichrome wire
+            ctx.strokeStyle = '#888';
+            ctx.lineWidth = 25;
+            ctx.beginPath();
+            ctx.moveTo(500, matY);
+            ctx.lineTo(650, matY);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#888';
+            ctx.font = '16px Arial';
+            ctx.fillText('Nichrome', 530, matY - 30);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '14px Arial';
+            ctx.fillText('ρ = 100×10⁻⁶ Ω·m', 510, matY + 40);
+            
+            // Rubber (insulator)
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 25;
+            ctx.beginPath();
+            ctx.moveTo(800, matY);
+            ctx.lineTo(950, matY);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#333';
+            ctx.font = '16px Arial';
+            ctx.fillText('Rubber', 840, matY - 30);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '14px Arial';
+            ctx.fillText('ρ = 10¹³ Ω·m', 820, matY + 40);
+            
+            // Formula display
+            ctx.font = 'bold 24px Arial';
+            ctx.fillStyle = '#ffd89b';
+            ctx.shadowColor = '#ffd89b';
+            ctx.shadowBlur = 10;
+            ctx.fillText('R = ρ × (l/A)', 500, 60);
+            
+            ctx.shadowBlur = 0;
+            time++;
+        }
+
+        function animateActivity() {
+    // Clear canvas
+    ctx.fillStyle = '#0a0a15';
+    ctx.fillRect(0, 0, 1200, 500);
+    
+    // Test position indicator
+    const testNum = Math.floor((time / 150) % 4) + 1;
+    
+    // Circuit setup for activity
+    // Battery (left side)
+    ctx.strokeStyle = '#00ffff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(50, 180, 60, 100);
+    ctx.fillStyle = '#00ffff';
+    ctx.font = '20px Arial';
+    ctx.fillText('+', 115, 200);
+    ctx.fillText('−', 35, 260);
+    
+    // Ammeter (top center)
+    ctx.strokeStyle = '#4b86b4';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(350, 100, 40, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.fillStyle = '#4ecdc4';
+    ctx.font = '20px Arial';
+    ctx.fillText('A', 343, 107);
+    
+    // Draw appropriate wire based on test
+    ctx.lineCap = 'round';
+    
+    let wireLabel = '';
+    let currentReading = '';
+    let wireColor = '#666';
+    
+    // Test wire position (bottom horizontal)
+    const wireY = 350;
+    const wireStartX = 150;
+    let wireEndX = 350; // Default end position
+    
+    // Draw test wire based on test number
+    switch(testNum) {
+        case 1: // Original nichrome wire
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 20;
+            ctx.beginPath();
+            ctx.moveTo(wireStartX, wireY);
+            ctx.lineTo(350, wireY);
+            ctx.stroke();
+            wireEndX = 350;
+            wireLabel = 'Nichrome (l, A)';
+            currentReading = '0.5 A';
+            wireColor = '#888';
+            break;
+            
+        case 2: // Double length nichrome
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 20;
+            ctx.beginPath();
+            ctx.moveTo(wireStartX, wireY);
+            ctx.lineTo(450, wireY);
+            ctx.stroke();
+            wireEndX = 450;
+            wireLabel = 'Nichrome (2l, A)';
+            currentReading = '0.25 A';
+            wireColor = '#ff6b6b';
+            break;
+            
+        case 3: // Thicker nichrome
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 40;
+            ctx.beginPath();
+            ctx.moveTo(wireStartX, wireY);
+            ctx.lineTo(350, wireY);
+            ctx.stroke();
+            wireEndX = 350;
+            wireLabel = 'Nichrome (l, 2A)';
+            currentReading = '1.0 A';
+            wireColor = '#4ecdc4';
+            break;
+            
+        case 4: // Copper wire
+            ctx.strokeStyle = '#d2691e';
+            ctx.lineWidth = 20;
+            ctx.beginPath();
+            ctx.moveTo(wireStartX, wireY);
+            ctx.lineTo(350, wireY);
+            ctx.stroke();
+            wireEndX = 350;
+            wireLabel = 'Copper (l, A)';
+            currentReading = '2.0 A';
+            wireColor = '#d2691e';
+            break;
+    }
+    
+    // Connection wires
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 6;
+    
+    // From battery top terminal (+) to left side of test wire
+    ctx.beginPath();
+    ctx.moveTo(110, 230); // From battery positive
+    ctx.lineTo(wireStartX, 230);
+    ctx.lineTo(wireStartX, wireY);
+    ctx.stroke();
+    
+    // From right end of test wire up to ammeter
+    ctx.beginPath();
+    ctx.moveTo(wireEndX, wireY);
+    ctx.lineTo(wireEndX, 140);
+    ctx.lineTo(350, 140); // Connect to bottom of ammeter
+    ctx.stroke();
+    
+    // From ammeter back to battery negative terminal
+    ctx.beginPath();
+    ctx.moveTo(350, 60); // From top of ammeter
+    ctx.lineTo(350, 40);
+    ctx.lineTo(550, 40);
+    ctx.lineTo(550, 450);
+    ctx.lineTo(50, 450);
+    ctx.lineTo(50, 280); // To battery negative
+    ctx.stroke();
+    
+    // Ammeter needle animation
+    const needleAngle = -Math.PI/2 + (parseFloat(currentReading) * Math.PI/4);
+    ctx.strokeStyle = '#ff6b6b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(350, 100);
+    ctx.lineTo(350 + Math.cos(needleAngle) * 30, 100 + Math.sin(needleAngle) * 30);
+    ctx.stroke();
+    
+    // Test label (top left)
+    ctx.fillStyle = wireColor;
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText(`Test ${testNum}: ${wireLabel}`, 50, 30);
+    
+    // Current reading (below circuit)
+    ctx.fillStyle = '#ffd89b';
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText(`Current: ${currentReading}`, 200, 420);
+    
+    // Observations box (right side)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(650, 150, 500, 180);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '16px Arial';
+    ctx.fillText('Observations:', 670, 180);
+    
+    ctx.font = '14px Arial';
+    ctx.fillStyle = '#e2e8f0';
+    switch(testNum) {
+        case 1:
+            ctx.fillText('• Baseline current with original wire', 670, 210);
+            ctx.fillText('• Standard resistance R', 670, 235);
+            break;
+        case 2:
+            ctx.fillText('• Current halved when length doubled', 670, 210);
+            ctx.fillText('• Resistance doubled: R ∝ l', 670, 235);
+            ctx.fillText('• Longer wire = more resistance', 670, 260);
+            break;
+        case 3:
+            ctx.fillText('• Current doubled with double area', 670, 210);
+            ctx.fillText('• Resistance halved: R ∝ 1/A', 670, 235);
+            ctx.fillText('• Thicker wire = less resistance', 670, 260);
+            break;
+        case 4:
+            ctx.fillText('• Higher current with copper', 670, 210);
+            ctx.fillText('• Lower resistivity material', 670, 235);
+            ctx.fillText('• Resistance depends on material', 670, 260);
+            ctx.fillText('• ρ(copper) < ρ(nichrome)', 670, 285);
+            break;
+    }
+    
+    // Draw wire length indicator for test 2
+    if (testNum === 2) {
+        ctx.strokeStyle = '#ff6b6b';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        
+        // Draw length comparison brackets
+        ctx.beginPath();
+        ctx.moveTo(wireStartX, wireY + 30);
+        ctx.lineTo(wireStartX, wireY + 40);
+        ctx.lineTo(350, wireY + 40);
+        ctx.lineTo(350, wireY + 30);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(350, wireY + 30);
+        ctx.lineTo(350, wireY + 40);
+        ctx.lineTo(wireEndX, wireY + 40);
+        ctx.lineTo(wireEndX, wireY + 30);
+        ctx.stroke();
+        
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#ff6b6b';
+        ctx.font = '12px Arial';
+        // ctx.fillText('l', 245, wireY + 55);
+        // ctx.fillText('l', 395, wireY + 55);
+        // ctx.fillText('Total: 2l', 290, wireY + 70);
+    }
+    
+    time++;
+}
+
+        function animateSeries() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a15';
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Battery
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(100, 210, 70, 80);
+            ctx.fillStyle = '#00ffff';
+            ctx.font = '20px Arial';
+            ctx.fillText('12V', 115, 255);
+            
+            // Three resistors in series
+            const r1x = 300, r1y = 250;
+            const r2x = 500, r2y = 250;
+            const r3x = 700, r3y = 250;
+            
+            // Draw wires
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(170, 250);
+            ctx.lineTo(r1x - 40, 250);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(r1x + 40, 250);
+            ctx.lineTo(r2x - 40, 250);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(r2x + 40, 250);
+            ctx.lineTo(r3x - 40, 250);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(r3x + 40, 250);
+            ctx.lineTo(900, 250);
+            ctx.lineTo(900, 400);
+            ctx.lineTo(100, 400);
+            ctx.lineTo(100, 250);
+            ctx.stroke();
+            
+            // Draw resistors (zigzag)
+            function drawResistor(x, y, value, voltage) {
+                ctx.strokeStyle = '#888';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(x - 40, y);
+                for (let i = 0; i < 7; i++) {
+                    const rx = x - 35 + i * 10;
+                    const ry = y + (i % 2 === 0 ? -15 : 15);
+                    ctx.lineTo(rx, ry);
+                }
+                ctx.lineTo(x + 40, y);
+                ctx.stroke();
+                
+                // Resistor value
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px Arial';
+                ctx.fillText(`${value}Ω`, x - 15, y - 30);
+                
+                // Voltage drop
+                ctx.fillStyle = '#ffd89b';
+                ctx.fillText(`${voltage}V`, x - 15, y + 40);
+            }
+            
+            drawResistor(r1x, r1y, 'R₁=2', 'V₁=4');
+            drawResistor(r2x, r2y, 'R₂=3', 'V₂=6');
+            drawResistor(r3x, r3y, 'R₃=1', 'V₃=2');
+            
+            // Animate current flow (same through all)
+            for (let i = 0; i < 5; i++) {
+                const progress = (time * 0.015 + i * 0.2) % 1;
+                let x, y = 250;
+                
+                if (progress < 0.7) {
+                    x = 170 + progress * 1000;
+                } else {
+                    x = 900 - (progress - 0.7) * 2666;
+                    y = 400;
+                }
+                
+                ctx.fillStyle = 'rgba(100, 200, 255, 0.8)';
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Current and resistance labels
+            ctx.font = 'bold 20px Arial';
+            ctx.fillStyle = '#4facfe';
+            ctx.fillText('Series Circuit', 480, 80);
+            
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('Current I = 2A (same everywhere)', 420, 120);
+            
+            ctx.fillStyle = '#ffd89b';
+            ctx.fillText('Rs = R₁ + R₂ + R₃ = 2 + 3 + 1 = 6Ω', 380, 320);
+            ctx.fillText('V = V₁ + V₂ + V₃ = 4 + 6 + 2 = 12V', 380, 350);
+            
+            time++;
+        }
+
+        function animateParallel() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a15';
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Battery
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(100, 210, 70, 80);
+            ctx.fillStyle = '#00ffff';
+            ctx.font = '20px Arial';
+            ctx.fillText('12V', 115, 255);
+            
+            // Main wires
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.moveTo(170, 250);
+            ctx.lineTo(300, 250);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(750, 250);
+            ctx.lineTo(900, 250);
+            ctx.lineTo(900, 400);
+            ctx.lineTo(100, 400);
+            ctx.lineTo(100, 250);
+            ctx.stroke();
+            
+            // Junction points
+            ctx.fillStyle = '#ffd89b';
+            ctx.beginPath();
+            ctx.arc(300, 250, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(750, 250, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Parallel branches
+            const branches = [
+                { y: 150, R: 5, I: 2.4 },
+                { y: 250, R: 10, I: 1.2 },
+                { y: 350, R: 30, I: 0.4 }
+            ];
+            
+            branches.forEach((branch, idx) => {
+                // Branch wires
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                if (branch.y !== 250) {
+                    ctx.moveTo(300, 250);
+                    ctx.lineTo(300, branch.y);
+                    ctx.lineTo(450, branch.y);
+                } else {
+                    ctx.moveTo(300, branch.y);
+                    ctx.lineTo(450, branch.y);
+                }
+                ctx.stroke();
+                
+                ctx.beginPath();
+                if (branch.y !== 250) {
+                    ctx.moveTo(600, branch.y);
+                    ctx.lineTo(750, branch.y);
+                    ctx.lineTo(750, 250);
+                } else {
+                    ctx.moveTo(600, branch.y);
+                    ctx.lineTo(750, branch.y);
+                }
+                ctx.stroke();
+                
+                // Resistor
+                ctx.strokeStyle = '#888';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(450, branch.y);
+                for (let i = 0; i < 7; i++) {
+                    const rx = 455 + i * 20;
+                    const ry = branch.y + (i % 2 === 0 ? -15 : 15);
+                    ctx.lineTo(rx, ry);
+                }
+                ctx.lineTo(600, branch.y);
+                ctx.stroke();
+                
+                // Labels
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px Arial';
+                ctx.fillText(`R${idx + 1} = ${branch.R}Ω`, 500, branch.y - 25);
+                ctx.fillStyle = '#4ecdc4';
+                ctx.fillText(`I${idx + 1} = ${branch.I}A`, 505, branch.y + 35);
+                
+                // Current animation in branch
+                for (let i = 0; i < 2; i++) {
+                    const progress = (time * 0.02 * (3 - idx) + i * 0.5) % 1;
+                    const x = 300 + progress * 450;
+                    
+                    ctx.fillStyle = `rgba(100, 200, 255, ${0.6 + idx * 0.1})`;
+                    ctx.beginPath();
+                    ctx.arc(x, branch.y, 4 + idx, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+            
+            // Total current indicator
+            ctx.font = 'bold 20px Arial';
+            ctx.fillStyle = '#43e97b';
+            ctx.fillText('Parallel Circuit', 480, 60);
+            
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('Voltage V = 12V (same across all)', 420, 90);
+            
+            ctx.fillStyle = '#ffd89b';
+            ctx.fillText('I = I₁ + I₂ + I₃ = 2.4 + 1.2 + 0.4 = 4.0A', 350, 430);
+            ctx.fillText('1/Rp = 1/5 + 1/10 + 1/30 = 1/3, Rp = 3Ω', 350, 460);
+            
+            time++;
+        }
+
+        function animateComparison() {
+    // Clear canvas
+    ctx.fillStyle = '#0a0a15';
+    ctx.fillRect(0, 0, 1200, 500);
+    
+    // Split screen comparison
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 10]);
+    ctx.beginPath();
+    ctx.moveTo(600, 50);
+    ctx.lineTo(600, 450);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // Series side (left)
+    ctx.font = 'bold 20px Arial';
+    ctx.fillStyle = '#4facfe';
+    ctx.fillText('SERIES', 230, 70);
+    
+    // Mini series circuit
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(100, 150);
+    ctx.lineTo(180, 150);  // Fixed: Extended wire to x=180 where first resistor starts
+    ctx.stroke();
+    
+    // Series resistors
+    for (let i = 0; i < 3; i++) {
+        const x = 180 + i * 80;
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, 150);
+        for (let j = 0; j < 5; j++) {
+            ctx.lineTo(x + 5 + j * 6, 150 + (j % 2 === 0 ? -10 : 10));
+        }
+        ctx.lineTo(x + 35, 150);
+        ctx.stroke();
+        
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 4;
+        if (i < 2) {
+            ctx.beginPath();
+            ctx.moveTo(x + 35, 150);
+            ctx.lineTo(x + 80, 150);
+            ctx.stroke();
+        }
+    }
+    
+    ctx.beginPath();
+    ctx.moveTo(375, 150);
+    ctx.lineTo(450, 150);
+    ctx.lineTo(450, 250);
+    ctx.lineTo(100, 250);
+    ctx.lineTo(100, 150);
+    ctx.stroke();
+    
+    // Series properties
+    ctx.font = '16px Arial';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('Properties:', 150, 300);
+    
+    ctx.font = '14px Arial';
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillText('• Rs = R₁ + R₂ + R₃', 150, 330);
+    ctx.fillText('• Same current through all', 150, 355);
+    ctx.fillText('• Voltage divides', 150, 380);
+    ctx.fillText('• Higher total resistance', 150, 405);
+    
+    // Parallel side (right)
+    ctx.font = 'bold 20px Arial';
+    ctx.fillStyle = '#43e97b';
+    ctx.fillText('PARALLEL', 820, 70);
+    
+    // Mini parallel circuit
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(700, 150);
+    ctx.lineTo(750, 150);
+    ctx.stroke();
+    
+    // Junction
+    ctx.fillStyle = '#ffd89b';
+    ctx.beginPath();
+    ctx.arc(750, 150, 5, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Parallel branches
+    const yPositions = [120, 150, 180];
+    yPositions.forEach(y => {
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        if (y !== 150) {
+            ctx.moveTo(750, 150);
+            ctx.lineTo(750, y);
+            ctx.lineTo(800, y);
+        } else {
+            ctx.moveTo(750, y);
+            ctx.lineTo(800, y);
+        }
+        ctx.stroke();
+        
+        // Resistor
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(800, y);
+        for (let j = 0; j < 5; j++) {
+            ctx.lineTo(805 + j * 6, y + (j % 2 === 0 ? -8 : 8));
+        }
+        ctx.lineTo(835, y);
+        ctx.stroke();
+        
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(835, y);
+        if (y !== 150) {
+            ctx.lineTo(900, y);
+            ctx.lineTo(900, 150);
+        } else {
+            ctx.lineTo(900, y);
+        }
+        ctx.stroke();
+    });
+    
+    ctx.beginPath();
+    ctx.arc(900, 150, 5, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(900, 150);
+    ctx.lineTo(950, 150);
+    ctx.lineTo(950, 250);
+    ctx.lineTo(700, 250);
+    ctx.lineTo(700, 150);
+    ctx.stroke();
+    
+    // Parallel properties
+    ctx.font = '16px Arial';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('Properties:', 750, 300);
+    
+    ctx.font = '14px Arial';
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillText('• 1/Rp = 1/R₁ + 1/R₂ + 1/R₃', 750, 330);
+    ctx.fillText('• Same voltage across all', 750, 355);
+    ctx.fillText('• Current divides', 750, 380);
+    ctx.fillText('• Lower total resistance', 750, 405);
+    
+    time++;
+}
+
+        function animateSolving() {
+            // Clear canvas
+            const gradient = ctx.createLinearGradient(0, 0, 1200, 500);
+            gradient.addColorStop(0, '#0a0a0a');
+            gradient.addColorStop(1, '#1a1a2e');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Title
+            ctx.font = 'bold 24px Arial';
+            ctx.fillStyle = '#ffd89b';
+            ctx.shadowColor = '#ffd89b';
+            ctx.shadowBlur = 10;
+            ctx.fillText('Problem Solving - Examples', 450, 40);
+            
+            // Example 11.6 visualization (left side)
+            ctx.font = 'bold 18px Arial';
+            ctx.fillStyle = '#4ecdc4';
+            ctx.fillText('Example 11.6', 200, 100);
+            
+            // Original wire
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 20;
+            ctx.beginPath();
+            ctx.moveTo(100, 150);
+            ctx.lineTo(200, 150);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '14px Arial';
+            ctx.fillText('Wire 1: l, A', 120, 130);
+            ctx.fillStyle = '#ffd89b';
+            ctx.fillText('R₁ = 4Ω', 130, 175);
+            
+            // New wire
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 40;
+            ctx.beginPath();
+            ctx.moveTo(280, 150);
+            ctx.lineTo(330, 150);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('Wire 2: l/2, 2A', 270, 130);
+            ctx.fillStyle = '#4ecdc4';
+            ctx.fillText('R₂ = ?', 295, 185);
+            
+            // Solution steps with animation
+            const step1 = Math.floor((time / 100) % 4);
+            
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('Solution:', 100, 250);
+            
+            if (step1 >= 1) {
+                ctx.fillStyle = '#e2e8f0';
+                ctx.fillText('R₂ = ρ(l/2)/(2A)', 100, 280);
+            }
+            if (step1 >= 2) {
+                ctx.fillText('R₂ = (1/4) × ρ(l/A)', 100, 310);
+            }
+            if (step1 >= 3) {
+                ctx.fillStyle = '#4ecdc4';
+                ctx.fillText('R₂ = 1Ω ✓', 100, 340);
+            }
+            
+            // Example 11.8 visualization (right side)
+            ctx.font = 'bold 18px Arial';
+            ctx.fillStyle = '#43e97b';
+            ctx.fillText('Example 11.8', 700, 100);
+            
+            // Parallel circuit diagram
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(650, 180);
+            ctx.lineTo(700, 180);
+            ctx.stroke();
+            
+            // Parallel resistors
+            const resistors = [
+                { y: 150, R: 5, I: 2.4 },
+                { y: 180, R: 10, I: 1.2 },
+                { y: 210, R: 30, I: 0.4 }
+            ];
+            
+            resistors.forEach((r, idx) => {
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                if (r.y !== 180) {
+                    ctx.moveTo(700, 180);
+                    ctx.lineTo(700, r.y);
+                    ctx.lineTo(750, r.y);
+                } else {
+                    ctx.moveTo(700, r.y);
+                    ctx.lineTo(750, r.y);
+                }
+                ctx.stroke();
+                
+                // Mini resistor symbol
+                ctx.strokeStyle = '#888';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(750, r.y - 5, 30, 10);
+                
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(780, r.y);
+                if (r.y !== 180) {
+                    ctx.lineTo(850, r.y);
+                    ctx.lineTo(850, 180);
+                } else {
+                    ctx.lineTo(850, r.y);
+                }
+                ctx.stroke();
+                
+                // Labels
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '12px Arial';
+                ctx.fillText(`${r.R}Ω`, 755, r.y - 10);
+                
+                const step2 = Math.floor((time / 150) % 4);
+                if (step2 > idx) {
+                    ctx.fillStyle = '#4ecdc4';
+                    ctx.fillText(`${r.I}A`, 810, r.y + 3);
+                }
+            });
+            
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(850, 180);
+            ctx.lineTo(900, 180);
+            ctx.stroke();
+            
+            // Battery symbol
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(920, 165, 40, 30);
+            ctx.fillStyle = '#00ffff';
+            ctx.font = '12px Arial';
+            ctx.fillText('12V', 930, 183);
+            
+            // Results
+            const step2 = Math.floor((time / 150) % 4);
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('Results:', 700, 280);
+            
+            if (step2 >= 1) {
+                ctx.fillStyle = '#e2e8f0';
+                ctx.fillText('Total I = 4.0A', 700, 310);
+            }
+            if (step2 >= 2) {
+                ctx.fillText('1/Rp = 1/3', 700, 340);
+            }
+            if (step2 >= 3) {
+                ctx.fillStyle = '#43e97b';
+                ctx.fillText('Rp = 3Ω ✓', 700, 370);
+            }
+            
+            ctx.shadowBlur = 0;
+            time++;
+        }
+
+        // Main animation loop
+        function animate() {
+            switch (currentMode) {
+                case 'resistance-factors':
+                    animateResistanceFactors();
+                    break;
+                case 'activity':
+                    animateActivity();
+                    break;
+                case 'series':
+                    animateSeries();
+                    break;
+                case 'parallel':
+                    animateParallel();
+                    break;
+                case 'comparison':
+                    animateComparison();
+                    break;
+                case 'solving':
+                    animateSolving();
+                    break;
+            }
+            
+            animationFrame = requestAnimationFrame(animate);
+        }
+
+        // Reset Function
+        function resetEverything() {
+            lessonStarted = false;
+            
+            if (lessonSequence) {
+                lessonSequence.stop();
+            }
+            narrator.stop();
+            
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+            
+            // Reset parameters
+            time = 0;
+            
+            // Reset UI
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('[data-mode="lesson"]').classList.add('active');
+            
+            hideAllPanels();
+            document.getElementById('demoCanvas').style.display = 'none';
+            document.getElementById('chartContainer').style.display = 'none';
+            document.getElementById('lessonContent').style.display = 'block';
+            
+            currentMode = 'lesson';
+            
+            // Restart animation
+            animate();
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }, 1500);
+            
+            lessonSequence = new LessonSequence();
+            
+            // Control buttons
+            document.querySelectorAll('.control-btn:not(.reset-btn)').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const mode = this.getAttribute('data-mode');
+                    
+                    // Stop any running sequences
+                    if (lessonSequence) lessonSequence.stop();
+                    narrator.stop();
+                    
+                    currentMode = mode;
+                    document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show/hide elements based on mode
+                    hideAllPanels();
+                    document.getElementById('lessonContent').style.display = 'none';
+                    document.getElementById('chartContainer').style.display = 'none';
+                    
+                    if (mode === 'lesson') {
+                        resetEverything();
+                        lessonStarted = true;
+                        lessonSequence.start();
+                    } else if (mode === 'datachart') {
+                        document.getElementById('demoCanvas').style.display = 'none';
+                        document.getElementById('chartContainer').style.display = 'block';
+                        createDataChart();
+                        narrator.speak("This chart shows the contrasting behavior of series and parallel resistor combinations. The blue line demonstrates how series resistance increases linearly as we add more resistors. The green curve shows how parallel resistance decreases and approaches a lower limit. The dashed pink line represents current distribution in parallel branches. These mathematical relationships help engineers design circuits with specific resistance requirements.", true);
+                    } else {
+                        document.getElementById('demoCanvas').style.display = 'block';
+                        
+                        switch(mode) {
+                            case 'resistance-factors':
+                                document.getElementById('resistanceFactorsPanel').style.display = 'block';
+                                narrator.speak("Resistance depends on three key factors. Length: doubling the wire length doubles resistance. Cross-sectional area: doubling the area halves resistance. Material: different materials have vastly different resistivities. Watch how these factors affect electron flow through the conductors. The formula R equals rho times L over A captures all three relationships.", true);
+                                break;
+                            case 'activity':
+                                document.getElementById('activity').style.display = 'block';
+                                document.getElementById('resistanceFactorsPanel').style.display = 'block';
+                                narrator.speak("Activity 11.3 systematically investigates resistance factors. We test four configurations: original nichrome wire, double-length nichrome, thicker nichrome, and copper wire. The ammeter readings confirm our theoretical predictions about how length, area, and material affect resistance.", true);
+                                break;
+                            case 'series':
+                                document.getElementById('seriesPanel').style.display = 'block';
+                                narrator.speak("Series resistors create a single path for current. The same current flows through each resistor, but voltage divides proportionally. Total resistance equals the sum of individual resistances. This configuration is useful for voltage dividers but has the disadvantage that one failed component breaks the entire circuit.", true);
+                                break;
+                            case 'parallel':
+                                document.getElementById('parallelPanel').style.display = 'block';
+                                narrator.speak("Parallel resistors provide multiple paths for current. Each resistor experiences the same voltage, but current divides inversely with resistance. The reciprocal formula shows total resistance always decreases. This configuration is used in household wiring for reliability and independent operation.", true);
+                                break;
+                            case 'comparison':
+                                document.getElementById('seriesPanel').style.display = 'block';
+                                document.getElementById('parallelPanel').style.display = 'block';
+                                narrator.speak("Comparing series and parallel configurations reveals key differences. Series increases total resistance and divides voltage, while parallel decreases total resistance and divides current. Understanding both configurations is essential for circuit design and analysis.", true);
+                                break;
+                            case 'solving':
+                                document.getElementById('example1').style.display = 'block';
+                                document.getElementById('example2').style.display = 'block';
+                                narrator.speak("Let's solve practical problems. Example 11.6 shows how changing wire dimensions affects resistance using the formula R equals rho L over A. Example 11.8 demonstrates calculating currents and equivalent resistance in parallel circuits. These problem-solving techniques are fundamental to electrical engineering.", true);
+                                break;
+                        }
+                    }
+                    
+                    time = 0;
+                });
+            });
+            
+            // Reset button
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                narrator.speak("Resetting lesson to the beginning.", true);
+                resetEverything();
+            });
+            
+            // Audio toggle
+            document.getElementById('audio-toggle').addEventListener('click', function() {
+                audioEnabled = narrator.toggle();
+                this.textContent = audioEnabled ? '🔊' : '🔇';
+            });
+            
+            // Start initial display
+            document.getElementById('lessonContent').innerHTML = `
+                <div class="lesson-section">
+                    <h2 class="lesson-title">Welcome to Chapter 11.5 & 11.6</h2>
+                    <div class="lesson-text">
+                        <p>Click "Complete Lesson" to start the full guided tour of resistance factors and resistor combinations, or choose any specific topic to explore.</p>
+                    </div>
+                </div>
+            `;
+            
+            // Start animation
+            animate();
+        });
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            narrator.stop();
+            if (lessonSequence) lessonSequence.stop();
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+        });
+    </script>
+</body>
+</html>

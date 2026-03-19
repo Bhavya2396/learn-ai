@@ -1,0 +1,2229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar Graphs - Master Visual Data</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header - Compact */
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Layout */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Demo Stage - Takes most space */
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+        }
+
+        /* Stage Content */
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Controls - Below Demo */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--accent-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Chart Containers */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Data Table */
+        .data-table {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th, .data-table td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .data-table th {
+            background: rgba(79, 172, 254, 0.2);
+            font-weight: 600;
+        }
+
+        /* Interactive Elements */
+        .value-display {
+            font-size: 3rem;
+            font-weight: bold;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 20px 0;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Visual Indicators */
+        .arrow-indicator {
+            width: 50px;
+            height: 50px;
+            position: relative;
+            margin: 20px;
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Quiz Section */
+        .quiz-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .quiz-question {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .quiz-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .quiz-option {
+            padding: 15px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.02);
+        }
+
+        .quiz-option.correct {
+            background: rgba(67, 233, 123, 0.2);
+            border-color: #43e97b;
+        }
+
+        .quiz-option.incorrect {
+            background: rgba(245, 87, 108, 0.2);
+            border-color: #f5576c;
+        }
+
+        /* Progress Indicator */
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-gradient);
+            border-radius: 3px;
+            transition: width 0.5s ease-out;
+        }
+
+        /* Responsive Canvas */
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Info Bubbles */
+        .info-bubble {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            max-width: 200px;
+        }
+
+        .info-bubble.show {
+            opacity: 1;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Speech Bubble */
+        .speech-bubble {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 15px;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 80%;
+            text-align: center;
+            font-size: 1.1rem;
+            animation: fadeInUp 0.5s ease-out;
+            z-index: 100;
+        }
+
+        @keyframes fadeInUp {
+            from { 
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* Comparison View */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .comparison-item {
+            text-align: center;
+        }
+
+        .comparison-item canvas {
+            margin-bottom: 10px;
+        }
+
+        .comparison-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* Interactive Builder */
+        .builder-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 30px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .builder-controls {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .builder-preview {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .add-data-btn {
+            width: 100%;
+            padding: 10px;
+            background: var(--success-gradient);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 10px;
+        }
+
+        .add-data-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(67, 233, 123, 0.4);
+        }
+
+        /* Data Animation */
+        .bar-grow {
+            animation: growBar 1s ease-out forwards;
+        }
+
+        @keyframes growBar {
+            from { transform: scaleY(0); }
+            to { transform: scaleY(1); }
+        }
+
+        /* Highlight Effects */
+        .highlight {
+            animation: highlight 2s ease-in-out infinite;
+        }
+
+        @keyframes highlight {
+            0%, 100% { 
+                filter: brightness(1);
+                transform: scale(1);
+            }
+            50% { 
+                filter: brightness(1.2);
+                transform: scale(1.05);
+            }
+        }
+
+        /* Theory Cards Section */
+        .theory-cards-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 600;
+        }
+
+        .theory-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .theory-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theory-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--accent-gradient);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .theory-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.2);
+        }
+
+        .theory-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass-bg);
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-accent);
+            margin: 0;
+        }
+
+        .card-content {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .card-content p {
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .card-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .card-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            font-size: 0.95rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .card-list li:last-child {
+            border-bottom: none;
+        }
+
+        .card-list li::before {
+            content: '▶';
+            position: absolute;
+            left: 0;
+            color: var(--text-accent);
+            font-size: 0.8rem;
+        }
+
+        .card-list li strong {
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        /* Mobile Responsiveness for Theory Cards */
+        @media (max-width: 768px) {
+            .theory-cards-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .theory-card {
+                padding: 20px;
+            }
+            
+            .card-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+            
+            .card-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.5rem;
+            }
+            
+            .card-title {
+                font-size: 1.2rem;
+            }
+            
+            .section-title {
+                font-size: 1.5rem;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>Bar Graphs - Master Visual Data</h1>
+        <p>Learn, Create, and Analyze Data Like a Pro!</p>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Demo Stage -->
+        <div class="demo-stage" id="demoStage">
+            <!-- Welcome Stage -->
+            <div class="stage-content active" id="welcomeStage">
+                <h2 class="chart-title">Welcome to Bar Graphs Mastery!</h2>
+                <div class="value-display">Let's Begin!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Bar graphs are powerful tools for comparing data visually. 
+                    Choose a lesson below to start your journey!
+                </p>
+            </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">Introduction</button>
+            <button class="demo-btn" data-demo="basic">Basic Example</button>
+            <button class="demo-btn" data-demo="construction">How to Build</button>
+            <button class="demo-btn" data-demo="realworld">Real World</button>
+            <button class="demo-btn" data-demo="comparison">Compare Charts</button>
+            <button class="demo-btn" data-demo="quiz">Test Yourself</button>
+            <button class="demo-btn" data-demo="builder">Create Your Own</button>
+            <button class="demo-btn" data-demo="reset">Reset</button>
+        </div>
+
+        <!-- Theory Cards Section -->
+        <div class="theory-cards-section">
+            <h2 class="section-title">Key Concepts & Theory</h2>
+            <div class="theory-cards-grid">
+                <!-- Card 1: What is a Bar Graph -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <div class="card-icon">📊</div>
+                        <h3 class="card-title">What is a Bar Graph?</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>A bar graph is a visual representation of data using rectangular bars. Each bar's height or length corresponds to the value it represents, making it easy to compare different categories or groups.</p>
+                        <ul class="card-list">
+                            <li>Uses rectangular bars of different heights</li>
+                            <li>Perfect for comparing discrete categories</li>
+                            <li>Easy to read and understand at a glance</li>
+                            <li>Can be vertical or horizontal</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Card 2: Components -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <div class="card-icon">🔧</div>
+                        <h3 class="card-title">Essential Components</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Every bar graph has key components that make it effective and easy to understand:</p>
+                        <ul class="card-list">
+                            <li><strong>Title:</strong> Describes what the graph shows</li>
+                            <li><strong>X-axis:</strong> Shows categories or labels</li>
+                            <li><strong>Y-axis:</strong> Shows the scale of values</li>
+                            <li><strong>Bars:</strong> Represent the actual data values</li>
+                            <li><strong>Legend:</strong> Explains colors or patterns (if needed)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Card 3: When to Use -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <div class="card-icon">🎯</div>
+                        <h3 class="card-title">When to Use Bar Graphs</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Bar graphs are ideal for specific types of data and comparisons:</p>
+                        <ul class="card-list">
+                            <li>Comparing quantities across different categories</li>
+                            <li>Showing rankings or order of items</li>
+                            <li>Displaying survey results or poll data</li>
+                            <li>Presenting sales figures by product or region</li>
+                            <li>Comparing performance metrics</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Card 4: Best Practices -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <div class="card-icon">⭐</div>
+                        <h3 class="card-title">Best Practices</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Follow these guidelines to create effective and accurate bar graphs:</p>
+                        <ul class="card-list">
+                            <li>Always start the Y-axis at zero for accurate comparisons</li>
+                            <li>Use consistent spacing between bars</li>
+                            <li>Choose colors that are easy to distinguish</li>
+                            <li>Keep labels clear and readable</li>
+                            <li>Include units of measurement</li>
+                            <li>Add a descriptive title</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let currentTeacher = null;
+        let currentDemo = null;
+        let globalAudioEnabled = true;
+        let charts = {};
+        let animationTimeouts = [];
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let currentRunId = 0;
+        let currentTaskId = null;
+
+        // Teacher Voice System
+        class TeacherVoice {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.voice = null;
+                this.rate = 0.8;
+                this.pitch = 1.0;
+                this.volume = 0.9;
+                this.isEnabled = true;
+                this.currentUtterance = null;
+                this.isDestroyed = false;
+                this.setupVoice();
+            }
+
+            setupVoice() {
+                const loadVoices = () => {
+                    const voices = this.synth.getVoices();
+                    this.voice = voices.find(v => v.lang.includes('en')) || voices[0];
+                };
+                loadVoices();
+                this.synth.onvoiceschanged = loadVoices;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !globalAudioEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.voice = this.voice;
+                        utterance.rate = this.rate;
+                        utterance.pitch = this.pitch;
+                        utterance.volume = this.volume;
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        this.synth.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+            }
+        }
+
+        // State management functions
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            clearStage();
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentTeacher = new TeacherVoice();
+            currentTeacher.isEnabled = globalAudioEnabled;
+            return currentTeacher;
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        // Clear stage
+        function clearStage() {
+            const stage = document.getElementById('demoStage');
+            stage.innerHTML = '';
+            
+            // Clear all timeouts
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            // Destroy all charts
+            Object.values(charts).forEach(chart => {
+                if (chart && chart.destroy) {
+                    chart.destroy();
+                }
+            });
+            charts = {};
+        }
+
+        // Create stage content
+        function createStageContent() {
+            clearStage();
+            const content = document.createElement('div');
+            content.className = 'stage-content active';
+            document.getElementById('demoStage').appendChild(content);
+            return content;
+        }
+
+        // Utility function to create chart
+        function createChart(canvasId, type, data, options = {}) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return null;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Destroy existing chart if any
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+            
+            const defaultOptions = {
+                responsive: true,
+                maintainAspectRatio: true,
+                animation: {
+                    duration: 1000,
+                    easing: 'easeInOutQuart'
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 10,
+                        cornerRadius: 10,
+                        titleFont: { size: 14 },
+                        bodyFont: { size: 12 }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.8)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.8)'
+                        }
+                    }
+                }
+            };
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: type,
+                data: data,
+                options: { ...defaultOptions, ...options }
+            });
+            
+            return charts[canvasId];
+        }
+
+        // Demo Functions
+        async function showIntroduction() {
+            const taskId = 'introduction';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="chart-title">What is a Bar Graph?</h2>
+                <div class="chart-container">
+                    <canvas id="introChart" width="500" height="300"></canvas>
+                </div>
+            `;
+            
+            await teacher.speak("A bar graph uses rectangular bars to show comparisons between different items. Look how easily we can see which fruit sold the most!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Create animated introduction
+            createChart('introChart', 'bar', {
+                labels: ['Apples', 'Bananas', 'Oranges', 'Grapes'],
+                datasets: [{
+                    label: 'Fruits Sold',
+                    data: [30, 45, 20, 35],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(255, 159, 64, 0.7)',
+                        'rgba(153, 102, 255, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(153, 102, 255, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            });
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("The height of each bar represents the value of that item. Bananas sold the most with 45 units!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Update chart to highlight bananas
+            charts['introChart'].data.datasets[0].backgroundColor = [
+                'rgba(255, 99, 132, 0.4)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(255, 159, 64, 0.4)',
+                'rgba(153, 102, 255, 0.4)'
+            ];
+            charts['introChart'].update();
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Bar graphs make it super easy to compare values at a glance. You can instantly see patterns and differences!");
+            
+            isPlaying = false;
+        }
+
+        async function showBasicExample() {
+            const taskId = 'basic';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="chart-title">Let's Build Our First Bar Graph!</h2>
+                <div class="data-table" id="dataTable">
+                    <h3>Student Test Scores</h3>
+                    <table>
+                        <tr>
+                            <th>Student</th>
+                            <th>Score</th>
+                        </tr>
+                        <tr><td>Alex</td><td>85</td></tr>
+                        <tr><td>Maria</td><td>92</td></tr>
+                        <tr><td>John</td><td>78</td></tr>
+                        <tr><td>Sarah</td><td>95</td></tr>
+                        <tr><td>Mike</td><td>88</td></tr>
+                    </table>
+                </div>
+            `;
+            
+            await teacher.speak("Let's create a bar graph from this student test scores data. First, we have our data in a table format.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Now let's convert this table into a bar graph to make it easier to compare the scores visually.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Transform table to graph after narration
+            content.innerHTML = `
+                <h2 class="chart-title">Student Test Scores - Bar Graph</h2>
+                <div class="chart-container">
+                    <canvas id="scoresChart" width="500" height="400"></canvas>
+                </div>
+            `;
+            
+            createChart('scoresChart', 'bar', {
+                labels: ['Alex', 'Maria', 'John', 'Sarah', 'Mike'],
+                datasets: [{
+                    label: 'Test Score',
+                    data: [85, 92, 78, 95, 88],
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2
+                }]
+            });
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Now we can easily see that Sarah scored the highest with 95 points, and John needs a bit more help with 78 points!");
+            
+            isPlaying = false;
+        }
+
+        async function showConstruction() {
+            const taskId = 'construction';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            // Step 1: Empty axes
+            content.innerHTML = `
+                <h2 class="chart-title">How to Build a Bar Graph - Step by Step</h2>
+                <div class="chart-container">
+                    <canvas id="constructChart" width="600" height="400"></canvas>
+                </div>
+            `;
+            
+            createChart('constructChart', 'bar', {
+                labels: ['', '', '', ''],
+                datasets: [{
+                    data: [0, 0, 0, 0],
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)'
+                }]
+            });
+            
+            await teacher.speak("Step 1: We start by drawing two axes. The horizontal x-axis and the vertical y-axis.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 2: Add labels
+            await teacher.speak("Step 2: Add labels to the x-axis. These show what each bar represents - Monday, Tuesday, Wednesday, and Thursday.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Add labels exactly when narration starts
+            charts['constructChart'].data.labels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday'];
+            charts['constructChart'].update();
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 3: Add scale
+            await teacher.speak("Step 3: Add a scale to the y-axis. This shows the values we're measuring - from 0 to 50 in this case.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 4: Draw bars
+            await teacher.speak("Step 4: Now draw the bars! The height of each bar matches its value - Monday 25, Tuesday 40, Wednesday 30, Thursday 45.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Add bars exactly when narration starts
+            charts['constructChart'].data.datasets[0].data = [25, 40, 30, 45];
+            charts['constructChart'].update();
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 5: Add title
+            await teacher.speak("Step 5: Finally, add a title to tell everyone what your graph shows. Our title is 'Daily Sales This Week'. Perfect!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Add title exactly when narration starts
+            charts['constructChart'].options.plugins.title = {
+                display: true,
+                text: 'Daily Sales This Week',
+                font: { size: 16 },
+                color: 'white'
+            };
+            charts['constructChart'].update();
+            
+            isPlaying = false;
+        }
+
+        async function showRealWorld() {
+            const taskId = 'realworld';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            const examples = [
+                {
+                    title: "Weather Data",
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                    data: [5, 8, 12, 18, 22],
+                    color: 'rgba(255, 159, 64, 0.7)',
+                    description: "Average temperature in Celsius"
+                },
+                {
+                    title: "School Subjects",
+                    labels: ['Math', 'Science', 'English', 'History', 'Art'],
+                    data: [85, 90, 88, 82, 95],
+                    color: 'rgba(153, 102, 255, 0.7)',
+                    description: "Class average scores"
+                },
+                {
+                    title: "Favorite Sports",
+                    labels: ['Soccer', 'Basketball', 'Tennis', 'Swimming'],
+                    data: [45, 30, 20, 25],
+                    color: 'rgba(54, 162, 235, 0.7)',
+                    description: "Number of students"
+                }
+            ];
+            
+            function showExample(index) {
+                const example = examples[index];
+                content.innerHTML = `
+                    <h2 class="chart-title">${example.title}</h2>
+                    <div class="chart-container">
+                        <canvas id="exampleChart" width="600" height="400"></canvas>
+                    </div>
+                `;
+                
+                createChart('exampleChart', 'bar', {
+                    labels: example.labels,
+                    datasets: [{
+                        label: example.title,
+                        data: example.data,
+                        backgroundColor: example.color,
+                        borderColor: example.color.replace('0.7', '1'),
+                        borderWidth: 2
+                    }]
+                });
+            }
+            
+            // Show first example and start narration
+            showExample(0);
+            await teacher.speak("Bar graphs are everywhere! Here's weather data showing how temperature rises from winter to spring.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show second example when narration completes
+            await teacher.speak("Schools use bar graphs to show class performance. Look, Art class has the highest average!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Show chart exactly when narration starts
+            showExample(1);
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show third example when narration completes
+            await teacher.speak("Surveys often use bar graphs. This one shows soccer is the most popular sport in the school!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Show chart exactly when narration starts
+            showExample(2);
+            
+            isPlaying = false;
+        }
+
+        async function showComparison() {
+            const taskId = 'comparison';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="chart-title">Bar Graphs vs Other Charts</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <canvas id="barComparison" width="250" height="250"></canvas>
+                        <div class="comparison-label">Bar Graph</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="lineComparison" width="250" height="250"></canvas>
+                        <div class="comparison-label">Line Graph</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="pieComparison" width="250" height="250"></canvas>
+                        <div class="comparison-label">Pie Chart</div>
+                    </div>
+                </div>
+            `;
+            
+            const data = [30, 45, 25, 40];
+            const labels = ['Q1', 'Q2', 'Q3', 'Q4'];
+            
+            // Bar chart
+            createChart('barComparison', 'bar', {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)'
+                }]
+            });
+            
+            // Line chart
+            createChart('lineComparison', 'line', {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    tension: 0.4
+                }]
+            });
+            
+            // Pie chart
+            createChart('pieComparison', 'pie', {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)'
+                    ]
+                }]
+            });
+            
+            await teacher.speak("Here's the same data shown three ways. Bar graphs are best for comparing individual values. Line graphs show trends over time. Pie charts show parts of a whole.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Bar graphs are perfect when you want to compare different items or see which has the highest or lowest value!");
+            
+            isPlaying = false;
+        }
+
+        async function showQuiz() {
+            const taskId = 'quiz';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            const questions = [
+                {
+                    question: "Which fruit sold the most?",
+                    options: ["Apples", "Bananas", "Oranges", "Grapes"],
+                    correct: 1,
+                    data: {
+                        labels: ['Apples', 'Bananas', 'Oranges', 'Grapes'],
+                        values: [25, 40, 20, 30]
+                    }
+                },
+                {
+                    question: "What does the height of a bar represent?",
+                    options: ["Color", "Value", "Width", "Name"],
+                    correct: 1,
+                    explanation: "The height shows the value or amount!"
+                }
+            ];
+            
+            let currentQuestion = 0;
+            let score = 0;
+            
+            async function showQuestion(index) {
+                const q = questions[index];
+                
+                if (q.data) {
+                    content.innerHTML = `
+                        <div class="quiz-container">
+                            <h2 class="chart-title">Quiz Time!</h2>
+                            <div class="chart-container" style="margin-bottom: 20px;">
+                                <canvas id="quizChart" width="400" height="250"></canvas>
+                            </div>
+                            <div class="quiz-question">${q.question}</div>
+                            <div class="quiz-options">
+                                ${q.options.map((opt, i) => `
+                                    <div class="quiz-option" data-answer="${i}">${opt}</div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                    
+                    createChart('quizChart', 'bar', {
+                        labels: q.data.labels,
+                        datasets: [{
+                            data: q.data.values,
+                            backgroundColor: 'rgba(75, 192, 192, 0.7)'
+                        }]
+                    });
+                } else {
+                    content.innerHTML = `
+                        <div class="quiz-container">
+                            <h2 class="chart-title">Quiz Time!</h2>
+                            <div class="quiz-question">${q.question}</div>
+                            <div class="quiz-options">
+                                ${q.options.map((opt, i) => `
+                                    <div class="quiz-option" data-answer="${i}">${opt}</div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Add click handlers
+                document.querySelectorAll('.quiz-option').forEach(option => {
+                    option.addEventListener('click', async function() {
+                        const answer = parseInt(this.dataset.answer);
+                        
+                        if (answer === q.correct) {
+                            this.classList.add('correct');
+                            score++;
+                            await teacher.speak("Excellent! That's correct!");
+                        } else {
+                            this.classList.add('incorrect');
+                            document.querySelector(`[data-answer="${q.correct}"]`).classList.add('correct');
+                            await teacher.speak(`Not quite. The correct answer is ${q.options[q.correct]}.`);
+                        }
+                        
+                        // Disable all options
+                        document.querySelectorAll('.quiz-option').forEach(opt => {
+                            opt.style.pointerEvents = 'none';
+                        });
+                        
+                        // Wait for narration to complete, then next question or show results
+                        await wait(1000);
+                        if (!shouldContinue(taskId)) return;
+                        
+                        currentQuestion++;
+                        if (currentQuestion < questions.length) {
+                            await showQuestion(currentQuestion);
+                        } else {
+                            await showResults();
+                        }
+                    });
+                });
+            }
+            
+            async function showResults() {
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="chart-title">Quiz Complete!</h2>
+                        <div class="value-display">Score: ${score}/${questions.length}</div>
+                        <p style="text-align: center; margin-top: 20px;">
+                            ${score === questions.length ? "Perfect! You're a bar graph master!" : "Great job! Keep practicing!"}
+                        </p>
+                    </div>
+                `;
+                
+                await teacher.speak(`Quiz complete! You scored ${score} out of ${questions.length}. ${score === questions.length ? "Perfect score! You're a bar graph master!" : "Great job! Keep practicing and you'll master it!"}`);
+                isPlaying = false;
+            }
+            
+            await teacher.speak("Let's test what you've learned! Look at this graph and answer the question.");
+            if (!shouldContinue(taskId)) return;
+            
+            await showQuestion(0);
+        }
+
+        async function showBuilder() {
+            const taskId = 'builder';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="chart-title">Create Your Own Bar Graph!</h2>
+                <div class="builder-container">
+                    <div class="builder-controls">
+                        <h3>Add Your Data</h3>
+                        <div class="input-group">
+                            <label>Graph Title</label>
+                            <input type="text" id="graphTitle" placeholder="My Bar Graph">
+                        </div>
+                        <div class="input-group">
+                            <label>Item Name</label>
+                            <input type="text" id="itemName" placeholder="e.g., Monday">
+                        </div>
+                        <div class="input-group">
+                            <label>Value</label>
+                            <input type="number" id="itemValue" placeholder="e.g., 25">
+                        </div>
+                        <button class="add-data-btn" onclick="addDataPoint()">Add Data</button>
+                        <button class="add-data-btn" style="background: var(--warning-gradient); margin-top: 20px;" onclick="clearBuilder()">Clear All</button>
+                        <div id="dataList" style="margin-top: 20px;"></div>
+                    </div>
+                    <div class="builder-preview">
+                        <canvas id="builderChart" width="600" height="400"></canvas>
+                    </div>
+                </div>
+            `;
+            
+            // Initialize empty chart
+            window.builderData = {
+                labels: [],
+                data: []
+            };
+            
+            createChart('builderChart', 'bar', {
+                labels: [],
+                datasets: [{
+                    label: 'Your Data',
+                    data: [],
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2
+                }]
+            });
+            
+            await teacher.speak("Now it's your turn! Add your own data to create a custom bar graph. Type in names and values, then click Add Data!");
+            isPlaying = false;
+        }
+
+        // Builder functions
+        window.addDataPoint = async function() {
+            const name = document.getElementById('itemName').value;
+            const value = parseFloat(document.getElementById('itemValue').value);
+            const title = document.getElementById('graphTitle').value || 'My Bar Graph';
+            
+            if (name && !isNaN(value)) {
+                window.builderData.labels.push(name);
+                window.builderData.data.push(value);
+                
+                // Update chart
+                charts['builderChart'].data.labels = window.builderData.labels;
+                charts['builderChart'].data.datasets[0].data = window.builderData.data;
+                charts['builderChart'].options.plugins.title = {
+                    display: true,
+                    text: title,
+                    font: { size: 16 },
+                    color: 'white'
+                };
+                charts['builderChart'].update();
+                
+                // Clear inputs
+                document.getElementById('itemName').value = '';
+                document.getElementById('itemValue').value = '';
+                
+                // Update data list
+                updateDataList();
+                
+                if (currentTeacher) {
+                    await currentTeacher.speak(`Added ${name} with value ${value}!`);
+                }
+            }
+        };
+        
+        window.clearBuilder = async function() {
+            window.builderData = {
+                labels: [],
+                data: []
+            };
+            charts['builderChart'].data.labels = [];
+            charts['builderChart'].data.datasets[0].data = [];
+            charts['builderChart'].update();
+            updateDataList();
+            if (currentTeacher) {
+                await currentTeacher.speak("Cleared! Start fresh with new data.");
+            }
+        };
+        
+        function updateDataList() {
+            const list = document.getElementById('dataList');
+            list.innerHTML = '<h4>Your Data:</h4>' + 
+                window.builderData.labels.map((label, i) => 
+                    `<div>${label}: ${window.builderData.data[i]}</div>`
+                ).join('');
+        }
+
+        // Content functions for complete lesson (don't call stopCurrentDemo)
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="chart-title">What is a Bar Graph?</h2>
+                <div class="chart-container">
+                    <canvas id="introChart" width="500" height="300"></canvas>
+                </div>
+            `;
+            
+            await teacher.speak("A bar graph uses rectangular bars to show comparisons between different items. Look how easily we can see which fruit sold the most!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Create animated introduction
+            createChart('introChart', 'bar', {
+                labels: ['Apples', 'Bananas', 'Oranges', 'Grapes'],
+                datasets: [{
+                    label: 'Fruits Sold',
+                    data: [30, 45, 20, 35],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(255, 159, 64, 0.7)',
+                        'rgba(153, 102, 255, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(153, 102, 255, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            });
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("The height of each bar represents the value of that item. Bananas sold the most with 45 units!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Update chart to highlight bananas
+            charts['introChart'].data.datasets[0].backgroundColor = [
+                'rgba(255, 99, 132, 0.4)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(255, 159, 64, 0.4)',
+                'rgba(153, 102, 255, 0.4)'
+            ];
+            charts['introChart'].update();
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Bar graphs make it super easy to compare values at a glance. You can instantly see patterns and differences!");
+        }
+
+        async function showBasicExampleContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="chart-title">Let's Build Our First Bar Graph!</h2>
+                <div class="data-table" id="dataTable">
+                    <h3>Student Test Scores</h3>
+                    <table>
+                        <tr>
+                            <th>Student</th>
+                            <th>Score</th>
+                        </tr>
+                        <tr><td>Alex</td><td>85</td></tr>
+                        <tr><td>Maria</td><td>92</td></tr>
+                        <tr><td>John</td><td>78</td></tr>
+                        <tr><td>Sarah</td><td>95</td></tr>
+                        <tr><td>Mike</td><td>88</td></tr>
+                    </table>
+                </div>
+            `;
+            
+            await teacher.speak("Let's create a bar graph from this student test scores data. First, we have our data in a table format.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Now let's convert this table into a bar graph to make it easier to compare the scores visually.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Transform table to graph after narration
+            content.innerHTML = `
+                <h2 class="chart-title">Student Test Scores - Bar Graph</h2>
+                <div class="chart-container">
+                    <canvas id="scoresChart" width="500" height="400"></canvas>
+                </div>
+            `;
+            
+            createChart('scoresChart', 'bar', {
+                labels: ['Alex', 'Maria', 'John', 'Sarah', 'Mike'],
+                datasets: [{
+                    label: 'Test Score',
+                    data: [85, 92, 78, 95, 88],
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2
+                }]
+            });
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Now we can easily see that Sarah scored the highest with 95 points, and John needs a bit more help with 78 points!");
+        }
+
+        async function showConstructionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            // Step 1: Empty axes
+            content.innerHTML = `
+                <h2 class="chart-title">How to Build a Bar Graph - Step by Step</h2>
+                <div class="chart-container">
+                    <canvas id="constructChart" width="600" height="400"></canvas>
+                </div>
+            `;
+            
+            createChart('constructChart', 'bar', {
+                labels: ['', '', '', ''],
+                datasets: [{
+                    data: [0, 0, 0, 0],
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)'
+                }]
+            });
+            
+            await teacher.speak("Step 1: We start by drawing two axes. The horizontal x-axis and the vertical y-axis.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 2: Add labels
+            await teacher.speak("Step 2: Add labels to the x-axis. These show what each bar represents - Monday, Tuesday, Wednesday, and Thursday.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Add labels exactly when narration starts
+            charts['constructChart'].data.labels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday'];
+            charts['constructChart'].update();
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 3: Add scale
+            await teacher.speak("Step 3: Add a scale to the y-axis. This shows the values we're measuring - from 0 to 50 in this case.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 4: Draw bars
+            await teacher.speak("Step 4: Now draw the bars! The height of each bar matches its value - Monday 25, Tuesday 40, Wednesday 30, Thursday 45.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Add bars exactly when narration starts
+            charts['constructChart'].data.datasets[0].data = [25, 40, 30, 45];
+            charts['constructChart'].update();
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 5: Add title
+            await teacher.speak("Step 5: Finally, add a title to tell everyone what your graph shows. Our title is 'Daily Sales This Week'. Perfect!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Add title exactly when narration starts
+            charts['constructChart'].options.plugins.title = {
+                display: true,
+                text: 'Daily Sales This Week',
+                font: { size: 16 },
+                color: 'white'
+            };
+            charts['constructChart'].update();
+        }
+
+        async function showRealWorldContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            const examples = [
+                {
+                    title: "Weather Data",
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                    data: [5, 8, 12, 18, 22],
+                    color: 'rgba(255, 159, 64, 0.7)',
+                    description: "Average temperature in Celsius"
+                },
+                {
+                    title: "School Subjects",
+                    labels: ['Math', 'Science', 'English', 'History', 'Art'],
+                    data: [85, 90, 88, 82, 95],
+                    color: 'rgba(153, 102, 255, 0.7)',
+                    description: "Class average scores"
+                },
+                {
+                    title: "Favorite Sports",
+                    labels: ['Soccer', 'Basketball', 'Tennis', 'Swimming'],
+                    data: [45, 30, 20, 25],
+                    color: 'rgba(54, 162, 235, 0.7)',
+                    description: "Number of students"
+                }
+            ];
+            
+            function showExample(index) {
+                const example = examples[index];
+                content.innerHTML = `
+                    <h2 class="chart-title">${example.title}</h2>
+                    <div class="chart-container">
+                        <canvas id="exampleChart" width="600" height="400"></canvas>
+                    </div>
+                `;
+                
+                createChart('exampleChart', 'bar', {
+                    labels: example.labels,
+                    datasets: [{
+                        label: example.title,
+                        data: example.data,
+                        backgroundColor: example.color,
+                        borderColor: example.color.replace('0.7', '1'),
+                        borderWidth: 2
+                    }]
+                });
+            }
+            
+            // Show first example and start narration
+            showExample(0);
+            await teacher.speak("Bar graphs are everywhere! Here's weather data showing how temperature rises from winter to spring.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show second example when narration completes
+            await teacher.speak("Schools use bar graphs to show class performance. Look, Art class has the highest average!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Show chart exactly when narration starts
+            showExample(1);
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show third example when narration completes
+            await teacher.speak("Surveys often use bar graphs. This one shows soccer is the most popular sport in the school!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Show chart exactly when narration starts
+            showExample(2);
+        }
+
+        async function showComparisonContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="chart-title">Bar Graphs vs Other Charts</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <canvas id="barComparison" width="250" height="250"></canvas>
+                        <div class="comparison-label">Bar Graph</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="lineComparison" width="250" height="250"></canvas>
+                        <div class="comparison-label">Line Graph</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="pieComparison" width="250" height="250"></canvas>
+                        <div class="comparison-label">Pie Chart</div>
+                    </div>
+                </div>
+            `;
+            
+            const data = [30, 45, 25, 40];
+            const labels = ['Q1', 'Q2', 'Q3', 'Q4'];
+            
+            // Bar chart
+            createChart('barComparison', 'bar', {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)'
+                }]
+            });
+            
+            // Line chart
+            createChart('lineComparison', 'line', {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    tension: 0.4
+                }]
+            });
+            
+            // Pie chart
+            createChart('pieComparison', 'pie', {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)'
+                    ]
+                }]
+            });
+            
+            await teacher.speak("Here's the same data shown three ways. Bar graphs are best for comparing individual values. Line graphs show trends over time. Pie charts show parts of a whole.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Bar graphs are perfect when you want to compare different items or see which has the highest or lowest value!");
+        }
+
+        async function showQuizContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            const questions = [
+                {
+                    question: "Which fruit sold the most?",
+                    options: ["Apples", "Bananas", "Oranges", "Grapes"],
+                    correct: 1,
+                    data: {
+                        labels: ['Apples', 'Bananas', 'Oranges', 'Grapes'],
+                        values: [25, 40, 20, 30]
+                    }
+                },
+                {
+                    question: "What does the height of a bar represent?",
+                    options: ["Color", "Value", "Width", "Name"],
+                    correct: 1,
+                    explanation: "The height shows the value or amount!"
+                }
+            ];
+            
+            let currentQuestion = 0;
+            let score = 0;
+            
+            async function showQuestion(index) {
+                const q = questions[index];
+                
+                if (q.data) {
+                    content.innerHTML = `
+                        <div class="quiz-container">
+                            <h2 class="chart-title">Quiz Time!</h2>
+                            <div class="chart-container" style="margin-bottom: 20px;">
+                                <canvas id="quizChart" width="400" height="250"></canvas>
+                            </div>
+                            <div class="quiz-question">${q.question}</div>
+                            <div class="quiz-options">
+                                ${q.options.map((opt, i) => `
+                                    <div class="quiz-option" data-answer="${i}">${opt}</div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                    
+                    createChart('quizChart', 'bar', {
+                        labels: q.data.labels,
+                        datasets: [{
+                            data: q.data.values,
+                            backgroundColor: 'rgba(75, 192, 192, 0.7)'
+                        }]
+                    });
+                } else {
+                    content.innerHTML = `
+                        <div class="quiz-container">
+                            <h2 class="chart-title">Quiz Time!</h2>
+                            <div class="quiz-question">${q.question}</div>
+                            <div class="quiz-options">
+                                ${q.options.map((opt, i) => `
+                                    <div class="quiz-option" data-answer="${i}">${opt}</div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Add click handlers
+                document.querySelectorAll('.quiz-option').forEach(option => {
+                    option.addEventListener('click', async function() {
+                        const answer = parseInt(this.dataset.answer);
+                        
+                        if (answer === q.correct) {
+                            this.classList.add('correct');
+                            score++;
+                            await teacher.speak("Excellent! That's correct!");
+                        } else {
+                            this.classList.add('incorrect');
+                            document.querySelector(`[data-answer="${q.correct}"]`).classList.add('correct');
+                            await teacher.speak(`Not quite. The correct answer is ${q.options[q.correct]}.`);
+                        }
+                        
+                        // Disable all options
+                        document.querySelectorAll('.quiz-option').forEach(opt => {
+                            opt.style.pointerEvents = 'none';
+                        });
+                        
+                        // Wait for narration to complete, then next question or show results
+                        await wait(1000);
+                        if (!shouldContinue(taskId)) return;
+                        
+                        currentQuestion++;
+                        if (currentQuestion < questions.length) {
+                            await showQuestion(currentQuestion);
+                        } else {
+                            await showResults();
+                        }
+                    });
+                });
+            }
+            
+            async function showResults() {
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="chart-title">Quiz Complete!</h2>
+                        <div class="value-display">Score: ${score}/${questions.length}</div>
+                        <p style="text-align: center; margin-top: 20px;">
+                            ${score === questions.length ? "Perfect! You're a bar graph master!" : "Great job! Keep practicing!"}
+                        </p>
+                    </div>
+                `;
+                
+                await teacher.speak(`Quiz complete! You scored ${score} out of ${questions.length}. ${score === questions.length ? "Perfect score! You're a bar graph master!" : "Great job! Keep practicing and you'll master it!"}`);
+            }
+            
+            await teacher.speak("Let's test what you've learned! Look at this graph and answer the question.");
+            if (!shouldContinue(taskId)) return;
+            
+            await showQuestion(0);
+        }
+
+        async function showCompleteLesson() {
+            const taskId = `complete-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            // Welcome message
+            const welcomeContent = createStageContent();
+            welcomeContent.innerHTML = `
+                <h2 class="chart-title">Complete Bar Graphs Lesson</h2>
+                <div class="value-display">Let's Learn Everything!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    We'll go through all the important concepts step by step.
+                </p>
+            `;
+            
+            await teacher.speak("Welcome to the complete bar graphs lesson! We'll go through everything step by step.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Introduction
+            await showIntroductionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Basic Example
+            await teacher.speak("Now let's see a real example with student data.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showBasicExampleContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Construction
+            await teacher.speak("Let me show you exactly how to build a bar graph from scratch.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showConstructionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Real World
+            await teacher.speak("Bar graphs are used everywhere in real life!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showRealWorldContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Comparison
+            await teacher.speak("Let's compare bar graphs with other types of charts to understand when to use each one.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showComparisonContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Final message
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Congratulations!</h2>
+                <div class="value-display">🎉 Lesson Complete! 🎉</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    You've learned all about bar graphs! You've seen comparisons with other charts
+                    and are ready to create your own graphs!
+                </p>
+            `;
+            
+            await teacher.speak("Congratulations! You've completed the full bar graphs lesson. You now know what they are, how to read them, how to build them, where they're used, and how they compare to other charts! Great job!");
+            
+            isPlaying = false;
+        }
+
+        function resetApplication() {
+            stopCurrentDemo();
+            
+            // Clear stage and show welcome
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Welcome to Bar Graphs Mastery!</h2>
+                <div class="value-display">Let's Begin!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Bar graphs are powerful tools for comparing data visually. 
+                    Choose a lesson below to start your journey!
+                </p>
+            `;
+            
+            // Clear active button states
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Reset current demo
+            currentDemo = null;
+            
+            // Create new teacher and welcome message
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to begin your journey into data visualization!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize teacher
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome to Bar Graphs Mastery! Choose any lesson to begin your journey into data visualization!");
+            }, 500);
+            
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Clear active states
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'basic':
+                            showBasicExample();
+                            break;
+                        case 'construction':
+                            showConstruction();
+                            break;
+                        case 'realworld':
+                            showRealWorld();
+                            break;
+                        case 'comparison':
+                            showComparison();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'builder':
+                            showBuilder();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+            
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+</html>

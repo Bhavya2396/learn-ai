@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 11: Heating Effect and Electric Power</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --heat-gradient: linear-gradient(135deg, #ff6b6b 0%, #ffd93d 100%);
+            --power-gradient: linear-gradient(135deg, #4ecdc4 0%, #44a3f7 100%);
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --shadow-primary: 0 25px 50px rgba(0, 0, 0, 0.4);
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(255, 107, 107, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 217, 61, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(78, 205, 196, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-particles {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            margin: 0 auto 30px;
+        }
+
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: scatter 3s ease-in-out infinite;
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        .particle:nth-child(1) { background: #ff6b6b; left: 100px; top: 100px; animation-delay: 0s; }
+        .particle:nth-child(2) { background: #ffd93d; left: 100px; top: 100px; animation-delay: 0.3s; }
+        .particle:nth-child(3) { background: #4ecdc4; left: 100px; top: 100px; animation-delay: 0.6s; }
+        .particle:nth-child(4) { background: #667eea; left: 100px; top: 100px; animation-delay: 0.9s; }
+        .particle:nth-child(5) { background: #764ba2; left: 100px; top: 100px; animation-delay: 1.2s; }
+
+        @keyframes scatter {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(calc(var(--x) * 50px), calc(var(--y) * 50px)) scale(1.5);
+                opacity: 0.7;
+            }
+            100% {
+                transform: translate(calc(var(--x) * 100px), calc(var(--y) * 100px)) scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        .particle:nth-child(1) { --x: 1; --y: -1; }
+        .particle:nth-child(2) { --x: -1; --y: -1; }
+        .particle:nth-child(3) { --x: -1; --y: 1; }
+        .particle:nth-child(4) { --x: 1; --y: 1; }
+        .particle:nth-child(5) { --x: 0; --y: -1.5; }
+
+        .loading-text {
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            font-weight: 600;
+            background: var(--heat-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 2s linear infinite;
+            background-size: 200% auto;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header {
+            text-align: center;
+            padding: 60px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: var(--heat-gradient);
+            opacity: 0.3;
+            z-index: -1;
+            border-radius: 30px;
+            animation: electricPulse 5s ease-in-out infinite;
+        }
+
+        @keyframes electricPulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.02); }
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: var(--heat-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: 800;
+            animation: titleFloat 3s ease-in-out infinite;
+            text-shadow: 0 0 30px rgba(255, 107, 107, 0.3);
+        }
+
+        @keyframes titleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .main-display {
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-radius: 30px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .demo-container {
+            height: 500px;
+            overflow: hidden;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+        }
+
+        .demo-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .demo-stage canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #chartContainer {
+            width: 100%;
+            height: 450px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            display: none;
+        }
+
+        #audio-toggle {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--heat-gradient);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+        }
+
+        #audio-toggle:hover {
+            transform: scale(1.1) rotate(10deg);
+        }
+
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            min-width: 180px;
+            position: relative;
+            overflow: hidden;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .control-btn.active {
+            background: var(--heat-gradient);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .problem-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            margin-top: 20px;
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.2));
+            padding: 30px;
+            border-radius: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #ff6b6b;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .info-title {
+            color: #ff6b6b;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(255, 107, 107, 0.3);
+        }
+
+        .formula-display {
+            text-align: center;
+            font-size: 2rem;
+            margin: 30px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(255, 217, 61, 0.1));
+            border-radius: 15px;
+            font-family: 'Georgia', serif;
+            color: #ffd93d;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 217, 61, 0.2);
+        }
+
+        .example-box {
+            background: linear-gradient(135deg, rgba(0, 150, 100, 0.15), rgba(0, 100, 0, 0.1));
+            border-left: 5px solid #4ecdc4;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .example-box h4 {
+            color: #4ecdc4;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .question-box {
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.15), rgba(100, 0, 100, 0.1));
+            border-left: 5px solid #f093fb;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .question-box h4 {
+            color: #f093fb;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .lesson-section {
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1));
+            border-radius: 20px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .lesson-title {
+            color: #ffd93d;
+            font-size: 2.2rem;
+            margin-bottom: 25px;
+            text-align: center;
+            text-shadow: 0 3px 15px rgba(255, 217, 61, 0.3);
+        }
+
+        .lesson-text {
+            font-size: 1.15rem;
+            line-height: 1.9;
+            color: #e2e8f0;
+        }
+
+        .data-table {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .data-table th {
+            background: var(--heat-gradient);
+            padding: 18px;
+            text-align: left;
+            font-weight: 600;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .data-table td {
+            padding: 15px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background 0.3s;
+        }
+
+        .data-table tr:hover td {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .solution-step {
+            margin: 15px 0;
+            padding-left: 25px;
+            color: #e2e8f0;
+            font-size: 1.1rem;
+            position: relative;
+        }
+
+        .solution-step::before {
+            content: '▸';
+            position: absolute;
+            left: 5px;
+            color: #4ecdc4;
+        }
+
+        .application-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #ffd93d;
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 107, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(255, 107, 107, 0.8); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .control-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-particles">
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+            </div>
+            <div class="loading-text">Preparing Physics Lab...</div>
+        </div>
+    </div>
+
+    <!-- Audio Control -->
+    <button id="audio-toggle" title="Toggle Audio Narration">🔊</button>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🔥 Heating Effect & Electric Power ⚡</h1>
+            <p>Chapter 11.7 & 11.8 - Understanding Joule's Law and Power Consumption</p>
+        </div>
+
+        <!-- Main Display Area -->
+        <div class="main-display">
+            <!-- Demo Container -->
+            <div class="demo-container">
+                <div class="demo-stage">
+                    <canvas id="demoCanvas" width="1200" height="500"></canvas>
+                    <div id="chartContainer">
+                        <canvas id="dataChart"></canvas>
+                    </div>
+                    <div id="lessonContent" style="display: none; padding: 20px; color: white;"></div>
+                </div>
+            </div>
+
+            <!-- Information Panels -->
+            <div class="info-panel" id="heatingPanel" style="display: none;">
+                <div class="info-title">🔥 11.7 Heating Effect of Electric Current</div>
+                <p>We know that a battery or a cell is a source of electrical energy. The chemical reaction within the cell generates the potential difference between its two terminals that sets the electrons in motion to flow the current through a resistor or a system of resistors connected to the battery.</p>
+                
+                <p style="margin-top: 15px;">Where does this energy go? A part of the source energy in maintaining the current may be consumed into useful work (like in rotating the blades of an electric fan). Rest of the source energy may be expended in heat to raise the temperature of gadget.</p>
+                
+                <div class="formula-display">
+                    H = VIt
+                </div>
+                
+                <p>For a steady current I, the amount of heat H produced in time t is given by the above formula.</p>
+            </div>
+
+            <div class="info-panel" id="joulePanel" style="display: none;">
+                <div class="info-title">⚡ Joule's Law of Heating</div>
+                <p>Applying Ohm's law [V = IR], we get:</p>
+                
+                <div class="formula-display">
+                    H = I²Rt
+                </div>
+                
+                <p>This is known as Joule's law of heating. The law implies that heat produced in a resistor is:</p>
+                <ul style="margin-left: 20px; line-height: 2;">
+                    <li>(i) directly proportional to the square of current for a given resistance</li>
+                    <li>(ii) directly proportional to resistance for a given current</li>
+                    <li>(iii) directly proportional to the time for which the current flows through the resistor</li>
+                </ul>
+            </div>
+
+            <div class="info-panel" id="applicationsPanel" style="display: none;">
+                <div class="info-title">💡 Practical Applications of Heating Effect</div>
+                <p>The generation of heat in a conductor is an inevitable consequence of electric current. In many cases, it is undesirable as it converts useful electrical energy into heat. However, heating effect of electric current has many useful applications.</p>
+                
+                <div class="application-card">
+                    <h4>Electric Bulb</h4>
+                    <p>The filament must retain as much of the heat generated as possible, so that it gets very hot and emits light. Tungsten (melting point 3380°C) is used for making bulb filaments. Bulbs are usually filled with chemically inactive nitrogen and argon gases to prolong the life of filament.</p>
+                </div>
+                
+                <div class="application-card">
+                    <h4>Electric Fuse</h4>
+                    <p>It protects circuits and appliances by stopping the flow of any unduly high electric current. The fuse is placed in series with the device. It consists of a piece of wire made of a metal or an alloy of appropriate melting point (aluminium, copper, iron, lead etc.). Fuses used for domestic purposes are rated as 1 A, 2 A, 3 A, 5 A, 10 A, etc.</p>
+                </div>
+            </div>
+
+            <div class="info-panel" id="powerPanel" style="display: none;">
+                <div class="info-title">⚡ 11.8 Electric Power</div>
+                <p>The rate of doing work is power. This is also the rate of consumption of energy.</p>
+                
+                <div class="formula-display">
+                    P = VI = I²R = V²/R
+                </div>
+                
+                <p>The SI unit of electric power is watt (W). It is the power consumed by a device that carries 1 A of current when operated at a potential difference of 1 V.</p>
+                
+                <p style="margin-top: 20px;"><strong>Units:</strong></p>
+                <ul style="margin-left: 20px; line-height: 2;">
+                    <li>1 W = 1 volt × 1 ampere = 1 V A</li>
+                    <li>1 kilowatt (kW) = 1000 watts</li>
+                    <li>1 kilowatt hour (kWh) = 3.6 × 10⁶ joule (J)</li>
+                </ul>
+            </div>
+
+            <!-- Example 11.10 -->
+            <div class="example-box" id="example1110" style="display: none;">
+                <h4>Example 11.10 - Electric Iron Power Analysis</h4>
+                <p><strong>Problem:</strong> An electric iron consumes energy at a rate of 840 W when heating is at the maximum rate and 360 W when the heating is at the minimum. The voltage is 220 V. What are the current and the resistance in each case?</p>
+                
+                <p style="margin-top: 15px;"><strong>Solution:</strong></p>
+                <p>From P = V I, we know that I = P/V</p>
+                
+                <p style="margin-top: 10px;"><strong>(a) When heating is at the maximum rate:</strong></p>
+                <div class="solution-step">I = 840 W / 220 V = 3.82 A</div>
+                <div class="solution-step">R = V/I = 220 V / 3.82 A = 57.60 Ω</div>
+                
+                <p style="margin-top: 10px;"><strong>(b) When heating is at the minimum rate:</strong></p>
+                <div class="solution-step">I = 360 W / 220 V = 1.64 A</div>
+                <div class="solution-step">R = V/I = 220 V / 1.64 A = 134.15 Ω</div>
+            </div>
+
+            <!-- Example 11.11 -->
+            <div class="example-box" id="example1111" style="display: none;">
+                <h4>Example 11.11 - Heat and Potential Difference</h4>
+                <p><strong>Problem:</strong> 100 J of heat is produced each second in a 4 Ω resistance. Find the potential difference across the resistor.</p>
+                
+                <p style="margin-top: 15px;"><strong>Solution:</strong></p>
+                <div class="solution-step">H = 100 J, R = 4 Ω, t = 1 s, V = ?</div>
+                <div class="solution-step">From H = I²Rt: I = √(H/Rt) = √[100 J/(4 Ω × 1 s)] = 5 A</div>
+                <div class="solution-step">Thus V = IR = 5 A × 4 Ω = 20 V</div>
+            </div>
+
+            <!-- Example 11.12 -->
+            <div class="example-box" id="example1112" style="display: none;">
+                <h4>Example 11.12 - Power of a Bulb</h4>
+                <p><strong>Problem:</strong> An electric bulb is connected to a 220 V generator. The current is 0.50 A. What is the power of the bulb?</p>
+                
+                <p style="margin-top: 15px;"><strong>Solution:</strong></p>
+                <div class="solution-step">P = VI</div>
+                <div class="solution-step">P = 220 V × 0.50 A</div>
+                <div class="solution-step">P = 110 J/s = 110 W</div>
+            </div>
+
+            <!-- Example 11.13 -->
+            <div class="example-box" id="example1113" style="display: none;">
+                <h4>Example 11.13 - Electricity Bill Calculation</h4>
+                <p><strong>Problem:</strong> An electric refrigerator rated 400 W operates 8 hour/day. What is the cost of the energy to operate it for 30 days at Rs 3.00 per kW h?</p>
+                
+                <p style="margin-top: 15px;"><strong>Solution:</strong></p>
+                <div class="solution-step">Total energy = 400 W × 8.0 hour/day × 30 days = 96000 W h</div>
+                <div class="solution-step">= 96 kW h</div>
+                <div class="solution-step">Cost = 96 kW h × Rs 3.00 per kW h = Rs 288.00</div>
+            </div>
+
+            <!-- Practice Questions -->
+            <div class="question-box" id="questions" style="display: none;">
+                <h4>Practice Questions</h4>
+                <ol style="line-height: 2;">
+                    <li>Why does the cord of an electric heater not glow while the heating element does?</li>
+                    <li>Compute the heat generated while transferring 96000 coulomb of charge in one hour through a potential difference of 50 V.</li>
+                    <li>An electric iron of resistance 20 Ω takes a current of 5 A. Calculate the heat developed in 30 s.</li>
+                    <li>What determines the rate at which energy is delivered by a current?</li>
+                    <li>An electric motor takes 5 A from a 220 V line. Determine the power of the motor and the energy consumed in 2 h.</li>
+                </ol>
+            </div>
+
+            <!-- Problem specific display boxes -->
+            <div class="question-box" id="problemQ1" style="display: none;">
+                <h4>Question 1: Why does the cord of an electric heater not glow while the heating element does?</h4>
+                <p>Let's understand this concept through visualization and analysis.</p>
+            </div>
+
+            <div class="question-box" id="problemQ2" style="display: none;">
+                <h4>Question 2: Compute the heat generated while transferring 96000 coulomb of charge in one hour through a potential difference of 50 V.</h4>
+                <p>We'll solve this step-by-step using the formula H = QV.</p>
+            </div>
+
+            <div class="question-box" id="problemQ3" style="display: none;">
+                <h4>Question 3: An electric iron of resistance 20 Ω takes a current of 5 A. Calculate the heat developed in 30 s.</h4>
+                <p>We'll apply Joule's law to find the heat produced.</p>
+            </div>
+
+            <div class="question-box" id="problemQ4" style="display: none;">
+                <h4>Question 4: What determines the rate at which energy is delivered by a current?</h4>
+                <p>Let's explore the concept of electric power and its determining factors.</p>
+            </div>
+
+            <div class="question-box" id="problemQ5" style="display: none;">
+                <h4>Question 5: An electric motor takes 5 A from a 220 V line. Determine the power of the motor and the energy consumed in 2 h.</h4>
+                <p>We'll calculate both power and energy consumption step by step.</p>
+            </div>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Quantity</th>
+                        <th>Symbol</th>
+                        <th>Unit</th>
+                        <th>Formula</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Heat</td>
+                        <td>H</td>
+                        <td>Joule (J)</td>
+                        <td>H = I²Rt = VIt</td>
+                    </tr>
+                    <tr>
+                        <td>Electric Power</td>
+                        <td>P</td>
+                        <td>Watt (W)</td>
+                        <td>P = VI = I²R = V²/R</td>
+                    </tr>
+                    <tr>
+                        <td>Energy</td>
+                        <td>W</td>
+                        <td>Joule (J)</td>
+                        <td>W = P × t</td>
+                    </tr>
+                    <tr>
+                        <td>Commercial Energy</td>
+                        <td>-</td>
+                        <td>kWh (unit)</td>
+                        <td>1 kWh = 3.6 × 10⁶ J</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button class="control-btn active" data-mode="lesson">📚 Complete Lesson</button>
+            <button class="control-btn" data-mode="heating">🔥 Heating Effect</button>
+            <button class="control-btn" data-mode="joule">⚡ Joule's Law</button>
+            <button class="control-btn" data-mode="applications">💡 Applications</button>
+            <button class="control-btn" data-mode="electricpower">⚡ Electric Power</button>
+            <button class="control-btn" data-mode="datachart">📊 Data Visualization</button>
+        </div>
+
+        <!-- Problem Buttons -->
+        <div class="control-panel">
+            <button class="control-btn problem-btn" data-mode="problem1">✏️ Question 1</button>
+            <button class="control-btn problem-btn" data-mode="problem2">✏️ Question 2</button>
+            <button class="control-btn problem-btn" data-mode="problem3">✏️ Question 3</button>
+            <button class="control-btn problem-btn" data-mode="problem4">✏️ Question 4</button>
+            <button class="control-btn problem-btn" data-mode="problem5">✏️ Question 5</button>
+        </div>
+        
+        <!-- Reset Button -->
+        <div style="text-align: center;">
+            <button class="control-btn reset-btn" id="resetBtn">🔄 Reset Everything</button>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let currentMode = 'lesson';
+        let animationFrame = null;
+        let time = 0;
+        let lessonSequence = null;
+        let lessonStarted = false;
+        let audioEnabled = true;
+        let chartInstance = null;
+        let problemAnimationStep = 0;
+
+        // Canvas and Context
+        const canvas = document.getElementById('demoCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Audio Narrator Class
+        class AudioNarrator {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.enabled = true;
+                this.speaking = false;
+            }
+
+            speak(text, priority = false) {
+                if (!this.enabled) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    if (priority) {
+                        this.stop();
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.9;
+                    
+                    utterance.onend = () => {
+                        this.speaking = false;
+                        resolve();
+                    };
+                    
+                    this.synth.speak(utterance);
+                    this.speaking = true;
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.speaking = false;
+            }
+
+            toggle() {
+                this.enabled = !this.enabled;
+                if (!this.enabled) this.stop();
+                return this.enabled;
+            }
+        }
+
+        const narrator = new AudioNarrator();
+
+        // Lesson Sequence Class
+        class LessonSequence {
+            constructor() {
+                this.sections = [
+                    { id: 'intro', name: 'Introduction', duration: 5000 },
+                    { id: 'heating', name: 'Heating Effect', duration: 10000 },
+                    { id: 'joule', name: 'Joule\'s Law', duration: 10000 },
+                    { id: 'applications', name: 'Applications', duration: 10000 },
+                    { id: 'electricpower', name: 'Electric Power', duration: 10000 },
+                    { id: 'datachart', name: 'Data Visualization', duration: 8000 },
+                    { id: 'problem1', name: 'Question 1 - Heater Cord', duration: 15000 },
+                    { id: 'problem2', name: 'Question 2 - Heat Calculation', duration: 12000 },
+                    { id: 'problem3', name: 'Question 3 - Iron Heat', duration: 12000 },
+                    { id: 'problem4', name: 'Question 4 - Power Concept', duration: 10000 },
+                    { id: 'problem5', name: 'Question 5 - Motor Power', duration: 12000 },
+                    { id: 'summary', name: 'Summary', duration: 5000 }
+                ];
+                this.currentSection = 0;
+                this.running = false;
+                this.timeout = null;
+            }
+
+            async start() {
+                this.stop();
+                this.running = true;
+                this.currentSection = 0;
+                
+                document.getElementById('demoCanvas').style.display = 'none';
+                document.getElementById('chartContainer').style.display = 'none';
+                document.getElementById('lessonContent').style.display = 'block';
+                hideAllPanels();
+                
+                await narrator.speak("Welcome to Chapter 11 sections 7 and 8. Let's explore the heating effect of electric current and electric power!");
+                
+                await this.runNextSection();
+            }
+
+            async runNextSection() {
+                if (!this.running || this.currentSection >= this.sections.length) {
+                    if (this.running) {
+                        await narrator.speak("Congratulations! You've completed the lesson on heating effect and electric power.");
+                        this.showCompletionMessage();
+                    }
+                    return;
+                }
+
+                const section = this.sections[this.currentSection];
+                
+                // Update display based on section
+                this.updateDisplay(section.id);
+                
+                // Set mode for animation
+                currentMode = section.id;
+                problemAnimationStep = 0;
+                time = 0;
+                
+                // Start narration for each section
+                await this.narrate(section.id);
+                
+                await this.wait(section.duration);
+                
+                if (this.running) {
+                    this.currentSection++;
+                    await this.runNextSection();
+                }
+            }
+
+            updateDisplay(sectionId) {
+                hideAllPanels();
+                document.getElementById('chartContainer').style.display = 'none';
+                document.getElementById('lessonContent').style.display = 'none';
+                document.getElementById('demoCanvas').style.display = 'block';
+                
+                switch(sectionId) {
+                    case 'intro':
+                        document.getElementById('demoCanvas').style.display = 'none';
+                        document.getElementById('lessonContent').style.display = 'block';
+                        this.showIntroContent();
+                        break;
+                    case 'heating':
+                        document.getElementById('heatingPanel').style.display = 'block';
+                        break;
+                    case 'joule':
+                        document.getElementById('joulePanel').style.display = 'block';
+                        document.getElementById('example1110').style.display = 'block';
+                        document.getElementById('example1111').style.display = 'block';
+                        break;
+                    case 'applications':
+                        document.getElementById('applicationsPanel').style.display = 'block';
+                        break;
+                    case 'electricpower':
+                        document.getElementById('powerPanel').style.display = 'block';
+                        document.getElementById('example1112').style.display = 'block';
+                        document.getElementById('example1113').style.display = 'block';
+                        break;
+                    case 'datachart':
+                        document.getElementById('demoCanvas').style.display = 'none';
+                        document.getElementById('chartContainer').style.display = 'block';
+                        createDataChart();
+                        break;
+                    case 'problem1':
+                        document.getElementById('problemQ1').style.display = 'block';
+                        break;
+                    case 'problem2':
+                        document.getElementById('problemQ2').style.display = 'block';
+                        break;
+                    case 'problem3':
+                        document.getElementById('problemQ3').style.display = 'block';
+                        break;
+                    case 'problem4':
+                        document.getElementById('problemQ4').style.display = 'block';
+                        break;
+                    case 'problem5':
+                        document.getElementById('problemQ5').style.display = 'block';
+                        break;
+                    case 'summary':
+                        document.getElementById('demoCanvas').style.display = 'none';
+                        document.getElementById('lessonContent').style.display = 'block';
+                        this.showSummaryContent();
+                        break;
+                }
+            }
+
+            async narrate(sectionId) {
+                switch(sectionId) {
+                    case 'intro':
+                        await narrator.speak("When electric current flows through a conductor, electrical energy transforms into heat energy. This heating effect has both desirable applications like electric heaters and undesirable consequences like energy loss. Let's understand Joule's law of heating and the concept of electric power.");
+                        break;
+                    case 'heating':
+                        await narrator.speak("The heating effect occurs when electrical energy is converted to heat. When a battery drives current through a resistor, the energy gets dissipated as heat. The heat produced H equals V times I times t. This is why your phone charger gets warm during use.");
+                        break;
+                    case 'joule':
+                        await narrator.speak("Joule's law states that heat produced equals I squared times R times t. This means heat is proportional to the square of current, the resistance, and the time. The square relationship with current is crucial - doubling the current produces four times the heat!");
+                        break;
+                    case 'applications':
+                        await narrator.speak("The heating effect has many practical applications. Electric bulbs use tungsten filaments that glow at high temperatures. Electric fuses protect circuits by melting when current exceeds safe limits. Other applications include heaters, toasters, and kettles.");
+                        break;
+                    case 'electricpower':
+                        await narrator.speak("Electric power is the rate of energy consumption, measured in watts. Power equals V times I, or I squared times R, or V squared divided by R. The commercial unit is kilowatt-hour, where one unit equals 3.6 million joules.");
+                        break;
+                    case 'datachart':
+                        await narrator.speak("This chart visualizes the relationship between power, current, voltage, and resistance. Notice how power increases with the square of current for constant resistance. Understanding these relationships helps in calculating energy costs.");
+                        break;
+                    case 'problem1':
+                        await narrator.speak("Question 1 asks: Why does the cord of an electric heater not glow while the heating element does? Let me explain. The heating element and the cord are in series, so the same current flows through both. However, the heating element has much higher resistance than the cord. Since heat produced equals I squared R t, and the current is the same for both, the element with higher resistance produces more heat. The heating element's high resistance causes it to heat up enough to glow, while the low-resistance cord stays relatively cool. This is a safety feature - we want the heat concentrated in the element, not the cord!");
+                        break;
+                    case 'problem2':
+                        await narrator.speak("Question 2: Compute the heat generated while transferring 96,000 coulombs of charge through a potential difference of 50 volts. Let's solve this step by step. Given: Charge Q equals 96,000 coulombs, voltage V equals 50 volts. We know that heat H equals Q times V. Therefore, H equals 96,000 coulombs times 50 volts, which equals 4,800,000 joules or 4.8 mega joules. This shows how large amounts of charge transfer can produce significant heat. This principle is used in industrial heating applications.");
+                        break;
+                    case 'problem3':
+                        await narrator.speak("Question 3: An electric iron has resistance 20 ohms and takes current 5 amperes. Calculate the heat developed in 30 seconds. Let's apply Joule's law. Given: Resistance R equals 20 ohms, current I equals 5 amperes, time t equals 30 seconds. Using Joule's law, H equals I squared R t. H equals 5 squared times 20 times 30. H equals 25 times 20 times 30, which equals 15,000 joules. This is why electric irons become hot very quickly when turned on - they're designed to produce large amounts of heat rapidly!");
+                        break;
+                    case 'problem4':
+                        await narrator.speak("Question 4 asks: What determines the rate at which energy is delivered by a current? The answer is electric power! Power is the rate of energy consumption or delivery. It's determined by the product of voltage and current, P equals V I. Power also depends on resistance: P equals I squared R for a given current, or P equals V squared divided by R for a given voltage. Higher voltage, higher current, or optimized resistance can increase power delivery. This concept is crucial for designing efficient electrical systems.");
+                        break;
+                    case 'problem5':
+                        await narrator.speak("Question 5: An electric motor takes 5 amperes from a 220 volt line. Let's find the power and energy consumed in 2 hours. Given: Current I equals 5 amperes, voltage V equals 220 volts, time t equals 2 hours. Power P equals V times I equals 220 times 5 equals 1,100 watts or 1.1 kilowatts. Energy consumed equals power times time equals 1,100 watts times 2 hours equals 2,200 watt-hours or 2.2 kilowatt-hours. At 3 rupees per unit, the cost would be 2.2 times 3 equals 6.60 rupees. This shows how we calculate electricity bills!");
+                        break;
+                    case 'summary':
+                        await narrator.speak("Let's summarize what we've learned. The heating effect converts electrical energy to thermal energy following the formula H equals V I t. Joule's law shows heat equals I squared R t. Electric power is the rate of energy consumption, measured in watts. These principles help us understand how electrical devices work and calculate our electricity bills.");
+                        break;
+                }
+            }
+
+            showIntroContent() {
+                const html = `
+                    <div class="lesson-section">
+                        <h2 class="lesson-title">Heating Effect and Electric Power</h2>
+                        <div class="lesson-text">
+                            <p>In this lesson, we'll explore:</p>
+                            <ul style="margin: 20px; line-height: 2;">
+                                <li>🔥 What is the heating effect of electric current?</li>
+                                <li>⚡ How does Joule's law explain heat production?</li>
+                                <li>💡 What are the practical applications?</li>
+                                <li>⚡ How is electric power calculated?</li>
+                                <li>💰 How are electricity bills calculated?</li>
+                                <li>✏️ Solving 5 practice problems step by step</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            showSummaryContent() {
+                const html = `
+                    <div class="lesson-section">
+                        <h2 class="lesson-title">Key Takeaways</h2>
+                        <div class="lesson-text">
+                            <ul style="margin: 20px; line-height: 2;">
+                                <li>✔ Heating Effect: H = VIt</li>
+                                <li>✔ Joule's Law: H = I²Rt</li>
+                                <li>✔ Electric Power: P = VI = I²R = V²/R</li>
+                                <li>✔ Commercial Unit: 1 kWh = 3.6 × 10⁶ J</li>
+                                <li>✔ Applications: Bulbs, heaters, fuses</li>
+                                <li>✔ Solved 5 practice problems</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            showCompletionMessage() {
+                const html = `
+                    <div style="text-align: center; padding: 40px;">
+                        <h2 style="color: #ffd93d; margin-bottom: 20px;">
+                            🎉 Lesson Complete!
+                        </h2>
+                        <p style="font-size: 1.2rem;">You've mastered:</p>
+                        <ul style="margin: 20px auto; max-width: 400px; text-align: left; list-style: none;">
+                            <li style="margin: 10px 0; color: #4ecdc4;">✔ Heating Effect (H = VIt)</li>
+                            <li style="margin: 10px 0; color: #4ecdc4;">✔ Joule's Law (H = I²Rt)</li>
+                            <li style="margin: 10px 0; color: #4ecdc4;">✔ Practical Applications</li>
+                            <li style="margin: 10px 0; color: #4ecdc4;">✔ Electric Power (P = VI)</li>
+                            <li style="margin: 10px 0; color: #4ecdc4;">✔ Energy Calculations</li>
+                            <li style="margin: 10px 0; color: #4ecdc4;">✔ 5 Practice Problems</li>
+                        </ul>
+                        <p style="margin-top: 30px;">
+                            Explore individual sections or reset to review.
+                        </p>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+                document.getElementById('lessonContent').style.display = 'block';
+                document.getElementById('demoCanvas').style.display = 'none';
+            }
+
+            wait(ms) {
+                return new Promise(resolve => {
+                    this.timeout = setTimeout(resolve, ms);
+                });
+            }
+
+            stop() {
+                this.running = false;
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                    this.timeout = null;
+                }
+                narrator.stop();
+            }
+        }
+
+        // Helper function to hide all panels
+        function hideAllPanels() {
+            document.getElementById('heatingPanel').style.display = 'none';
+            document.getElementById('joulePanel').style.display = 'none';
+            document.getElementById('applicationsPanel').style.display = 'none';
+            document.getElementById('powerPanel').style.display = 'none';
+            document.getElementById('example1110').style.display = 'none';
+            document.getElementById('example1111').style.display = 'none';
+            document.getElementById('example1112').style.display = 'none';
+            document.getElementById('example1113').style.display = 'none';
+            document.getElementById('questions').style.display = 'none';
+            document.getElementById('problemQ1').style.display = 'none';
+            document.getElementById('problemQ2').style.display = 'none';
+            document.getElementById('problemQ3').style.display = 'none';
+            document.getElementById('problemQ4').style.display = 'none';
+            document.getElementById('problemQ5').style.display = 'none';
+        }
+
+        // Create Data Chart
+        function createDataChart() {
+            const chartCanvas = document.getElementById('dataChart');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            
+            const chartData = {
+                labels: ['100W', '200W', '500W', '840W', '1000W', '1500W', '2000W'],
+                datasets: [
+                    {
+                        label: 'Current (A) at 220V',
+                        data: [0.45, 0.91, 2.27, 3.82, 4.55, 6.82, 9.09],
+                        borderColor: '#4ecdc4',
+                        backgroundColor: 'rgba(78, 205, 196, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Resistance (Ω) at 220V',
+                        data: [484, 242, 96.8, 57.6, 48.4, 32.3, 24.2],
+                        borderColor: '#ff6b6b',
+                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4
+                    }
+                ]
+            };
+            
+            chartInstance = new Chart(chartCanvas, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Power, Current, and Resistance Relationships',
+                            color: '#ffd93d',
+                            font: {
+                                size: 20,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#ffffff'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#ffffff'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Animation Functions
+        function animateHeating() {
+            // Clear canvas with gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 1200, 500);
+            gradient.addColorStop(0, '#0a0a0a');
+            gradient.addColorStop(1, '#1a1a2e');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Draw circuit with resistor
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.moveTo(100, 250);
+            ctx.lineTo(400, 250);
+            ctx.stroke();
+            
+            // Draw heating resistor (coil)
+            const coilX = 600;
+            const coilY = 250;
+            const heatIntensity = (Math.sin(time * 0.03) + 1) / 2;
+            
+            // Temperature color
+            const red = Math.floor(100 + heatIntensity * 155);
+            const green = Math.floor(50 + heatIntensity * 50);
+            
+            ctx.strokeStyle = `rgb(${red}, ${green}, 0)`;
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            for(let i = 0; i < 10; i++) {
+                const x = coilX - 150 + i * 30;
+                const y = coilY + Math.sin(i * 0.8) * 30;
+                if(i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // Heat waves
+            ctx.strokeStyle = `rgba(255, 100, 0, ${0.3 * heatIntensity})`;
+            ctx.lineWidth = 2;
+            for(let i = 1; i < 4; i++) {
+                ctx.beginPath();
+                ctx.arc(coilX, coilY, 50 + i * 30 + Math.sin(time * 0.02) * 10, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            // Continue circuit
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.moveTo(800, 250);
+            ctx.lineTo(1100, 250);
+            ctx.stroke();
+            
+            // Draw electrons
+            for(let i = 0; i < 10; i++) {
+                const progress = (time * 0.02 + i * 0.1) % 1;
+                const x = 100 + progress * 1000;
+                const y = 250;
+                
+                ctx.fillStyle = '#4ecdc4';
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Labels
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText('Battery', 150, 200);
+            ctx.fillText('Heating Element', 520, 200);
+            
+            // Formula
+            ctx.fillStyle = '#ffd93d';
+            ctx.font = 'bold 28px Arial';
+            ctx.fillText('H = VIt', 520, 100);
+            
+            // Values
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#4ecdc4';
+            ctx.fillText('V = 220 V', 450, 400);
+            ctx.fillText('I = 2 A', 550, 400);
+            ctx.fillText('t = 60 s', 650, 400);
+            ctx.fillText(`Heat = ${220 * 2 * 60} J`, 750, 400);
+            
+            time++;
+        }
+
+        function animateJoule() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Draw three scenarios showing I², R, and t effects
+            const scenarios = [
+                {x: 200, label: 'Effect of Current (I²)', current: [1, 2, 3]},
+                {x: 600, label: 'Effect of Resistance (R)', resistance: [5, 10, 15]},
+                {x: 1000, label: 'Effect of Time (t)', time: [10, 20, 30]}
+            ];
+            
+            scenarios.forEach((scenario, index) => {
+                // Title
+                ctx.fillStyle = '#ffd93d';
+                ctx.font = 'bold 18px Arial';
+                ctx.fillText(scenario.label, scenario.x - 80, 50);
+                
+                // Draw bars
+                const barWidth = 40;
+                const maxHeight = 200;
+                
+                if(scenario.current) {
+                    scenario.current.forEach((val, i) => {
+                        const height = (val * val / 9) * maxHeight;
+                        const x = scenario.x - 60 + i * 50;
+                        const y = 350 - height;
+                        
+                        const gradient = ctx.createLinearGradient(x, y, x, 350);
+                        gradient.addColorStop(0, '#ff6b6b');
+                        gradient.addColorStop(1, '#ffd93d');
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(x, y, barWidth, height);
+                        
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = '14px Arial';
+                        ctx.fillText(`${val}A`, x + 10, 370);
+                        ctx.fillText(`${val*val*10}J`, x + 5, y - 10);
+                    });
+                } else if(scenario.resistance) {
+                    scenario.resistance.forEach((val, i) => {
+                        const height = (val / 15) * maxHeight;
+                        const x = scenario.x - 60 + i * 50;
+                        const y = 350 - height;
+                        
+                        const gradient = ctx.createLinearGradient(x, y, x, 350);
+                        gradient.addColorStop(0, '#4ecdc4');
+                        gradient.addColorStop(1, '#44a3f7');
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(x, y, barWidth, height);
+                        
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = '14px Arial';
+                        ctx.fillText(`${val}Ω`, x + 10, 370);
+                        ctx.fillText(`${val*4}J`, x + 5, y - 10);
+                    });
+                } else if(scenario.time) {
+                    scenario.time.forEach((val, i) => {
+                        const height = (val / 30) * maxHeight;
+                        const x = scenario.x - 60 + i * 50;
+                        const y = 350 - height;
+                        
+                        const gradient = ctx.createLinearGradient(x, y, x, 350);
+                        gradient.addColorStop(0, '#667eea');
+                        gradient.addColorStop(1, '#764ba2');
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(x, y, barWidth, height);
+                        
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = '14px Arial';
+                        ctx.fillText(`${val}s`, x + 10, 370);
+                        ctx.fillText(`${val*2}J`, x + 5, y - 10);
+                    });
+                }
+            });
+            
+            // Main formula
+            ctx.fillStyle = '#ffd93d';
+            ctx.font = 'bold 32px Arial';
+            ctx.fillText('H = I²Rt', 520, 450);
+            
+            time++;
+        }
+
+        function animateApplications() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Draw different applications
+            const apps = [
+                {x: 200, y: 150, name: 'Bulb', icon: '💡'},
+                {x: 400, y: 150, name: 'Heater', icon: '🔥'},
+                {x: 600, y: 150, name: 'Toaster', icon: '🍞'},
+                {x: 800, y: 150, name: 'Iron', icon: '👔'},
+                {x: 1000, y: 150, name: 'Fuse', icon: '⚡'}
+            ];
+            
+            apps.forEach(app => {
+                // Draw card
+                const cardWidth = 150;
+                const cardHeight = 200;
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.fillRect(app.x - 75, app.y, cardWidth, cardHeight);
+                
+                // Icon (text emoji)
+                ctx.font = '60px Arial';
+                ctx.fillText(app.icon, app.x - 30, app.y + 70);
+                
+                // Name
+                ctx.fillStyle = '#ffd93d';
+                ctx.font = 'bold 18px Arial';
+                ctx.fillText(app.name, app.x - 30, app.y + 120);
+                
+                // Animation effect
+                if(Math.floor(time / 30) % 5 === apps.indexOf(app)) {
+                    ctx.strokeStyle = '#ff6b6b';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(app.x - 75, app.y, cardWidth, cardHeight);
+                }
+            });
+            
+            // Title
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 28px Arial';
+            ctx.fillText('Practical Applications of Heating Effect', 350, 50);
+            
+            // Info text
+            ctx.font = '16px Arial';
+            ctx.fillText('All these devices convert electrical energy into useful heat', 400, 420);
+            
+            time++;
+        }
+
+        function animateElectricPower() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Draw power meter
+            const meterX = 600;
+            const meterY = 200;
+            const radius = 120;
+            
+            // Meter background
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.beginPath();
+            ctx.arc(meterX, meterY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Meter border
+            ctx.strokeStyle = '#4ecdc4';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(meterX, meterY, radius, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Scale marks
+            for(let i = 0; i < 12; i++) {
+                const angle = (i * Math.PI / 6) - Math.PI / 2;
+                const x1 = meterX + Math.cos(angle) * (radius - 20);
+                const y1 = meterY + Math.sin(angle) * (radius - 20);
+                const x2 = meterX + Math.cos(angle) * (radius - 10);
+                const y2 = meterY + Math.sin(angle) * (radius - 10);
+                
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            
+            // Needle animation
+            const power = 500 + Math.sin(time * 0.03) * 300;
+            const needleAngle = -Math.PI / 2 + (power / 1000) * Math.PI;
+            
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(meterX, meterY);
+            ctx.lineTo(
+                meterX + Math.cos(needleAngle) * (radius - 30),
+                meterY + Math.sin(needleAngle) * (radius - 30)
+            );
+            ctx.stroke();
+            
+            // Center dot
+            ctx.fillStyle = '#ff6b6b';
+            ctx.beginPath();
+            ctx.arc(meterX, meterY, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Power display
+            ctx.fillStyle = '#ffd93d';
+            ctx.font = 'bold 24px Arial';
+            ctx.fillText(`${Math.round(power)} W`, meterX - 40, meterY + 60);
+            
+            // Formula
+            ctx.font = 'bold 28px Arial';
+            ctx.fillText('P = VI', meterX - 35, meterY - 150);
+            
+            // Values
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#4ecdc4';
+            ctx.fillText('V = 220 V', 100, 400);
+            ctx.fillText(`I = ${(power/220).toFixed(2)} A`, 300, 400);
+            ctx.fillText(`P = ${Math.round(power)} W`, 500, 400);
+            
+            // kWh calculation
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(`Energy in 1 hour = ${(power/1000).toFixed(2)} kWh`, 800, 400);
+            
+            time++;
+        }
+
+        function animateProblem1() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Title
+            ctx.fillStyle = '#ffd93d';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText('Q1: Why doesn\'t the cord glow while the heating element does?', 200, 50);
+            
+            // Draw comparison
+            const cordX = 300;
+            const elementX = 800;
+            const baseY = 250;
+            
+            // Draw cord
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 15;
+            ctx.beginPath();
+            ctx.moveTo(cordX - 100, baseY);
+            ctx.lineTo(cordX + 100, baseY);
+            ctx.stroke();
+            
+            // Draw heating element (glowing) - slower animation
+            const glowIntensity = (Math.sin(time * 0.02) + 1) / 2;
+            ctx.strokeStyle = `rgba(255, ${100 + glowIntensity * 100}, 0, ${0.8 + glowIntensity * 0.2})`;
+            ctx.lineWidth = 15;
+            ctx.beginPath();
+            for(let i = 0; i < 8; i++) {
+                const x = elementX - 100 + i * 25;
+                const y = baseY + Math.sin(i * 0.8) * 20;
+                if(i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // Glow effect for element
+            ctx.strokeStyle = `rgba(255, 150, 0, ${0.3 * glowIntensity})`;
+            ctx.lineWidth = 2;
+            for(let i = 1; i < 3; i++) {
+                ctx.beginPath();
+                ctx.arc(elementX, baseY, 30 + i * 20, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            // Labels
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '18px Arial';
+            ctx.fillText('Cord', cordX - 20, baseY - 50);
+            ctx.fillText('Low Resistance', cordX - 50, baseY + 50);
+            ctx.fillText('R = 0.1 Ω', cordX - 30, baseY + 80);
+            
+            ctx.fillText('Heating Element', elementX - 60, baseY - 50);
+            ctx.fillText('High Resistance', elementX - 50, baseY + 50);
+            ctx.fillText('R = 50 Ω', elementX - 30, baseY + 80);
+            
+            // Explanation with slower animation
+            const progress = (time % 800) / 800; // Doubled the cycle time
+            ctx.fillStyle = '#4ecdc4';
+            ctx.font = '16px Arial';
+            
+            if(progress > 0.15) {
+                ctx.fillText('Same current flows through both (series circuit)', 400, 350);
+            }
+            if(progress > 0.35) {
+                ctx.fillText('Heat = I²Rt', 400, 380);
+            }
+            if(progress > 0.55) {
+                ctx.fillText('Higher R → More Heat → Element glows', 400, 410);
+            }
+            if(progress > 0.75) {
+                ctx.fillText('Lower R → Less Heat → Cord stays cool', 400, 440);
+            }
+            
+            time++;
+        }
+
+        function animateProblem2() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Title
+            ctx.fillStyle = '#ffd93d';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText('Q2: Heat from 96,000 C charge through 50 V', 300, 50);
+            
+            // Animated solution steps - slower progression
+            const progress = (problemAnimationStep % 1000) / 1000; // Doubled the cycle time
+            
+            ctx.fillStyle = '#4ecdc4';
+            ctx.font = '20px Arial';
+            
+            if(progress > 0.08) {
+                ctx.fillText('Given:', 250, 140);
+                ctx.fillText('Q = 96,000 C', 300, 170);
+            }
+            if(progress > 0.18) {
+                ctx.fillText('V = 50 V', 300, 200);
+            }
+            if(progress > 0.28) {
+                ctx.fillStyle = '#ffd93d';
+                ctx.fillText('Formula: H = QV', 250, 250);
+            }
+            if(progress > 0.45) {
+                ctx.fillStyle = '#4ecdc4';
+                ctx.fillText('H = 96,000 × 50', 250, 290);
+            }
+            if(progress > 0.65) {
+                ctx.fillStyle = '#ff6b6b';
+                ctx.font = 'bold 24px Arial';
+                ctx.fillText('H = 4,800,000 J = 4.8 MJ', 250, 340);
+            }
+            
+            // Draw charge flow animation - slower movement
+            for(let i = 0; i < 8; i++) {
+                const x = 700 + (time * 1 + i * 40) % 300; // Slower movement
+                const y = 250;
+                ctx.fillStyle = '#4ecdc4';
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Draw battery symbol
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(700, 230);
+            ctx.lineTo(700, 270);
+            ctx.moveTo(720, 220);
+            ctx.lineTo(720, 280);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '14px Arial';
+            ctx.fillText('50 V', 680, 200);
+            
+            problemAnimationStep++;
+            time++;
+        }
+
+        function animateProblem3() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Title
+            ctx.fillStyle = '#ffd93d';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText('Q3: Heat in Electric Iron (R = 20 Ω, I = 5 A, t = 30 s)', 250, 50);
+            
+            // Animated solution steps - slower progression
+            const progress = (problemAnimationStep % 800) / 800; // Doubled the cycle time
+            
+            ctx.fillStyle = '#4ecdc4';
+            ctx.font = '20px Arial';
+            
+            if(progress > 0.08) {
+                ctx.fillText('Given:', 250, 140);
+                ctx.fillText('R = 20 Ω', 300, 170);
+            }
+            if(progress > 0.18) {
+                ctx.fillText('I = 5 A', 300, 200);
+            }
+            if(progress > 0.28) {
+                ctx.fillText('t = 30 s', 300, 230);
+            }
+            if(progress > 0.38) {
+                ctx.fillStyle = '#ffd93d';
+                ctx.fillText('Formula: H = I²Rt', 250, 280);
+            }
+            if(progress > 0.48) {
+                ctx.fillStyle = '#4ecdc4';
+                ctx.fillText('H = (5)² × 20 × 30', 250, 320);
+            }
+            if(progress > 0.58) {
+                ctx.fillText('H = 25 × 20 × 30', 250, 350);
+            }
+            if(progress > 0.75) {
+                ctx.fillStyle = '#ff6b6b';
+                ctx.font = 'bold 24px Arial';
+                ctx.fillText('H = 15,000 J', 250, 390);
+            }
+            
+            // Draw iron visualization - slower glow
+            if(progress > 0.48) {
+                const glowIntensity = Math.sin(time * 0.05) * 0.5 + 0.5; // Slower glow
+                
+                // Iron base
+                ctx.fillStyle = `rgba(255, ${100 + glowIntensity * 100}, ${50 * glowIntensity}, ${glowIntensity})`;
+                ctx.beginPath();
+                ctx.moveTo(750, 250);
+                ctx.lineTo(900, 250);
+                ctx.lineTo(880, 320);
+                ctx.lineTo(770, 320);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Iron handle
+                ctx.fillStyle = '#333';
+                ctx.fillRect(800, 210, 50, 40);
+                
+                // Heat waves
+                if(glowIntensity > 0.5) {
+                    ctx.strokeStyle = `rgba(255, 100, 0, ${0.3 * glowIntensity})`;
+                    ctx.lineWidth = 2;
+                    for(let i = 0; i < 3; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(750, 320 + i * 10);
+                        ctx.lineTo(900, 320 + i * 10);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            problemAnimationStep++;
+            time++;
+        }
+
+        function animateProblem4() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Title
+            ctx.fillStyle = '#ffd93d';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText('Q4: What determines the rate of energy delivery?', 300, 50);
+            
+            // Central concept
+            ctx.fillStyle = '#ff6b6b';
+            ctx.font = 'bold 36px Arial';
+            ctx.fillText('POWER', 540, 250);
+            
+            // Formulas around the center with slower animation
+            const formulas = [
+                {text: 'P = VI', x: 300, y: 200, delay: 0.15},
+                {text: 'P = I²R', x: 300, y: 300, delay: 0.35},
+                {text: 'P = V²/R', x: 800, y: 200, delay: 0.55},
+                {text: 'Unit: Watt (W)', x: 800, y: 300, delay: 0.75}
+            ];
+            
+            const progress = (problemAnimationStep % 800) / 800; // Doubled the cycle time
+            
+            formulas.forEach(formula => {
+                if(progress > formula.delay) {
+                    ctx.fillStyle = '#4ecdc4';
+                    ctx.font = '24px Arial';
+                    ctx.fillText(formula.text, formula.x, formula.y);
+                    
+                    // Draw connecting line
+                    ctx.strokeStyle = 'rgba(78, 205, 196, 0.5)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(formula.x + 50, formula.y - 10);
+                    ctx.lineTo(600, 250);
+                    ctx.stroke();
+                }
+            });
+            
+            // Explanation - slower appearance
+            if(progress > 0.85) {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '16px Arial';
+                ctx.fillText('Power determines how fast energy is delivered or consumed', 350, 400);
+                ctx.fillText('Higher voltage × Higher current = More power', 380, 430);
+            }
+            
+            problemAnimationStep++;
+            time++;
+        }
+
+        function animateProblem5() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Title
+            ctx.fillStyle = '#ffd93d';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText('Q5: Motor Power & Energy (I = 5 A, V = 220 V, t = 2 h)', 250, 50);
+            
+            // Animated solution steps - slower progression
+            const progress = (problemAnimationStep % 1200) / 1200; // Doubled the cycle time
+            
+            ctx.fillStyle = '#4ecdc4';
+            ctx.font = '20px Arial';
+            
+            if(progress > 0.08) {
+                ctx.fillText('Given:', 250, 120);
+                ctx.fillText('I = 5 A', 300, 150);
+            }
+            if(progress > 0.15) {
+                ctx.fillText('V = 220 V', 300, 180);
+            }
+            if(progress > 0.22) {
+                ctx.fillText('t = 2 hours', 300, 210);
+            }
+            if(progress > 0.30) {
+                ctx.fillStyle = '#ffd93d';
+                ctx.fillText('Power: P = VI', 250, 260);
+            }
+            if(progress > 0.40) {
+                ctx.fillStyle = '#4ecdc4';
+                ctx.fillText('P = 220 × 5 = 1,100 W', 250, 290);
+            }
+            if(progress > 0.50) {
+                ctx.fillText('P = 1.1 kW', 250, 320);
+            }
+            if(progress > 0.60) {
+                ctx.fillStyle = '#ffd93d';
+                ctx.fillText('Energy: E = P × t', 550, 260);
+            }
+            if(progress > 0.70) {
+                ctx.fillStyle = '#4ecdc4';
+                ctx.fillText('E = 1,100 W × 2 h', 550, 290);
+            }
+            if(progress > 0.80) {
+                ctx.fillText('E = 2,200 Wh = 2.2 kWh', 550, 320);
+            }
+            if(progress > 0.90) {
+                ctx.fillStyle = '#ff6b6b';
+                ctx.font = 'bold 22px Arial';
+                ctx.fillText('Cost = 2.2 kWh × Rs 3/kWh = Rs 6.60', 350, 380);
+            }
+            
+            // Draw rotating motor - slower rotation
+            if(progress > 0.30) {
+                ctx.save();
+                ctx.translate(900, 250);
+                ctx.rotate(time * 0.025); // Slower rotation
+                ctx.fillStyle = '#4ecdc4';
+                for(let i = 0; i < 4; i++) {
+                    ctx.save();
+                    ctx.rotate(i * Math.PI / 2);
+                    ctx.fillRect(-5, -40, 10, 80);
+                    ctx.restore();
+                }
+                ctx.restore();
+                
+                // Motor label
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px Arial';
+                ctx.fillText('Motor', 870, 330);
+            }
+            
+            problemAnimationStep++;
+            time++;
+        }
+
+        // Main animation loop
+        function animate() {
+            switch (currentMode) {
+                case 'heating':
+                    animateHeating();
+                    break;
+                case 'joule':
+                    animateJoule();
+                    break;
+                case 'applications':
+                    animateApplications();
+                    break;
+                case 'electricpower':
+                    animateElectricPower();
+                    break;
+                case 'problem1':
+                    animateProblem1();
+                    break;
+                case 'problem2':
+                    animateProblem2();
+                    break;
+                case 'problem3':
+                    animateProblem3();
+                    break;
+                case 'problem4':
+                    animateProblem4();
+                    break;
+                case 'problem5':
+                    animateProblem5();
+                    break;
+            }
+            
+            animationFrame = requestAnimationFrame(animate);
+        }
+
+        // Reset Function
+        function resetEverything() {
+            lessonStarted = false;
+            
+            if (lessonSequence) {
+                lessonSequence.stop();
+            }
+            narrator.stop();
+            
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+            
+            // Reset parameters
+            time = 0;
+            problemAnimationStep = 0;
+            
+            // Reset UI
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('[data-mode="lesson"]').classList.add('active');
+            
+            hideAllPanels();
+            document.getElementById('demoCanvas').style.display = 'none';
+            document.getElementById('chartContainer').style.display = 'none';
+            document.getElementById('lessonContent').style.display = 'block';
+            
+            currentMode = 'lesson';
+            
+            // Restart animation
+            animate();
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }, 1500);
+            
+            lessonSequence = new LessonSequence();
+            
+            // Control buttons
+            document.querySelectorAll('.control-btn:not(.reset-btn)').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const mode = this.getAttribute('data-mode');
+                    
+                    // Stop any running sequences
+                    if (lessonSequence) lessonSequence.stop();
+                    narrator.stop();
+                    
+                    currentMode = mode;
+                    problemAnimationStep = 0;
+                    time = 0;
+                    document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show/hide elements based on mode
+                    hideAllPanels();
+                    document.getElementById('lessonContent').style.display = 'none';
+                    document.getElementById('chartContainer').style.display = 'none';
+                    
+                    if (mode === 'lesson') {
+                        resetEverything();
+                        lessonStarted = true;
+                        lessonSequence.start();
+                    } else if (mode === 'datachart') {
+                        document.getElementById('demoCanvas').style.display = 'none';
+                        document.getElementById('chartContainer').style.display = 'block';
+                        createDataChart();
+                        narrator.speak("This chart shows the relationship between power, current, and resistance. Notice how current increases with power while resistance decreases for a constant voltage of 220 volts.", true);
+                    } else if (mode.startsWith('problem')) {
+                        document.getElementById('demoCanvas').style.display = 'block';
+                        
+                        // Show the specific problem question box
+                        switch(mode) {
+                            case 'problem1':
+                                document.getElementById('problemQ1').style.display = 'block';
+                                narrator.speak("Question 1: Why doesn't the cord of an electric heater glow while the heating element does? The answer lies in resistance. Both carry the same current in a series circuit, but the heating element has much higher resistance. Since heat equals I squared R t, higher resistance means more heat. The element gets hot enough to glow, while the cord stays cool. This is intentional for safety!", true);
+                                break;
+                            case 'problem2':
+                                document.getElementById('problemQ2').style.display = 'block';
+                                narrator.speak("Question 2: Calculate heat from 96,000 coulombs through 50 volts. We use H equals Q V. That's 96,000 times 50 equals 4.8 million joules. Watch the step-by-step solution animation.", true);
+                                break;
+                            case 'problem3':
+                                document.getElementById('problemQ3').style.display = 'block';
+                                narrator.speak("Question 3: Electric iron with 20 ohms resistance and 5 amperes current for 30 seconds. Using Joule's law: H equals I squared R t equals 5 squared times 20 times 30 equals 15,000 joules. This rapid heat generation is what makes irons effective.", true);
+                                break;
+                            case 'problem4':
+                                document.getElementById('problemQ4').style.display = 'block';
+                                narrator.speak("Question 4: Power determines the rate of energy delivery. Power equals V I, or I squared R, or V squared over R. Higher power means faster energy consumption. This is fundamental to electrical system design.", true);
+                                break;
+                            case 'problem5':
+                                document.getElementById('problemQ5').style.display = 'block';
+                                narrator.speak("Question 5: Motor drawing 5 amperes at 220 volts. Power equals 220 times 5 equals 1100 watts. Energy in 2 hours equals 2.2 kilowatt-hours. At 3 rupees per unit, cost is 6.60 rupees. This shows how we calculate electricity bills.", true);
+                                break;
+                        }
+                    } else {
+                        document.getElementById('demoCanvas').style.display = 'block';
+                        
+                        switch(mode) {
+                            case 'heating':
+                                document.getElementById('heatingPanel').style.display = 'block';
+                                narrator.speak("The heating effect occurs when electrical energy converts to thermal energy. Watch how the resistor glows as current flows through it.", true);
+                                break;
+                            case 'joule':
+                                document.getElementById('joulePanel').style.display = 'block';
+                                document.getElementById('example1110').style.display = 'block';
+                                document.getElementById('example1111').style.display = 'block';
+                                narrator.speak("Joule's law states that heat produced equals I squared R t. Observe how heat varies with the square of current, resistance, and time.", true);
+                                break;
+                            case 'applications':
+                                document.getElementById('applicationsPanel').style.display = 'block';
+                                narrator.speak("The heating effect has many practical applications including bulbs, heaters, toasters, irons, and fuses.", true);
+                                break;
+                            case 'electricpower':
+                                document.getElementById('powerPanel').style.display = 'block';
+                                document.getElementById('example1112').style.display = 'block';
+                                document.getElementById('example1113').style.display = 'block';
+                                narrator.speak("Electric power is the rate of energy consumption. Power equals V I and is measured in watts.", true);
+                                break;
+                        }
+                    }
+                    
+                    time = 0;
+                });
+            });
+            
+            // Reset button
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                narrator.speak("Resetting lesson to the beginning.", true);
+                resetEverything();
+            });
+            
+            // Audio toggle
+            document.getElementById('audio-toggle').addEventListener('click', function() {
+                audioEnabled = narrator.toggle();
+                this.textContent = audioEnabled ? '🔊' : '🔇';
+            });
+            
+            // Start initial display
+            document.getElementById('lessonContent').innerHTML = `
+                <div class="lesson-section">
+                    <h2 class="lesson-title">Welcome to Chapter 11.7 & 11.8</h2>
+                    <div class="lesson-text">
+                        <p>Click "Complete Lesson" to start the full guided tour, or choose any specific topic to explore.</p>
+                        <p style="margin-top: 20px;">This lesson includes 5 practice problems with step-by-step solutions!</p>
+                    </div>
+                </div>
+            `;
+            
+            // Start animation
+            animate();
+        });
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            narrator.stop();
+            if (lessonSequence) lessonSequence.stop();
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+        });
+    </script>
+</body>
+</html>

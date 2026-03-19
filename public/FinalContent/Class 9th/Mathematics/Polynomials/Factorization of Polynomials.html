@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factorization of Polynomials - Interactive Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --equation-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            --solution-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 10px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: var(--equation-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 3px;
+        }
+
+        .header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            gap: 15px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 15px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 550px;
+            transition: all 0.3s ease;
+        }
+
+        .stage-content {
+            width: 100%;
+            max-width: 900px;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+            overflow: hidden;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1) translateY(0); }
+            to { opacity: 0; transform: scale(0.95) translateY(-20px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 12px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 10px 20px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--equation-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--equation-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .math-title {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .math-description {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 15px auto;
+            line-height: 1.6;
+            padding: 10px;
+        }
+
+        .formula-box {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 18px;
+            margin: 15px auto;
+            backdrop-filter: blur(10px);
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .formula {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-accent);
+            font-family: 'Courier New', monospace;
+        }
+
+        .value-display {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-accent);
+            text-align: center;
+            margin: 15px 0;
+            text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+        }
+
+        .content-card {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 18px;
+            margin: 12px 0;
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        .content-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
+        }
+
+        .example-box {
+            background: linear-gradient(135deg, rgba(67, 233, 123, 0.1), rgba(56, 249, 215, 0.1));
+            border: 2px solid rgba(67, 233, 123, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 12px 0;
+        }
+
+        .comparison-grid {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 20px 0;
+            justify-content: center;
+            align-items: stretch;
+        }
+
+        .comparison-grid .content-card {
+            flex: 1 1 280px;
+            min-width: 250px;
+            max-width: 350px;
+        }
+
+        .quiz-option {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        .quiz-option.correct {
+            background: var(--success-gradient);
+            border-color: transparent;
+        }
+
+        .quiz-option.incorrect {
+            background: var(--secondary-gradient);
+            border-color: transparent;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--glass-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-gradient);
+            transition: width 0.5s ease;
+        }
+
+        .action-btn {
+            background: var(--success-gradient);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin: 10px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(67, 233, 123, 0.4);
+        }
+
+        .highlight-text {
+            color: var(--text-accent);
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+        }
+
+        .calculation-step {
+            background: rgba(79, 172, 254, 0.1);
+            border-left: 4px solid #4facfe;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+        }
+
+        .factor-badge {
+            display: inline-block;
+            background: var(--primary-gradient);
+            color: white;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .step-number {
+            display: inline-block;
+            background: var(--accent-gradient);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 28px;
+            font-weight: 700;
+            margin-right: 8px;
+        }
+
+        .interactive-input {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 10px 15px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            text-align: center;
+            width: 100%;
+            margin: 8px 0;
+        }
+
+        .interactive-input:focus {
+            outline: none;
+            border-color: var(--text-accent);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(251, 191, 36, 0.8); }
+        }
+
+        .glow-effect {
+            animation: glow 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="header">
+        <h1>Factorization of Polynomials</h1>
+        <p>Master polynomial factorization through interactive learning</p>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage">
+            <div id="stage-content" class="stage-content active"></div>
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">📚 Complete Lesson</button>
+            <button class="demo-btn" data-demo="factor-theorem">📖 Factor Theorem</button>
+            <button class="demo-btn" data-demo="splitting-middle">✂️ Splitting Middle Term</button>
+            <button class="demo-btn" data-demo="using-theorem">🔍 Using Factor Theorem</button>
+            <button class="demo-btn" data-demo="examples">💡 Examples</button>
+            <button class="demo-btn" data-demo="step-by-step">📝 Step by Step</button>
+            <button class="demo-btn" data-demo="interactive">🎮 Interactive Demo</button>
+            <button class="demo-btn" data-demo="quiz">🏆 Quiz Time</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+    </div>
+
+    <script>
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let currentDemo = null;
+        let quizScore = 0;
+        let currentQuizQuestion = 0;
+
+        // Text-to-Speech Teacher
+        class Teacher {
+            constructor() {
+                this.synthesis = window.speechSynthesis;
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+            }
+
+            speak(text) {
+                if (!this.isEnabled || !this.synthesis) return;
+
+                this.stop();
+
+                this.currentUtterance = new SpeechSynthesisUtterance(text);
+                this.currentUtterance.rate = 0.9;
+                this.currentUtterance.pitch = 1;
+                this.currentUtterance.volume = 1;
+
+                const voices = this.synthesis.getVoices();
+                const preferredVoice = voices.find(voice => 
+                    voice.lang.startsWith('en') && voice.name.includes('Female')
+                ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+
+                if (preferredVoice) {
+                    this.currentUtterance.voice = preferredVoice;
+                }
+
+                this.synthesis.speak(this.currentUtterance);
+            }
+
+            stop() {
+                if (this.synthesis) {
+                    this.synthesis.cancel();
+                }
+            }
+        }
+
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            currentTeacher = new Teacher();
+            return currentTeacher;
+        }
+
+        function transitionToNextStep(content) {
+            const stageContent = document.getElementById('stage-content');
+            stageContent.style.animation = 'fadeOut 0.3s ease-out';
+            
+            setTimeout(() => {
+                stageContent.innerHTML = content;
+                stageContent.style.animation = 'fadeIn 0.5s ease-out';
+            }, 300);
+        }
+
+        function stopCurrentDemo() {
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+        }
+
+        // Complete Lesson
+        function showCompleteLesson() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+            let step = 0;
+
+            const steps = [
+                {
+                    content: `
+                        <h2 class="math-title">Welcome! 🎉</h2>
+                        <div class="value-display">Factorization of Polynomials</div>
+                        <div class="math-description">
+                            Learn powerful techniques to factor polynomials!
+                        </div>
+                        <div class="formula-box">
+                            <p style="font-size: 1.1rem; color: #43e97b;">
+                                ✓ Factor Theorem<br>
+                                ✓ Splitting Middle Term<br>
+                                ✓ Using Factor Theorem Method<br>
+                                ✓ Practical Examples
+                            </p>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Start Learning →</button>
+                    `,
+                    speech: "Welcome! Let's explore factorization of polynomials. We'll learn the factor theorem and powerful methods to break down polynomials into their factors!"
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem;">Factor Theorem 📖</h2>
+                        <div style="width: 100%; max-width: 700px; padding: 0 15px;">
+                            <div class="content-card" style="padding: 18px;">
+                                <div class="formula-box" style="padding: 15px;">
+                                    <h3 style="color: #fbbf24; font-size: 1.2rem; margin-bottom: 12px;">The Theorem</h3>
+                                    <p style="color: #e2e8f0; font-size: 1rem; line-height: 1.6; margin-bottom: 15px;">
+                                        If <span class="highlight-text">p(a) = 0</span>, then<br>
+                                        <span class="highlight-text">(x - a)</span> is a factor of <span class="highlight-text">p(x)</span>
+                                    </p>
+                                    <p style="color: #cbd5e0; font-size: 0.95rem; margin-top: 12px;">
+                                        and vice versa
+                                    </p>
+                                </div>
+                                <div style="margin-top: 20px; padding: 15px; background: rgba(79, 172, 254, 0.1); border-radius: 12px;">
+                                    <h4 style="color: #4facfe; font-size: 1rem; margin-bottom: 10px;">Key Points:</h4>
+                                    <p style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.8;">
+                                        • Zero of polynomial → Factor exists<br>
+                                        • Factor exists → Zero exists<br>
+                                        • Connects zeros and factors
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Continue →</button>
+                    `,
+                    speech: "The Factor Theorem states: if p of a equals zero, then x minus a is a factor of p of x, and vice versa. This powerful theorem connects zeros and factors!"
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem;">Splitting Middle Term ✂️</h2>
+                        <div style="width: 100%; max-width: 750px; padding: 0 15px;">
+                            <div class="content-card" style="padding: 15px;">
+                                <h3 style="color: #4facfe; font-size: 1.1rem; margin-bottom: 12px; text-align: center;">
+                                    For ax² + bx + c
+                                </h3>
+                                
+                                <div class="example-box" style="padding: 12px; margin: 10px 0;">
+                                    <h4 style="color: #fbbf24; font-size: 1rem; margin-bottom: 8px;">
+                                        <span class="step-number">1</span> Find Two Numbers
+                                    </h4>
+                                    <p style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.6; margin-left: 36px;">
+                                        • Sum = <span class="highlight-text">b</span><br>
+                                        • Product = <span class="highlight-text">ac</span>
+                                    </p>
+                                </div>
+
+                                <div class="example-box" style="padding: 12px; margin: 10px 0;">
+                                    <h4 style="color: #fbbf24; font-size: 1rem; margin-bottom: 8px;">
+                                        <span class="step-number">2</span> Split Middle Term
+                                    </h4>
+                                    <p style="color: #e2e8f0; font-size: 0.9rem; margin-left: 36px;">
+                                        Replace bx with the two numbers
+                                    </p>
+                                </div>
+
+                                <div class="example-box" style="padding: 12px; margin: 10px 0;">
+                                    <h4 style="color: #fbbf24; font-size: 1rem; margin-bottom: 8px;">
+                                        <span class="step-number">3</span> Factor by Grouping
+                                    </h4>
+                                    <p style="color: #e2e8f0; font-size: 0.9rem; margin-left: 36px;">
+                                        Group and extract common factors
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Next →</button>
+                    `,
+                    speech: "To split the middle term of a quadratic: First, find two numbers whose sum equals b and product equals a c. Second, split the middle term. Third, factor by grouping."
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem;">Using Factor Theorem 🔍</h2>
+                        <div style="width: 100%; max-width: 750px; padding: 0 15px;">
+                            <div class="content-card" style="padding: 15px;">
+                                <h3 style="color: #43e97b; font-size: 1.1rem; margin-bottom: 12px;">Example: x³ - 23x² + 142x - 120</h3>
+                                
+                                <div class="calculation-step" style="padding: 10px; margin: 8px 0;">
+                                    <p style="color: #e2e8f0; font-size: 0.95rem; margin-bottom: 8px;">
+                                        <strong>Step 1: Test possible factors</strong>
+                                    </p>
+                                    <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                        p(1) = 1 - 23 + 142 - 120 = <span class="highlight-text">0</span> ✓
+                                    </p>
+                                </div>
+
+                                <div class="calculation-step" style="padding: 10px; margin: 8px 0;">
+                                    <p style="color: #e2e8f0; font-size: 0.95rem; margin-bottom: 8px;">
+                                        <strong>Step 2: Found factor</strong>
+                                    </p>
+                                    <p style="color: #cbd5e0; font-size: 0.85rem;">
+                                        (x - 1) is a factor
+                                    </p>
+                                </div>
+
+                                <div class="calculation-step" style="padding: 10px; margin: 8px 0;">
+                                    <p style="color: #e2e8f0; font-size: 0.95rem; margin-bottom: 8px;">
+                                        <strong>Step 3: Divide</strong>
+                                    </p>
+                                    <p style="color: #cbd5e0; font-size: 0.85rem;">
+                                        Get (x - 1)(x² - 22x + 120)
+                                    </p>
+                                </div>
+
+                                <div style="margin-top: 15px; padding: 12px; background: rgba(67, 233, 123, 0.2); border-radius: 10px;">
+                                    <p style="color: #43e97b; font-size: 1rem; text-align: center; font-weight: 600;">
+                                        Final: (x - 1)(x - 10)(x - 12)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Next →</button>
+                    `,
+                    speech: "To factor using the Factor Theorem: Test values until you find p of a equals zero. Then x minus a is a factor. Divide the polynomial by this factor and continue factoring the quotient."
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem;">Examples 💡</h2>
+                        <div style="width: 100%; max-width: 750px; padding: 0 15px;">
+                            <div class="content-card" style="padding: 15px;">
+                                <div class="example-box" style="padding: 12px; margin-bottom: 12px;">
+                                    <h3 style="color: #fbbf24; font-size: 1rem; margin-bottom: 10px;">Example 1: 6x² + 17x + 5</h3>
+                                    <div class="calculation-step" style="padding: 10px;">
+                                        <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                            Sum = 17, Product = 30<br>
+                                            Numbers: 2 and 15<br>
+                                            6x² + 2x + 15x + 5<br>
+                                            = <span class="highlight-text">(3x + 1)(2x + 5)</span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="example-box" style="padding: 12px;">
+                                    <h3 style="color: #fbbf24; font-size: 1rem; margin-bottom: 10px;">Example 2: 2x² + 7x + 3</h3>
+                                    <div class="calculation-step" style="padding: 10px;">
+                                        <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                            Sum = 7, Product = 6<br>
+                                            Numbers: 1 and 6<br>
+                                            2x² + x + 6x + 3<br>
+                                            = <span class="highlight-text">(2x + 1)(x + 3)</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Continue →</button>
+                    `,
+                    speech: "Let's look at examples. For 6x squared plus 17x plus 5, we get 3x plus 1 times 2x plus 5. For 2x squared plus 7x plus 3, we get 2x plus 1 times x plus 3."
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem;">Step-by-Step Guide 📝</h2>
+                        <div style="width: 100%; max-width: 700px; padding: 0 15px;">
+                            <div class="content-card" style="padding: 15px;">
+                                <h3 style="color: #4facfe; font-size: 1.1rem; margin-bottom: 12px; text-align: center;">
+                                    Factor: 3x² + 10x + 8
+                                </h3>
+                                
+                                <div class="calculation-step" style="padding: 10px; margin: 8px 0;">
+                                    <p style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 5px;"><strong>Step 1:</strong></p>
+                                    <p style="color: #cbd5e0; font-size: 0.85rem;">
+                                        Find sum = 10, product = 24<br>
+                                        Numbers: 4 and 6
+                                    </p>
+                                </div>
+
+                                <div class="calculation-step" style="padding: 10px; margin: 8px 0;">
+                                    <p style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 5px;"><strong>Step 2:</strong></p>
+                                    <p style="color: #cbd5e0; font-size: 0.85rem;">
+                                        3x² + 4x + 6x + 8
+                                    </p>
+                                </div>
+
+                                <div class="calculation-step" style="padding: 10px; margin: 8px 0;">
+                                    <p style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 5px;"><strong>Step 3:</strong></p>
+                                    <p style="color: #cbd5e0; font-size: 0.85rem;">
+                                        x(3x + 4) + 2(3x + 4)
+                                    </p>
+                                </div>
+
+                                <div style="margin-top: 12px; padding: 12px; background: rgba(67, 233, 123, 0.2); border-radius: 10px;">
+                                    <p style="color: #43e97b; font-size: 1rem; text-align: center; font-weight: 600;">
+                                        Answer: (3x + 4)(x + 2)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Continue →</button>
+                    `,
+                    speech: "Let's factor 3x squared plus 10x plus 8 step by step. Find 4 and 6, split the middle term, then factor by grouping to get 3x plus 4 times x plus 2."
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 10px;">Interactive Practice! 🎮</h2>
+                        <div style="width: 100%; max-width: 650px; padding: 0 15px;">
+                            <div class="content-card" style="padding: 15px;">
+                                <p style="font-size: 0.95rem; color: #e2e8f0; margin-bottom: 12px; text-align: center;">
+                                    🎯 Try factoring this quadratic:
+                                </p>
+                                
+                                <div class="formula-box" style="padding: 15px; margin: 15px 0;">
+                                    <p class="formula" style="font-size: 1.3rem;">2x² + 7x + 3</p>
+                                </div>
+
+                                <div class="calculation-step" style="padding: 12px; margin: 10px 0;">
+                                    <p style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 8px;"><strong>Hint:</strong></p>
+                                    <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.6;">
+                                        • Find numbers with sum = 7<br>
+                                        • And product = 6<br>
+                                        • Then split the middle term
+                                    </p>
+                                </div>
+
+                                <div style="margin-top: 15px; padding: 15px; background: rgba(67, 233, 123, 0.15); border-radius: 10px;">
+                                    <p style="color: #43e97b; font-size: 0.95rem; text-align: center; font-weight: 600;">
+                                        Answer: (2x + 1)(x + 3)
+                                    </p>
+                                </div>
+
+                                <p style="color: #e2e8f0; font-size: 0.85rem; margin-top: 15px; text-align: center;">
+                                    💡 Use the Interactive Demo button for more practice!
+                                </p>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Finish →</button>
+                    `,
+                    speech: "Try this practice problem: Factor 2x squared plus 7x plus 3. Find numbers 1 and 6, split the middle term, and factor by grouping to get 2x plus 1 times x plus 3."
+                }
+            ];
+
+            window.nextStep = function() {
+                step++;
+                if (step < steps.length) {
+                    transitionToNextStep(steps[step].content);
+                    setTimeout(() => teacher.speak(steps[step].speech), 500);
+                } else {
+                    const finalContent = `
+                        <h2 class="math-title">Congratulations! 🎉</h2>
+                        <div class="value-display">Lesson Complete!</div>
+                        <div class="math-description">
+                            You've mastered polynomial factorization!
+                        </div>
+                        <div class="formula-box glow-effect">
+                            <p style="font-size: 1.1rem; color: #43e97b;">
+                                ✓ Factor Theorem<br>
+                                ✓ Splitting Middle Term<br>
+                                ✓ Using Factor Theorem<br>
+                                ✓ Examples & Applications
+                            </p>
+                        </div>
+                    `;
+                    transitionToNextStep(finalContent);
+                    teacher.speak("Congratulations! You have successfully completed the lesson on factorization of polynomials!");
+                }
+            };
+
+            transitionToNextStep(steps[0].content);
+            setTimeout(() => teacher.speak(steps[0].speech), 500);
+        }
+
+        // Factor Theorem
+        function showFactorTheorem() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.4rem;">Factor Theorem 📖</h2>
+                <div style="width: 100%; max-width: 700px; padding: 0 15px;">
+                    <div class="content-card" style="padding: 18px;">
+                        <div class="formula-box" style="padding: 15px;">
+                            <h3 style="color: #fbbf24; font-size: 1.2rem; margin-bottom: 12px;">The Theorem</h3>
+                            <p style="color: #e2e8f0; font-size: 1rem; line-height: 1.6; margin-bottom: 15px;">
+                                If <span class="highlight-text">p(a) = 0</span>, then<br>
+                                <span class="highlight-text">(x - a)</span> is a factor of <span class="highlight-text">p(x)</span>
+                            </p>
+                            <p style="color: #cbd5e0; font-size: 0.95rem; margin-top: 12px;">
+                                and vice versa
+                            </p>
+                        </div>
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(79, 172, 254, 0.1); border-radius: 12px;">
+                            <h4 style="color: #4facfe; font-size: 1rem; margin-bottom: 10px;">Key Points:</h4>
+                            <p style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.8;">
+                                • Zero of polynomial → Factor exists<br>
+                                • Factor exists → Zero exists<br>
+                                • Connects zeros and factors
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("The Factor Theorem states: if p of a equals zero, then x minus a is a factor of p of x, and vice versa. This powerful theorem connects zeros and factors!");
+            }, 500);
+        }
+
+        // Splitting Middle Term
+        function showSplittingMiddle() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.4rem;">Splitting Middle Term ✂️</h2>
+                <div style="width: 100%; max-width: 750px; padding: 0 15px;">
+                    <div class="content-card" style="padding: 15px;">
+                        <h3 style="color: #4facfe; font-size: 1.1rem; margin-bottom: 12px; text-align: center;">
+                            For ax² + bx + c
+                        </h3>
+                        
+                        <div class="example-box" style="padding: 12px; margin: 10px 0;">
+                            <h4 style="color: #fbbf24; font-size: 1rem; margin-bottom: 8px;">
+                                <span class="step-number">1</span> Find Two Numbers
+                            </h4>
+                            <p style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.6; margin-left: 36px;">
+                                • Sum = <span class="highlight-text">b</span><br>
+                                • Product = <span class="highlight-text">ac</span>
+                            </p>
+                        </div>
+
+                        <div class="example-box" style="padding: 12px; margin: 10px 0;">
+                            <h4 style="color: #fbbf24; font-size: 1rem; margin-bottom: 8px;">
+                                <span class="step-number">2</span> Split Middle Term
+                            </h4>
+                            <p style="color: #e2e8f0; font-size: 0.9rem; margin-left: 36px;">
+                                Replace bx with the two numbers
+                            </p>
+                        </div>
+
+                        <div class="example-box" style="padding: 12px; margin: 10px 0;">
+                            <h4 style="color: #fbbf24; font-size: 1rem; margin-bottom: 8px;">
+                                <span class="step-number">3</span> Factor by Grouping
+                            </h4>
+                            <p style="color: #e2e8f0; font-size: 0.9rem; margin-left: 36px;">
+                                Group and extract common factors
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("To split the middle term of a quadratic: First, find two numbers whose sum equals b and product equals a c. Second, split the middle term. Third, factor by grouping.");
+            }, 500);
+        }
+
+        // Using Factor Theorem
+        function showUsingTheorem() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.4rem;">Using Factor Theorem 🔍</h2>
+                <div style="width: 100%; max-width: 750px; padding: 0 15px;">
+                    <div class="content-card" style="padding: 15px;">
+                        <h3 style="color: #43e97b; font-size: 1.1rem; margin-bottom: 12px;">Example: x³ - 23x² + 142x - 120</h3>
+                        
+                        <div class="calculation-step" style="padding: 10px; margin: 8px 0;">
+                            <p style="color: #e2e8f0; font-size: 0.95rem; margin-bottom: 8px;">
+                                <strong>Step 1: Test possible factors</strong>
+                            </p>
+                            <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                p(1) = 1 - 23 + 142 - 120 = <span class="highlight-text">0</span> ✓
+                            </p>
+                        </div>
+
+                        <div class="calculation-step" style="padding: 10px; margin: 8px 0;">
+                            <p style="color: #e2e8f0; font-size: 0.95rem; margin-bottom: 8px;">
+                                <strong>Step 2: Found factor</strong>
+                            </p>
+                            <p style="color: #cbd5e0; font-size: 0.85rem;">
+                                (x - 1) is a factor
+                            </p>
+                        </div>
+
+                        <div class="calculation-step" style="padding: 10px; margin: 8px 0;">
+                            <p style="color: #e2e8f0; font-size: 0.95rem; margin-bottom: 8px;">
+                                <strong>Step 3: Divide</strong>
+                            </p>
+                            <p style="color: #cbd5e0; font-size: 0.85rem;">
+                                Get (x - 1)(x² - 22x + 120)
+                            </p>
+                        </div>
+
+                        <div style="margin-top: 15px; padding: 12px; background: rgba(67, 233, 123, 0.2); border-radius: 10px;">
+                            <p style="color: #43e97b; font-size: 1rem; text-align: center; font-weight: 600;">
+                                Final: (x - 1)(x - 10)(x - 12)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("To factor using the Factor Theorem: Test values until you find p of a equals zero. Then x minus a is a factor. Divide the polynomial by this factor and continue factoring the quotient.");
+            }, 500);
+        }
+
+        // Examples
+        function showExamples() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.4rem;">Examples 💡</h2>
+                <div style="width: 100%; max-width: 750px; padding: 0 15px;">
+                    <div class="content-card" style="padding: 15px;">
+                        <div class="example-box" style="padding: 12px; margin-bottom: 12px;">
+                            <h3 style="color: #fbbf24; font-size: 1rem; margin-bottom: 10px;">Example 1: 6x² + 17x + 5</h3>
+                            <div class="calculation-step" style="padding: 10px;">
+                                <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                    Sum = 17, Product = 30<br>
+                                    Numbers: 2 and 15<br>
+                                    6x² + 2x + 15x + 5<br>
+                                    = <span class="highlight-text">(3x + 1)(2x + 5)</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="example-box" style="padding: 12px;">
+                            <h3 style="color: #fbbf24; font-size: 1rem; margin-bottom: 10px;">Example 2: 2x² + 7x + 3</h3>
+                            <div class="calculation-step" style="padding: 10px;">
+                                <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                    Sum = 7, Product = 6<br>
+                                    Numbers: 1 and 6<br>
+                                    2x² + x + 6x + 3<br>
+                                    = <span class="highlight-text">(2x + 1)(x + 3)</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("Let's look at examples. For 6x squared plus 17x plus 5, we get 3x plus 1 times 2x plus 5. For 2x squared plus 7x plus 3, we get 2x plus 1 times x plus 3.");
+            }, 500);
+        }
+
+        // Step by Step
+        function showStepByStep() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.4rem;">Step-by-Step Guide 📝</h2>
+                <div style="width: 100%; max-width: 700px; padding: 0 15px;">
+                    <div class="content-card" style="padding: 15px;">
+                        <h3 style="color: #4facfe; font-size: 1.1rem; margin-bottom: 12px; text-align: center;">
+                            Factor: 3x² + 10x + 8
+                        </h3>
+                        
+                        <div class="calculation-step" style="padding: 10px; margin: 8px 0;">
+                            <p style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 5px;"><strong>Step 1:</strong></p>
+                            <p style="color: #cbd5e0; font-size: 0.85rem;">
+                                Find sum = 10, product = 24<br>
+                                Numbers: 4 and 6
+                            </p>
+                        </div>
+
+                        <div class="calculation-step" style="padding: 10px; margin: 8px 0;">
+                            <p style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 5px;"><strong>Step 2:</strong></p>
+                            <p style="color: #cbd5e0; font-size: 0.85rem;">
+                                3x² + 4x + 6x + 8
+                            </p>
+                        </div>
+
+                        <div class="calculation-step" style="padding: 10px; margin: 8px 0;">
+                            <p style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 5px;"><strong>Step 3:</strong></p>
+                            <p style="color: #cbd5e0; font-size: 0.85rem;">
+                                x(3x + 4) + 2(3x + 4)
+                            </p>
+                        </div>
+
+                        <div style="margin-top: 12px; padding: 12px; background: rgba(67, 233, 123, 0.2); border-radius: 10px;">
+                            <p style="color: #43e97b; font-size: 1rem; text-align: center; font-weight: 600;">
+                                Answer: (3x + 4)(x + 2)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("Let's factor 3x squared plus 10x plus 8 step by step. Find 4 and 6, split the middle term, then factor by grouping to get 3x plus 4 times x plus 2.");
+            }, 500);
+        }
+
+        // Interactive Demo
+        function showInteractiveDemo() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 10px;">Factor a Quadratic! 🎮</h2>
+                <div style="width: 100%; max-width: 650px; padding: 0 15px;">
+                    <div class="content-card" style="padding: 15px;">
+                        <p style="font-size: 0.95rem; color: #e2e8f0; margin-bottom: 12px; text-align: center;">
+                            🎯 Enter coefficients for ax² + bx + c:
+                        </p>
+                        
+                        <div style="background: rgba(251, 191, 36, 0.1); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+                                <input type="number" id="coeff-a" class="interactive-input" 
+                                       placeholder="a" 
+                                       style="width: 80px; padding: 10px; font-size: 1rem;" />
+                                <span style="font-size: 1.1rem; color: #fbbf24;">x² +</span>
+                                <input type="number" id="coeff-b" class="interactive-input" 
+                                       placeholder="b" 
+                                       style="width: 80px; padding: 10px; font-size: 1rem;" />
+                                <span style="font-size: 1.1rem; color: #fbbf24;">x +</span>
+                                <input type="number" id="coeff-c" class="interactive-input" 
+                                       placeholder="c" 
+                                       style="width: 80px; padding: 10px; font-size: 1rem;" />
+                            </div>
+                            <p style="color: #cbd5e0; font-size: 0.8rem; text-align: center; margin-top: 8px;">
+                                💡 Example: For 6x² + 17x + 5, enter a=6, b=17, c=5
+                            </p>
+                        </div>
+
+                        <button class="action-btn" style="font-size: 1rem; padding: 12px 28px;" onclick="factorQuadratic()">🎯 Factor It!</button>
+                        
+                        <div id="factor-result" style="margin-top: 12px;"></div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            window.factorQuadratic = function() {
+                const a = parseInt(document.getElementById('coeff-a').value);
+                const b = parseInt(document.getElementById('coeff-b').value);
+                const c = parseInt(document.getElementById('coeff-c').value);
+
+                if (isNaN(a) || isNaN(b) || isNaN(c)) {
+                    teacher.speak("Please enter valid numbers for all coefficients!");
+                    return;
+                }
+
+                if (a === 0) {
+                    const result = `
+                        <div class="content-card" style="padding: 15px; background: rgba(245, 87, 108, 0.2);">
+                            <h3 style="color: #f5576c; font-size: 1.1rem; margin-bottom: 10px;">⚠️ Not a Quadratic</h3>
+                            <p style="color: #e2e8f0; font-size: 0.9rem;">
+                                When a = 0, this is not a quadratic polynomial!
+                            </p>
+                        </div>
+                    `;
+                    document.getElementById('factor-result').innerHTML = result;
+                    teacher.speak("When a equals zero, this is not a quadratic polynomial!");
+                    return;
+                }
+
+                // Find two numbers
+                const product = a * c;
+                const sum = b;
+                let num1 = 0, num2 = 0;
+                let found = false;
+
+                for (let i = -Math.abs(product); i <= Math.abs(product); i++) {
+                    if (i !== 0 && product % i === 0) {
+                        const j = product / i;
+                        if (i + j === sum) {
+                            num1 = i;
+                            num2 = j;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!found) {
+                    const result = `
+                        <div class="content-card" style="padding: 15px; background: rgba(245, 87, 108, 0.2);">
+                            <h3 style="color: #f5576c; font-size: 1.1rem; margin-bottom: 10px;">❌ Not Factorable</h3>
+                            <p style="color: #e2e8f0; font-size: 0.9rem;">
+                                Cannot factor this quadratic using integers!
+                            </p>
+                        </div>
+                    `;
+                    document.getElementById('factor-result').innerHTML = result;
+                    teacher.speak("This quadratic cannot be factored using integer values!");
+                    return;
+                }
+
+                const result = `
+                    <div class="content-card glow-effect" style="padding: 15px;">
+                        <h3 style="color: #fbbf24; font-size: 1.1rem; margin-bottom: 10px;">Solution:</h3>
+                        <div class="calculation-step" style="padding: 10px;">
+                            <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                For ${a}x² + ${b}x + ${c}<br>
+                                Sum = ${sum}, Product = ${product}<br>
+                                Numbers: ${num1} and ${num2}<br>
+                                ${a}x² + ${num1}x + ${num2}x + ${c}
+                            </p>
+                        </div>
+                        <div style="margin-top: 12px; padding: 12px; background: rgba(67, 233, 123, 0.2); border-radius: 10px;">
+                            <p style="color: #43e97b; font-size: 1rem; text-align: center; font-weight: 600;">
+                                ✓ Continue factoring by grouping!
+                            </p>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('factor-result').innerHTML = result;
+                teacher.speak(`For ${a} x squared plus ${b} x plus ${c}, we found the numbers ${num1} and ${num2}. Now continue factoring by grouping!`);
+            };
+
+            setTimeout(() => {
+                teacher.speak("Enter the coefficients of a quadratic polynomial, and I'll help you factor it using the splitting middle term method!");
+            }, 500);
+        }
+
+        // Quiz
+        function showQuiz() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+            quizScore = 0;
+            currentQuizQuestion = 0;
+
+            const questions = [
+                {
+                    question: "According to the Factor Theorem, if p(2) = 0, what is a factor?",
+                    options: [
+                        "(x + 2)",
+                        "(x - 2)",
+                        "(2x)",
+                        "(x² - 2)"
+                    ],
+                    correct: 1,
+                    explanation: "If p(2) = 0, then (x - 2) is a factor by the Factor Theorem."
+                },
+                {
+                    question: "For splitting middle term of 6x² + 17x + 5, what numbers do we need?",
+                    options: [
+                        "3 and 5",
+                        "6 and 5",
+                        "2 and 15",
+                        "1 and 30"
+                    ],
+                    correct: 2,
+                    explanation: "We need sum = 17 and product = 30, so numbers are 2 and 15."
+                },
+                {
+                    question: "What is the first step in splitting the middle term?",
+                    options: [
+                        "Factor by grouping",
+                        "Find GCF",
+                        "Find two numbers with specific sum and product",
+                        "Divide all terms"
+                    ],
+                    correct: 2,
+                    explanation: "First find two numbers whose sum equals b and product equals ac."
+                },
+                {
+                    question: "Factor: x² + 5x + 6",
+                    options: [
+                        "(x + 2)(x + 3)",
+                        "(x + 1)(x + 6)",
+                        "(x - 2)(x - 3)",
+                        "(x + 6)(x - 1)"
+                    ],
+                    correct: 0,
+                    explanation: "x² + 5x + 6 = (x + 2)(x + 3)"
+                },
+                {
+                    question: "If (x - 5) is a factor of p(x), what is p(5)?",
+                    options: [
+                        "5",
+                        "-5",
+                        "0",
+                        "Cannot determine"
+                    ],
+                    correct: 2,
+                    explanation: "By the Factor Theorem, if (x - 5) is a factor, then p(5) = 0."
+                }
+            ];
+
+            function showQuestion() {
+                const q = questions[currentQuizQuestion];
+                const content = `
+                    <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 10px;">Quiz Time! 🏆</h2>
+                    <div style="width: 100%; max-width: 700px; padding: 0 15px;">
+                        <div class="progress-bar" style="margin: 12px 0;">
+                            <div class="progress-fill" style="width: ${(currentQuizQuestion / questions.length) * 100}%"></div>
+                        </div>
+                        <div class="content-card" style="padding: 15px;">
+                            <p style="font-size: 0.9rem; color: #e2e8f0; margin-bottom: 8px;">
+                                Question ${currentQuizQuestion + 1} of ${questions.length}
+                            </p>
+                            <h3 style="color: #fbbf24; font-size: 1.1rem; margin: 12px 0;">
+                                ${q.question}
+                            </h3>
+                            <div id="quiz-options">
+                                ${q.options.map((opt, idx) => `
+                                    <div class="quiz-option" onclick="checkAnswer(${idx})" style="padding: 12px; margin: 8px 0; font-size: 0.9rem;">
+                                        ${opt}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="value-display" style="font-size: 1.8rem; margin-top: 12px;">
+                            Score: ${quizScore} / ${questions.length}
+                        </div>
+                    </div>
+                `;
+                transitionToNextStep(content);
+            }
+
+            window.checkAnswer = function(selectedIdx) {
+                const q = questions[currentQuizQuestion];
+                const options = document.querySelectorAll('.quiz-option');
+                
+                options.forEach(opt => opt.style.pointerEvents = 'none');
+                
+                if (selectedIdx === q.correct) {
+                    options[selectedIdx].classList.add('correct');
+                    quizScore++;
+                    teacher.speak("Correct! " + q.explanation);
+                } else {
+                    options[selectedIdx].classList.add('incorrect');
+                    options[q.correct].classList.add('correct');
+                    teacher.speak("Incorrect. " + q.explanation);
+                }
+
+                setTimeout(() => {
+                    currentQuizQuestion++;
+                    if (currentQuizQuestion < questions.length) {
+                        showQuestion();
+                    } else {
+                        showQuizResults();
+                    }
+                }, 3000);
+            };
+
+            function showQuizResults() {
+                const percentage = (quizScore / questions.length) * 100;
+                const content = `
+                    <h2 class="math-title">Quiz Complete! 🎉</h2>
+                    <div style="width: 100%; max-width: 700px; padding: 0 15px;">
+                        <div class="value-display" style="font-size: 2.2rem;">${quizScore} / ${questions.length}</div>
+                        <div class="content-card glow-effect" style="padding: 20px;">
+                            <p style="font-size: 1.3rem; color: ${percentage >= 75 ? '#43e97b' : '#f5576c'};">
+                                ${percentage}% Correct
+                            </p>
+                            <p style="font-size: 1rem; color: #e2e8f0; margin-top: 12px;">
+                                ${percentage >= 75 ? 'Excellent work! You understand factorization!' : 
+                                  'Good effort! Review the concepts and try again!'}
+                            </p>
+                        </div>
+                    </div>
+                `;
+                transitionToNextStep(content);
+                teacher.speak(`Quiz complete! You scored ${quizScore} out of ${questions.length}. ${percentage >= 75 ? 'Excellent work!' : 'Keep practicing!'}`);
+            }
+
+            showQuestion();
+            teacher.speak("Let's test your knowledge! Answer these questions about factorization of polynomials.");
+        }
+
+        // Reset
+        function resetApplication() {
+            stopCurrentDemo();
+            quizScore = 0;
+            currentQuizQuestion = 0;
+
+            const content = `
+                <h2 class="math-title">Welcome! ✨</h2>
+                <div class="value-display">Interactive Learning</div>
+                <div class="math-description">
+                    Explore factorization of polynomials with stunning animations 
+                    and interactive visualizations!
+                </div>
+                <div class="formula-box">
+                    <p style="font-size: 1.1rem; color: #43e97b;">
+                        Factor Theorem | Splitting Terms | Methods
+                    </p>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            currentDemo = null;
+
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to explore factorization of polynomials!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+
+            const initialContent = `
+                <h2 class="math-title">Welcome! ✨</h2>
+                <div class="value-display">Factorization of Polynomials</div>
+                <div class="math-description">
+                    Experience mathematics like never before! Master factorization 
+                    techniques with stunning animations and interactive demos!
+                </div>
+                <div class="formula-box">
+                    <p style="font-size: 1.1rem; color: #43e97b;">
+                        Factor Theorem | Splitting Middle Term<br>
+                        Using Factor Theorem | Examples
+                    </p>
+                </div>
+            `;
+
+            transitionToNextStep(initialContent);
+
+            setTimeout(() => {
+                teacher.speak("Welcome to Factorization of Polynomials! Discover powerful techniques to factor polynomials with amazing visualizations!");
+            }, 500);
+
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'factor-theorem':
+                            showFactorTheorem();
+                            break;
+                        case 'splitting-middle':
+                            showSplittingMiddle();
+                            break;
+                        case 'using-theorem':
+                            showUsingTheorem();
+                            break;
+                        case 'examples':
+                            showExamples();
+                            break;
+                        case 'step-by-step':
+                            showStepByStep();
+                            break;
+                        case 'interactive':
+                            showInteractiveDemo();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

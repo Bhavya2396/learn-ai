@@ -1,0 +1,2392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3.4 Writing Chemical Formulae - Interactive 3D Chemistry</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a40 25%, #2d2d5f 50%, #1a1a40 75%, #0f0f23 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(2px 2px at 20% 30%, white, transparent),
+                radial-gradient(2px 2px at 60% 70%, white, transparent),
+                radial-gradient(1px 1px at 50% 50%, white, transparent);
+            background-size: 200px 200px;
+            opacity: 0.3;
+            animation: drift 60s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes drift {
+            from { transform: translate(0, 0); }
+            to { transform: translate(-200px, -200px); }
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.5);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: linear-gradient(45deg, #60a5fa, #a78bfa, #f472b6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { filter: brightness(1) drop-shadow(0 0 20px rgba(96, 165, 250, 0.5)); }
+            50% { filter: brightness(1.2) drop-shadow(0 0 40px rgba(167, 139, 250, 0.7)); }
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* 3D Canvas Stage */
+        .canvas-stage {
+            background: linear-gradient(135deg, 
+                rgba(15, 23, 42, 0.9) 0%,
+                rgba(30, 41, 59, 0.9) 50%,
+                rgba(15, 23, 42, 0.9) 100%);
+            border-radius: 25px;
+            height: 600px;
+            position: relative;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.5),
+                inset 0 0 100px rgba(96, 165, 250, 0.1);
+            overflow: hidden;
+            border: 3px solid rgba(96, 165, 250, 0.3);
+        }
+
+        #chemCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: grab;
+        }
+
+        #chemCanvas:active {
+            cursor: grabbing;
+        }
+
+        /* Stage Info */
+        .stage-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px 20px;
+            border: 2px solid rgba(96, 165, 250, 0.3);
+            max-width: 350px;
+        }
+
+        .stage-info h3 {
+            font-size: 1.2rem;
+            color: #60a5fa;
+            margin-bottom: 8px;
+        }
+
+        .stage-info p {
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            line-height: 1.4;
+        }
+
+        /* Element Legend */
+        .element-legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            border: 2px solid rgba(96, 165, 250, 0.3);
+            min-width: 200px;
+            display: none;
+        }
+
+        .element-legend.show {
+            display: block;
+        }
+
+        .element-legend h4 {
+            color: #60a5fa;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .legend-table {
+            width: 100%;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            padding: 5px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .legend-name {
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            flex: 1;
+        }
+
+        /* Formula Display */
+        .formula-display {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px 30px;
+            border: 2px solid rgba(96, 165, 250, 0.3);
+            display: none;
+            text-align: center;
+        }
+
+        .formula-display h2 {
+            color: #60a5fa;
+            font-size: 2.5rem;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 10px;
+        }
+
+        .formula-display .formula-name {
+            color: #e2e8f0;
+            font-size: 1.1rem;
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            background: linear-gradient(45deg, #60a5fa, #a78bfa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 35px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+            min-width: 160px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .demo-btn:hover::before {
+            left: 100%;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.4);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+            animation: activePulse 2s ease-in-out infinite;
+        }
+
+        .demo-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .demo-btn:disabled:hover {
+            transform: none !important;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        @keyframes activePulse {
+            0%, 100% { 
+                box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+            }
+            50% { 
+                box-shadow: 0 12px 35px rgba(16, 185, 129, 0.6);
+            }
+        }
+
+        /* Info Panel */
+        .info-panel {
+            background: linear-gradient(135deg, 
+                rgba(0, 0, 0, 0.6),
+                rgba(30, 41, 59, 0.6));
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(96, 165, 250, 0.3);
+            backdrop-filter: blur(15px);
+        }
+
+        .info-panel h3 {
+            font-size: 1.8rem;
+            background: linear-gradient(45deg, #60a5fa, #a78bfa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+
+        .info-panel p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #e2e8f0;
+            margin-bottom: 15px;
+        }
+
+        /* Ion Tables */
+        .ion-tables {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .ion-table {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .ion-table h4 {
+            color: #60a5fa;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            text-align: center;
+        }
+
+        .ion-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .ion-table th {
+            background: rgba(96, 165, 250, 0.2);
+            padding: 10px;
+            text-align: left;
+            color: #a5b4fc;
+            font-weight: 600;
+        }
+
+        .ion-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+        }
+
+        .ion-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Example Cards */
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .example-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            border: 2px solid rgba(96, 165, 250, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .example-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .formula-text {
+            font-size: 2rem;
+            color: #60a5fa;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+
+        .formula-name {
+            color: #e2e8f0;
+            font-size: 1rem;
+        }
+
+        /* Progress Indicator */
+        .progress-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 10px 20px;
+            display: none;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .progress-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            display: inline-block;
+            margin: 0 5px;
+        }
+
+        .progress-dot.active {
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            transform: scale(1.3);
+        }
+
+        .progress-dot.completed {
+            background: #10b981;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .canvas-stage {
+                height: 400px;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .ion-tables {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>3.4 Writing Chemical Formulae</h1>
+            <p>Master the art of writing chemical formulae through interactive 3D visualizations</p>
+        </div>
+
+        <!-- 3D Canvas Stage -->
+        <div class="canvas-stage" id="stage">
+            <canvas id="chemCanvas"></canvas>
+            
+            <div class="stage-info" id="stageInfo">
+                <h3 id="infoTitle">Welcome to Chemical Formulae</h3>
+                <p id="infoText">Select a demonstration to explore how chemical formulae are written</p>
+            </div>
+            
+            <div class="element-legend" id="elementLegend">
+                <h4>Element Colors</h4>
+                <div class="legend-table" id="legendTable"></div>
+            </div>
+            
+            <div class="formula-display" id="formulaDisplay">
+                <h2 id="formulaText">NaCl</h2>
+                <div class="formula-name" id="formulaName">Sodium Chloride</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="lesson-title">Interactive Chemical Formula Writing</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" id="btn-complete" onclick="handleButtonClick(playCompleteStory, 'btn-complete')">📖 Complete Story</button>
+                <button class="demo-btn" id="btn-valency" onclick="handleButtonClick(showValencyConcept, 'btn-valency')">⚡ Valency Concept</button>
+                <button class="demo-btn" id="btn-electron" onclick="handleButtonClick(showElectronTransfer, 'btn-electron')">🔄 Electron Transfer</button>
+                <button class="demo-btn" id="btn-ions" onclick="handleButtonClick(showIonFormation, 'btn-ions')">⚛️ Ion Formation</button>
+                <button class="demo-btn" id="btn-crisscross" onclick="handleButtonClick(demonstrateCrissCross, 'btn-crisscross')">✂️ Criss-Cross Method</button>
+                <button class="demo-btn" id="btn-simple" onclick="handleButtonClick(showSimpleCompounds, 'btn-simple')">🧪 Simple Compounds</button>
+                <button class="demo-btn" id="btn-polyatomic" onclick="handleButtonClick(showPolyatomicIons, 'btn-polyatomic')">💎 Polyatomic Ions</button>
+                <button class="demo-btn" id="btn-reset" onclick="handleButtonClick(resetAll, 'btn-reset')">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Info Panel -->
+        <div class="info-panel">
+            <h3>📚 Key Concepts</h3>
+            <div id="panelContent">
+                <p><strong>Valency:</strong> The combining power of an element, determined by the number of electrons an atom can gain, lose, or share to achieve a stable electronic configuration.</p>
+                
+                <p><strong>Ions:</strong> Atoms or groups of atoms with a net electric charge due to the loss or gain of electrons.</p>
+                
+                <p><strong>Criss-Cross Method:</strong> A technique for writing chemical formulae by exchanging the valencies of combining elements.</p>
+                
+                <p><strong>Polyatomic Ions:</strong> Groups of atoms that act as a single unit with a net charge.</p>
+            </div>
+
+            <!-- Ion Tables -->
+            <div class="ion-tables">
+                <div class="ion-table">
+                    <h4>Common Cations (Positive Ions)</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ion</th>
+                                <th>Name</th>
+                                <th>Valency</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Na⁺</td><td>Sodium</td><td>1</td></tr>
+                            <tr><td>K⁺</td><td>Potassium</td><td>1</td></tr>
+                            <tr><td>Ca²⁺</td><td>Calcium</td><td>2</td></tr>
+                            <tr><td>Mg²⁺</td><td>Magnesium</td><td>2</td></tr>
+                            <tr><td>Al³⁺</td><td>Aluminium</td><td>3</td></tr>
+                            <tr><td>Fe²⁺</td><td>Iron(II)</td><td>2</td></tr>
+                            <tr><td>Fe³⁺</td><td>Iron(III)</td><td>3</td></tr>
+                            <tr><td>NH₄⁺</td><td>Ammonium</td><td>1</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="ion-table">
+                    <h4>Common Anions (Negative Ions)</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ion</th>
+                                <th>Name</th>
+                                <th>Valency</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Cl⁻</td><td>Chloride</td><td>1</td></tr>
+                            <tr><td>O²⁻</td><td>Oxide</td><td>2</td></tr>
+                            <tr><td>S²⁻</td><td>Sulphide</td><td>2</td></tr>
+                            <tr><td>OH⁻</td><td>Hydroxide</td><td>1</td></tr>
+                            <tr><td>NO₃⁻</td><td>Nitrate</td><td>1</td></tr>
+                            <tr><td>CO₃²⁻</td><td>Carbonate</td><td>2</td></tr>
+                            <tr><td>SO₄²⁻</td><td>Sulphate</td><td>2</td></tr>
+                            <tr><td>PO₄³⁻</td><td>Phosphate</td><td>3</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Example Compounds -->
+        <div class="info-panel">
+            <h3>🧪 Common Chemical Formulae</h3>
+            <div class="examples-grid">
+                <div class="example-card">
+                    <div class="formula-text">H₂O</div>
+                    <div class="formula-name">Water</div>
+                </div>
+                <div class="example-card">
+                    <div class="formula-text">NaCl</div>
+                    <div class="formula-name">Sodium Chloride</div>
+                </div>
+                <div class="example-card">
+                    <div class="formula-text">CaCO₃</div>
+                    <div class="formula-name">Calcium Carbonate</div>
+                </div>
+                <div class="example-card">
+                    <div class="formula-text">Al₂O₃</div>
+                    <div class="formula-name">Aluminium Oxide</div>
+                </div>
+                <div class="example-card">
+                    <div class="formula-text">NH₄Cl</div>
+                    <div class="formula-name">Ammonium Chloride</div>
+                </div>
+                <div class="example-card">
+                    <div class="formula-text">Ca(OH)₂</div>
+                    <div class="formula-name">Calcium Hydroxide</div>
+                </div>
+                <div class="example-card">
+                    <div class="formula-text">H₂SO₄</div>
+                    <div class="formula-name">Sulphuric Acid</div>
+                </div>
+                <div class="example-card">
+                    <div class="formula-text">(NH₄)₂SO₄</div>
+                    <div class="formula-name">Ammonium Sulphate</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Indicator -->
+        <div class="progress-indicator" id="progressIndicator">
+            <div class="progress-dot" data-step="1"></div>
+            <div class="progress-dot" data-step="2"></div>
+            <div class="progress-dot" data-step="3"></div>
+            <div class="progress-dot" data-step="4"></div>
+            <div class="progress-dot" data-step="5"></div>
+            <div class="progress-dot" data-step="6"></div>
+            <div class="progress-dot" data-step="7"></div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced Voice System
+        class ChemicalNarrator {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.rate = 0.9;
+                this.currentUtterance = null;
+                this.isSpeaking = false;
+                this.speechQueue = [];
+                this.isProcessingQueue = false;
+                this.isDestroyed = false;
+                this.abortController = null;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    // Add to queue instead of immediate execution
+                    this.speechQueue.push({ text, delay, resolve });
+                    this.processQueue();
+                });
+            }
+
+            async processQueue() {
+                if (this.isProcessingQueue || this.speechQueue.length === 0) return;
+                
+                this.isProcessingQueue = true;
+                
+                while (this.speechQueue.length > 0) {
+                    const { text, delay, resolve } = this.speechQueue.shift();
+                    
+                    if (!this.isEnabled || this.isDestroyed) {
+                        resolve();
+                        continue;
+                    }
+                    
+                    // Wait for delay
+                    if (delay > 0) {
+                        await this.wait(delay);
+                    }
+                    
+                    // Stop current speech completely
+                    this.stop();
+                    
+                    // Wait longer for speech to fully stop
+                    await this.wait(300);
+                    
+                    // Double-check if destroyed during wait
+                    if (this.isDestroyed) {
+                        resolve();
+                        continue;
+                    }
+                    
+                    // Create abort controller for this utterance
+                    this.abortController = new AbortController();
+                    
+                    // Create new utterance with current rate
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = this.rate;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.85;
+                    utterance.lang = 'en-US';
+                    
+                    // Enhanced event handling
+                    utterance.onstart = () => {
+                        this.isSpeaking = true;
+                        console.log(`Speaking: ${text.substring(0, 50)}...`);
+                    };
+                    
+                    utterance.onend = () => {
+                        this.isSpeaking = false;
+                        this.currentUtterance = null;
+                        this.abortController = null;
+                        console.log(`Finished speaking: ${text.substring(0, 50)}...`);
+                        resolve();
+                    };
+                    
+                    utterance.onerror = (event) => {
+                        console.warn('Speech synthesis error:', event.error);
+                        this.isSpeaking = false;
+                        this.currentUtterance = null;
+                        this.abortController = null;
+                        resolve();
+                    };
+                    
+                    this.currentUtterance = utterance;
+                    
+                    // Cancel any existing speech synthesis
+                    speechSynthesis.cancel();
+                    
+                    // Small delay before speaking to ensure clean start
+                    await this.wait(100);
+                    
+                    speechSynthesis.speak(utterance);
+                    
+                    // Wait for speech to complete with timeout
+                    let timeoutCount = 0;
+                    while (this.isSpeaking && !this.isDestroyed && timeoutCount < 300) {
+                        await this.wait(100);
+                        timeoutCount++;
+                    }
+                    
+                    if (timeoutCount >= 300) {
+                        console.warn('Speech timeout, forcing stop');
+                        this.stop();
+                        resolve();
+                    }
+                }
+                
+                this.isProcessingQueue = false;
+            }
+
+            stop() {
+                if (this.abortController) {
+                    this.abortController.abort();
+                }
+                
+                if (this.currentUtterance) {
+                    speechSynthesis.cancel();
+                    this.currentUtterance = null;
+                }
+                
+                // Cancel all speech synthesis
+                speechSynthesis.cancel();
+                
+                this.isSpeaking = false;
+                this.abortController = null;
+                console.log("Speech stopped");
+            }
+
+            clearQueue() {
+                console.log("Clearing speech queue...");
+                
+                // Resolve all pending promises in queue
+                this.speechQueue.forEach(({ resolve }) => {
+                    resolve();
+                });
+                this.speechQueue = [];
+                this.isProcessingQueue = false;
+                this.stop();
+                
+                console.log("Speech queue cleared");
+            }
+
+            wait(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            destroy() {
+                console.log("Destroying narrator...");
+                this.isDestroyed = true;
+                this.clearQueue();
+                this.stop();
+                this.currentUtterance = null;
+                this.abortController = null;
+                console.log("Narrator destroyed");
+            }
+        }
+
+        // Global State
+        let globalAudioEnabled = true;
+        let narrator = null;
+        let isAnimating = false;
+        let currentActiveButton = null;
+        let currentAnimationTimeout = null;
+        let currentAnimationInterval = null;
+
+        // Three.js variables
+        let scene, camera, renderer;
+        let currentModel = null;
+        let particles = [];
+        let animationId;
+
+        // Ion Data
+        const ionData = {
+            'Na': { charge: 1, color: 0xffff00, radius: 1.0, electrons: 11, protons: 11, name: 'Sodium' },
+            'Cl': { charge: -1, color: 0x00ff00, radius: 1.2, electrons: 17, protons: 17, name: 'Chlorine' },
+            'Ca': { charge: 2, color: 0xff9900, radius: 1.2, electrons: 20, protons: 20, name: 'Calcium' },
+            'O': { charge: -2, color: 0xff0000, radius: 0.8, electrons: 8, protons: 8, name: 'Oxygen' },
+            'Al': { charge: 3, color: 0x888888, radius: 1.1, electrons: 13, protons: 13, name: 'Aluminium' },
+            'Mg': { charge: 2, color: 0x00ffff, radius: 1.1, electrons: 12, protons: 12, name: 'Magnesium' },
+            'S': { charge: -2, color: 0xffff66, radius: 1.0, electrons: 16, protons: 16, name: 'Sulphur' },
+            'H': { charge: 1, color: 0xffffff, radius: 0.6, electrons: 1, protons: 1, name: 'Hydrogen' },
+            'C': { charge: 4, color: 0x333333, radius: 0.9, electrons: 6, protons: 6, name: 'Carbon' },
+            'N': { charge: -3, color: 0x0066ff, radius: 0.9, electrons: 7, protons: 7, name: 'Nitrogen' }
+        };
+
+        // Update element legend
+        function updateElementLegend(elements) {
+            const legendTable = document.getElementById('legendTable');
+            const elementLegend = document.getElementById('elementLegend');
+            
+            if (!legendTable || !elementLegend) return;
+            
+            if (!elements || elements.length === 0) {
+                elementLegend.classList.remove('show');
+                return;
+            }
+            
+            elementLegend.classList.add('show');
+            legendTable.innerHTML = '';
+            
+            elements.forEach(element => {
+                const data = ionData[element];
+                if (data) {
+                    const legendItem = document.createElement('div');
+                    legendItem.className = 'legend-item';
+                    legendItem.innerHTML = `
+                        <div class="legend-color" style="background: #${data.color.toString(16).padStart(6, '0')};"></div>
+                        <div class="legend-name">${data.name} (${element})</div>
+                    `;
+                    legendTable.appendChild(legendItem);
+                }
+            });
+        }
+
+        // Button management
+        function setActiveButton(buttonId) {
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (buttonId) {
+                const btn = document.getElementById(buttonId);
+                if (btn) {
+                    btn.classList.add('active');
+                    currentActiveButton = buttonId;
+                }
+            }
+        }
+
+        // Enhanced button click handler to prevent overlapping
+        async function handleButtonClick(buttonFunction, buttonId) {
+            console.log(`Button clicked: ${buttonId}`);
+            
+            try {
+                // If animation is already running, stop it first
+                if (isAnimating) {
+                    console.log(`Stopping current animation to start ${buttonId}...`);
+                    await stopCurrentAnimation();
+                    await wait(300); // Brief pause for cleanup
+                }
+                
+                // Double-check and force stop if needed
+                if (isAnimating) {
+                    console.log("Animation still running, forcing stop...");
+                    await forceStopAll();
+                    await wait(200);
+                }
+                
+                // Ensure clean state before starting new function
+                isAnimating = false;
+                currentActiveButton = null;
+                
+                // Call the button function
+                await buttonFunction();
+                
+                console.log(`Button ${buttonId} completed successfully`);
+                
+            } catch (error) {
+                console.error(`Error in button function ${buttonId}:`, error);
+                // Ensure clean state even on error
+                await forceStopAll();
+            }
+        }
+
+        // Enhanced stop current animation
+        async function stopCurrentAnimation() {
+            console.log("Stopping current animation...");
+            
+            // Set flag to prevent new operations
+            isAnimating = false;
+            
+            // Stop narrator and clear queue
+            if (narrator) {
+                narrator.destroy();
+                narrator = null;
+            }
+            
+            // Wait for narrator to fully stop
+            await wait(300);
+            
+            // Clear any running animations
+            if (currentAnimationTimeout) {
+                clearTimeout(currentAnimationTimeout);
+                currentAnimationTimeout = null;
+            }
+            if (currentAnimationInterval) {
+                clearInterval(currentAnimationInterval);
+                currentAnimationInterval = null;
+            }
+            
+            // Clear scene
+            clearScene();
+            
+            // Reset animation states
+            currentActiveButton = null;
+            
+            // Hide info panels
+            document.getElementById('formulaDisplay').style.display = 'none';
+            document.getElementById('elementLegend').classList.remove('show');
+            
+            // Reset progress
+            hideProgress();
+            
+            // Reset title
+            updateTitle("Interactive Chemical Formula Writing");
+            
+            console.log("Animation stopped and cleaned up");
+        }
+
+        // Force stop all - emergency cleanup
+        async function forceStopAll() {
+            console.log("Force stopping all animations and speech...");
+            
+            // Cancel all speech synthesis immediately
+            speechSynthesis.cancel();
+            
+            // Destroy narrator
+            if (narrator) {
+                narrator.destroy();
+                narrator = null;
+            }
+            
+            // Clear all timeouts and intervals
+            if (currentAnimationTimeout) {
+                clearTimeout(currentAnimationTimeout);
+                currentAnimationTimeout = null;
+            }
+            if (currentAnimationInterval) {
+                clearInterval(currentAnimationInterval);
+                currentAnimationInterval = null;
+            }
+            
+            // Clear scene
+            clearScene();
+            
+            // Reset all states
+            isAnimating = false;
+            currentActiveButton = null;
+            
+            // Hide all UI elements
+            document.getElementById('formulaDisplay').style.display = 'none';
+            document.getElementById('elementLegend').classList.remove('show');
+            hideProgress();
+            updateTitle("Interactive Chemical Formula Writing");
+            
+            // Wait for complete cleanup
+            await wait(500);
+            
+            console.log("Force stop complete");
+        }
+
+        function stopAllAnimations() {
+            if (currentAnimationTimeout) {
+                clearTimeout(currentAnimationTimeout);
+                currentAnimationTimeout = null;
+            }
+            if (currentAnimationInterval) {
+                clearInterval(currentAnimationInterval);
+                currentAnimationInterval = null;
+            }
+            if (narrator) {
+                narrator.destroy();
+                narrator = null;
+            }
+            isAnimating = false;
+            hideProgress();
+            document.getElementById('formulaDisplay').style.display = 'none';
+        }
+
+        // Initialize Three.js
+        function initThreeJS() {
+            const canvas = document.getElementById('chemCanvas');
+            const container = document.getElementById('stage');
+            
+            scene = new THREE.Scene();
+            scene.background = null;
+            
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+            camera.position.set(0, 5, 20);
+            camera.lookAt(0, 0, 0);
+            
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: canvas, 
+                antialias: true,
+                alpha: true 
+            });
+            renderer.setSize(width, height);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+            
+            const pointLight = new THREE.PointLight(0xffffff, 0.5);
+            pointLight.position.set(-10, -10, -5);
+            scene.add(pointLight);
+            
+            // Setup controls
+            setupMouseControls();
+            
+            // Start animation loop
+            animate();
+        }
+
+        // Create Ion Model - Fixed to prevent duplicate charges
+        function createIon(element, showElectrons = false, showCharge = true) {
+            const ionGroup = new THREE.Group();
+            const data = ionData[element];
+            
+            // Create nucleus
+            const nucleusGeometry = new THREE.SphereGeometry(data.radius, 32, 32);
+            const nucleusMaterial = new THREE.MeshPhongMaterial({
+                color: data.color,
+                emissive: data.color,
+                emissiveIntensity: 0.3
+            });
+            const nucleus = new THREE.Mesh(nucleusGeometry, nucleusMaterial);
+            ionGroup.add(nucleus);
+            
+            // Add charge indicator only if requested and mark it for identification
+            if (showCharge) {
+                const chargeSprite = createChargeSprite(data.charge);
+                chargeSprite.position.set(data.radius + 0.5, data.radius + 0.5, 0);
+                chargeSprite.userData.isChargeIndicator = true; // Mark for later identification
+                ionGroup.add(chargeSprite);
+            }
+            
+            // Add electrons if requested
+            if (showElectrons) {
+                const electronCount = data.electrons - (data.charge > 0 ? data.charge : 0) + (data.charge < 0 ? Math.abs(data.charge) : 0);
+                addElectronShells(ionGroup, electronCount, data.radius);
+            }
+            
+            return ionGroup;
+        }
+
+        // Create charge sprite
+        function createChargeSprite(charge) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const context = canvas.getContext('2d');
+            
+            context.fillStyle = charge > 0 ? '#ff4444' : '#4444ff';
+            context.font = 'bold 64px Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            
+            const chargeText = charge > 0 ? `+${charge}` : `${charge}`;
+            context.fillText(chargeText, 64, 64);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(2, 2, 1);
+            sprite.userData.isChargeIndicator = true;
+            
+            return sprite;
+        }
+
+        // Add electron shells
+        function addElectronShells(ionGroup, electronCount, nucleusRadius) {
+            const shellConfig = getElectronShellConfig(electronCount);
+            
+            shellConfig.forEach((electronsInShell, shellIndex) => {
+                const shellRadius = nucleusRadius + 1.5 + shellIndex * 1.2;
+                
+                // Shell ring
+                const ringGeometry = new THREE.TorusGeometry(shellRadius, 0.05, 8, 64);
+                const ringMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x60a5fa,
+                    opacity: 0.3,
+                    transparent: true
+                });
+                const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                ring.rotation.x = Math.PI / 2;
+                ionGroup.add(ring);
+                
+                // Add electrons
+                for (let i = 0; i < electronsInShell; i++) {
+                    const electronGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+                    const electronMaterial = new THREE.MeshPhongMaterial({
+                        color: 0x3b82f6,
+                        emissive: 0x3b82f6,
+                        emissiveIntensity: 0.5
+                    });
+                    const electron = new THREE.Mesh(electronGeometry, electronMaterial);
+                    
+                    const angle = (i / electronsInShell) * Math.PI * 2;
+                    
+                    electron.userData = {
+                        radius: shellRadius,
+                        angle: angle,
+                        speed: 1 - shellIndex * 0.2
+                    };
+                    
+                    electron.position.x = Math.cos(angle) * shellRadius;
+                    electron.position.z = Math.sin(angle) * shellRadius;
+                    
+                    ionGroup.add(electron);
+                    particles.push(electron);
+                }
+            });
+        }
+
+        // Get electron shell configuration
+        function getElectronShellConfig(electronCount) {
+            const shells = [];
+            let remaining = electronCount;
+            const maxPerShell = [2, 8, 8, 18];
+            
+            for (let i = 0; i < maxPerShell.length && remaining > 0; i++) {
+                const electronsInShell = Math.min(remaining, maxPerShell[i]);
+                shells.push(electronsInShell);
+                remaining -= electronsInShell;
+            }
+            
+            return shells;
+        }
+
+        // Create Criss-Cross Animation
+        function createCrissCrossAnimation(cation, anion) {
+            clearScene();
+            
+            currentModel = new THREE.Group();
+            
+            // Update legend
+            updateElementLegend([cation, anion]);
+            
+            // Get ion data
+            const cationData = ionData[cation];
+            const anionData = ionData[anion];
+            
+            // Create cation (left atom)
+            const cationModel = createIon(cation, false, false);
+            cationModel.position.x = -5;
+            currentModel.add(cationModel);
+            
+            // Create anion (right atom)
+            const anionModel = createIon(anion, false, false);
+            anionModel.position.x = 5;
+            currentModel.add(anionModel);
+            
+            // Show each atom's own valency
+            const cationValency = createTextSprite(
+                cationData.charge > 0 ? `+${cationData.charge}` : `${cationData.charge}`, 
+                '#ff4444'
+            );
+            cationValency.position.set(-5, 2.5, 0);
+            cationValency.scale.set(2.5, 2.5, 1);
+            currentModel.add(cationValency);
+            
+            const anionValency = createTextSprite(
+                anionData.charge > 0 ? `+${anionData.charge}` : `${anionData.charge}`, 
+                '#4444ff'
+            );
+            anionValency.position.set(5, 2.5, 0);
+            anionValency.scale.set(2.5, 2.5, 1);
+            currentModel.add(anionValency);
+            
+            // Create crossing arrow lines
+            const lineMaterial = new THREE.LineBasicMaterial({
+                color: 0x60a5fa,
+                linewidth: 3,
+                opacity: 0,
+                transparent: true
+            });
+            
+            // Arrow from left valency to right atom
+            const line1Geometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(-4.5, 2.2, 0),
+                new THREE.Vector3(4, 0, 0)
+            ]);
+            const line1 = new THREE.Line(line1Geometry, lineMaterial.clone());
+            currentModel.add(line1);
+            
+            // Arrow from right valency to left atom
+            const line2Geometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(4.5, 2.2, 0),
+                new THREE.Vector3(-4, 0, 0)
+            ]);
+            const line2 = new THREE.Line(line2Geometry, lineMaterial.clone());
+            currentModel.add(line2);
+            
+            // Create arrowheads
+            const arrowGeometry = new THREE.ConeGeometry(0.4, 0.9, 8);
+            const arrowMaterial = new THREE.MeshPhongMaterial({
+                color: 0x60a5fa,
+                emissive: 0x60a5fa,
+                emissiveIntensity: 0.5,
+                opacity: 0,
+                transparent: true
+            });
+            
+            const arrow1 = new THREE.Mesh(arrowGeometry, arrowMaterial.clone());
+            arrow1.position.set(4, 0, 0);
+            arrow1.rotation.z = -Math.PI / 2;
+            currentModel.add(arrow1);
+            
+            const arrow2 = new THREE.Mesh(arrowGeometry, arrowMaterial.clone());
+            arrow2.position.set(-4, 0, 0);
+            arrow2.rotation.z = Math.PI / 2;
+            currentModel.add(arrow2);
+            
+            // Add resulting subscripts
+            const leftSubscript = createTextSprite(
+                Math.abs(anionData.charge) === 1 ? '' : Math.abs(anionData.charge).toString(),
+                '#ffffff'
+            );
+            leftSubscript.position.set(-4.5, -2.5, 0);
+            leftSubscript.scale.set(1.8, 1.8, 1);
+            if (Math.abs(anionData.charge) !== 1) {
+                currentModel.add(leftSubscript);
+            }
+            
+            const rightSubscript = createTextSprite(
+                Math.abs(cationData.charge) === 1 ? '' : Math.abs(cationData.charge).toString(),
+                '#ffffff'
+            );
+            rightSubscript.position.set(5.5, -2.5, 0);
+            rightSubscript.scale.set(1.8, 1.8, 1);
+            if (Math.abs(cationData.charge) !== 1) {
+                currentModel.add(rightSubscript);
+            }
+            
+            // Animate elements appearing
+            let opacity = 0;
+            currentAnimationInterval = setInterval(() => {
+                opacity += 0.05;
+                if (opacity >= 1) {
+                    opacity = 1;
+                    clearInterval(currentAnimationInterval);
+                    currentAnimationInterval = null;
+                }
+                line1.material.opacity = opacity;
+                line2.material.opacity = opacity;
+                arrow1.material.opacity = opacity;
+                arrow2.material.opacity = opacity;
+            }, 50);
+            
+            scene.add(currentModel);
+        }
+
+        // Create text sprite
+        function createTextSprite(text, color) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const context = canvas.getContext('2d');
+            
+            context.fillStyle = color;
+            context.font = 'bold 72px Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(text, 64, 64);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(2, 2, 1);
+            
+            return sprite;
+        }
+
+        // Create 3D Molecule
+        function create3DMolecule(formula) {
+            clearScene();
+            
+            currentModel = new THREE.Group();
+            
+            if (formula === 'H2O') {
+                // Water molecule
+                updateElementLegend(['H', 'O']);
+                const oxygen = createAtomSphere(0xff0000, 1.2, 0, 0, 0);
+                const hydrogen1 = createAtomSphere(0xffffff, 0.8, -1.5, -0.8, 0);
+                const hydrogen2 = createAtomSphere(0xffffff, 0.8, 1.5, -0.8, 0);
+                
+                currentModel.add(oxygen);
+                currentModel.add(hydrogen1);
+                currentModel.add(hydrogen2);
+                
+                // Bonds
+                const bond1 = createBond(-1.5, -0.8, 0, 0, 0, 0);
+                const bond2 = createBond(1.5, -0.8, 0, 0, 0, 0);
+                currentModel.add(bond1);
+                currentModel.add(bond2);
+            } else if (formula === 'NaCl') {
+                // Single Na-Cl ion pair
+                updateElementLegend(['Na', 'Cl']);
+                
+                // Sodium ion (yellow)
+                const na = createAtomSphere(0xffff00, 1.0, -2, 0, 0);
+                currentModel.add(na);
+                
+                // Chloride ion (green)
+                const cl = createAtomSphere(0x00ff00, 1.2, 2, 0, 0);
+                currentModel.add(cl);
+                
+                // Add ionic interaction indicator
+                const lineMaterial = new THREE.LineDashedMaterial({
+                    color: 0x60a5fa,
+                    linewidth: 2,
+                    dashSize: 0.3,
+                    gapSize: 0.2,
+                    opacity: 0.5,
+                    transparent: true
+                });
+                
+                const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(-2, 0, 0),
+                    new THREE.Vector3(2, 0, 0)
+                ]);
+                const line = new THREE.Line(lineGeometry, lineMaterial);
+                line.computeLineDistances();
+                currentModel.add(line);
+                
+                // Add charge labels
+                const naCharge = createTextSprite('+1', '#ffff00');
+                naCharge.position.set(-2, 1.5, 0);
+                naCharge.scale.set(1.5, 1.5, 1);
+                currentModel.add(naCharge);
+                
+                const clCharge = createTextSprite('-1', '#00ff00');
+                clCharge.position.set(2, 1.5, 0);
+                clCharge.scale.set(1.5, 1.5, 1);
+                currentModel.add(clCharge);
+            } else if (formula === 'CO2') {
+                // Carbon dioxide
+                updateElementLegend(['C', 'O']);
+                const carbon = createAtomSphere(0x333333, 1.0, 0, 0, 0);
+                const oxygen1 = createAtomSphere(0xff0000, 1.2, -2.5, 0, 0);
+                const oxygen2 = createAtomSphere(0xff0000, 1.2, 2.5, 0, 0);
+                
+                currentModel.add(carbon);
+                currentModel.add(oxygen1);
+                currentModel.add(oxygen2);
+                
+                // Double bonds
+                const bond1a = createBond(-2.5, 0, 0, 0, 0, 0);
+                const bond1b = createBond(-2.5, 0.3, 0, 0, 0.3, 0);
+                const bond2a = createBond(2.5, 0, 0, 0, 0, 0);
+                const bond2b = createBond(2.5, 0.3, 0, 0, 0.3, 0);
+                currentModel.add(bond1a);
+                currentModel.add(bond1b);
+                currentModel.add(bond2a);
+                currentModel.add(bond2b);
+            }
+            
+            scene.add(currentModel);
+        }
+
+        function createAtomSphere(color, radius, x, y, z) {
+            const geometry = new THREE.SphereGeometry(radius, 32, 32);
+            const material = new THREE.MeshPhongMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.2,
+                shininess: 100
+            });
+            const sphere = new THREE.Mesh(geometry, material);
+            sphere.position.set(x, y, z);
+            return sphere;
+        }
+
+        function createBond(x1, y1, z1, x2, y2, z2) {
+            const distance = Math.sqrt((x2-x1)**2 + (y2-y1)**2 + (z2-z1)**2);
+            const geometry = new THREE.CylinderGeometry(0.1, 0.1, distance, 8);
+            const material = new THREE.MeshPhongMaterial({ color: 0xcccccc });
+            const bond = new THREE.Mesh(geometry, material);
+            
+            // Position at midpoint
+            bond.position.x = (x1 + x2) / 2;
+            bond.position.y = (y1 + y2) / 2;
+            bond.position.z = (z1 + z2) / 2;
+            
+            // Rotate to align with bond direction
+            const direction = new THREE.Vector3(x2-x1, y2-y1, z2-z1).normalize();
+            bond.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+            
+            return bond;
+        }
+
+        // Clear scene - Enhanced to properly dispose of all objects
+        function clearScene() {
+            // Clear any running animations
+            if (currentAnimationInterval) {
+                clearInterval(currentAnimationInterval);
+                currentAnimationInterval = null;
+            }
+            
+            // Remove all children from scene except lights
+            const objectsToRemove = [];
+            scene.traverse((child) => {
+                if (child.type === 'Mesh' || child.type === 'Group' || child.type === 'Sprite' || child.type === 'Points' || child.type === 'Line') {
+                    objectsToRemove.push(child);
+                }
+            });
+            
+            objectsToRemove.forEach((obj) => {
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                    if (Array.isArray(obj.material)) {
+                        obj.material.forEach(m => {
+                            if (m.map) m.map.dispose();
+                            m.dispose();
+                        });
+                    } else {
+                        if (obj.material.map) obj.material.map.dispose();
+                        obj.material.dispose();
+                    }
+                }
+                scene.remove(obj);
+            });
+            
+            particles = [];
+            currentModel = null;
+            updateElementLegend([]);
+            
+            // Re-add lights if they were removed
+            const hasAmbientLight = scene.children.some(child => child.type === 'AmbientLight');
+            const hasDirectionalLight = scene.children.some(child => child.type === 'DirectionalLight');
+            const hasPointLight = scene.children.some(child => child.type === 'PointLight');
+            
+            if (!hasAmbientLight) {
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
+                scene.add(ambientLight);
+            }
+            
+            if (!hasDirectionalLight) {
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+                directionalLight.position.set(10, 10, 5);
+                scene.add(directionalLight);
+            }
+            
+            if (!hasPointLight) {
+                const pointLight = new THREE.PointLight(0xffffff, 0.5);
+                pointLight.position.set(-10, -10, -5);
+                scene.add(pointLight);
+            }
+        }
+
+        // Complete Story - Plays full animations/narrations
+        async function playCompleteStory() {
+            console.log("Starting complete story...");
+            
+            try {
+                // Prevent multiple simultaneous executions
+                if (isAnimating) {
+                    console.log("Animation already running, stopping current one...");
+                    await stopCurrentAnimation();
+                    await wait(500);
+                }
+                
+                // Stop any current animation and reset
+                await stopCurrentAnimation();
+                
+                // Additional cleanup
+                clearScene();
+                document.getElementById('formulaDisplay').style.display = 'none';
+                document.getElementById('elementLegend').classList.remove('show');
+                hideProgress();
+                
+                // Longer delay to ensure complete cleanup
+                await wait(800);
+                
+                // Set up complete story
+                isAnimating = true;
+                setActiveButton('btn-complete');
+                
+                console.log("Complete story setup complete, starting sequence...");
+                
+                narrator = new ChemicalNarrator();
+                
+                showProgress();
+                updateTitle("📖 Complete Journey Through Chemical Formulae");
+                
+                await narrator.speak("Welcome to the complete journey through chemical formulae! We'll explore each concept step by step.");
+                await wait(2000);
+            
+                // Step 1: Valency Concept - FULL animation and narration
+                if (!isAnimating) {
+                    console.log("Complete story stopped at step 1");
+                    return;
+                }
+                updateProgress(1);
+                await showValencyConceptFull();
+                if (!isAnimating) {
+                    console.log("Complete story stopped after step 1");
+                    return;
+                }
+                await wait(3000);
+                
+                // Step 2: Electron Transfer - FULL animation and narration
+                if (!isAnimating) {
+                    console.log("Complete story stopped at step 2");
+                    return;
+                }
+                updateProgress(2);
+                await showElectronTransferFull();
+                if (!isAnimating) {
+                    console.log("Complete story stopped after step 2");
+                    return;
+                }
+                await wait(3000);
+                
+                // Step 3: Ion Formation - FULL animation and narration
+                if (!isAnimating) {
+                    console.log("Complete story stopped at step 3");
+                    return;
+                }
+                updateProgress(3);
+                await showIonFormationFull();
+                if (!isAnimating) {
+                    console.log("Complete story stopped after step 3");
+                    return;
+                }
+                await wait(3000);
+                
+                // Step 4: Criss-Cross Method - FULL animation and narration
+                if (!isAnimating) {
+                    console.log("Complete story stopped at step 4");
+                    return;
+                }
+                updateProgress(4);
+                await demonstrateCrissCrossFull();
+                if (!isAnimating) {
+                    console.log("Complete story stopped after step 4");
+                    return;
+                }
+                await wait(3000);
+                
+                // Step 5: Simple Compounds - FULL animation and narration
+                if (!isAnimating) {
+                    console.log("Complete story stopped at step 5");
+                    return;
+                }
+                updateProgress(5);
+                await showSimpleCompoundsFull();
+                if (!isAnimating) {
+                    console.log("Complete story stopped after step 5");
+                    return;
+                }
+                await wait(3000);
+                
+                // Step 6: Polyatomic Ions - FULL animation and narration
+                if (!isAnimating) {
+                    console.log("Complete story stopped at step 6");
+                    return;
+                }
+                updateProgress(6);
+                await showPolyatomicIonsFull();
+                if (!isAnimating) {
+                    console.log("Complete story stopped after step 6");
+                    return;
+                }
+                await wait(3000);
+                
+                // Step 7: Complete
+                if (!isAnimating) {
+                    console.log("Complete story stopped at step 7");
+                    return;
+                }
+                updateProgress(7);
+                updateStageInfo("Journey Complete!", "You've mastered chemical formula writing!");
+                
+                await narrator.speak("Congratulations! You've completed the journey through chemical formulae. You now understand valency, ion formation, and how to write formulae for compounds! Feel free to explore each concept individually using the control buttons.");
+                
+                await wait(3000);
+                hideProgress();
+                isAnimating = false;
+                
+                console.log("Complete story finished successfully");
+                
+            } catch (error) {
+                console.error("Error in playCompleteStory:", error);
+                await forceStopAll();
+            }
+        }
+
+        // Full animation functions for complete story - same as individual buttons
+        async function showValencyConceptFull() {
+            updateTitle("⚡ Understanding Valency");
+            updateStageInfo("Valency Concept", "The combining power of elements");
+            
+            clearScene();
+            currentModel = new THREE.Group();
+            updateElementLegend(['Na', 'Cl']);
+            
+            const sodium = createIon('Na', true, true);
+            sodium.position.x = -5;
+            currentModel.add(sodium);
+            
+            const chlorine = createIon('Cl', true, true);
+            chlorine.position.x = 5;
+            currentModel.add(chlorine);
+            
+            scene.add(currentModel);
+            
+            await narrator.speak("Valency is the combining power of an element. Sodium has valency 1, it can lose one electron. Chlorine also has valency 1, it can gain one electron.");
+        }
+
+        async function showElectronTransferFull() {
+            updateTitle("🔄 Electron Transfer Animation");
+            updateStageInfo("Electron Transfer", "Watch electrons move between atoms");
+            
+            clearScene();
+            currentModel = new THREE.Group();
+            updateElementLegend(['Na', 'Cl']);
+            
+            const sodium = createIon('Na', true, false);
+            sodium.position.x = -5;
+            currentModel.add(sodium);
+            
+            const chlorine = createIon('Cl', true, false);
+            chlorine.position.x = 5;
+            currentModel.add(chlorine);
+            
+            const electronGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+            const electronMaterial = new THREE.MeshPhongMaterial({
+                color: 0xff00ff,
+                emissive: 0xff00ff,
+                emissiveIntensity: 0.9
+            });
+            const transferElectron = new THREE.Mesh(electronGeometry, electronMaterial);
+            transferElectron.position.set(-3, 0, 0);
+            
+            const glowGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff00ff,
+                transparent: true,
+                opacity: 0.3
+            });
+            const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
+            transferElectron.add(glowSphere);
+            
+            currentModel.add(transferElectron);
+            
+            const arrowGeometry = new THREE.ConeGeometry(0.2, 0.5, 8);
+            const arrowMaterial = new THREE.MeshPhongMaterial({
+                color: 0xff00ff,
+                emissive: 0xff00ff,
+                emissiveIntensity: 0.5
+            });
+            const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+            arrow.rotation.z = -Math.PI / 2;
+            arrow.position.set(0, -2, 0);
+            currentModel.add(arrow);
+            
+            scene.add(currentModel);
+            
+            await narrator.speak("Watch the magenta electron as it transfers from sodium to chlorine. Sodium loses an electron and becomes a positive ion, while chlorine gains it and becomes a negative ion.");
+            
+            // Wait for animation to complete
+            await new Promise(resolve => {
+                let progress = 0;
+                let pulseScale = 1;
+                currentAnimationInterval = setInterval(() => {
+                    if (!isAnimating) {
+                        clearInterval(currentAnimationInterval);
+                        currentAnimationInterval = null;
+                        resolve();
+                        return;
+                    }
+                    progress += 0.015;
+                    pulseScale = 1 + Math.sin(progress * 10) * 0.2;
+                    
+                    if (progress >= 1) {
+                        clearInterval(currentAnimationInterval);
+                        currentAnimationInterval = null;
+                        currentModel.remove(transferElectron);
+                        currentModel.remove(arrow);
+                        
+                        const naCharge = createChargeSprite(1);
+                        naCharge.position.set(-3.5, 2, 0);
+                        naCharge.scale.set(3, 3, 1);
+                        currentModel.add(naCharge);
+                        
+                        const clCharge = createChargeSprite(-1);
+                        clCharge.position.set(3.5, 2, 0);
+                        clCharge.scale.set(3, 3, 1);
+                        currentModel.add(clCharge);
+                        resolve();
+                    } else {
+                        transferElectron.position.x = -3 + (8 * progress);
+                        transferElectron.scale.set(pulseScale, pulseScale, pulseScale);
+                    }
+                }, 30);
+            });
+        }
+
+        async function showIonFormationFull() {
+            updateTitle("⚛️ Ion Formation");
+            updateStageInfo("Formation of Ions", "How atoms become ions");
+            
+            clearScene();
+            currentModel = new THREE.Group();
+            updateElementLegend(['Na']);
+            
+            const atom = createIon('Na', true);
+            currentModel.add(atom);
+            
+            scene.add(currentModel);
+            
+            await narrator.speak("When sodium loses one electron, it becomes a positive ion with a plus one charge. This happens because it now has more protons than electrons.");
+        }
+
+        async function demonstrateCrissCrossFull() {
+            updateTitle("✂️ The Criss-Cross Method");
+            updateStageInfo("Criss-Cross Method", "Exchange valencies to write formulae");
+            
+            createCrissCrossAnimation('Al', 'O');
+            
+            const formulaDisplay = document.getElementById('formulaDisplay');
+            formulaDisplay.style.display = 'block';
+            document.getElementById('formulaText').textContent = 'Al₂O₃';
+            document.getElementById('formulaName').textContent = 'Aluminium Oxide';
+            
+            await narrator.speak("Aluminium has valency 3, oxygen has valency 2. Cross the valencies: 3 becomes the subscript of oxygen, 2 becomes the subscript of aluminium. The formula is Al2O3.");
+        }
+
+        async function showSimpleCompoundsFull() {
+            updateTitle("🧪 Simple Binary Compounds");
+            updateStageInfo("Simple Compounds", "Two-element compounds");
+            
+            create3DMolecule('NaCl');
+            
+            const formulaDisplay = document.getElementById('formulaDisplay');
+            formulaDisplay.style.display = 'block';
+            document.getElementById('formulaText').textContent = 'NaCl';
+            document.getElementById('formulaName').textContent = 'Sodium Chloride (Salt)';
+            
+            await narrator.speak("Sodium chloride forms ion pairs where each sodium ion is attracted to a chloride ion. This ionic bonding creates the compound we know as table salt.");
+        }
+
+        async function showPolyatomicIonsFull() {
+            updateTitle("💎 Polyatomic Ions");
+            updateStageInfo("Polyatomic Ions", "Groups of atoms with a charge");
+            
+            clearScene();
+            currentModel = new THREE.Group();
+            updateElementLegend(['C', 'O']);
+            
+            const carbon = createAtomSphere(0x333333, 0.8, 0, 0, 0);
+            currentModel.add(carbon);
+            
+            for (let i = 0; i < 3; i++) {
+                const angle = (i / 3) * Math.PI * 2;
+                const x = Math.cos(angle) * 2;
+                const z = Math.sin(angle) * 2;
+                const oxygen = createAtomSphere(0xff0000, 1.0, x, 0, z);
+                currentModel.add(oxygen);
+                
+                const bond = createBond(x, 0, z, 0, 0, 0);
+                currentModel.add(bond);
+            }
+            
+            const chargeSprite = createChargeSprite(-2);
+            chargeSprite.position.set(3, 2, 0);
+            currentModel.add(chargeSprite);
+            
+            scene.add(currentModel);
+            
+            const formulaDisplay = document.getElementById('formulaDisplay');
+            formulaDisplay.style.display = 'block';
+            document.getElementById('formulaText').textContent = 'CO₃²⁻';
+            document.getElementById('formulaName').textContent = 'Carbonate Ion';
+            
+            await narrator.speak("Polyatomic ions are groups of atoms that act as a single unit with a net charge. Carbonate has one carbon and three oxygen atoms with a 2 minus charge.");
+        }
+
+
+
+        // Individual Animation Functions
+        async function showValencyConcept() {
+            console.log("Starting showValencyConcept...");
+            
+            // Ensure clean state
+            if (isAnimating) {
+                console.log("Animation running, stopping first...");
+                await stopCurrentAnimation();
+                await wait(500);
+            }
+            
+            // Set up new animation
+            isAnimating = true;
+            setActiveButton('btn-valency');
+            
+            // Create new narrator instance
+            narrator = new ChemicalNarrator();
+            
+            try {
+                updateTitle("⚡ Understanding Valency");
+                updateStageInfo("Valency Concept", "The combining power of elements");
+                
+                clearScene();
+                currentModel = new THREE.Group();
+                updateElementLegend(['Na', 'Cl']);
+                
+                const sodium = createIon('Na', true, true);
+                sodium.position.x = -5;
+                currentModel.add(sodium);
+                
+                const chlorine = createIon('Cl', true, true);
+                chlorine.position.x = 5;
+                currentModel.add(chlorine);
+                
+                scene.add(currentModel);
+                
+                await narrator.speak("Valency is the combining power of an element. Sodium has valency 1, it can lose one electron. Chlorine also has valency 1, it can gain one electron.");
+                
+                console.log("showValencyConcept completed successfully");
+            } catch (error) {
+                console.error("Error in showValencyConcept:", error);
+                await forceStopAll();
+            }
+        }
+
+        async function showElectronTransfer() {
+            console.log("Starting showElectronTransfer...");
+            
+            // Ensure clean state
+            if (isAnimating) {
+                console.log("Animation running, stopping first...");
+                await stopCurrentAnimation();
+                await wait(500);
+            }
+            
+            // Set up new animation
+            isAnimating = true;
+            setActiveButton('btn-electron');
+            
+            // Create new narrator instance
+            narrator = new ChemicalNarrator();
+            
+            try {
+                updateTitle("🔄 Electron Transfer Animation");
+                updateStageInfo("Electron Transfer", "Watch electrons move between atoms");
+                
+                clearScene();
+                currentModel = new THREE.Group();
+                updateElementLegend(['Na', 'Cl']);
+                
+                const sodium = createIon('Na', true, false);
+                sodium.position.x = -5;
+                currentModel.add(sodium);
+                
+                const chlorine = createIon('Cl', true, false);
+                chlorine.position.x = 5;
+                currentModel.add(chlorine);
+                
+                const electronGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+                const electronMaterial = new THREE.MeshPhongMaterial({
+                    color: 0xff00ff,
+                    emissive: 0xff00ff,
+                    emissiveIntensity: 0.9
+                });
+                const transferElectron = new THREE.Mesh(electronGeometry, electronMaterial);
+                transferElectron.position.set(-3, 0, 0);
+                
+                const glowGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+                const glowMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xff00ff,
+                    transparent: true,
+                    opacity: 0.3
+                });
+                const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
+                transferElectron.add(glowSphere);
+                
+                currentModel.add(transferElectron);
+                
+                const arrowGeometry = new THREE.ConeGeometry(0.2, 0.5, 8);
+                const arrowMaterial = new THREE.MeshPhongMaterial({
+                    color: 0xff00ff,
+                    emissive: 0xff00ff,
+                    emissiveIntensity: 0.5
+                });
+                const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+                arrow.rotation.z = -Math.PI / 2;
+                arrow.position.set(0, -2, 0);
+                currentModel.add(arrow);
+                
+                scene.add(currentModel);
+                
+                // Start animation
+                let progress = 0;
+                let pulseScale = 1;
+                currentAnimationInterval = setInterval(() => {
+                    if (!isAnimating) {
+                        clearInterval(currentAnimationInterval);
+                        currentAnimationInterval = null;
+                        return;
+                    }
+                    progress += 0.015;
+                    pulseScale = 1 + Math.sin(progress * 10) * 0.2;
+                    
+                    if (progress >= 1) {
+                        clearInterval(currentAnimationInterval);
+                        currentAnimationInterval = null;
+                        currentModel.remove(transferElectron);
+                        currentModel.remove(arrow);
+                        
+                        const naCharge = createChargeSprite(1);
+                        naCharge.position.set(-3.5, 2, 0);
+                        naCharge.scale.set(3, 3, 1);
+                        currentModel.add(naCharge);
+                        
+                        const clCharge = createChargeSprite(-1);
+                        clCharge.position.set(3.5, 2, 0);
+                        clCharge.scale.set(3, 3, 1);
+                        currentModel.add(clCharge);
+                    } else {
+                        transferElectron.position.x = -3 + (8 * progress);
+                        transferElectron.scale.set(pulseScale, pulseScale, pulseScale);
+                    }
+                }, 30);
+                
+                await narrator.speak("Watch the magenta electron as it transfers from sodium to chlorine. Sodium loses an electron and becomes a positive ion, while chlorine gains it and becomes a negative ion.");
+                
+                console.log("showElectronTransfer completed successfully");
+            } catch (error) {
+                console.error("Error in showElectronTransfer:", error);
+                await forceStopAll();
+            }
+        }
+
+        async function showIonFormation() {
+            console.log("Starting showIonFormation...");
+            
+            // Ensure clean state
+            if (isAnimating) {
+                console.log("Animation running, stopping first...");
+                await stopCurrentAnimation();
+                await wait(500);
+            }
+            
+            // Set up new animation
+            isAnimating = true;
+            setActiveButton('btn-ions');
+            
+            // Create new narrator instance
+            narrator = new ChemicalNarrator();
+            
+            try {
+                updateTitle("⚛️ Ion Formation");
+                updateStageInfo("Formation of Ions", "How atoms become ions");
+                
+                clearScene();
+                currentModel = new THREE.Group();
+                updateElementLegend(['Na']);
+                
+                const atom = createIon('Na', true);
+                currentModel.add(atom);
+                
+                scene.add(currentModel);
+                
+                await narrator.speak("When sodium loses one electron, it becomes a positive ion with a plus one charge. This happens because it now has more protons than electrons.");
+                
+                console.log("showIonFormation completed successfully");
+            } catch (error) {
+                console.error("Error in showIonFormation:", error);
+                await forceStopAll();
+            }
+        }
+
+        async function showSimpleCompounds() {
+            console.log("Starting showSimpleCompounds...");
+            
+            // Ensure clean state
+            if (isAnimating) {
+                console.log("Animation running, stopping first...");
+                await stopCurrentAnimation();
+                await wait(500);
+            }
+            
+            // Set up new animation
+            isAnimating = true;
+            setActiveButton('btn-simple');
+            
+            // Create new narrator instance
+            narrator = new ChemicalNarrator();
+            
+            try {
+                updateTitle("🧪 Simple Binary Compounds");
+                updateStageInfo("Simple Compounds", "Two-element compounds");
+                
+                create3DMolecule('NaCl');
+                
+                const formulaDisplay = document.getElementById('formulaDisplay');
+                formulaDisplay.style.display = 'block';
+                document.getElementById('formulaText').textContent = 'NaCl';
+                document.getElementById('formulaName').textContent = 'Sodium Chloride (Salt)';
+                
+                await narrator.speak("Sodium chloride forms ion pairs where each sodium ion is attracted to a chloride ion. This ionic bonding creates the compound we know as table salt.");
+                
+                console.log("showSimpleCompounds completed successfully");
+            } catch (error) {
+                console.error("Error in showSimpleCompounds:", error);
+                await forceStopAll();
+            }
+        }
+
+        async function showPolyatomicIons() {
+            console.log("Starting showPolyatomicIons...");
+            
+            // Ensure clean state
+            if (isAnimating) {
+                console.log("Animation running, stopping first...");
+                await stopCurrentAnimation();
+                await wait(500);
+            }
+            
+            // Set up new animation
+            isAnimating = true;
+            setActiveButton('btn-polyatomic');
+            
+            // Create new narrator instance
+            narrator = new ChemicalNarrator();
+            
+            try {
+                updateTitle("💎 Polyatomic Ions");
+                updateStageInfo("Polyatomic Ions", "Groups of atoms with a charge");
+                
+                clearScene();
+                currentModel = new THREE.Group();
+                updateElementLegend(['C', 'O']);
+                
+                const carbon = createAtomSphere(0x333333, 0.8, 0, 0, 0);
+                currentModel.add(carbon);
+                
+                for (let i = 0; i < 3; i++) {
+                    const angle = (i / 3) * Math.PI * 2;
+                    const x = Math.cos(angle) * 2;
+                    const z = Math.sin(angle) * 2;
+                    const oxygen = createAtomSphere(0xff0000, 1.0, x, 0, z);
+                    currentModel.add(oxygen);
+                    
+                    const bond = createBond(x, 0, z, 0, 0, 0);
+                    currentModel.add(bond);
+                }
+                
+                const chargeSprite = createChargeSprite(-2);
+                chargeSprite.position.set(3, 2, 0);
+                currentModel.add(chargeSprite);
+                
+                scene.add(currentModel);
+                
+                const formulaDisplay = document.getElementById('formulaDisplay');
+                formulaDisplay.style.display = 'block';
+                document.getElementById('formulaText').textContent = 'CO₃²⁻';
+                document.getElementById('formulaName').textContent = 'Carbonate Ion';
+                
+                await narrator.speak("Polyatomic ions are groups of atoms that act as a single unit with a net charge. Carbonate has one carbon and three oxygen atoms with a 2 minus charge.");
+                
+                console.log("showPolyatomicIons completed successfully");
+            } catch (error) {
+                console.error("Error in showPolyatomicIons:", error);
+                await forceStopAll();
+            }
+        }
+
+
+        async function demonstrateCrissCross() {
+            console.log("Starting demonstrateCrissCross...");
+            
+            // Ensure clean state
+            if (isAnimating) {
+                console.log("Animation running, stopping first...");
+                await stopCurrentAnimation();
+                await wait(500);
+            }
+            
+            // Set up new animation
+            isAnimating = true;
+            setActiveButton('btn-crisscross');
+            
+            // Create new narrator instance
+            narrator = new ChemicalNarrator();
+            
+            try {
+                updateTitle("✂️ The Criss-Cross Method");
+                updateStageInfo("Criss-Cross Method", "Exchange valencies to write formulae");
+                
+                createCrissCrossAnimation('Al', 'O');
+                
+                const formulaDisplay = document.getElementById('formulaDisplay');
+                formulaDisplay.style.display = 'block';
+                document.getElementById('formulaText').textContent = 'Al₂O₃';
+                document.getElementById('formulaName').textContent = 'Aluminium Oxide';
+                
+                await narrator.speak("Aluminium has valency 3, oxygen has valency 2. Cross the valencies: 3 becomes the subscript of oxygen, 2 becomes the subscript of aluminium. The formula is Al2O3.");
+                
+                console.log("demonstrateCrissCross completed successfully");
+            } catch (error) {
+                console.error("Error in demonstrateCrissCross:", error);
+                await forceStopAll();
+            }
+        }
+
+
+        // Helper Functions
+        async function resetAll() {
+            console.log("Starting resetAll...");
+            
+            try {
+                // Stop any current animation immediately
+                if (isAnimating) {
+                    await stopCurrentAnimation();
+                    await wait(300); // Brief pause for cleanup
+                }
+                
+                // Clear any remaining state
+                await forceStopAll();
+                
+                // Reset UI to welcome state
+                updateTitle("Interactive Chemical Formula Writing");
+                updateStageInfo("Welcome to Chemical Formulae", "Select a demonstration to explore how chemical formulae are written");
+                hideProgress();
+                
+                // Clear active button state
+                setActiveButton(null);
+                
+                console.log("resetAll completed successfully - ready for new interactions");
+            } catch (error) {
+                console.error("Error in resetAll:", error);
+                await forceStopAll();
+            }
+        }
+
+        function updateTitle(title) {
+            document.getElementById('lesson-title').textContent = title;
+        }
+
+        function updateStageInfo(title, text) {
+            document.getElementById('infoTitle').textContent = title;
+            document.getElementById('infoText').textContent = text;
+        }
+
+        function showProgress() {
+            document.getElementById('progressIndicator').style.display = 'flex';
+        }
+
+        function hideProgress() {
+            document.getElementById('progressIndicator').style.display = 'none';
+        }
+
+        function updateProgress(step) {
+            document.querySelectorAll('.progress-dot').forEach((dot, index) => {
+                if (index < step) {
+                    dot.classList.add('completed');
+                    dot.classList.remove('active');
+                } else if (index === step - 1) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active', 'completed');
+                }
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    resolve();
+                }, ms);
+            });
+        }
+
+        // Setup mouse controls
+        function setupMouseControls() {
+            const canvas = renderer.domElement;
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            canvas.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDragging || !currentModel) return;
+                
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+                
+                currentModel.rotation.y += deltaX * 0.02;
+                currentModel.rotation.x += deltaY * 0.02;
+                
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                camera.position.z += e.deltaY * 0.02;
+                camera.position.z = Math.max(10, Math.min(40, camera.position.z));
+            });
+        }
+
+        // Animation loop
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            
+            // Animate electrons
+            particles.forEach(electron => {
+                if (electron.userData && electron.userData.radius) {
+                    const time = Date.now() * 0.001;
+                    const angle = electron.userData.angle + time * electron.userData.speed;
+                    electron.position.x = Math.cos(angle) * electron.userData.radius;
+                    electron.position.z = Math.sin(angle) * electron.userData.radius;
+                }
+            });
+            
+            // Rotate model slowly
+            if (currentModel && !isDragging) {
+                currentModel.rotation.y += 0.003;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        let isDragging = false;
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+            
+            if (narrator) {
+                narrator.isEnabled = globalAudioEnabled;
+                if (!globalAudioEnabled) {
+                    narrator.stop();
+                    narrator.clearQueue();
+                }
+            }
+            
+            // Also cancel any ongoing speech synthesis
+            if (!globalAudioEnabled) {
+                speechSynthesis.cancel();
+            }
+            
+            console.log(`Audio ${globalAudioEnabled ? 'enabled' : 'disabled'}`);
+        });
+
+        // Global emergency reset function
+        function emergencyReset() {
+            console.log("Emergency reset triggered");
+            speechSynthesis.cancel();
+            if (narrator) {
+                narrator.destroy();
+                narrator = null;
+            }
+            isAnimating = false;
+            currentActiveButton = null;
+            if (currentAnimationTimeout) {
+                clearTimeout(currentAnimationTimeout);
+                currentAnimationTimeout = null;
+            }
+            if (currentAnimationInterval) {
+                clearInterval(currentAnimationInterval);
+                currentAnimationInterval = null;
+            }
+            clearScene();
+            document.getElementById('formulaDisplay').style.display = 'none';
+            document.getElementById('elementLegend').classList.remove('show');
+            hideProgress();
+            updateTitle("Interactive Chemical Formula Writing");
+            updateStageInfo("Welcome to Chemical Formulae", "Select a demonstration to explore how chemical formulae are written");
+            setActiveButton(null);
+        }
+
+        // Add global click handler for demo buttons to ensure they always work
+        document.addEventListener('click', (event) => {
+            if (event.target.classList.contains('demo-btn')) {
+                const buttonId = event.target.id;
+                console.log(`Global click handler: ${buttonId} clicked`);
+                
+                // If button is clicked while system seems stuck, force reset
+                if (isAnimating && !currentActiveButton) {
+                    console.log("System appears stuck, forcing emergency reset");
+                    emergencyReset();
+                    setTimeout(() => {
+                        // Re-trigger the button click after reset
+                        event.target.click();
+                    }, 500);
+                }
+            }
+        });
+
+        // Add keyboard shortcut for emergency reset (Ctrl+R or Escape)
+        document.addEventListener('keydown', (event) => {
+            if ((event.ctrlKey && event.key === 'r') || event.key === 'Escape') {
+                event.preventDefault();
+                console.log("Emergency reset triggered by keyboard shortcut");
+                emergencyReset();
+                
+                // Show brief feedback
+                const originalTitle = document.getElementById('lesson-title').textContent;
+                updateTitle("🔄 System Reset - Ready!");
+                setTimeout(() => {
+                    updateTitle(originalTitle);
+                }, 2000);
+            }
+        });
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            initThreeJS();
+            
+            // Initialize narrator with delay to ensure everything is ready
+            setTimeout(() => {
+                narrator = new ChemicalNarrator();
+                narrator.speak("Welcome to Writing Chemical Formulae! Learn how atoms combine through interactive 3D visualizations. Select Complete Story to begin your journey!");
+            }, 1000);
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('stage');
+            if (camera && renderer) {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Fall and Acceleration Due to Gravity - Physics in Motion</title>
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e8ba3 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(37, 99, 235, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(37, 99, 235, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(45deg, #60a5fa, #3b82f6, #fbbf24);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: #f0f9ff;
+            opacity: 0.95;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Demo Stage */
+        .demo-stage {
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 50%, #C1E1F5 100%);
+            border-radius: 25px;
+            min-height: 500px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            border: 3px solid rgba(37, 99, 235, 0.4);
+        }
+
+        /* Data Display */
+        .data-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            min-width: 200px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .data-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 0.95rem;
+        }
+
+        .data-label {
+            color: #60a5fa;
+            margin-right: 10px;
+            font-weight: 500;
+        }
+
+        .data-value {
+            color: #fbbf24;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Free Fall Demo */
+        .freefall-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 500px;
+        }
+
+        .freefall-demo.active {
+            display: block;
+        }
+
+        .building {
+            position: absolute;
+            bottom: 47px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 400px;
+            background: linear-gradient(to bottom, #8B7355, #6B5945);
+            border: 3px solid #5A4635;
+        }
+
+        .building-floor {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .ground {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: linear-gradient(to bottom, #8B7D6B, #5C4E3C);
+            border-top: 3px solid #4A3C2A;
+        }
+
+        .stone {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, #808080, #505050);
+            border-radius: 40%;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 50px;
+            z-index: 10;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Motion trail effect */
+        .motion-trail {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, rgba(128, 128, 128, 0.4), rgba(80, 80, 80, 0.2));
+            border-radius: 40%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            z-index: 9;
+        }
+
+        /* Speed lines */
+        .speed-line {
+            position: absolute;
+            width: 2px;
+            background: linear-gradient(to bottom, transparent, rgba(251, 191, 36, 0.8), transparent);
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            z-index: 8;
+        }
+
+        /* Impact effect */
+        .impact-ring {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 2px solid rgba(251, 191, 36, 0.8);
+            border-radius: 50%;
+            left: 50%;
+            bottom: 50px;
+            transform: translate(-50%, 50%);
+            opacity: 0;
+            z-index: 11;
+        }
+
+        /* Dust particles */
+        .dust-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #8B7D6B;
+            border-radius: 50%;
+            opacity: 0;
+            z-index: 12;
+        }
+
+        /* Vector arrow */
+        .velocity-vector {
+            position: absolute;
+            left: calc(50% + 40px);
+            transform: translateY(-50%);
+            opacity: 0;
+            z-index: 15;
+            transition: all 0.3s ease;
+        }
+
+        .vector-shaft {
+            width: 3px;
+            background: #fbbf24;
+            height: 20px;
+            transition: height 0.1s ease;
+        }
+
+        .vector-head {
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 10px solid #fbbf24;
+            margin-left: -4.5px;
+        }
+
+        .vector-label {
+            position: absolute;
+            right: -60px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #fbbf24;
+            font-size: 0.85rem;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        /* Grid overlay */
+        .measurement-grid {
+            position: absolute;
+            top: 50px;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .grid-line {
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: rgba(96, 165, 250, 0.5);
+            border-top: 1px dashed rgba(96, 165, 250, 0.3);
+        }
+
+        .height-marker {
+            position: absolute;
+            right: 30%;
+            width: 2px;
+            background: #60a5fa;
+            opacity: 0.6;
+        }
+
+        .height-label {
+            position: absolute;
+            right: 20px;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            color: #fbbf24;
+            font-weight: 600;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        /* Throw mode indicator */
+        .throw-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 10px 15px;
+            border-radius: 10px;
+            display: none;
+            z-index: 20;
+        }
+
+        .throw-indicator.active {
+            display: block;
+        }
+
+        .mode-label {
+            color: #60a5fa;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .mode-value {
+            color: #fbbf24;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        /* Paper vs Stone Demo */
+        .comparison-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 500px;
+        }
+
+        .comparison-demo.active {
+            display: block;
+        }
+
+        .paper {
+            position: absolute;
+            width: 60px;
+            height: 80px;
+            background: linear-gradient(to bottom, #FFFFFF, #F0F0F0);
+            border: 1px solid #CCCCCC;
+            left: 35%;
+            transform: translateX(-50%);
+            top: 50px;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .vacuum-chamber {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 100px;
+            width: 300px;
+            height: 350px;
+            /* background: rgba(200, 200, 255, 0.1); */
+            /* border: 3px solid #667eea; */
+            border-radius: 10px;
+            display: none;
+        }
+
+        .vacuum-chamber.active {
+            display: block;
+        }
+
+        .vacuum-label {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #667eea;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+        }
+
+        /* Galileo Tower Demo */
+        .galileo-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 500px;
+        }
+
+        .galileo-demo.active {
+            display: block;
+        }
+
+        .pisa-tower {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%) rotate(-5deg);
+            width: 150px;
+            height: 350px;
+            background: linear-gradient(to bottom, #F4E4C1, #E8D4A1);
+            border: 3px solid #D4B896;
+            transform-origin: bottom center;
+        }
+
+        .tower-floor {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .heavy-ball {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #4A4A4A, #2A2A2A);
+            border-radius: 50%;
+            left: 45%;
+            transform: translateX(-50%);
+            top: 103px;
+            z-index: 10;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        .light-ball {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            background: radial-gradient(circle, #9A9A9A, #6A6A6A);
+            border-radius: 50%;
+            left: 53%;
+            transform: translateX(-50%);
+            top: 107px;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Equations Demo */
+        .equations-demo {
+            display: none;
+            padding: 40px;
+        }
+
+        .equations-demo.active {
+            display: block;
+        }
+
+        .equation-card {
+            background: rgba(15, 23, 42, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 15px 0;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transform: translateY(20px);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .equation-card.show {
+            opacity: 1;
+            transform: translateY(0);
+            transition: all 0.5s ease;
+        }
+
+        .equation-title {
+            color: #60a5fa;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .equation-formula {
+            font-family: 'Courier New', monospace;
+            font-size: 1.4rem;
+            color: #fbbf24;
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(251, 191, 36, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .equation-explanation {
+            line-height: 1.6;
+            color: #e2e8f0;
+            opacity: 0.95;
+        }
+
+        /* Problem Solver */
+        .problem-demo {
+            display: none;
+            padding: 30px;
+        }
+
+        .problem-demo.active {
+            display: block;
+        }
+
+        .problem-statement {
+            background: rgba(37, 99, 235, 0.15);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3b82f6;
+            color: #f0f9ff;
+        }
+
+        .problem-statement strong {
+            color: #60a5fa;
+        }
+
+        .solution-step {
+            background: rgba(15, 23, 42, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            opacity: 0;
+            transform: translateX(-20px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .solution-step.show {
+            opacity: 1;
+            transform: translateX(0);
+            transition: all 0.5s ease;
+        }
+
+        .step-number {
+            color: #fbbf24;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .solution-step div {
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        .answer-box {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.3), rgba(251, 191, 36, 0.3));
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #fbbf24;
+            opacity: 0;
+            transform: scale(0.9);
+            border: 2px solid rgba(251, 191, 36, 0.4);
+        }
+
+        .answer-box.show {
+            opacity: 1;
+            transform: scale(1);
+            transition: all 0.5s ease;
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            color: #60a5fa;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+            min-width: 140px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(37, 99, 235, 0.4);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Theory Section */
+        .theory-section {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(37, 99, 235, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .formula-highlight {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(251, 191, 36, 0.2));
+            padding: 25px;
+            border-radius: 20px;
+            margin: 20px 0;
+            text-align: center;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .main-formula {
+            font-size: 2rem;
+            color: #fbbf24;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+        }
+
+        .formula-description {
+            line-height: 1.8;
+            color: #e2e8f0;
+            opacity: 0.95;
+            margin-top: 15px;
+        }
+
+        .formula-description strong {
+            color: #60a5fa;
+        }
+
+        /* Activity Card */
+        .activity-card {
+            background: rgba(37, 99, 235, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .activity-title {
+            color: #60a5fa;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .activity-steps {
+            list-style: none;
+            padding: 0;
+        }
+
+        .activity-steps li {
+            padding: 8px 0;
+            padding-left: 20px;
+            position: relative;
+            color: #f0f9ff;
+        }
+
+        .activity-steps li:before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #60a5fa;
+            font-size: 1.2rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2.2rem; }
+            .demo-stage { min-height: 400px; }
+            .demo-buttons { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Free Fall & Acceleration Due to Gravity</h1>
+            <p>Explore how all objects fall at the same rate in the absence of air resistance, and learn about the constant acceleration due to Earth's gravity.</p>
+        </div>
+
+        <!-- Demo Stage -->
+        <div class="demo-stage" id="stage">
+            <!-- Data Panel -->
+            <div class="data-panel" id="data-panel" style="display: none;">
+                <div class="data-item">
+                    <span class="data-label">Time:</span>
+                    <span class="data-value" id="time-value">0.0 s</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Velocity:</span>
+                    <span class="data-value" id="velocity-value">0 m/s</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Height:</span>
+                    <span class="data-value" id="height-value">10 m</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">g:</span>
+                    <span class="data-value">9.8 m/s²</span>
+                </div>
+            </div>
+
+            <!-- Free Fall Demo -->
+            <div class="freefall-demo" id="freefall-demo">
+                <!-- Measurement grid -->
+                <div class="measurement-grid">
+                    <div class="grid-line" style="top: 0%;"></div>
+                    <div class="grid-line" style="top: 10%;"></div>
+                    <div class="grid-line" style="top: 20%;"></div>
+                    <div class="grid-line" style="top: 30%;"></div>
+                    <div class="grid-line" style="top: 40%;"></div>
+                    <div class="grid-line" style="top: 50%;"></div>
+                    <div class="grid-line" style="top: 60%;"></div>
+                    <div class="grid-line" style="top: 70%;"></div>
+                    <div class="grid-line" style="top: 80%;"></div>
+                    <div class="grid-line" style="top: 90%;"></div>
+                </div>
+                
+                <div class="building">
+                    <div class="building-floor" style="bottom: 100px;"></div>
+                    <div class="building-floor" style="bottom: 200px;"></div>
+                    <div class="building-floor" style="bottom: 300px;"></div>
+                </div>
+                <div class="ground"></div>
+                
+                <!-- Motion trails -->
+                <div class="motion-trail" id="trail1"></div>
+                <div class="motion-trail" id="trail2"></div>
+                <div class="motion-trail" id="trail3"></div>
+                
+                <!-- Speed lines -->
+                <div class="speed-line" id="speed1" style="left: 48%; height: 0;"></div>
+                <div class="speed-line" id="speed2" style="left: 50%; height: 0;"></div>
+                <div class="speed-line" id="speed3" style="left: 52%; height: 0;"></div>
+                
+                <!-- Stone with velocity vector -->
+                <div class="stone" id="stone"></div>
+                <div class="velocity-vector" id="velocity-vector">
+                    <div class="vector-shaft" id="vector-shaft"></div>
+                    <div class="vector-head"></div>
+                    <div class="vector-label" id="vector-label">0 m/s</div>
+                </div>
+                
+                <!-- Impact effects -->
+                <div class="impact-ring" id="impact-ring"></div>
+                <div class="dust-particle" style="bottom: 52px; left: 45%;" id="dust1"></div>
+                <div class="dust-particle" style="bottom: 52px; left: 48%;" id="dust2"></div>
+                <div class="dust-particle" style="bottom: 52px; left: 52%;" id="dust3"></div>
+                <div class="dust-particle" style="bottom: 52px; left: 55%;" id="dust4"></div>
+                
+                <!-- Height marker -->
+                <div class="height-marker" id="height-marker" style="top: 50px; height: 400px;">
+                    <div class="height-label" style="top: 0;">h = 10m</div>
+                    <div class="height-label" style="top: 100px; opacity: 0.5;">7.5m</div>
+                    <div class="height-label" style="top: 200px; opacity: 0.5;">5m</div>
+                    <div class="height-label" style="top: 300px; opacity: 0.5;">2.5m</div>
+                </div>
+                
+                <!-- Throw mode indicator -->
+                <div class="throw-indicator" id="throw-indicator">
+                    <div class="mode-label">Mode:</div>
+                    <div class="mode-value" id="mode-value">Free Fall</div>
+                </div>
+            </div>
+
+            <!-- Paper vs Stone Demo -->
+            <div class="comparison-demo" id="comparison-demo">
+                <div class="ground"></div>
+                <div class="paper" id="paper"></div>
+                <div class="stone" id="stone-compare" style="left: 65%;"></div>
+                <div class="vacuum-chamber" id="vacuum-chamber">
+                    <div class="vacuum-label">VACUUM</div>
+                </div>
+            </div>
+
+            <!-- Galileo Tower Demo -->
+            <div class="galileo-demo" id="galileo-demo">
+                <div class="ground"></div>
+                <div class="pisa-tower">
+                    <div class="tower-floor" style="bottom: 70px;"></div>
+                    <div class="tower-floor" style="bottom: 140px;"></div>
+                    <div class="tower-floor" style="bottom: 210px;"></div>
+                    <div class="tower-floor" style="bottom: 280px;"></div>
+                </div>
+                <div class="heavy-ball" id="heavy-ball"></div>
+                <div class="light-ball" id="light-ball"></div>
+            </div>
+
+            <!-- Equations Demo -->
+            <div class="equations-demo" id="equations-demo">
+                <div class="equation-card" id="eq1">
+                    <div class="equation-title">Force and Acceleration</div>
+                    <div class="equation-formula">F = mg</div>
+                    <div class="equation-explanation">
+                        The gravitational force on an object equals its mass times the acceleration due to gravity.
+                    </div>
+                </div>
+                <div class="equation-card" id="eq2">
+                    <div class="equation-title">Value of g</div>
+                    <div class="equation-formula">g = GM/R² = 9.8 m/s²</div>
+                    <div class="equation-explanation">
+                        Where G is the universal gravitational constant, M is Earth's mass, and R is Earth's radius.
+                    </div>
+                </div>
+                <div class="equation-card" id="eq3">
+                    <div class="equation-title">Equations of Motion</div>
+                    <div class="equation-formula">v = u + gt</div>
+                    <div class="equation-formula">s = ut + ½gt²</div>
+                    <div class="equation-formula">v² = u² + 2gs</div>
+                    <div class="equation-explanation">
+                        These equations describe motion under constant acceleration due to gravity.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Problem Solver Demo -->
+            <div class="problem-demo" id="problem-demo">
+                <div class="problem-statement">
+                    <strong>Example 9.2 (from NCERT):</strong> A car falls off a ledge and drops to the ground in 0.5 s.<br>
+                    Let g = 10 m/s² (for simplifying calculations)<br>
+                    Find: (i) Speed on striking the ground<br>
+                    (ii) Average speed during the 0.5 s<br>
+                    (iii) Height of the ledge from the ground
+                </div>
+                <div class="solution-step" id="step1">
+                    <div class="step-number">Given Values:</div>
+                    <div>Time, t = 0.5 s<br>
+                    Initial velocity, u = 0 m/s (dropped, not thrown)<br>
+                    Acceleration due to gravity, g = 10 m/s²<br>
+                    Acceleration of the car, a = +10 m/s² (downward)</div>
+                </div>
+                <div class="solution-step" id="step2">
+                    <div class="step-number">(i) Speed on striking ground:</div>
+                    <div>v = u + at<br>
+                    v = 0 + 10 × 0.5<br>
+                    v = 5 m/s</div>
+                </div>
+                <div class="solution-step" id="step3">
+                    <div class="step-number">(ii) Average speed:</div>
+                    <div>Average speed = (u + v)/2<br>
+                    = (0 + 5)/2<br>
+                    = 2.5 m/s</div>
+                </div>
+                <div class="solution-step" id="step4">
+                    <div class="step-number">(iii) Height of ledge:</div>
+                    <div>s = ut + ½at²<br>
+                    s = 0 × 0.5 + ½ × 10 × (0.5)²<br>
+                    s = ½ × 10 × 0.25<br>
+                    s = 1.25 m</div>
+                </div>
+                <div class="answer-box" id="answer">
+                    (i) Speed on striking ground = 5 m/s<br>
+                    (ii) Average speed = 2.5 m/s<br>
+                    (iii) Height of ledge = 1.25 m
+                </div>
+                
+                <!-- Example 9.3 Section -->
+                <div class="problem-statement" style="margin-top: 30px; display: none;" id="example93">
+                    <strong>Example 9.3 (from NCERT):</strong> An object is thrown vertically upwards and rises to a height of 10 m.<br>
+                    Calculate: (i) The velocity with which the object was thrown upwards<br>
+                    (ii) The time taken by the object to reach the highest point
+                </div>
+                <div class="solution-step" id="ex93-step1" style="display: none;">
+                    <div class="step-number">Given Values:</div>
+                    <div>Distance travelled, s = 10 m<br>
+                    Final velocity, v = 0 m/s (at highest point)<br>
+                    Acceleration due to gravity, g = 9.8 m/s²<br>
+                    Acceleration, a = -9.8 m/s² (upward motion, opposing gravity)</div>
+                </div>
+                <div class="solution-step" id="ex93-step2" style="display: none;">
+                    <div class="step-number">(i) Initial velocity:</div>
+                    <div>Using v² = u² + 2as<br>
+                    0 = u² + 2 × (-9.8) × 10<br>
+                    -u² = -2 × 9.8 × 10<br>
+                    u² = 196<br>
+                    u = 14 m/s</div>
+                </div>
+                <div class="solution-step" id="ex93-step3" style="display: none;">
+                    <div class="step-number">(ii) Time taken:</div>
+                    <div>Using v = u + at<br>
+                    0 = 14 + (-9.8) × t<br>
+                    9.8t = 14<br>
+                    t = 14/9.8 = 1.43 s</div>
+                </div>
+                <div class="answer-box" id="answer93" style="display: none;">
+                    (i) Initial velocity, u = 14 m/s<br>
+                    (ii) Time taken, t = 1.43 s
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="demo-title">Explore Free Fall</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playFullLesson()">📚 Complete Lesson</button>
+                <button class="demo-btn" onclick="showFreeFall()">🪨 Stone Drop</button>
+                <button class="demo-btn" onclick="showComparison()">📄 Paper vs Stone</button>
+                <button class="demo-btn" onclick="showGalileo()">🏛️ Galileo's Experiment</button>
+                <button class="demo-btn" onclick="showEquations()">📐 Equations</button>
+                <button class="demo-btn" onclick="showProblem()">🧮 Solve Problem</button>
+                <button class="demo-btn" onclick="resetAllClick()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Activity Section -->
+        <div class="activity-card">
+            <div class="activity-title">Activity 9.2: Stone Throw Experiment</div>
+            <ul class="activity-steps">
+                <li>Take a stone</li>
+                <li>Throw it upwards</li>
+                <li>Observe: It reaches a certain height and then starts falling down</li>
+                <li>This happens due to Earth's gravitational force</li>
+                <li>Objects falling under gravity alone are in "free fall"</li>
+            </ul>
+        </div>
+
+        <div class="activity-card">
+            <div class="activity-title">Activity 9.3: Paper and Stone Comparison</div>
+            <ul class="activity-steps">
+                <li>Take a sheet of paper and a stone</li>
+                <li>Drop them simultaneously from the first floor of a building</li>
+                <li>Observe: Paper reaches ground later than the stone</li>
+                <li>This happens because of air resistance (friction with air)</li>
+                <li>In a vacuum (no air), both would fall at the same rate</li>
+            </ul>
+        </div>
+
+        <!-- Theory Section -->
+        <div class="theory-section">
+            <div class="formula-highlight">
+                <div class="main-formula">F = mg</div>
+                <div class="formula-description">
+                    <strong>From the text:</strong> "The magnitude of the gravitational force F will be equal to the product of mass and acceleration due to the gravitational force"<br><br>
+                    <strong>Value of g:</strong> g = GM/R² = 9.8 m/s²<br>
+                    Where G = 6.7 × 10⁻¹¹ N m² kg⁻², M = 6 × 10²⁴ kg (Earth's mass), R = 6.4 × 10⁶ m (Earth's radius)
+                </div>
+            </div>
+
+            <div class="formula-highlight" style="margin-top: 20px;">
+                <div class="equation-title" style="color: #60a5fa; margin-bottom: 15px;">Equations of Uniformly Accelerated Motion (with a = g):</div>
+                <div class="equation-formula" style="color: #fbbf24; font-size: 1.3rem;">
+                    (i) v = u + gt<br>
+                    (ii) s = ut + ½gt²<br>
+                    (iii) v² = u² + 2gs
+                </div>
+                <div class="formula-description" style="margin-top: 15px;">
+                    <strong>Note:</strong> Acceleration is positive when in direction of motion, negative when opposing motion.<br>
+                    For upward motion: a = -g (opposing velocity)<br>
+                    For downward motion: a = +g (same direction as velocity)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice Teacher System
+        class PhysicsTeacher {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.9, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+        }
+
+        // Global state management
+let globalAudioEnabled = true;
+let currentTeacher = null;
+let isPlaying = false;
+let animationTimeline = null;
+let currentDemoAborted = false;
+let activeAnimations = [];
+let currentRunId = 0;
+let currentTaskId = null; // Track current task ID
+
+        // Functions for state management
+        function createNewTimeline() {
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            gsap.killTweensOf("*");
+            
+            const newTimeline = gsap.timeline();
+            animationTimeline = newTimeline;
+            return newTimeline;
+        }
+
+        function trackAnimation(animation) {
+            if (animation) {
+                activeAnimations.push(animation);
+            }
+            return animation;
+        }
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            
+            // Clear current task context
+            currentTaskId = null;
+            
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            
+            gsap.killTweensOf("*");
+            
+            document.querySelectorAll('.freefall-demo, .comparison-demo, .galileo-demo, .equations-demo, .problem-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            document.getElementById('data-panel').style.display = 'none';
+            
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            // If a specific task ID is provided, check if it matches current task
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentTeacher = new PhysicsTeacher();
+            return currentTeacher;
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            const teacher = createNewTeacher();
+            teacher.speak("Welcome to Free Fall and Acceleration due to Gravity! Let's explore how all objects fall at the same rate when only gravity acts on them.");
+        });
+
+        // Complete Lesson
+        async function playFullLesson() {
+            const taskId = 'complete-lesson';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            const teacher = createNewTeacher(taskId);
+            const runId = currentRunId;
+            
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📚 Complete Free Fall Lesson (NCERT Ch 9.2)");
+            
+            // Introduction from NCERT text
+            await teacher.speak("Let's understand free fall as explained in NCERT. We'll start with Activity 9.2 - throwing a stone upward.");
+            if (!shouldContinue(taskId)) return;
+            await showFreeFallInternal(teacher, runId, taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+            
+            // Activity 9.3
+            await teacher.speak("Now Activity 9.3 - comparing how paper and stone fall, demonstrating the effect of air resistance.");
+            if (!shouldContinue(taskId)) return;
+            await showComparisonInternal(teacher, runId, taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+            
+            // Galileo's historical context
+            await teacher.speak("According to NCERT, Galileo proved that all objects fall at the same rate regardless of mass, contradicting Aristotle's belief.");
+            if (!shouldContinue(taskId)) return;
+            await showGalileoInternal(teacher, runId, taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+            
+            // Mathematical formulation
+            await teacher.speak("Now let's understand the mathematical equations. Force equals m g, and from Newton's laws we derive that g equals G M over R squared.");
+            if (!shouldContinue(taskId)) return;
+            await showEquationsInternal(teacher, runId, taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+            
+            // NCERT Examples
+            await teacher.speak("Finally, let's solve the NCERT example problems 9.2 and 9.3.");
+            if (!shouldContinue(taskId)) return;
+            await showProblemInternal(teacher, runId, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            // Key takeaway from NCERT
+            await teacher.speak("Remember: The value of g is 9.8 meters per second squared. It's constant near Earth's surface and independent of the object's mass. This is why all objects fall at the same rate in the absence of air resistance!");
+            
+            isPlaying = false;
+        }
+
+        // Free Fall Demo
+        async function showFreeFall() {
+            const taskId = 'free-fall';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            const teacher = createNewTeacher(taskId);
+            const runId = currentRunId;
+            await showFreeFallInternal(teacher, runId, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showFreeFallInternal(teacher, runId, taskId = 'free-fall') {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🪨 Stone in Free Fall");
+            
+            document.getElementById('freefall-demo').classList.add('active');
+            document.getElementById('data-panel').style.display = 'block';
+            document.getElementById('throw-indicator').classList.add('active');
+            document.getElementById('mode-value').textContent = 'Free Fall';
+            
+            await teacher.speak("Watch a stone fall from a 10 meter height. Notice how its velocity increases uniformly.");
+            if (!shouldContinue(taskId)) return;
+            
+            const stone = document.getElementById('stone');
+            const velocityVector = document.getElementById('velocity-vector');
+            const vectorShaft = document.getElementById('vector-shaft');
+            const vectorLabel = document.getElementById('vector-label');
+            const speedLines = [document.getElementById('speed1'), document.getElementById('speed2'), document.getElementById('speed3')];
+            const trails = [document.getElementById('trail1'), document.getElementById('trail2'), document.getElementById('trail3')];
+            
+            let startTime = Date.now();
+            
+            // Show velocity vector
+            gsap.set(velocityVector, { opacity: 1, top: 65 });
+            
+            // Create motion trail effect
+            const createTrail = (index, delay) => {
+                setTimeout(() => {
+                    if (!shouldContinue(taskId)) return;
+                    const stoneTop = gsap.getProperty(stone, "top");
+                    gsap.set(trails[index], { 
+                        top: stoneTop - 10, 
+                        opacity: 0.6 
+                    });
+                    gsap.to(trails[index], {
+                        duration: 0.5,
+                        opacity: 0,
+                        ease: "power2.out"
+                    });
+                }, delay);
+            };
+            
+            // Animate stone falling with enhanced physics
+            trackAnimation(gsap.to(stone, {
+                duration: 1.43,
+                top: 450,
+                ease: "none", // Linear time, but we'll handle acceleration manually
+                onUpdate: function() {
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    const velocity = 9.8 * elapsed;
+                    const actualTop = 50 + (0.5 * 9.8 * elapsed * elapsed * 40); // 40 pixels per meter
+                    
+                    // Update stone position with physics
+                    gsap.set(stone, { top: actualTop });
+                    
+                    // Update velocity vector
+                    const vectorHeight = Math.min(velocity * 3, 60);
+                    gsap.set(vectorShaft, { height: vectorHeight + 'px' });
+                    gsap.set(vectorLabel, { innerHTML: velocity.toFixed(1) + ' m/s' });
+                    gsap.set(velocityVector, { top: actualTop + 15 });
+                    
+                    // Animate speed lines
+                    if (velocity > 5) {
+                        speedLines.forEach((line, i) => {
+                            const lineHeight = (velocity - 5) * 5;
+                            gsap.set(line, { 
+                                top: actualTop - lineHeight,
+                                height: lineHeight + 'px',
+                                opacity: 0.3 + (i * 0.1)
+                            });
+                        });
+                    }
+                    
+                    // Create motion trails
+                    if (this.progress() > 0.2 && this.progress() < 0.9) {
+                        createTrail(0, 0);
+                        createTrail(1, 100);
+                        createTrail(2, 200);
+                    }
+                    
+                    // Add rotation for realism
+                    gsap.set(stone, { rotation: elapsed * 180 });
+                    
+                    // Update data panel
+                    const height = 10 - (0.5 * 9.8 * elapsed * elapsed);
+                    document.getElementById('time-value').textContent = elapsed.toFixed(2) + ' s';
+                    document.getElementById('velocity-value').textContent = velocity.toFixed(1) + ' m/s';
+                    document.getElementById('height-value').textContent = Math.max(0, height).toFixed(1) + ' m';
+                },
+                onComplete: function() {
+                    if (!shouldContinue(taskId)) return;
+                    // Impact effects
+                    const impactRing = document.getElementById('impact-ring');
+                    gsap.set(impactRing, { opacity: 1, scale: 0 });
+                    gsap.to(impactRing, {
+                        duration: 0.6,
+                        scale: 2,
+                        opacity: 0,
+                        ease: "power2.out"
+                    });
+                    
+                    // Dust particles
+                    const dustParticles = ['dust1', 'dust2', 'dust3', 'dust4'];
+                    dustParticles.forEach((id, i) => {
+                        const dust = document.getElementById(id);
+                        gsap.set(dust, { opacity: 1, scale: 0 });
+                        gsap.to(dust, {
+                            duration: 0.8,
+                            x: (Math.random() - 0.5) * 40,
+                            y: -Math.random() * 30 - 10,
+                            scale: 1,
+                            opacity: 0,
+                            delay: i * 0.05,
+                            ease: "power2.out"
+                        });
+                    });
+                    
+                    // Stone bounce
+                    gsap.to(stone, {
+                        duration: 0.3,
+                        top: 430,
+                        ease: "bounce.out"
+                    });
+                    
+                    // Hide speed lines
+                    speedLines.forEach(line => {
+                        gsap.to(line, { duration: 0.3, opacity: 0, height: 0 });
+                    });
+                }
+            }));
+            
+            await wait(1500);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("The stone accelerates at 9.8 meters per second squared, reaching about 14 meters per second when it hits the ground.");
+            
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Reset for upward throw
+            gsap.set(stone, { top: 430, rotation: 0 });
+            gsap.set(velocityVector, { top: 465 });
+            gsap.set(vectorShaft, { height: '60px' });
+            speedLines.forEach(line => gsap.set(line, { opacity: 0, height: 0 }));
+            
+            document.getElementById('mode-value').textContent = 'Upward Throw';
+            
+            await teacher.speak("Now let's throw it upward and watch it fall back.");
+            if (!shouldContinue(taskId)) return;
+            
+            startTime = Date.now();
+            
+            // Upward throw animation
+            trackAnimation(gsap.timeline()
+                .to(stone, {
+                    duration: 1.43,
+                    top: 50,
+                    ease: "power2.out",
+                    onUpdate: function() {
+                        const elapsed = (Date.now() - startTime) / 1000;
+                        const velocity = 14 - 9.8 * elapsed;
+                        const height = 14 * elapsed - 0.5 * 9.8 * elapsed * elapsed;
+                        const actualTop = 450 - (height * 40);
+                        
+                        gsap.set(stone, { top: actualTop });
+                        
+                        // Update velocity vector (pointing up initially, then down)
+                        const vectorHeight = Math.abs(velocity) * 3;
+                        gsap.set(vectorShaft, { height: vectorHeight + 'px' });
+                        
+                        if (velocity >= 0) {
+                            // Vector pointing up
+                            gsap.set(velocityVector, { 
+                                top: actualTop - vectorHeight - 10,
+                                rotation: 180
+                            });
+                            gsap.set(vectorLabel, { 
+                                innerHTML: '↑ ' + velocity.toFixed(1) + ' m/s',
+                                rotation: -180
+                            });
+                        } else {
+                            // Vector pointing down
+                            gsap.set(velocityVector, { 
+                                top: actualTop + 15,
+                                rotation: 0
+                            });
+                            gsap.set(vectorLabel, { 
+                                innerHTML: '↓ ' + Math.abs(velocity).toFixed(1) + ' m/s',
+                                rotation: 0
+                            });
+                        }
+                        
+                        // Motion trails for upward motion
+                        if (Math.abs(velocity) > 2) {
+                            createTrail(0, 0);
+                            createTrail(1, 50);
+                            createTrail(2, 100);
+                        }
+                        
+                        // Update rotation
+                        gsap.set(stone, { rotation: -elapsed * 180 });
+                        
+                        // Update data
+                        document.getElementById('time-value').textContent = elapsed.toFixed(2) + ' s';
+                        document.getElementById('velocity-value').textContent = velocity.toFixed(1) + ' m/s';
+                        document.getElementById('height-value').textContent = height.toFixed(1) + ' m';
+                    }
+                })
+                .to(stone, {
+                    duration: 1.43,
+                    top: 450,
+                    ease: "power2.in",
+                    onUpdate: function() {
+                        const totalElapsed = ((Date.now() - startTime) / 1000);
+                        if (totalElapsed > 1.43) {
+                            const downTime = totalElapsed - 1.43;
+                            const velocity = -9.8 * downTime;
+                            const height = 10 - 0.5 * 9.8 * downTime * downTime;
+                            
+                            // Update velocity vector for falling
+                            const vectorHeight = Math.abs(velocity) * 3;
+                            gsap.set(vectorShaft, { height: vectorHeight + 'px' });
+                            gsap.set(vectorLabel, { innerHTML: '↓ ' + Math.abs(velocity).toFixed(1) + ' m/s' });
+                            
+                            const actualTop = 50 + (10 - height) * 40;
+                            gsap.set(velocityVector, { top: actualTop + 15 });
+                            
+                            // Motion trails
+                            if (Math.abs(velocity) > 2) {
+                                createTrail(0, 0);
+                                createTrail(1, 50);
+                            }
+                            
+                            // Update data
+                            document.getElementById('time-value').textContent = totalElapsed.toFixed(2) + ' s';
+                            document.getElementById('velocity-value').textContent = velocity.toFixed(1) + ' m/s';
+                            document.getElementById('height-value').textContent = Math.max(0, height).toFixed(1) + ' m';
+                        }
+                    },
+                    onComplete: function() {
+                        if (!shouldContinue(taskId)) return;
+                        // Second impact
+                        const impactRing = document.getElementById('impact-ring');
+                        gsap.set(impactRing, { opacity: 1, scale: 0 });
+                        gsap.to(impactRing, {
+                            duration: 0.6,
+                            scale: 1.5,
+                            opacity: 0,
+                            ease: "power2.out"
+                        });
+                        
+                        // Final bounce
+                        gsap.to(stone, {
+                            duration: 0.2,
+                            top: 440,
+                            ease: "bounce.out"
+                        });
+                    }
+                }));
+            
+            await teacher.speak("Notice the velocity decreases while going up, becomes zero at the highest point, then increases while falling down.");
+        }
+
+        // Paper vs Stone Comparison
+        async function showComparison() {
+            const taskId = 'comparison';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            const teacher = createNewTeacher(taskId);
+            const runId = currentRunId;
+            await showComparisonInternal(teacher, runId, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showComparisonInternal(teacher, runId, taskId = 'comparison') {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📄 Paper vs Stone - Air Resistance");
+            
+            document.getElementById('comparison-demo').classList.add('active');
+            
+            await teacher.speak("Let's drop a paper and stone simultaneously and see what happens in air.");
+            if (!shouldContinue(taskId)) return;
+            
+            const paper = document.getElementById('paper');
+            const stone = document.getElementById('stone-compare');
+            
+            // Drop in air - paper falls slower
+            trackAnimation(gsap.to(stone, {
+                duration: 1.4,
+                top: 420,
+                ease: "power1.in"
+            }));
+            
+            trackAnimation(gsap.to(paper, {
+                duration: 2.5,
+                top: 370,
+                ease: "power1.in",
+                onUpdate: function() {
+                    // Add slight swaying to paper
+                    // paper.style.transform = `translateX(-50%) rotate(${Math.sin(this.progress() * 10) * 10}deg)`;
+                }
+            }));
+            
+            await wait(1500);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("The paper reaches the ground later due to air resistance. The air opposes motion more for the paper than the stone.");
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Reset and show vacuum
+            gsap.set([paper, stone], { top: 50 });
+            document.getElementById('vacuum-chamber').classList.add('active');
+            
+            await teacher.speak("Now let's see what happens in a vacuum where there's no air resistance.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Drop in vacuum - same rate
+            trackAnimation(gsap.to([paper], {
+                duration: 1.4,
+                top: 370,
+                ease: "power1.in"
+            }));
+            trackAnimation(gsap.to([stone], {
+                duration: 1.4,
+                top: 420,
+                ease: "power1.in"
+            }));
+            
+            await wait(1500);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("In a vacuum, both fall at exactly the same rate! This proves that gravity acts equally on all objects regardless of their mass.");
+        }
+
+        // Galileo's Experiment
+        async function showGalileo() {
+            const taskId = 'galileo';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            const teacher = createNewTeacher(taskId);
+            const runId = currentRunId;
+            await showGalileoInternal(teacher, runId, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showGalileoInternal(teacher, runId, taskId = 'galileo') {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🏛️ Galileo's Tower of Pisa Experiment");
+            
+            document.getElementById('galileo-demo').classList.add('active');
+            
+            await teacher.speak("According to legend, Galileo dropped objects of different masses from the Leaning Tower of Pisa.");
+            if (!shouldContinue(taskId)) return;
+            
+            const heavyBall = document.getElementById('heavy-ball');
+            const lightBall = document.getElementById('light-ball');
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Watch as we drop a heavy ball and a light ball simultaneously.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Both balls fall at the same rate
+            trackAnimation(gsap.to([heavyBall, lightBall], {
+                duration: 1.8,
+                top: 410,
+                ease: "power1.in"
+            }));
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("Both balls hit the ground at the same time! This revolutionary discovery showed that acceleration due to gravity is independent of mass.");
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("This contradicted Aristotle's belief that heavier objects fall faster, proving that g is constant for all objects.");
+        }
+
+        // Equations Demo
+        async function showEquations() {
+            const taskId = 'equations';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(4);
+            
+            const teacher = createNewTeacher(taskId);
+            const runId = currentRunId;
+            await showEquationsInternal(teacher, runId, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showEquationsInternal(teacher, runId, taskId = 'equations') {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📐 Equations of Motion for Free Fall");
+            
+            document.getElementById('equations-demo').classList.add('active');
+            
+            await teacher.speak("Let's learn the key equations for objects in free fall.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            document.getElementById('eq1').classList.add('show');
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("First, the gravitational force equals mass times g. This gives us F equals m g.");
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            document.getElementById('eq2').classList.add('show');
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("The value of g is calculated from Earth's mass and radius, giving us 9.8 meters per second squared.");
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            document.getElementById('eq3').classList.add('show');
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("For uniformly accelerated motion, we use three key equations with acceleration replaced by g.");
+        }
+
+        // Problem Solver
+        async function showProblem() {
+            const taskId = 'problem';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(5);
+            
+            const teacher = createNewTeacher(taskId);
+            const runId = currentRunId;
+            await showProblemInternal(teacher, runId, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showProblemInternal(teacher, runId, taskId = 'problem') {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🧮 NCERT Example Problems");
+            
+            document.getElementById('problem-demo').classList.add('active');
+            
+            await teacher.speak("Let's solve Example 9.2 from NCERT - A car falling off a ledge.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Example 9.2
+            document.getElementById('step1').classList.add('show');
+            await wait(1500);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("Given: Time is 0.5 seconds, initial velocity is zero since the car is dropped, and we use g equals 10 meters per second squared for simplicity.");
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            document.getElementById('step2').classList.add('show');
+            await wait(1500);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("Using v equals u plus a t, the final velocity is 5 meters per second.");
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            document.getElementById('step3').classList.add('show');
+            await wait(1500);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("The average speed is u plus v divided by 2, which gives us 2.5 meters per second.");
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            document.getElementById('step4').classList.add('show');
+            await wait(1500);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("Using s equals u t plus half a t squared, the height of the ledge is 1.25 meters.");
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            document.getElementById('answer').classList.add('show');
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show Example 9.3
+            await teacher.speak("Now let's solve Example 9.3 - An object thrown vertically upward.");
+            if (!shouldContinue(taskId)) return;
+            
+            document.getElementById('example93').style.display = 'block';
+            document.getElementById('ex93-step1').style.display = 'block';
+            document.getElementById('ex93-step1').classList.add('show');
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("The object reaches 10 meters height. At the highest point, velocity is zero. Note that acceleration is negative 9.8 since it opposes the upward motion.");
+            
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            document.getElementById('ex93-step2').style.display = 'block';
+            document.getElementById('ex93-step2').classList.add('show');
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("Using v squared equals u squared plus 2 a s, we find the initial velocity was 14 meters per second.");
+            
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            document.getElementById('ex93-step3').style.display = 'block';
+            document.getElementById('ex93-step3').classList.add('show');
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("Using v equals u plus a t, the time to reach maximum height is 1.43 seconds.");
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            document.getElementById('answer93').style.display = 'block';
+            document.getElementById('answer93').classList.add('show');
+            
+            await teacher.speak("These examples show how to apply the equations of motion for objects in free fall, whether dropped or thrown upward.");
+        }
+
+        // Helper Functions
+        async function resetAll() {
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            
+            gsap.killTweensOf("*");
+            
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            
+            // Hide all demos
+            document.querySelectorAll('.freefall-demo, .comparison-demo, .galileo-demo, .equations-demo, .problem-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            // Reset elements
+            gsap.set('#stone', { top: 50 });
+            gsap.set('#velocity-vector', { opacity: 0});
+            gsap.set('#paper', { top: 50, transform: 'translateX(-50%)' });
+            gsap.set('#stone-compare', { top: 50 });
+            gsap.set('#heavy-ball', { top: 103 });
+            gsap.set('#light-ball', { top: 107 });
+            
+            // Hide vacuum chamber
+            document.getElementById('vacuum-chamber').classList.remove('active');
+            
+            // Reset data panel
+            document.getElementById('data-panel').style.display = 'none';
+            document.getElementById('time-value').textContent = '0.0 s';
+            document.getElementById('velocity-value').textContent = '0 m/s';
+            document.getElementById('height-value').textContent = '10 m';
+            
+            // Reset equation cards
+            document.querySelectorAll('.equation-card').forEach(card => {
+                card.classList.remove('show');
+            });
+            
+            // Reset solution steps
+            document.querySelectorAll('.solution-step, .answer-box').forEach(step => {
+                step.classList.remove('show');
+            });
+            
+            updateTitle("Explore Free Fall");
+            
+            await wait(300);
+        }
+
+        function updateTitle(title) {
+            document.getElementById('demo-title').textContent = title;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Reset Button Handler
+        async function resetAllClick() {
+            stopCurrentDemo();
+            isPlaying = false;
+            await resetAll();
+        }
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+            
+            if (!globalAudioEnabled && currentTeacher) {
+                currentTeacher.stop();
+            }
+        });
+    </script>
+</body>
+</html>

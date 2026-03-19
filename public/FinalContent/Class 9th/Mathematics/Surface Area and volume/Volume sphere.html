@@ -1,0 +1,2326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volume of Spheres - Master 3D Geometry</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 80%, rgba(79, 172, 254, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(251, 191, 36, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 40%, rgba(67, 233, 123, 0.05) 0%, transparent 50%);
+            animation: backgroundShift 20s ease-in-out infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        @keyframes backgroundShift {
+            0%, 100% { 
+                transform: translateX(0) translateY(0) scale(1);
+                opacity: 0.3;
+            }
+            25% { 
+                transform: translateX(-20px) translateY(-10px) scale(1.1);
+                opacity: 0.5;
+            }
+            50% { 
+                transform: translateX(10px) translateY(-20px) scale(0.9);
+                opacity: 0.4;
+            }
+            75% { 
+                transform: translateX(-10px) translateY(10px) scale(1.05);
+                opacity: 0.6;
+            }
+        }
+
+        /* Header - Compact with Animations */
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+            animation: titlePulse 2s ease-in-out infinite alternate;
+            position: relative;
+        }
+
+        @keyframes titlePulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            animation: fadeInUp 1s ease-out 0.5s both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Main Layout */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Demo Stage - Takes most space */
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            animation: stageGlow 4s ease-in-out infinite;
+        }
+
+        .demo-stage::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                rgba(79, 172, 254, 0.1) 0%, 
+                transparent 25%, 
+                transparent 75%, 
+                rgba(251, 191, 36, 0.1) 100%);
+            animation: stageShimmer 6s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes stageGlow {
+            0%, 100% { 
+                box-shadow: var(--shadow-primary);
+                border-color: var(--glass-border);
+            }
+            50% { 
+                box-shadow: 0 15px 40px rgba(79, 172, 254, 0.3);
+                border-color: rgba(79, 172, 254, 0.5);
+            }
+        }
+
+        @keyframes stageShimmer {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Stage Content */
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: slideInFromBottom 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes slideInFromBottom {
+            from { 
+                opacity: 0; 
+                transform: translateY(50px) scale(0.9); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1); 
+            }
+        }
+
+        @keyframes slideInFromLeft {
+            from { 
+                opacity: 0; 
+                transform: translateX(-50px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateX(0); 
+            }
+        }
+
+        @keyframes slideInFromRight {
+            from { 
+                opacity: 0; 
+                transform: translateX(50px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateX(0); 
+            }
+        }
+
+        @keyframes zoomIn {
+            from { 
+                opacity: 0; 
+                transform: scale(0.5); 
+            }
+            to { 
+                opacity: 1; 
+                transform: scale(1); 
+            }
+        }
+
+        @keyframes bounceIn {
+            0% { 
+                opacity: 0; 
+                transform: scale(0.3); 
+            }
+            50% { 
+                opacity: 1; 
+                transform: scale(1.05); 
+            }
+            70% { 
+                transform: scale(0.9); 
+            }
+            100% { 
+                opacity: 1; 
+                transform: scale(1); 
+            }
+        }
+
+        /* Controls - Below Demo */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+            animation: buttonFloat 3s ease-in-out infinite;
+        }
+
+        .demo-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .demo-btn:hover::before {
+            left: 100%;
+        }
+
+        @keyframes buttonFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-3px); }
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.6);
+            border-color: var(--text-accent);
+        }
+
+        .demo-btn:active {
+            transform: translateY(-2px) scale(0.98);
+            transition: all 0.1s;
+        }
+
+        .demo-btn.active {
+            background: var(--accent-gradient);
+            color: white;
+            border-color: transparent;
+            animation: activePulse 2s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(79, 172, 254, 0.8);
+        }
+
+        @keyframes activePulse {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(79, 172, 254, 0.8);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 30px rgba(79, 172, 254, 1);
+                transform: scale(1.02);
+            }
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* 3D Visualization */
+        .sphere-3d-container {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            margin: 20px auto;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Formula Display */
+        .formula-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            font-size: 1.2rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            animation: slideInFromLeft 0.6s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .formula-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(79, 172, 254, 0.1), transparent);
+            animation: formulaShimmer 2s ease-in-out infinite;
+        }
+
+        @keyframes formulaShimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .formula {
+            font-size: 1.4rem;
+            color: var(--text-accent);
+            margin: 10px 0;
+            font-weight: 600;
+            animation: formulaGlow 3s ease-in-out infinite alternate;
+            position: relative;
+            z-index: 1;
+        }
+
+        @keyframes formulaGlow {
+            0% { 
+                text-shadow: 0 0 5px rgba(251, 191, 36, 0.5);
+                transform: scale(1);
+            }
+            100% { 
+                text-shadow: 0 0 20px rgba(251, 191, 36, 0.8);
+                transform: scale(1.02);
+            }
+        }
+
+        /* Value Display */
+        .value-display {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--text-accent);
+            margin: 20px 0;
+            animation: valueBounce 2s ease-in-out infinite;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
+        }
+
+        @keyframes valueBounce {
+            0%, 100% { 
+                transform: translateY(0px) scale(1);
+                text-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
+            }
+            50% { 
+                transform: translateY(-5px) scale(1.05);
+                text-shadow: 0 0 20px rgba(251, 191, 36, 0.8);
+            }
+        }
+
+
+        /* Example Content */
+        .example-title {
+            font-size: 1.5rem;
+            color: var(--text-accent);
+            margin-bottom: 20px;
+            text-align: center;
+            animation: titleSlideIn 0.8s ease-out;
+            text-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+        }
+
+        @keyframes titleSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .example-content {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: left;
+            animation: contentFadeIn 1s ease-out 0.3s both;
+        }
+
+        @keyframes contentFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .example-step {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border-left: 4px solid var(--text-accent);
+            animation: stepSlideIn 0.6s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .example-step::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(251, 191, 36, 0.1), transparent);
+            animation: stepReveal 1s ease-out 0.5s forwards;
+        }
+
+        @keyframes stepSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes stepReveal {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        .step-title {
+            font-weight: 600;
+            color: var(--text-accent);
+            margin-bottom: 8px;
+        }
+
+        .step-formula {
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px;
+            border-radius: 5px;
+            margin: 5px 0;
+            color: var(--text-primary);
+        }
+
+        /* Chart Container */
+        .chart-container {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            margin: 20px auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Quiz Styles */
+        .quiz-question {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+            animation: quizSlideIn 0.8s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quiz-question::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(79, 172, 254, 0.1), transparent);
+            animation: quizShimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes quizSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes quizShimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .quiz-option {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--glass-border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            animation: optionFloat 2s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quiz-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        @keyframes optionFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-2px); }
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--text-accent);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        .quiz-option:hover::before {
+            left: 100%;
+        }
+
+        .quiz-option.correct {
+            background: var(--success-gradient);
+            border-color: transparent;
+            animation: correctBounce 0.6s ease-out;
+            box-shadow: 0 0 20px rgba(67, 233, 123, 0.6);
+        }
+
+        .quiz-option.incorrect {
+            background: var(--warning-gradient);
+            border-color: transparent;
+            animation: incorrectShake 0.6s ease-out;
+            box-shadow: 0 0 20px rgba(250, 112, 154, 0.6);
+        }
+
+        @keyframes correctBounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes incorrectShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .quiz-result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .quiz-result.correct {
+            background: var(--success-gradient);
+        }
+
+        .quiz-result.incorrect {
+            background: var(--warning-gradient);
+        }
+
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .demo-btn {
+                font-size: 0.85rem;
+                padding: 10px 18px;
+            }
+            
+            .sphere-3d-container {
+                height: 300px;
+            }
+            
+            .value-display {
+                font-size: 1.4rem;
+            }
+            
+            .example-content {
+                padding: 0 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .controls {
+                gap: 8px;
+            }
+            
+            .demo-btn {
+                font-size: 0.8rem;
+                padding: 8px 15px;
+            }
+            
+            .main-container {
+                padding: 15px;
+                gap: 15px;
+            }
+        }
+
+        /* Additional animations */
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .rotate-animation {
+            animation: rotate 4s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Volume visualization */
+        .volume-cube-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            max-width: 200px;
+            margin: 20px auto;
+            animation: gridSlideIn 1s ease-out;
+        }
+
+        @keyframes gridSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8) rotate(10deg);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+
+        .volume-cube {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-gradient);
+            border-radius: 5px;
+            animation: fillCube 0.5s ease-out forwards, cubeFloat 2s ease-in-out infinite;
+            opacity: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .volume-cube::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: cubeShimmer 2s ease-in-out infinite;
+        }
+
+        @keyframes fillCube {
+            to { opacity: 1; }
+        }
+
+        @keyframes cubeFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-3px); }
+        }
+
+        @keyframes cubeShimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* Hemisphere visualization */
+        .hemisphere-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin: 20px 0;
+            animation: containerSlideIn 1s ease-out;
+        }
+
+        @keyframes containerSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .full-sphere {
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle at 30% 30%, var(--text-accent), #f59e0b);
+            border-radius: 50%;
+            animation: sphereRotate 4s linear infinite, sphereFloat 3s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .full-sphere::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), transparent);
+            border-radius: 50%;
+            animation: sphereShine 2s ease-in-out infinite;
+        }
+
+        @keyframes sphereRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes sphereFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        @keyframes sphereShine {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+
+        .hemisphere {
+            width: 100px;
+            height: 50px;
+            background: radial-gradient(circle at 30% 30%, var(--text-accent), #f59e0b);
+            border-radius: 100px 100px 0 0;
+            animation: hemisphereFloat 3s ease-in-out infinite, hemisphereGlow 2s ease-in-out infinite alternate;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hemisphere::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), transparent);
+            border-radius: 100px 100px 0 0;
+            animation: hemisphereShine 2s ease-in-out infinite;
+        }
+
+        @keyframes hemisphereFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-3px); }
+        }
+
+        @keyframes hemisphereGlow {
+            0% { box-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
+            100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.8); }
+        }
+
+        @keyframes hemisphereShine {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+
+        .equals-sign {
+            font-size: 2rem;
+            color: var(--text-accent);
+            font-weight: bold;
+            animation: signPulse 2s ease-in-out infinite;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
+        }
+
+        .plus-sign {
+            font-size: 2rem;
+            color: var(--text-accent);
+            font-weight: bold;
+            animation: signPulse 2s ease-in-out infinite;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
+        }
+
+        @keyframes signPulse {
+            0%, 100% { 
+                transform: scale(1);
+                text-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
+            }
+            50% { 
+                transform: scale(1.1);
+                text-shadow: 0 0 20px rgba(251, 191, 36, 0.8);
+            }
+        }
+
+        /* Floating Particles */
+        #particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(79, 172, 254, 0.6);
+            border-radius: 50%;
+            animation: particleFloat 15s linear infinite;
+        }
+
+        .particle:nth-child(2n) {
+            background: rgba(251, 191, 36, 0.6);
+            animation-duration: 20s;
+        }
+
+        .particle:nth-child(3n) {
+            background: rgba(67, 233, 123, 0.6);
+            animation-duration: 25s;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100vh) translateX(0) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) translateX(100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Particles -->
+    <div id="particles-container"></div>
+
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <h1>Volume of Spheres</h1>
+        <p>Discover how much space a sphere occupies through hands-on exploration!</p>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Demo Stage -->
+        <div class="demo-stage">
+            <div class="stage-content active">
+                <h2 style="font-size: 2rem; margin-bottom: 20px;">Welcome to Sphere Volume!</h2>
+                <div class="value-display">Let's Measure 3D Space!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Volume tells us how much space is inside a sphere. We'll discover this through mathematical formulas and real-world examples!
+                </p>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">🎓 Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">🌟 Introduction</button>
+            <button class="demo-btn" data-demo="formula">📐 Formula Discovery</button>
+            <button class="demo-btn" data-demo="examples">📝 Solve Examples</button>
+            <button class="demo-btn" data-demo="hemisphere">🌙 Hemisphere</button>
+            <button class="demo-btn" data-demo="realworld">🌍 Real World</button>
+            <button class="demo-btn" data-demo="chart">📊 Data Analysis</button>
+            <button class="demo-btn" data-demo="quiz">🧠 Test Knowledge</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentDemo = null;
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let currentRunId = 0;
+        let currentTaskId = null;
+        let currentTeacher = null;
+        let animationTimeouts = [];
+        let globalAudioEnabled = true;
+        let sphere3DRenderer = null;
+        let sphere3DScene = null;
+        let sphere3DCamera = null;
+        let sphere3DMesh = null;
+
+        // Teacher class for text-to-speech
+        class Teacher {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.voice = null;
+                this.rate = 0.8;
+                this.pitch = 1.0;
+                this.volume = 0.9;
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.isDestroyed = false;
+                this.setupVoice();
+            }
+
+            setupVoice() {
+                const loadVoices = () => {
+                    const voices = this.synth.getVoices();
+                        // Prefer female voices for educational content
+                        this.voice = voices.find(voice => 
+                            voice.name.includes('Female') || 
+                            voice.name.includes('Samantha') ||
+                            voice.name.includes('Karen') ||
+                        voice.name.includes('Google UK English Female') ||
+                        voice.name.includes('Microsoft Zira Desktop')
+                    ) || voices.find(v => v.lang.includes('en')) || voices[0];
+                };
+                loadVoices();
+                this.synth.onvoiceschanged = loadVoices;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !globalAudioEnabled || !text || this.isDestroyed) return;
+
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                            utterance.voice = this.voice;
+                        utterance.rate = this.rate;
+                        utterance.pitch = this.pitch;
+                        utterance.volume = this.volume;
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        this.synth.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                    this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+            }
+        }
+
+        // Initialize voices when they're loaded
+        if ('speechSynthesis' in window) {
+            speechSynthesis.onvoiceschanged = () => {
+                if (currentTeacher) {
+                    currentTeacher.setupVoice();
+                }
+            };
+        }
+
+        // Utility functions
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        function shouldContinue(taskId) {
+            return currentTaskId === taskId && !currentDemoAborted;
+        }
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            if (sphere3DRenderer) {
+                sphere3DRenderer.setAnimationLoop(null);
+            }
+        }
+
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+            }
+            
+            currentTaskId = taskId;
+            currentDemoAborted = false;
+            currentTeacher = new Teacher();
+            return currentTeacher;
+        }
+
+        function createStageContent() {
+            const stage = document.querySelector('.demo-stage');
+            stage.innerHTML = '';
+            
+            const content = document.createElement('div');
+            content.className = 'stage-content active';
+            stage.appendChild(content);
+            
+            return content;
+        }
+
+        // 3D Sphere Creation
+        function create3DSphere(container, radius = 2, segments = 32) {
+            // Clean up existing renderer
+            if (sphere3DRenderer) {
+                sphere3DRenderer.setAnimationLoop(null);
+                container.innerHTML = '';
+            }
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            
+            renderer.setSize(container.offsetWidth, container.offsetHeight);
+            renderer.setClearColor(0x000000, 0);
+            container.appendChild(renderer.domElement);
+
+            // Create sphere geometry
+            const geometry = new THREE.SphereGeometry(radius, segments, segments);
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x4facfe,
+                transparent: true,
+                opacity: 0.8,
+                shininess: 100
+            });
+
+            const sphere = new THREE.Mesh(geometry, material);
+            scene.add(sphere);
+
+            // Add wireframe overlay
+            const wireframe = new THREE.WireframeGeometry(geometry);
+            const line = new THREE.LineSegments(wireframe, new THREE.LineBasicMaterial({ color: 0xfbbf24, opacity: 0.3, transparent: true }));
+            scene.add(line);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+
+            camera.position.z = 8;
+
+            // Store references
+            sphere3DRenderer = renderer;
+            sphere3DScene = scene;
+            sphere3DCamera = camera;
+            sphere3DMesh = sphere;
+
+            return { renderer, scene, camera, sphere };
+        }
+
+        function animate3DSphere() {
+            if (!sphere3DRenderer || !sphere3DScene || !sphere3DCamera) return;
+
+            let time = 0;
+            sphere3DRenderer.setAnimationLoop(() => {
+                time += 0.01;
+                if (sphere3DMesh) {
+                    // Enhanced rotation with multiple axes
+                    sphere3DMesh.rotation.y += 0.01;
+                    sphere3DMesh.rotation.x += 0.005;
+                    sphere3DMesh.rotation.z += 0.002;
+                    
+                    // Add floating animation
+                    sphere3DMesh.position.y = Math.sin(time) * 0.2;
+                    
+                    // Add pulsing scale effect
+                    const scale = 1 + Math.sin(time * 2) * 0.1;
+                    sphere3DMesh.scale.set(scale, scale, scale);
+                    
+                    // Add color animation
+                    const hue = (time * 10) % 360;
+                    sphere3DMesh.material.color.setHSL(hue / 360, 0.7, 0.6);
+                }
+                sphere3DRenderer.render(sphere3DScene, sphere3DCamera);
+            });
+        }
+
+        // Demo Functions
+        async function showIntroduction() {
+            const taskId = 'introduction';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            await showIntroductionContent(taskId);
+            isPlaying = false;
+        }
+
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">What is Volume?</h2>
+                <div class="sphere-3d-container" id="intro-3d"></div>
+                <div class="formula-box">
+                    <p>Volume measures the <strong>amount of space inside</strong> a 3D object</p>
+                    <div class="formula">Volume = Space Occupied</div>
+                    <p>For spheres: <span class="formula">V = (4/3)πr³</span></p>
+                </div>
+            `;
+
+            const container = document.getElementById('intro-3d');
+            if (container) {
+                const { sphere } = create3DSphere(container, 2);
+                animate3DSphere();
+                
+                // Add pulsing animation
+                sphere.scale.set(1, 1, 1);
+                const pulseAnimation = () => {
+                    if (!shouldContinue(taskId)) return;
+                    
+                    gsap.to(sphere.scale, {
+                        duration: 2,
+                        x: 1.2, y: 1.2, z: 1.2,
+                        ease: "power2.inOut",
+                        yoyo: true,
+                        repeat: -1
+                    });
+                };
+                setTimeout(pulseAnimation, 500);
+            }
+
+            await teacher.speak("Volume tells us how much space is inside a three-dimensional object. Think of it as how much water you could pour into the object if it were hollow.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("For spheres, the volume formula is four-thirds times pi times the radius cubed. This tells us exactly how much space is inside any sphere!");
+        }
+
+
+        async function showFormula() {
+            const taskId = 'formula';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            await showFormulaContent(taskId);
+            isPlaying = false;
+        }
+
+        async function showFormulaContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <div style="max-width: 1400px; margin: 0 auto; padding: 15px;">
+                    <h2 class="example-title" style="text-align: center; margin-bottom: 25px; font-size: 2rem; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Volume Formula Discovery</h2>
+                    
+                    <!-- Main Content Grid -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <!-- Sphere Formula -->
+                        <div class="formula-box" style="padding: 20px; text-align: center;">
+                            <h3 style="font-size: 1.3rem; margin-bottom: 15px; color: var(--text-accent);">Volume of a Sphere</h3>
+                            <div class="formula" style="font-size: 2rem; margin: 15px 0; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">V = (4/3)πr³</div>
+                            <div style="text-align: left; margin-top: 15px; font-size: 0.9rem;">
+                                <p style="margin: 5px 0;"><strong>Where:</strong></p>
+                                <p style="margin: 3px 0; padding-left: 15px;">V = Volume</p>
+                                <p style="margin: 3px 0; padding-left: 15px;">r = radius</p>
+                                <p style="margin: 3px 0; padding-left: 15px;">π ≈ 3.14159</p>
+                            </div>
+                        </div>
+                        
+                        <!-- 3D Visualization -->
+                        <div style="display: flex; justify-content: center; align-items: center;">
+                            <div class="sphere-3d-container" id="formula-3d" style="width: 100%; height: 200px;"></div>
+                        </div>
+                        
+                        <!-- Hemisphere Formula -->
+                        <div class="formula-box" style="padding: 20px; text-align: center;">
+                            <h3 style="font-size: 1.3rem; margin-bottom: 15px; color: var(--text-accent);">Volume of a Hemisphere</h3>
+                            <div class="formula" style="font-size: 2rem; margin: 15px 0; background: var(--success-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">V = (2/3)πr³</div>
+                            <p style="margin-top: 15px; font-size: 0.9rem; color: var(--text-secondary);">Exactly half a sphere!</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Relationship Visualization -->
+                    <div style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 20px; backdrop-filter: blur(10px);">
+                        <h3 style="text-align: center; font-size: 1.3rem; margin-bottom: 15px; color: var(--text-accent);">Mathematical Relationship</h3>
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 30px; flex-wrap: wrap;">
+                            <div style="text-align: center; flex: 1; min-width: 150px;">
+                                <h4 style="font-size: 1rem; margin-bottom: 10px; color: var(--text-accent);">Full Sphere</h4>
+                                <div class="full-sphere" style="width: 60px; height: 60px; margin: 0 auto 10px;"></div>
+                                <div style="background: rgba(79, 172, 254, 0.2); padding: 8px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem;">V = (4/3)πr³</div>
+                    </div>
+                            
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                                <div style="font-size: 1.5rem; color: var(--text-accent);">÷</div>
+                                <div style="font-size: 1.2rem; color: var(--text-accent); font-weight: bold;">2</div>
+                </div>
+                
+                            <div style="text-align: center; flex: 1; min-width: 150px;">
+                                <h4 style="font-size: 1rem; margin-bottom: 10px; color: var(--text-accent);">Hemisphere</h4>
+                                <div class="hemisphere" style="width: 60px; height: 30px; margin: 0 auto 10px;"></div>
+                                <div style="background: rgba(67, 233, 123, 0.2); padding: 8px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem;">V = (2/3)πr³</div>
+                    </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const container = document.getElementById('formula-3d');
+            if (container) {
+                create3DSphere(container, 2.5);
+                animate3DSphere();
+            }
+
+            await teacher.speak("The volume formula for a sphere is four-thirds times pi times the radius cubed. This formula tells us exactly how much space is inside any sphere!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("A hemisphere is exactly half of a sphere, so its volume is half the sphere's volume: two-thirds times pi times radius cubed.");
+        }
+
+        async function showExamples() {
+            const taskId = 'examples';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            await showExamplesContent(taskId);
+            isPlaying = false;
+        }
+
+        async function showExamplesContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <div style="max-width: 1400px; margin: 0 auto; padding: 15px;">
+                    <h2 class="example-title" style="text-align: center; margin-bottom: 25px; font-size: 2rem; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Solve Volume Problems</h2>
+                    
+                    <!-- Examples Grid -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <!-- Example 1 -->
+                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 20px; backdrop-filter: blur(10px); border-left: 4px solid var(--accent-gradient);">
+                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                <div style="background: var(--accent-gradient); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px; font-size: 0.9rem;">1</div>
+                                <h3 style="font-size: 1.1rem; color: var(--text-accent); margin: 0;">Sphere: r = 11.2 cm</h3>
+                            </div>
+                            <div style="background: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 0.9rem;">
+                                <div style="margin: 5px 0; color: var(--text-primary);">V = (4/3)πr³</div>
+                                <div style="margin: 5px 0; color: var(--text-primary);">V = (4/3) × (22/7) × (11.2)³</div>
+                                <div style="margin: 5px 0; color: var(--text-primary);">V = (4/3) × (22/7) × 1404.928</div>
+                                <div style="margin: 8px 0; color: var(--text-accent); font-weight: bold;">V = 5887.32 cm³</div>
+                            </div>
+                    </div>
+                    
+                        <!-- Example 2 -->
+                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 20px; backdrop-filter: blur(10px); border-left: 4px solid var(--success-gradient);">
+                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                <div style="background: var(--success-gradient); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px; font-size: 0.9rem;">2</div>
+                                <h3 style="font-size: 1.1rem; color: var(--text-accent); margin: 0;">Shot-putt: r = 4.9 cm</h3>
+                            </div>
+                            <div style="background: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 0.9rem;">
+                                <div style="margin: 5px 0; color: var(--text-primary);">V = (4/3)πr³ = 493 cm³</div>
+                                <div style="margin: 8px 0; color: var(--text-accent); font-weight: bold;">Mass = Volume × Density</div>
+                                <div style="margin: 5px 0; color: var(--text-primary);">Mass = 493 × 7.8</div>
+                                <div style="margin: 8px 0; color: var(--text-accent); font-weight: bold;">Mass = 3.85 kg</div>
+                            </div>
+                    </div>
+                    
+                        <!-- Example 3 -->
+                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 20px; backdrop-filter: blur(10px); border-left: 4px solid var(--warning-gradient);">
+                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                <div style="background: var(--warning-gradient); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px; font-size: 0.9rem;">3</div>
+                                <h3 style="font-size: 1.1rem; color: var(--text-accent); margin: 0;">Hemisphere: r = 3.5 cm</h3>
+                            </div>
+                            <div style="background: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 0.9rem;">
+                                <div style="margin: 5px 0; color: var(--text-primary);">V = (2/3)πr³</div>
+                                <div style="margin: 5px 0; color: var(--text-primary);">V = (2/3) × (22/7) × (3.5)³</div>
+                                <div style="margin: 5px 0; color: var(--text-primary);">V = (2/3) × (22/7) × 42.875</div>
+                                <div style="margin: 8px 0; color: var(--text-accent); font-weight: bold;">V = 89.8 cm³</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Key Takeaways -->
+                    <div style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 20px; backdrop-filter: blur(10px);">
+                        <h3 style="text-align: center; font-size: 1.3rem; margin-bottom: 15px; color: var(--text-accent);">Key Takeaways</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                            <div style="text-align: center; padding: 15px; background: rgba(255, 255, 255, 0.1); border-radius: 10px;">
+                                <div style="font-size: 1.5rem; margin-bottom: 8px;">📐</div>
+                                <h4 style="color: var(--text-accent); margin-bottom: 8px; font-size: 1rem;">Correct Formula</h4>
+                                <p style="color: var(--text-secondary); font-size: 0.8rem;">Sphere: V = (4/3)πr³<br>Hemisphere: V = (2/3)πr³</p>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: rgba(255, 255, 255, 0.1); border-radius: 10px;">
+                                <div style="font-size: 1.5rem; margin-bottom: 8px;">🔢</div>
+                                <h4 style="color: var(--text-accent); margin-bottom: 8px; font-size: 1rem;">Show Work</h4>
+                                <p style="color: var(--text-secondary); font-size: 0.8rem;">Substitute values carefully and calculate step by step</p>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: rgba(255, 255, 255, 0.1); border-radius: 10px;">
+                                <div style="font-size: 1.5rem; margin-bottom: 8px;">⚖️</div>
+                                <h4 style="color: var(--text-accent); margin-bottom: 8px; font-size: 1rem;">Density</h4>
+                                <p style="color: var(--text-secondary); font-size: 0.8rem;">Mass = Volume × Density for real applications</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("Let's solve some volume problems step by step. These examples show how to use the sphere volume formula in real situations.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("In the first example, we find the volume of a sphere with radius eleven point two centimeters. We substitute into our formula and calculate five thousand eight hundred eighty-seven point three two cubic centimeters.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("The second example shows how volume relates to mass. A shot-putt is a metal sphere. We calculate its volume, then multiply by density to find the mass.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("The third example uses the hemisphere formula. A hemispherical bowl holds water equal to its volume: eighty-nine point eight cubic centimeters.");
+        }
+
+        async function showHemisphere() {
+            const taskId = 'hemisphere';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            await showHemisphereContent(taskId);
+            isPlaying = false;
+        }
+
+        async function showHemisphereContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <div style="max-width: 1400px; margin: 0 auto; padding: 15px;">
+                    <h2 class="example-title" style="text-align: center; margin-bottom: 25px; font-size: 2rem; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Understanding Hemispheres</h2>
+                    
+                    <!-- Main Content Grid -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <!-- Mathematical Relationship -->
+                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 20px; backdrop-filter: blur(10px);">
+                            <h3 style="text-align: center; font-size: 1.3rem; margin-bottom: 20px; color: var(--text-accent);">Mathematical Relationship</h3>
+                            <div style="display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 15px;">
+                                <div style="text-align: center; flex: 1;">
+                                    <h4 style="font-size: 1rem; margin-bottom: 10px; color: var(--text-accent);">Full Sphere</h4>
+                                    <div class="full-sphere pulse-animation" style="width: 50px; height: 50px; margin: 0 auto 10px;"></div>
+                                    <div style="background: rgba(79, 172, 254, 0.2); padding: 8px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem;">V = (4/3)πr³</div>
+                    </div>
+                    
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                                    <div style="font-size: 1.5rem; color: var(--text-accent);">÷</div>
+                                    <div style="font-size: 1.2rem; color: var(--text-accent); font-weight: bold;">2</div>
+                    </div>
+                    
+                                <div style="text-align: center; flex: 1;">
+                                    <h4 style="font-size: 1rem; margin-bottom: 10px; color: var(--text-accent);">Hemisphere</h4>
+                                    <div class="hemisphere pulse-animation" style="width: 50px; height: 25px; margin: 0 auto 10px;"></div>
+                                    <div style="background: rgba(67, 233, 123, 0.2); padding: 8px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem;">V = (2/3)πr³</div>
+                                </div>
+                            </div>
+                            <div style="text-align: center; background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 10px;">
+                                <p style="margin-bottom: 10px; font-size: 0.9rem;">Hemisphere = (1/2) × Sphere Volume</p>
+                                <div style="background: rgba(251, 191, 36, 0.2); padding: 8px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem;">(1/2) × (4/3)πr³ = (2/3)πr³</div>
+                    </div>
+                </div>
+                
+                        <!-- Real World Examples -->
+                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 20px; backdrop-filter: blur(10px);">
+                            <h3 style="text-align: center; font-size: 1.3rem; margin-bottom: 20px; color: var(--text-accent);">Real World Examples</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div style="text-align: center; background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 10px;">
+                                    <div style="font-size: 2rem; margin-bottom: 8px;">🎳</div>
+                                    <h4 style="font-size: 1rem; margin-bottom: 8px; color: var(--text-accent);">Bowling Ball</h4>
+                                    <div class="full-sphere" style="width: 40px; height: 40px; margin: 0 auto 8px;"></div>
+                                    <p style="color: var(--text-secondary); font-size: 0.8rem;">Full sphere</p>
+                </div>
+                
+                                <div style="text-align: center; background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 10px;">
+                                    <div style="font-size: 2rem; margin-bottom: 8px;">🥣</div>
+                                    <h4 style="font-size: 1rem; margin-bottom: 8px; color: var(--text-accent);">Bowl</h4>
+                                    <div class="hemisphere" style="width: 40px; height: 20px; margin: 0 auto 8px;"></div>
+                                    <p style="color: var(--text-secondary); font-size: 0.8rem;">Hemisphere</p>
+                    </div>
+                    
+                                <div style="text-align: center; background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 10px;">
+                                    <div style="font-size: 2rem; margin-bottom: 8px;">🏛️</div>
+                                    <h4 style="font-size: 1rem; margin-bottom: 8px; color: var(--text-accent);">Dome</h4>
+                                    <div class="hemisphere" style="width: 40px; height: 20px; margin: 0 auto 8px;"></div>
+                                    <p style="color: var(--text-secondary); font-size: 0.8rem;">Hemisphere</p>
+                    </div>
+                    
+                                <div style="text-align: center; background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 10px;">
+                                    <div style="font-size: 2rem; margin-bottom: 8px;">🌙</div>
+                                    <h4 style="font-size: 1rem; margin-bottom: 8px; color: var(--text-accent);">Half Moon</h4>
+                                    <div class="hemisphere" style="width: 40px; height: 20px; margin: 0 auto 8px;"></div>
+                                    <p style="color: var(--text-secondary); font-size: 0.8rem;">Hemisphere</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("A hemisphere is exactly half of a sphere, cut along a plane through its center. This means its volume is exactly half the volume of the complete sphere.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("The hemisphere formula is two-thirds pi r cubed, which is exactly half of four-thirds pi r cubed. You can see hemispheres in bowls, domes, and many architectural structures!");
+        }
+
+        async function showRealWorld() {
+            const taskId = 'realworld';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            await showRealWorldContent(taskId);
+            isPlaying = false;
+        }
+
+        async function showRealWorldContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <div style="max-width: 1400px; margin: 0 auto; padding: 15px;">
+                    <h2 class="example-title" style="text-align: center; margin-bottom: 25px; font-size: 2rem; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Real World Applications</h2>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin: 15px 0;">
+                        
+                        <!-- Sports Equipment -->
+                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 18px; backdrop-filter: blur(10px); border-top: 3px solid var(--accent-gradient);">
+                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                <div style="font-size: 2rem; margin-right: 12px;">🏀</div>
+                                <h3 style="font-size: 1.2rem; color: var(--text-accent); margin: 0;">Sports Equipment</h3>
+                            </div>
+                            <div style="margin-bottom: 12px;">
+                                <div style="background: rgba(79, 172, 254, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 6px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Basketball:</strong> 7,240 cm³
+                                </div>
+                                <div style="background: rgba(79, 172, 254, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 6px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Tennis Ball:</strong> 157 cm³
+                                </div>
+                                <div style="background: rgba(79, 172, 254, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Golf Ball:</strong> 40 cm³
+                                </div>
+                            </div>
+                            <div style="background: rgba(79, 172, 254, 0.2); padding: 8px; border-radius: 8px; font-size: 0.8rem; color: var(--text-secondary);">
+                                <strong>Used for:</strong> Material costs, shipping
+                            </div>
+                    </div>
+                    
+                        <!-- Manufacturing -->
+                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 18px; backdrop-filter: blur(10px); border-top: 3px solid var(--success-gradient);">
+                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                <div style="font-size: 2rem; margin-right: 12px;">🏭</div>
+                                <h3 style="font-size: 1.2rem; color: var(--text-accent); margin: 0;">Manufacturing</h3>
+                            </div>
+                            <div style="margin-bottom: 12px;">
+                                <div style="background: rgba(67, 233, 123, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 6px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Ball Bearings:</strong> Precise calculations
+                                </div>
+                                <div style="background: rgba(67, 233, 123, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 6px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Storage Tanks:</strong> Maximum volume
+                                </div>
+                                <div style="background: rgba(67, 233, 123, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Pressure Vessels:</strong> Optimal shape
+                                </div>
+                            </div>
+                            <div style="background: rgba(67, 233, 123, 0.2); padding: 8px; border-radius: 8px; font-size: 0.8rem; color: var(--text-secondary);">
+                                <strong>Critical for:</strong> Safety, efficiency
+                            </div>
+                    </div>
+                    
+                        <!-- Earth Sciences -->
+                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 18px; backdrop-filter: blur(10px); border-top: 3px solid var(--warning-gradient);">
+                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                <div style="font-size: 2rem; margin-right: 12px;">🌍</div>
+                                <h3 style="font-size: 1.2rem; color: var(--text-accent); margin: 0;">Earth Sciences</h3>
+                            </div>
+                            <div style="margin-bottom: 12px;">
+                                <div style="background: rgba(250, 112, 154, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 6px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Earth:</strong> 1.08 × 10²¹ m³
+                                </div>
+                                <div style="background: rgba(250, 112, 154, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 6px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Moon:</strong> 2.2 × 10¹⁹ m³
+                                </div>
+                                <div style="background: rgba(250, 112, 154, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Raindrops:</strong> Volume affects speed
+                                </div>
+                            </div>
+                            <div style="background: rgba(250, 112, 154, 0.2); padding: 8px; border-radius: 8px; font-size: 0.8rem; color: var(--text-secondary);">
+                                <strong>Applications:</strong> Climate, space exploration
+                            </div>
+                    </div>
+                    
+                    </div>
+                    
+                    <!-- Second Row -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin: 15px 0;">
+                        <!-- Architecture -->
+                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 18px; backdrop-filter: blur(10px); border-top: 3px solid var(--secondary-gradient);">
+                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                <div style="font-size: 2rem; margin-right: 12px;">🏠</div>
+                                <h3 style="font-size: 1.2rem; color: var(--text-accent); margin: 0;">Architecture</h3>
+                            </div>
+                            <div style="margin-bottom: 12px;">
+                                <div style="background: rgba(240, 147, 251, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 6px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Dome Structures:</strong> Hemispheres
+                                </div>
+                                <div style="background: rgba(240, 147, 251, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 6px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Water Tanks:</strong> Maximum capacity
+                                </div>
+                                <div style="background: rgba(240, 147, 251, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Planetariums:</strong> Projection screens
+                                </div>
+                            </div>
+                            <div style="background: rgba(240, 147, 251, 0.2); padding: 8px; border-radius: 8px; font-size: 0.8rem; color: var(--text-secondary);">
+                                <strong>Benefits:</strong> Strength, efficiency
+                            </div>
+                    </div>
+                    
+                        <!-- Science & Medicine -->
+                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 18px; backdrop-filter: blur(10px); border-top: 3px solid var(--primary-gradient);">
+                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                <div style="font-size: 2rem; margin-right: 12px;">🔬</div>
+                                <h3 style="font-size: 1.2rem; color: var(--text-accent); margin: 0;">Science & Medicine</h3>
+                            </div>
+                            <div style="margin-bottom: 12px;">
+                                <div style="background: rgba(102, 126, 234, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 6px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Drug Capsules:</strong> Uniform dissolution
+                                </div>
+                                <div style="background: rgba(102, 126, 234, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 6px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Cell Biology:</strong> Spherical cells
+                                </div>
+                                <div style="background: rgba(102, 126, 234, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Bubble Physics:</strong> Surface tension
+                                </div>
+                            </div>
+                            <div style="background: rgba(102, 126, 234, 0.2); padding: 8px; border-radius: 8px; font-size: 0.8rem; color: var(--text-secondary);">
+                                <strong>Importance:</strong> Dosage, research
+                            </div>
+                        </div>
+                        
+                        <!-- Food Industry -->
+                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 18px; backdrop-filter: blur(10px); border-top: 3px solid var(--accent-gradient);">
+                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                <div style="font-size: 2rem; margin-right: 12px;">🍽️</div>
+                                <h3 style="font-size: 1.2rem; color: var(--text-accent); margin: 0;">Food Industry</h3>
+                            </div>
+                            <div style="margin-bottom: 12px;">
+                                <div style="background: rgba(79, 172, 254, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 6px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Ice Cream Scoops:</strong> Volume consistency
+                                </div>
+                                <div style="background: rgba(79, 172, 254, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 6px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Candy Production:</strong> Spherical chocolates
+                                </div>
+                                <div style="background: rgba(79, 172, 254, 0.1); padding: 8px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem;">
+                                    <strong style="color: var(--text-accent);">Cooking:</strong> Portion control
+                                </div>
+                            </div>
+                            <div style="background: rgba(79, 172, 254, 0.2); padding: 8px; border-radius: 8px; font-size: 0.8rem; color: var(--text-secondary);">
+                                <strong>Applications:</strong> Quality control, nutrition
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("Sphere volume calculations are everywhere in our world! From sports equipment to space exploration, understanding volume helps us solve real problems.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("In manufacturing, spherical shapes are often optimal because they can hold the maximum volume for a given surface area. This makes them perfect for storage tanks and pressure vessels.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("Even in medicine and food science, volume calculations help ensure proper dosages and portion sizes. The sphere formula is truly a powerful tool!");
+        }
+
+        async function showChart() {
+            const taskId = 'chart';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            await showChartContent(taskId);
+            isPlaying = false;
+        }
+
+        async function showChartContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">Volume vs Radius Relationship</h2>
+                <div class="chart-container">
+                    <canvas id="volumeChart"></canvas>
+                </div>
+                <div class="formula-box">
+                    <h3>Key Insights</h3>
+                    <p>• Volume grows with the <strong>cube</strong> of the radius</p>
+                    <p>• Doubling radius increases volume by <strong>8 times</strong> (2³ = 8)</p>
+                    <p>• Small changes in radius cause large changes in volume</p>
+                    <div class="formula">V = (4/3)πr³</div>
+                </div>
+            `;
+
+            // Generate data for the chart
+            const radii = [];
+            const volumes = [];
+            const surfaceAreas = [];
+            
+            for (let r = 1; r <= 10; r += 0.5) {
+                radii.push(r);
+                volumes.push((4/3) * Math.PI * Math.pow(r, 3));
+                surfaceAreas.push(4 * Math.PI * Math.pow(r, 2));
+            }
+
+            const ctx = document.getElementById('volumeChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: radii,
+                    datasets: [{
+                        label: 'Volume',
+                        data: volumes,
+                        borderColor: '#4facfe',
+                        backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: '#4facfe',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        animation: {
+                            duration: 2000,
+                            easing: 'easeInOutQuart'
+                        }
+                    }, {
+                        label: 'Surface Area',
+                        data: surfaceAreas,
+                        borderColor: '#fbbf24',
+                        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: '#fbbf24',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        animation: {
+                            duration: 2000,
+                            easing: 'easeInOutQuart',
+                            delay: 500
+                        }
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff',
+                                font: { size: 14 },
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: '#4facfe',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            displayColors: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Radius (units)',
+                                color: '#ffffff',
+                                font: { size: 14, weight: 'bold' }
+                            },
+                            ticks: { 
+                                color: '#e2e8f0',
+                                font: { size: 12 }
+                            },
+                            grid: { 
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                drawBorder: false
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Volume / Surface Area',
+                                color: '#ffffff',
+                                font: { size: 14, weight: 'bold' }
+                            },
+                            ticks: { 
+                                color: '#e2e8f0',
+                                font: { size: 12 }
+                            },
+                            grid: { 
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                drawBorder: false
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+
+            await teacher.speak("This chart shows how volume and surface area change as radius increases. Notice how volume grows much faster than surface area because it depends on radius cubed!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            await teacher.speak("When you double the radius, the volume increases by eight times! This cubic relationship is why small spheres pack very differently than large ones.");
+        }
+
+        async function showQuiz() {
+            const taskId = 'quiz';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            await showQuizContent(taskId);
+            isPlaying = false;
+        }
+
+        async function showQuizContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            const questions = [
+                {
+                    question: "What is the volume formula for a sphere?",
+                    options: [
+                        "V = 4πr²",
+                        "V = (4/3)πr³",
+                        "V = πr²h",
+                        "V = (2/3)πr³"
+                    ],
+                    correct: 1,
+                    explanation: "The volume of a sphere is (4/3)πr³ where r is the radius."
+                },
+                {
+                    question: "If a sphere's radius doubles, its volume:",
+                    options: [
+                        "Doubles",
+                        "Triples", 
+                        "Increases 4 times",
+                        "Increases 8 times"
+                    ],
+                    correct: 3,
+                    explanation: "Volume depends on r³. If radius doubles, volume increases by 2³ = 8 times."
+                }
+            ];
+
+            let currentQuestion = 0;
+            let score = 0;
+
+            function showQuestion() {
+                const q = questions[currentQuestion];
+                content.innerHTML = `
+                    <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+                        <h2 class="example-title" style="text-align: center; margin-bottom: 30px; font-size: 2rem; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Knowledge Quiz - Question ${currentQuestion + 1}/2</h2>
+                        <div class="quiz-question" style="background: rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 30px; backdrop-filter: blur(10px);">
+                            <h3 style="font-size: 1.5rem; margin-bottom: 25px; color: var(--text-accent); text-align: center;">${q.question}</h3>
+                            <div class="quiz-options" style="display: grid; gap: 15px; margin-bottom: 25px;">
+                            ${q.options.map((option, index) => 
+                                    `<div class="quiz-option" data-index="${index}" style="background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; border: 2px solid transparent;">${option}</div>`
+                            ).join('')}
+                        </div>
+                            <div id="quiz-result" class="quiz-result" style="display: none; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-weight: bold;"></div>
+                            <div class="value-display" style="text-align: center; font-size: 1.2rem; color: var(--text-accent);">Score: ${score}/${currentQuestion}</div>
+                        </div>
+                    </div>
+                `;
+
+                // Add click handlers
+                document.querySelectorAll('.quiz-option').forEach(option => {
+                    option.addEventListener('click', () => selectAnswer(parseInt(option.dataset.index)));
+                    
+                    // Add hover effects
+                    option.addEventListener('mouseenter', () => {
+                        if (!option.style.pointerEvents || option.style.pointerEvents !== 'none') {
+                            option.style.background = 'rgba(79, 172, 254, 0.2)';
+                            option.style.border = '2px solid var(--accent-gradient)';
+                            option.style.transform = 'translateY(-2px)';
+                        }
+                    });
+                    
+                    option.addEventListener('mouseleave', () => {
+                        if (!option.style.pointerEvents || option.style.pointerEvents !== 'none') {
+                            option.style.background = 'rgba(255, 255, 255, 0.1)';
+                            option.style.border = '2px solid transparent';
+                            option.style.transform = 'translateY(0)';
+                        }
+                    });
+                });
+            }
+
+            async function selectAnswer(selectedIndex) {
+                const q = questions[currentQuestion];
+                const options = document.querySelectorAll('.quiz-option');
+                const resultDiv = document.getElementById('quiz-result');
+
+                // Disable all options
+                options.forEach(opt => opt.style.pointerEvents = 'none');
+
+                // Show correct/incorrect
+                if (selectedIndex === q.correct) {
+                    options[selectedIndex].style.background = 'rgba(67, 233, 123, 0.3)';
+                    options[selectedIndex].style.border = '2px solid var(--success-gradient)';
+                    options[selectedIndex].style.color = 'var(--text-accent)';
+                    resultDiv.style.background = 'rgba(67, 233, 123, 0.2)';
+                    resultDiv.style.border = '2px solid var(--success-gradient)';
+                    resultDiv.style.color = 'var(--text-accent)';
+                    resultDiv.textContent = '✓ Correct! ' + q.explanation;
+                    score++;
+                    await teacher.speak("Correct! " + q.explanation);
+                } else {
+                    options[selectedIndex].style.background = 'rgba(250, 112, 154, 0.3)';
+                    options[selectedIndex].style.border = '2px solid var(--warning-gradient)';
+                    options[selectedIndex].style.color = 'var(--text-accent)';
+                    options[q.correct].style.background = 'rgba(67, 233, 123, 0.3)';
+                    options[q.correct].style.border = '2px solid var(--success-gradient)';
+                    options[q.correct].style.color = 'var(--text-accent)';
+                    resultDiv.style.background = 'rgba(250, 112, 154, 0.2)';
+                    resultDiv.style.border = '2px solid var(--warning-gradient)';
+                    resultDiv.style.color = 'var(--text-accent)';
+                    resultDiv.textContent = '✗ Incorrect. ' + q.explanation;
+                    await teacher.speak("Not quite right. " + q.explanation);
+                }
+
+                resultDiv.style.display = 'block';
+
+                // Move to next question
+                await wait(3000);
+                if (!shouldContinue(taskId)) return;
+
+                currentQuestion++;
+                if (currentQuestion < questions.length) {
+                    showQuestion();
+                } else {
+                    showFinalScore();
+                }
+            }
+
+            function showFinalScore() {
+                content.innerHTML = `
+                    <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+                        <h2 class="example-title" style="text-align: center; margin-bottom: 30px; font-size: 2rem; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Quiz Complete!</h2>
+                        <div class="value-display" style="text-align: center; font-size: 2rem; margin-bottom: 30px; color: var(--text-accent);">Final Score: ${score}/2</div>
+                        <div class="quiz-question" style="background: rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 30px; backdrop-filter: blur(10px); text-align: center;">
+                            <h3 style="font-size: 1.8rem; margin-bottom: 20px; color: var(--text-accent);">${score === 2 ? '🎉 Perfect Score!' : score >= 1 ? '👍 Great Job!' : '📚 Keep Studying!'}</h3>
+                            <p style="margin: 20px 0; font-size: 1.1rem; color: var(--text-primary);">
+                                ${score === 2 ? 'You have mastered sphere volume calculations!' :
+                                  score >= 1 ? 'You understand most concepts well!' :
+                                  'Review the lessons and try again!'}
+                            </p>
+                            <div class="formula-box" style="background: rgba(79, 172, 254, 0.1); padding: 20px; border-radius: 15px; margin-top: 25px;">
+                                <div class="formula" style="font-size: 1.5rem; margin-bottom: 10px; color: var(--text-accent);">Remember: V = (4/3)πr³</div>
+                                <p style="color: var(--text-secondary);">Keep practicing with the examples!</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                teacher.speak(`Quiz complete! You scored ${score} out of 2. ${score === 2 ? 'Excellent work!' : 'Keep practicing!'}`);
+            }
+
+            await teacher.speak("Time to test your knowledge! Answer these questions about sphere volume.");
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            showQuestion();
+        }
+
+
+        async function showCompleteLesson() {
+            const taskId = 'complete';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            // Welcome message
+            const welcomeContent = createStageContent();
+            welcomeContent.innerHTML = `
+                <h2 class="example-title">Complete Volume Lesson</h2>
+                <div class="value-display">Let's Learn Everything!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    We'll explore sphere volume step by step, from mathematical formulas to real applications.
+                </p>
+            `;
+            
+            await teacher.speak("Welcome to the complete lesson on sphere volume! Let's journey through the fascinating world of three-dimensional space measurement.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Introduction
+            await showIntroductionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Formula
+            await teacher.speak("Let's explore the mathematical formula in detail.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showFormulaContent(taskId);
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Examples
+            await teacher.speak("Time to practice with real examples!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showExamplesContent(taskId);
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Hemisphere
+            await teacher.speak("Next, let's understand hemispheres and how their volume relates to a full sphere.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showHemisphereContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Real World
+            await teacher.speak("Let's see how volume calculations are used in the real world!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showRealWorldContent(taskId);
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Chart Analysis
+            await teacher.speak("Finally, let's analyze the mathematical relationships through charts!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showChartContent(taskId);
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Final message
+            const finalContent = createStageContent();
+            finalContent.innerHTML = `
+                <h2 class="example-title">Congratulations!</h2>
+                <div class="value-display">🎉 Volume Mastery Complete! 🎉</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    You've mastered sphere volume! You understand the water displacement method,
+                    can use the formula confidently, and know how volume applies in real life. Excellent work!
+                </p>
+            `;
+            
+            await teacher.speak("Congratulations! You've completed the full lesson on sphere volume. You now understand how to measure the space inside spheres and hemispheres, and you know where this knowledge is useful. Outstanding achievement!");
+            
+            isPlaying = false;
+        }
+
+        function resetApplication() {
+            // Force stop any running demo
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            isPlaying = false;
+            
+            // Stop and destroy current teacher
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            // Clear all timeouts
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            // Stop 3D renderer
+            if (sphere3DRenderer) {
+                sphere3DRenderer.setAnimationLoop(null);
+            }
+            
+            // Clear stage and show welcome
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 style="font-size: 2rem; margin-bottom: 20px;">Welcome to Sphere Volume!</h2>
+                <div class="value-display">Let's Measure 3D Space!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Volume tells us how much space is inside a sphere. From mathematical formulas to real applications,
+                    choose a lesson below to start your mathematical journey!
+                </p>
+            `;
+            
+            // Clear active button states
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Reset current demo
+            currentDemo = null;
+            
+            // Create new teacher and welcome message
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to continue exploring the amazing world of sphere volume!");
+            }, 500);
+        }
+
+        // Create floating particles
+        function createParticles() {
+            const container = document.getElementById('particles-container');
+            const particleCount = 20;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create floating particles
+            createParticles();
+            
+            // Initialize teacher
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome to the volume of spheres! Choose any lesson to begin exploring how we measure space inside three-dimensional objects!");
+            }, 500);
+            
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Clear active states
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'formula':
+                            showFormula();
+                            break;
+                        case 'examples':
+                            showExamples();
+                            break;
+                        case 'hemisphere':
+                            showHemisphere();
+                            break;
+                        case 'realworld':
+                            showRealWorld();
+                            break;
+                        case 'chart':
+                            showChart();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+            
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

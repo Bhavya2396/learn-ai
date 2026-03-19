@@ -1,0 +1,1948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lines and Angles - Interactive Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --geometry-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--geometry-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+        }
+
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--geometry-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--geometry-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .geometry-canvas {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .geometry-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .geometry-description {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 800px;
+            margin: 20px auto;
+            line-height: 1.6;
+        }
+
+        .theorem-box {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            max-width: 700px;
+            backdrop-filter: blur(10px);
+        }
+
+        .theorem-title {
+            font-size: 1.3rem;
+            color: var(--text-accent);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .theorem-content {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .value-display {
+            font-size: 1.5rem;
+            color: var(--text-accent);
+            padding: 15px 30px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            border: 2px solid var(--glass-border);
+            margin: 15px 0;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+        }
+
+        .split-view {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .threejs-container {
+            width: 100%;
+            height: 400px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .slider-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px 0;
+            padding: 20px;
+            background: var(--glass-bg);
+            border-radius: 15px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .slider-label {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            cursor: pointer;
+            border: none;
+        }
+
+        .quiz-container {
+            width: 100%;
+            max-width: 700px;
+            padding: 30px;
+            background: var(--glass-bg);
+            border-radius: 20px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .quiz-progress {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .quiz-question {
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            margin-bottom: 25px;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .quiz-option {
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: left;
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        .quiz-feedback {
+            min-height: 60px;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-size: 1.05rem;
+        }
+
+        .correct {
+            background: rgba(67, 233, 123, 0.2);
+            border: 2px solid #43e97b;
+            color: #43e97b;
+        }
+
+        .incorrect {
+            background: rgba(245, 87, 108, 0.2);
+            border: 2px solid #f5576c;
+            color: #f5576c;
+        }
+
+        .quiz-score {
+            text-align: center;
+            font-size: 1.2rem;
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 500px;
+            height: 300px;
+            margin: 20px auto;
+        }
+
+        .theory-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 24px;
+            margin: 40px auto 0 auto;
+            width: 100%;
+            max-width: 1400px;
+            justify-items: center;
+        }
+        .theory-card {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 28px 20px 20px 20px;
+            min-width: 0;
+            max-width: 340px;
+            min-height: 210px;
+            box-shadow: var(--shadow-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: var(--transition);
+        }
+        .theory-card:hover {
+            transform: scale(1.04) translateY(-3px);
+            border-color: var(--text-accent);
+            background: var(--glass-bg), var(--primary-gradient);
+        }
+        .theory-icon {
+            font-size: 2.7rem;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 2px 7px rgba(0,0,0,0.18));
+        }
+        .theory-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--text-accent);
+            margin-bottom: 12px;
+        }
+        .theory-text {
+            font-size: 1.07rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+        @media (max-width: 850px) {
+            .theory-cards {
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 16px;
+            }
+            .theory-card { min-height: 175px; padding: 20px 10px 15px 10px; }
+        }
+        @media (max-width: 590px) {
+            .theory-cards {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .theory-card { border-radius: 15px; }
+        }
+        @media (max-width: 768px) {
+            .split-view {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .geometry-title {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Lines and Angles - Interactive Mastery 📐</h1>
+        <p>Experience geometry with stunning 3D animations and interactive learning</p>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage">
+            <!-- Dynamic content will be inserted here -->
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">🎬 Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">👋 Introduction</button>
+            <button class="demo-btn" data-demo="adjacent-angles">📐 Adjacent Angles</button>
+            <button class="demo-btn" data-demo="linear-pair">📏 Linear Pair</button>
+            <button class="demo-btn" data-demo="vertical-angles">✖️ Vertical Angles</button>
+            <button class="demo-btn" data-demo="intersecting">🔀 Intersecting Lines</button>
+            <button class="demo-btn" data-demo="parallel">⫽ Parallel Lines</button>
+            <button class="demo-btn" data-demo="interactive">🎮 Interactive Demo</button>
+            <button class="demo-btn" data-demo="quiz">📝 Quiz</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+        
+        <!-- Theory Cards Section -->
+        <section class="theory-cards">
+          <div class="theory-card">
+            <div class="theory-icon" style="color:#fa709a">📐</div>
+            <div class="theory-title">Adjacent Angles</div>
+            <div class="theory-text">
+              Two angles with a common vertex and arm, with their other arms on different sides.<br>
+              <b>Key:</b> ∠ABD + ∠DBC = ∠ABC
+            </div>
+          </div>
+          <div class="theory-card">
+            <div class="theory-icon" style="color:#43e97b">📏</div>
+            <div class="theory-title">Linear Pair</div>
+            <div class="theory-text">
+              Adjacent angles whose non-common arms form a straight line.<br>
+              <b>Key:</b> ∠ABD + ∠DBC = 180°
+            </div>
+          </div>
+          <div class="theory-card">
+            <div class="theory-icon" style="color:#9f7aea">✖️</div>
+            <div class="theory-title">Vertically Opposite</div>
+            <div class="theory-text">
+              When two lines intersect, the opposite angles are equal.<br>
+              <b>Key:</b> ∠AOD = ∠BOC
+            </div>
+          </div>
+          <div class="theory-card">
+            <div class="theory-icon" style="color:#4facfe">🔀</div>
+            <div class="theory-title">Intersecting Lines</div>
+            <div class="theory-text">
+              Lines that cross at one point, creating four angles.<br>
+              <b>Key:</b> Point of intersection
+            </div>
+          </div>
+          <div class="theory-card">
+            <div class="theory-icon" style="color:#fbbf24">⫽</div>
+            <div class="theory-title">Parallel Lines</div>
+            <div class="theory-text">
+              Lines that never meet and stay the same distance apart.<br>
+              <b>Key:</b> PQ ∥ RS
+            </div>
+          </div>
+        </section>
+    </div>
+
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <script>
+        // ============================================
+        // GLOBAL STATE MANAGEMENT (brought from CH-9-1.html)
+        // ============================================
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let activeTasks = new Set();
+        let currentRunId = 0;
+        let isPlaying = false;
+        let currentDemo = null;
+        let threeJsScenes = [];
+        let currentDemoAborted = false;
+        let currentTaskId = null;
+        let animationTimeouts = [];
+
+        // TEACHER VOICE SYSTEM
+        class TeacherVoice {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.voice = null;
+                this.rate = 0.9;
+                this.pitch = 1.0;
+                this.volume = 0.85;
+                this.isEnabled = true;
+                this.currentUtterance = null;
+                this.isDestroyed = false;
+                this.setupVoice();
+            }
+
+            setupVoice() {
+                const loadVoices = () => {
+                    const voices = this.synth.getVoices();
+                    this.voice = voices.find(v => v.lang.includes('en-GB') && v.name.toLowerCase().includes('female'))
+                        || voices.find(v => v.lang.includes('en-GB'))
+                        || voices.find(v => v.lang.includes('en'))
+                        || voices[0];
+                };
+                loadVoices();
+                this.synth.onvoiceschanged = loadVoices;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !globalAudioEnabled || !text || this.isDestroyed) return;
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.voice = this.voice;
+                        utterance.rate = this.rate;
+                        utterance.pitch = this.pitch;
+                        utterance.volume = this.volume;
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        this.currentUtterance = utterance;
+                        this.synth.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+            }
+        }
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            threeJsScenes.forEach(scene => {
+                if (scene.renderer) scene.renderer.dispose();
+                if (scene.animationId) cancelAnimationFrame(scene.animationId);
+            });
+            threeJsScenes = [];
+            activeTasks.clear();
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) return false;
+            return !currentDemoAborted;
+        }
+
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentTeacher = new TeacherVoice();
+            currentTeacher.isEnabled = globalAudioEnabled;
+            return currentTeacher;
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+        // ============================================
+        // END GLOBAL STATE/UTILITY SECTION
+
+        // ============================================
+        // THREE.JS SCENE CREATION
+        // ============================================
+
+        function createThreeJsScene(container, options = {}) {
+            const { backgroundColor = 0x1a1a2e, cameraZ = 10 } = options;
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(backgroundColor);
+
+            const camera = new THREE.PerspectiveCamera(
+                75,
+                container.clientWidth / container.clientHeight,
+                0.1,
+                1000
+            );
+            camera.position.z = cameraZ;
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            const sceneData = { scene, camera, renderer, objects: {}, animationId: null };
+
+            function animate() {
+                sceneData.animationId = requestAnimationFrame(animate);
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            threeJsScenes.push(sceneData);
+            return sceneData;
+        }
+
+        // ============================================
+        // DRAWING FUNCTIONS
+        // ============================================
+
+        function drawLine(sceneData, x1, y1, x2, y2, color = 0xffffff, linewidth = 2) {
+            const points = [
+                new THREE.Vector3(x1, y1, 0),
+                new THREE.Vector3(x2, y2, 0)
+            ];
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ 
+                color: color,
+                linewidth: linewidth
+            });
+
+            const line = new THREE.Line(geometry, material);
+            sceneData.scene.add(line);
+            return line;
+        }
+
+        function drawRay(sceneData, startX, startY, angle, length, color = 0xffffff) {
+            const endX = startX + length * Math.cos(angle);
+            const endY = startY + length * Math.sin(angle);
+            return drawLine(sceneData, startX, startY, endX, endY, color, 3);
+        }
+
+        function drawPoint(sceneData, x, y, color = 0xfbbf24, size = 0.15) {
+            const geometry = new THREE.SphereGeometry(size);
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const point = new THREE.Mesh(geometry, material);
+            point.position.set(x, y, 0);
+            sceneData.scene.add(point);
+            return point;
+        }
+
+        function drawAngleArc(sceneData, centerX, centerY, startAngle, endAngle, radius, color = 0xfbbf24) {
+            const curve = new THREE.EllipseCurve(
+                centerX, centerY,
+                radius, radius,
+                startAngle, endAngle,
+                false,
+                0
+            );
+
+            const points = curve.getPoints(50);
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: color, linewidth: 2 });
+            const arc = new THREE.Line(geometry, material);
+            sceneData.scene.add(arc);
+            return arc;
+        }
+
+        function drawLabel(sceneData, text, x, y, color = '#ffffff') {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 128;
+
+            context.font = 'bold 72px Arial';
+            context.fillStyle = color;
+            context.textAlign = 'center';
+            context.fillText(text, 128, 70);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(material);
+            sprite.position.set(x, y, 0);
+            sprite.scale.set(2.5, 1.2, 1);
+
+            sceneData.scene.add(sprite);
+            return sprite;
+        }
+
+        // ============================================
+        // COMPLETE LESSON FUNCTION
+        // ============================================
+
+        async function showCompleteLesson() {
+            const taskId = `complete-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+
+            await teacher.speak("Welcome to the complete lesson on Lines and Angles! Let's begin our comprehensive journey.");
+            
+            await showIntroductionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(4000);
+
+            await showAdjacentAnglesContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(4000);
+
+            await showLinearPairContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(4000);
+
+            await showVerticalAnglesContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(4000);
+
+            await showIntersectingLinesContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(4000);
+
+            await showParallelLinesContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(4000);
+
+            await teacher.speak("Congratulations! You have completed the full lesson on Lines and Angles with flying colors!");
+        }
+
+        // ============================================
+        // MODULE 1: INTRODUCTION
+        // ============================================
+
+        async function showIntroduction() {
+            const taskId = `intro-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+            await showIntroductionContent(taskId);
+        }
+
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Introduction to Lines and Angles 📐</h2>
+                <p class="geometry-description">
+                    Welcome to an exciting journey through the world of lines and angles! 
+                    In this lesson, we'll explore how lines interact and create different types of angles.
+                </p>
+                <div class="threejs-container" id="intro-threejs"></div>
+                <div class="value-display">Let's Begin Our Adventure!</div>
+            `;
+
+            await wait(100);
+
+            const container = document.getElementById('intro-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("Let's begin our journey into the world of lines and angles! We'll discover how lines can intersect and create fascinating angle relationships.");
+            if (!shouldContinue(taskId)) return;
+
+            // Animate multiple lines appearing
+            const lines = [];
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI * 2 * i) / 5;
+                const line = drawRay(sceneData, 0, 0, angle, 5, 0x4facfe);
+                line.scale.x = 0;
+                lines.push(line);
+                
+                gsap.to(line.scale, {
+                    x: 1,
+                    duration: 0.5,
+                    delay: i * 0.2,
+                    ease: "power2.out"
+                });
+                
+                await wait(200);
+            }
+
+            // Add center point
+            drawPoint(sceneData, 0, 0, 0xfbbf24, 0.2);
+
+            await wait(2000);
+        }
+
+        // ============================================
+        // MODULE 2: ADJACENT ANGLES
+        // ============================================
+
+        async function showAdjacentAngles() {
+            const taskId = `adjacent-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+            await showAdjacentAnglesContent(taskId);
+        }
+
+        async function showAdjacentAnglesContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Adjacent Angles</h2>
+                <div class="threejs-container" id="adjacent-threejs"></div>
+                <div class="theorem-box">
+                    <div class="theorem-title">📐 Adjacent Angles Definition</div>
+                    <div class="theorem-content">
+                        Two angles are adjacent if they have:
+                        <br>• A common vertex
+                        <br>• A common arm
+                        <br>• Non-common arms on different sides of the common arm
+                        <br><br>
+                        <strong>∠ABD + ∠DBC = ∠ABC</strong>
+                    </div>
+                </div>
+                <div class="value-display" id="adjacent-value">∠ABD = 50°, ∠DBC = 70°</div>
+            `;
+
+            await wait(100);
+
+            const container = document.getElementById('adjacent-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("Two angles are adjacent if they have a common vertex, a common arm, and their non-common arms are on different sides of the common arm.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw vertex B at origin
+            const vertexB = drawPoint(sceneData, 0, 0, 0xfbbf24, 0.2);
+            drawLabel(sceneData, 'B', 0, -0.8, '#fbbf24');
+
+            await wait(500);
+
+            // Draw ray BA (left)
+            const angle1 = Math.PI * 0.7;
+            const rayBA = drawRay(sceneData, 0, 0, angle1, 5, 0xf5576c);
+            rayBA.scale.x = 0;
+            gsap.to(rayBA.scale, { x: 1, duration: 0.8, ease: "power2.out" });
+            
+            const pointA = drawPoint(sceneData, 5 * Math.cos(angle1), 5 * Math.sin(angle1), 0xf5576c, 0.15);
+            pointA.scale.set(0, 0, 0);
+            gsap.to(pointA.scale, { x: 1, y: 1, z: 1, duration: 0.5, delay: 0.8 });
+            drawLabel(sceneData, 'A', 5.3 * Math.cos(angle1), 5.3 * Math.sin(angle1), '#f5576c');
+
+            await wait(1000);
+
+            // Draw ray BD (common arm - middle)
+            const angle2 = Math.PI * 0.3;
+            const rayBD = drawRay(sceneData, 0, 0, angle2, 5, 0x43e97b);
+            rayBD.scale.x = 0;
+            gsap.to(rayBD.scale, { x: 1, duration: 0.8, ease: "power2.out" });
+            
+            const pointD = drawPoint(sceneData, 5 * Math.cos(angle2), 5 * Math.sin(angle2), 0x43e97b, 0.15);
+            pointD.scale.set(0, 0, 0);
+            gsap.to(pointD.scale, { x: 1, y: 1, z: 1, duration: 0.5, delay: 0.8 });
+            drawLabel(sceneData, 'D', 5.3 * Math.cos(angle2), 5.3 * Math.sin(angle2), '#43e97b');
+
+            await teacher.speak("Ray B D is the common arm shared by both adjacent angles.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+
+            // Draw ray BC (right)
+            const angle3 = -Math.PI * 0.1;
+            const rayBC = drawRay(sceneData, 0, 0, angle3, 5, 0x4facfe);
+            rayBC.scale.x = 0;
+            gsap.to(rayBC.scale, { x: 1, duration: 0.8, ease: "power2.out" });
+            
+            const pointC = drawPoint(sceneData, 5 * Math.cos(angle3), 5 * Math.sin(angle3), 0x4facfe, 0.15);
+            pointC.scale.set(0, 0, 0);
+            gsap.to(pointC.scale, { x: 1, y: 1, z: 1, duration: 0.5, delay: 0.8 });
+            drawLabel(sceneData, 'C', 5.3 * Math.cos(angle3), 5.3 * Math.sin(angle3), '#4facfe');
+
+            await wait(1000);
+
+            // Draw angle arcs
+            const arc1 = drawAngleArc(sceneData, 0, 0, angle2, angle1, 1.5, 0xfa709a);
+            arc1.scale.set(0, 0, 0);
+            gsap.to(arc1.scale, { x: 1, y: 1, z: 1, duration: 0.6 });
+            
+            await wait(700);
+            
+            const arc2 = drawAngleArc(sceneData, 0, 0, angle3, angle2, 1.5, 0x9f7aea);
+            arc2.scale.set(0, 0, 0);
+            gsap.to(arc2.scale, { x: 1, y: 1, z: 1, duration: 0.6 });
+
+            await teacher.speak("Notice that angle A B D and angle D B C are adjacent because they share vertex B and ray B D, while their non-common arms are on opposite sides.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+
+            // Animate the value display
+            const valueDisplay = document.getElementById('adjacent-value');
+            gsap.to(valueDisplay, {
+                scale: 1.1,
+                duration: 0.3,
+                yoyo: true,
+                repeat: 3
+            });
+
+            await teacher.speak("The sum of adjacent angles equals the angle formed by their non-common arms. So angle A B C equals angle A B D plus angle D B C.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(4000);
+        }
+
+        // ============================================
+        // MODULE 3: LINEAR PAIR
+        // ============================================
+
+        async function showLinearPair() {
+            const taskId = `linear-pair-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+            await showLinearPairContent(taskId);
+        }
+
+        async function showLinearPairContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Linear Pair of Angles</h2>
+                <div class="threejs-container" id="linear-threejs"></div>
+                <div class="theorem-box">
+                    <div class="theorem-title">📏 Linear Pair Definition</div>
+                    <div class="theorem-content">
+                        When two adjacent angles have their non-common arms forming a straight line, 
+                        they form a linear pair.
+                        <br><br>
+                        <strong>∠ABD + ∠DBC = 180°</strong>
+                    </div>
+                </div>
+                <div class="value-display" id="linear-value">∠ABD = 110°, ∠DBC = 70°</div>
+            `;
+
+            await wait(100);
+
+            const container = document.getElementById('linear-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("A linear pair is formed when two adjacent angles have their non-common arms forming a straight line.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw straight line ABC
+            const lineABC = drawLine(sceneData, -6, 0, 6, 0, 0xffffff, 3);
+            lineABC.scale.x = 0;
+            gsap.to(lineABC.scale, { x: 1, duration: 1, ease: "power2.out" });
+
+            await wait(1200);
+
+            // Draw vertex B at origin
+            drawPoint(sceneData, 0, 0, 0xfbbf24, 0.2);
+            drawLabel(sceneData, 'B', 0, -0.8, '#fbbf24');
+
+            // Draw points A and C
+            drawPoint(sceneData, -6, 0, 0xf5576c, 0.15);
+            drawLabel(sceneData, 'A', -6.5, 0, '#f5576c');
+            
+            drawPoint(sceneData, 6, 0, 0x4facfe, 0.15);
+            drawLabel(sceneData, 'C', 6.5, 0, '#4facfe');
+
+            await wait(1000);
+
+            // Draw ray BD (upward)
+            const angleD = Math.PI * 0.6;
+            const rayBD = drawRay(sceneData, 0, 0, angleD, 5, 0x43e97b);
+            rayBD.scale.x = 0;
+            gsap.to(rayBD.scale, { x: 1, duration: 0.8, ease: "power2.out" });
+            
+            const pointD = drawPoint(sceneData, 5 * Math.cos(angleD), 5 * Math.sin(angleD), 0x43e97b, 0.15);
+            pointD.scale.set(0, 0, 0);
+            gsap.to(pointD.scale, { x: 1, y: 1, z: 1, duration: 0.5, delay: 0.8 });
+            drawLabel(sceneData, 'D', 5.3 * Math.cos(angleD), 5.3 * Math.sin(angleD), '#43e97b');
+
+            await teacher.speak("Ray B D divides the straight line into two adjacent angles that form a linear pair.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+
+            // Draw angle arcs
+            const arc1 = drawAngleArc(sceneData, 0, 0, 0, angleD, 2, 0xfa709a);
+            arc1.scale.set(0, 0, 0);
+            gsap.to(arc1.scale, { x: 1, y: 1, z: 1, duration: 0.6 });
+            
+            await wait(700);
+            
+            const arc2 = drawAngleArc(sceneData, 0, 0, angleD, Math.PI, 2, 0x9f7aea);
+            arc2.scale.set(0, 0, 0);
+            gsap.to(arc2.scale, { x: 1, y: 1, z: 1, duration: 0.6 });
+
+            await wait(1000);
+
+            await teacher.speak("The sum of angles in a linear pair is always 180 degrees, making them supplementary angles.");
+            if (!shouldContinue(taskId)) return;
+
+            // Animate value display
+            const valueDisplay = document.getElementById('linear-value');
+            gsap.to(valueDisplay, {
+                scale: 1.1,
+                duration: 0.3,
+                yoyo: true,
+                repeat: 3
+            });
+
+            await wait(4000);
+        }
+
+        // ============================================
+        // MODULE 4: VERTICALLY OPPOSITE ANGLES
+        // ============================================
+
+        async function showVerticalAngles() {
+            const taskId = `vertical-angles-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+            await showVerticalAnglesContent(taskId);
+        }
+
+        async function showVerticalAnglesContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Vertically Opposite Angles</h2>
+                <div class="threejs-container" id="vertical-threejs"></div>
+                <div class="theorem-box">
+                    <div class="theorem-title">✖️ Vertically Opposite Angles Theorem</div>
+                    <div class="theorem-content">
+                        When two lines intersect, they form two pairs of vertically opposite angles.
+                        <br><br>
+                        <strong>Vertically opposite angles are always equal!</strong>
+                        <br>∠AOD = ∠BOC and ∠AOC = ∠BOD
+                    </div>
+                </div>
+                <div class="value-display" id="vertical-value">∠AOD = ∠BOC = 65°</div>
+            `;
+
+            await wait(100);
+
+            const container = document.getElementById('vertical-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("When two lines intersect, they form vertically opposite angles, which are always equal to each other.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw first line AB
+            const lineAB = drawLine(sceneData, -5, -2, 5, 2, 0xf5576c, 3);
+            lineAB.scale.x = 0;
+            gsap.to(lineAB.scale, { x: 1, duration: 1, ease: "power2.out" });
+
+            await wait(1200);
+
+            // Draw second line CD
+            const lineCD = drawLine(sceneData, -5, 2, 5, -2, 0x4facfe, 3);
+            lineCD.scale.x = 0;
+            gsap.to(lineCD.scale, { x: 1, duration: 1, ease: "power2.out" });
+
+            await wait(1200);
+
+            // Draw intersection point O
+            drawPoint(sceneData, 0, 0, 0xfbbf24, 0.25);
+            drawLabel(sceneData, 'O', 0, -0.9, '#fbbf24');
+
+            await teacher.speak("The two lines intersect at point O, creating four angles.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(500);
+
+            // Draw labels for points
+            drawLabel(sceneData, 'A', -5, -2.5, '#f5576c');
+            drawLabel(sceneData, 'B', 5, 2.5, '#f5576c');
+            drawLabel(sceneData, 'C', -5, 2.5, '#4facfe');
+            drawLabel(sceneData, 'D', 5, -2.5, '#4facfe');
+
+            await wait(1000);
+
+            // Draw angle arcs for first pair (AOD and BOC)
+            const angle1 = Math.atan2(2, 5);
+            const angle2 = Math.atan2(-2, 5);
+            const angle3 = Math.atan2(-2, -5);
+            const angle4 = Math.atan2(2, -5);
+
+            // Angle AOD (bottom right)
+            const arc1 = drawAngleArc(sceneData, 0, 0, angle2, angle1, 1.5, 0xfa709a);
+            arc1.scale.set(0, 0, 0);
+            gsap.to(arc1.scale, { x: 1, y: 1, z: 1, duration: 0.6 });
+
+            await wait(800);
+
+            // Angle BOC (top left)
+            const arc2 = drawAngleArc(sceneData, 0, 0, angle4, angle3, 1.5, 0xfa709a);
+            arc2.scale.set(0, 0, 0);
+            gsap.to(arc2.scale, { x: 1, y: 1, z: 1, duration: 0.6 });
+
+            await teacher.speak("Angle A O D and angle B O C are vertically opposite and therefore equal.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+
+            // [Narration for the now-removed big arcs, narration remains]
+            await teacher.speak("Similarly, angle A O C and angle B O D form the second pair of equal vertically opposite angles.");
+            if (!shouldContinue(taskId)) return;
+
+            // Animate value display
+            const valueDisplay = document.getElementById('vertical-value');
+            gsap.to(valueDisplay, {
+                scale: 1.1,
+                duration: 0.3,
+                yoyo: true,
+                repeat: 3
+            });
+
+            await wait(4000);
+        }
+
+        // ============================================
+        // MODULE 5: INTERSECTING LINES
+        // ============================================
+
+        async function showIntersectingLines() {
+            const taskId = `intersecting-lines-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+            await showIntersectingLinesContent(taskId);
+        }
+
+        async function showIntersectingLinesContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Intersecting Lines</h2>
+                <div class="threejs-container" id="intersecting-threejs"></div>
+                <div class="theorem-box">
+                    <div class="theorem-title">🔀 Intersecting Lines</div>
+                    <div class="theorem-content">
+                        Two lines are intersecting if they cross each other at exactly one point.
+                        This point is called the point of intersection.
+                        <br><br>
+                        Intersecting lines create four angles at their intersection point.
+                    </div>
+                </div>
+                <div class="value-display">Lines PQ and RS Intersect</div>
+            `;
+
+            await wait(100);
+
+            const container = document.getElementById('intersecting-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("Let's explore intersecting lines. Two lines intersect when they cross each other at exactly one point.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw line PQ
+            const linePQ = drawLine(sceneData, -6, 3, 6, -3, 0xf5576c, 3);
+            linePQ.scale.x = 0;
+            gsap.to(linePQ.scale, { x: 1, duration: 1.2, ease: "power2.out" });
+
+            drawLabel(sceneData, 'P', -6.5, 3.3, '#f5576c');
+            drawLabel(sceneData, 'Q', 6.5, -3.3, '#f5576c');
+
+            await wait(1500);
+
+            // Draw line RS
+            const lineRS = drawLine(sceneData, -6, -1, 6, 1, 0x4facfe, 3);
+            lineRS.scale.x = 0;
+            gsap.to(lineRS.scale, { x: 1, duration: 1.2, ease: "power2.out" });
+
+            drawLabel(sceneData, 'R', -6.5, -1.3, '#4facfe');
+            drawLabel(sceneData, 'S', 6.5, 1.3, '#4facfe');
+
+            await teacher.speak("Lines P Q and R S intersect at a single point.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+
+            // Calculate intersection point (approximately at origin for this example)
+            const intersectX = 0;
+            const intersectY = 0;
+
+            // Draw intersection point with pulse animation
+            const intersectionPoint = drawPoint(sceneData, intersectX, intersectY, 0xfbbf24, 0.25);
+            intersectionPoint.scale.set(0, 0, 0);
+            gsap.to(intersectionPoint.scale, {
+                x: 1, y: 1, z: 1,
+                duration: 0.5,
+                ease: "back.out(1.7)"
+            });
+
+            // Pulse animation
+            gsap.to(intersectionPoint.scale, {
+                x: 1.5, y: 1.5, z: 1.5,
+                duration: 0.5,
+                delay: 0.5,
+                yoyo: true,
+                repeat: 3,
+                ease: "power1.inOut"
+            });
+
+            await teacher.speak("This point of intersection is where the two lines meet and cross each other.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(4000);
+        }
+
+        // ============================================
+        // MODULE 6: PARALLEL LINES
+        // ============================================
+
+        async function showParallelLines() {
+            const taskId = `parallel-lines-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+            await showParallelLinesContent(taskId);
+        }
+
+        async function showParallelLinesContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Parallel Lines</h2>
+                <div class="threejs-container" id="parallel-threejs"></div>
+                <div class="theorem-box">
+                    <div class="theorem-title">⫽ Parallel Lines Definition</div>
+                    <div class="theorem-content">
+                        Two lines are parallel if they never intersect, no matter how far they are extended.
+                        <br><br>
+                        The distance between parallel lines (measured by perpendicular segments) 
+                        is always constant.
+                        <br><br>
+                        Symbol: PQ ∥ RS (PQ is parallel to RS)
+                    </div>
+                </div>
+                <div class="value-display">Distance = 2 units (constant)</div>
+            `;
+
+            await wait(100);
+
+            const container = document.getElementById('parallel-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("Parallel lines are lines that never meet, no matter how far they extend. They maintain a constant distance apart.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw first parallel line PQ
+            const linePQ = drawLine(sceneData, -6, 2, 6, 2, 0xf5576c, 3);
+            linePQ.scale.x = 0;
+            gsap.to(linePQ.scale, { x: 1, duration: 1.2, ease: "power2.out" });
+
+            drawLabel(sceneData, 'P', -6.5, 2.3, '#f5576c');
+            drawLabel(sceneData, 'Q', 6.5, 2.3, '#f5576c');
+
+            await wait(1500);
+
+            // Draw second parallel line RS
+            const lineRS = drawLine(sceneData, -6, -2, 6, -2, 0x4facfe, 3);
+            lineRS.scale.x = 0;
+            gsap.to(lineRS.scale, { x: 1, duration: 1.2, ease: "power2.out" });
+
+            drawLabel(sceneData, 'R', -6.5, -2.3, '#4facfe');
+            drawLabel(sceneData, 'S', 6.5, -2.3, '#4facfe');
+
+            await teacher.speak("These two lines, P Q and R S, are parallel because they never intersect.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+
+            // Draw perpendicular distance markers
+            const perpendiculars = [];
+            for (let i = -4; i <= 4; i += 2) {
+                const perp = drawLine(sceneData, i, 2, i, -2, 0x43e97b, 2);
+                perp.scale.y = 0;
+                perpendiculars.push(perp);
+                
+                gsap.to(perp.scale, {
+                    y: 1,
+                    duration: 0.6,
+                    delay: (i + 4) * 0.15,
+                    ease: "power2.out"
+                });
+
+                // Add small markers at ends
+                const point1 = drawPoint(sceneData, i, 2, 0x43e97b, 0.1);
+                const point2 = drawPoint(sceneData, i, -2, 0x43e97b, 0.1);
+                point1.scale.set(0, 0, 0);
+                point2.scale.set(0, 0, 0);
+                
+                gsap.to(point1.scale, { x: 1, y: 1, z: 1, duration: 0.3, delay: (i + 4) * 0.15 + 0.6 });
+                gsap.to(point2.scale, { x: 1, y: 1, z: 1, duration: 0.3, delay: (i + 4) * 0.15 + 0.6 });
+            }
+
+            await wait(2000);
+
+            await teacher.speak("Notice that the perpendicular distance between the parallel lines is the same at every point. This constant distance is a key property of parallel lines.");
+            if (!shouldContinue(taskId)) return;
+
+            // Highlight one perpendicular
+            gsap.to(perpendiculars[2].material, {
+                color: new THREE.Color(0xfbbf24),
+                duration: 0.5,
+                yoyo: true,
+                repeat: 3
+            });
+
+            await wait(4000);
+        }
+
+        // ============================================
+        // MODULE 7: INTERACTIVE DEMO
+        // ============================================
+
+        async function showInteractiveDemo() {
+            const taskId = `interactive-demo-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+            await showInteractiveDemoContent(taskId);
+        }
+
+        async function showInteractiveDemoContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Interactive Angle Explorer 🎮</h2>
+                <div class="threejs-container" id="interactive-threejs"></div>
+                
+                <div class="slider-container">
+                    <div class="slider-label">Adjust Angle: <span id="angle-display">45°</span></div>
+                    <input type="range" id="angle-slider" class="slider" 
+                           min="10" max="170" value="45" step="5">
+                </div>
+
+                <div class="value-display" id="interactive-values">
+                    Angle 1: 45° | Angle 2: 135° | Sum: 180°
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="interactive-chart"></canvas>
+                </div>
+            `;
+
+            await wait(100);
+
+            const container = document.getElementById('interactive-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("Now it's your turn! Use the slider to adjust the angle and see how linear pairs work in real-time.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw base line
+            const baseLine = drawLine(sceneData, -6, 0, 6, 0, 0xffffff, 3);
+            drawPoint(sceneData, 0, 0, 0xfbbf24, 0.2);
+
+            let currentRay = null;
+            let currentArc1 = null;
+            let currentArc2 = null;
+            let chart = null;
+
+            function updateVisualization(angleDegrees) {
+                const angleRadians = (angleDegrees * Math.PI) / 180;
+
+                // Remove old ray and arcs
+                if (currentRay) sceneData.scene.remove(currentRay);
+                if (currentArc1) sceneData.scene.remove(currentArc1);
+                if (currentArc2) sceneData.scene.remove(currentArc2);
+
+                // Draw new ray
+                currentRay = drawRay(sceneData, 0, 0, angleRadians, 5, 0x43e97b);
+
+                // Draw angle arcs
+                currentArc1 = drawAngleArc(sceneData, 0, 0, 0, angleRadians, 1.5, 0xfa709a);
+                currentArc2 = drawAngleArc(sceneData, 0, 0, angleRadians, Math.PI, 1.5, 0x9f7aea);
+
+                // Update display
+                document.getElementById('angle-display').textContent = angleDegrees + '°';
+                const complementAngle = 180 - angleDegrees;
+                document.getElementById('interactive-values').textContent = 
+                    `Angle 1: ${angleDegrees}° | Angle 2: ${complementAngle}° | Sum: 180°`;
+
+                // Update chart
+                if (chart) {
+                    chart.data.datasets[0].data = [angleDegrees, complementAngle];
+                    chart.update('none');
+                }
+            }
+
+            // Initial visualization
+            updateVisualization(45);
+
+            // Setup slider
+            const slider = document.getElementById('angle-slider');
+            slider.addEventListener('input', (e) => {
+                updateVisualization(parseInt(e.target.value));
+            });
+
+            // Create chart
+            await wait(500);
+            const ctx = document.getElementById('interactive-chart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Angle 1', 'Angle 2'],
+                    datasets: [{
+                        data: [45, 135],
+                        backgroundColor: [
+                            'rgba(250, 112, 154, 0.8)',
+                            'rgba(159, 122, 234, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(250, 112, 154, 1)',
+                            'rgba(159, 122, 234, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff',
+                                font: { size: 14 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed + '°';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            await wait(2000);
+            await teacher.speak("Try moving the slider to see how the angles change while always maintaining a sum of 180 degrees!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(30000);
+        }
+
+        // ============================================
+        // MODULE 8: QUIZ
+        // ============================================
+
+        async function showQuiz() {
+            const taskId = `quiz-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+            await showQuizContent(taskId);
+        }
+
+        async function showQuizContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            await teacher.speak("Time to test your knowledge with a fun quiz! Let's see how much you've learned!");
+            if (!shouldContinue(taskId)) return;
+
+            const quizData = [
+                {
+                    question: "Two angles are adjacent if they have a common vertex, a common arm, and their non-common arms are on:",
+                    options: [
+                        "Different sides of the common arm",
+                        "Same side of the common arm",
+                        "Parallel to each other",
+                        "Perpendicular to each other"
+                    ],
+                    correct: 0,
+                    explanation: "Adjacent angles must have their non-common arms on different sides of the common arm."
+                },
+                {
+                    question: "What is the sum of angles in a linear pair?",
+                    options: ["90°", "180°", "270°", "360°"],
+                    correct: 1,
+                    explanation: "A linear pair of angles always adds up to 180° because they form a straight line."
+                },
+                {
+                    question: "Vertically opposite angles are:",
+                    options: [
+                        "Always equal",
+                        "Always complementary",
+                        "Always supplementary",
+                        "Never equal"
+                    ],
+                    correct: 0,
+                    explanation: "Vertically opposite angles formed by two intersecting lines are always equal."
+                },
+                {
+                    question: "Two lines are parallel if:",
+                    options: [
+                        "They intersect at one point",
+                        "They intersect at two points",
+                        "They never intersect",
+                        "They intersect at infinite points"
+                    ],
+                    correct: 2,
+                    explanation: "Parallel lines never intersect, no matter how far they are extended."
+                }
+            ];
+
+            let quizState = {
+                currentQuestion: 0,
+                score: 0,
+                answered: false
+            };
+
+            function displayQuestion() {
+                if (quizState.currentQuestion >= quizData.length) {
+                    showResults();
+                    return;
+                }
+
+                const q = quizData[quizState.currentQuestion];
+                quizState.answered = false;
+
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <div class="quiz-progress">
+                            Question ${quizState.currentQuestion + 1} of ${quizData.length}
+                        </div>
+                        
+                        <div class="quiz-question">${q.question}</div>
+                        
+                        <div class="quiz-options">
+                            ${q.options.map((opt, i) => `
+                                <button class="quiz-option" data-index="${i}">
+                                    ${opt}
+                                </button>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="quiz-feedback" id="quiz-feedback"></div>
+                        
+                        <div class="quiz-score">
+                            Score: ${quizState.score}/${quizData.length}
+                        </div>
+                    </div>
+                `;
+
+                document.querySelectorAll('.quiz-option').forEach(btn => {
+                    btn.addEventListener('click', () => handleAnswer(btn));
+                });
+            }
+
+            async function handleAnswer(button) {
+                if (quizState.answered) return;
+
+                quizState.answered = true;
+                const selectedIndex = parseInt(button.dataset.index);
+                const q = quizData[quizState.currentQuestion];
+                const feedback = document.getElementById('quiz-feedback');
+
+                document.querySelectorAll('.quiz-option').forEach(btn => {
+                    btn.style.pointerEvents = 'none';
+                });
+
+                if (selectedIndex === q.correct) {
+                    button.style.background = 'var(--success-gradient)';
+                    quizState.score++;
+                    feedback.innerHTML = `<div class="correct">✓ Correct! ${q.explanation}</div>`;
+                    
+                    gsap.from(feedback, {
+                        scale: 0,
+                        duration: 0.5,
+                        ease: "back.out(1.7)"
+                    });
+                } else {
+                    button.style.background = 'var(--secondary-gradient)';
+                    const correctBtn = document.querySelector(`[data-index="${q.correct}"]`);
+                    correctBtn.style.background = 'var(--success-gradient)';
+                    feedback.innerHTML = `<div class="incorrect">✗ Incorrect. ${q.explanation}</div>`;
+                    
+                    gsap.from(feedback, {
+                        scale: 0,
+                        duration: 0.5,
+                        ease: "back.out(1.7)"
+                    });
+                }
+
+                document.querySelector('.quiz-score').textContent = 
+                    `Score: ${quizState.score}/${quizData.length}`;
+
+                await wait(3000);
+
+                quizState.currentQuestion++;
+                displayQuestion();
+            }
+
+            async function showResults() {
+                const percentage = (quizState.score / quizData.length) * 100;
+                let emoji, message, resultClass;
+
+                if (percentage === 100) {
+                    emoji = '🌟';
+                    message = 'Perfect Score! Outstanding!';
+                    resultClass = 'correct';
+                } else if (percentage >= 75) {
+                    emoji = '🎉';
+                    message = 'Excellent Work!';
+                    resultClass = 'correct';
+                } else if (percentage >= 50) {
+                    emoji = '👏';
+                    message = 'Good Job! Keep Learning!';
+                    resultClass = 'correct';
+                } else {
+                    emoji = '💪';
+                    message = 'Keep Practicing!';
+                    resultClass = 'incorrect';
+                }
+
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="geometry-title">Quiz Complete! ${emoji}</h2>
+                        
+                        <div class="quiz-feedback">
+                            <div class="${resultClass}">
+                                <div style="font-size: 3rem; margin-bottom: 20px;">${emoji}</div>
+                                <div style="font-size: 1.5rem; margin-bottom: 10px;">${message}</div>
+                                <div style="font-size: 2rem; font-weight: bold;">
+                                    ${quizState.score}/${quizData.length}
+                                </div>
+                                <div style="font-size: 1.2rem; margin-top: 10px;">
+                                    ${percentage.toFixed(0)}%
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="chart-container" style="margin-top: 30px;">
+                            <canvas id="results-chart"></canvas>
+                        </div>
+                    </div>
+                `;
+
+                await wait(500);
+
+                // Create results chart
+                const ctx = document.getElementById('results-chart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Correct', 'Incorrect'],
+                        datasets: [{
+                            label: 'Results',
+                            data: [quizState.score, quizData.length - quizState.score],
+                            backgroundColor: [
+                                'rgba(67, 233, 123, 0.8)',
+                                'rgba(245, 87, 108, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgba(67, 233, 123, 1)',
+                                'rgba(245, 87, 108, 1)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    color: '#ffffff',
+                                    stepSize: 1
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    color: '#ffffff'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+
+                await teacher.speak(`Quiz complete! You scored ${quizState.score} out of ${quizData.length}. ${message}`);
+            }
+
+            displayQuestion();
+        }
+
+        // ============================================
+        // RESET FUNCTION
+        // ============================================
+
+        function resetApplication() {
+            stopCurrentDemo();
+
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="geometry-title">Welcome to Lines and Angles! ✨</h2>
+                <div class="value-display">Interactive Geometry Learning</div>
+                <p class="geometry-description">
+                    Explore the fascinating relationships between lines and angles with stunning 3D animations! 
+                    Choose a lesson below to begin your geometric journey!
+                </p>
+                <div class="threejs-container" id="welcome-threejs"></div>
+            `;
+
+            setTimeout(() => {
+                const container = document.getElementById('welcome-threejs');
+                if (container) {
+                    const sceneData = createThreeJsScene(container);
+                    
+                    // Create animated star pattern
+                    const numRays = 8;
+                    for (let i = 0; i < numRays; i++) {
+                        const angle = (Math.PI * 2 * i) / numRays;
+                        const ray = drawRay(sceneData, 0, 0, angle, 5, 0x4facfe);
+                        
+                        gsap.from(ray.scale, {
+                            x: 0,
+                            duration: 1,
+                            delay: i * 0.1,
+                            ease: "power2.out"
+                        });
+                    }
+                    
+                    drawPoint(sceneData, 0, 0, 0xfbbf24, 0.25);
+                }
+            }, 100);
+
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            currentDemo = null;
+
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to continue your exploration of lines and angles with amazing three D visualizations!");
+            }, 500);
+        }
+
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+
+        // Utility function: createStageContent (borrowed from CH-9-1.html)
+        function createStageContent() {
+            const stage = document.querySelector('.demo-stage');
+            stage.innerHTML = '';
+            const content = document.createElement('div');
+            content.className = 'stage-content active';
+            stage.appendChild(content);
+            return content;
+        }
+
+        // Refactor DOMContentLoaded and all event listeners for new state logic
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+
+            // Always use createStageContent and clear stage
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="geometry-title">Welcome to Lines and Angles! ✨</h2>
+                <div class="value-display">Interactive Geometry Learning</div>
+                <p class="geometry-description">
+                    Explore the fascinating relationships between lines and angles with stunning 3D animations! 
+                    Choose a lesson below to begin your geometric journey!
+                </p>
+                <div class="threejs-container" id="welcome-threejs"></div>
+            `;
+            setTimeout(() => {
+                const container = document.getElementById('welcome-threejs');
+                if (container) {
+                    const sceneData = createThreeJsScene(container);
+                    
+                    // Create animated star pattern
+                    const numRays = 8;
+                    for (let i = 0; i < numRays; i++) {
+                        const angle = (Math.PI * 2 * i) / numRays;
+                        const ray = drawRay(sceneData, 0, 0, angle, 5, 0x4facfe);
+                        
+                        gsap.from(ray.scale, {
+                            x: 0,
+                            duration: 1,
+                            delay: i * 0.1,
+                            ease: "power2.out"
+                        });
+                    }
+                    
+                    drawPoint(sceneData, 0, 0, 0xfbbf24, 0.25);
+                }
+                teacher.speak("Welcome to Lines and Angles! Explore the fascinating world of geometric relationships with amazing three D animations!");
+            }, 500);
+
+            // Demo button event handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'adjacent-angles':
+                            showAdjacentAngles();
+                            break;
+                        case 'linear-pair':
+                            showLinearPair();
+                            break;
+                        case 'vertical-angles':
+                            showVerticalAngles();
+                            break;
+                        case 'intersecting':
+                            showIntersectingLines();
+                            break;
+                        case 'parallel':
+                            showParallelLines();
+                            break;
+                        case 'interactive':
+                            showInteractiveDemo();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+
+            // Audio control button
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+
+            // Window resize handler for Three.js	scenes
+            window.addEventListener('resize', () => {
+                threeJsScenes.forEach(sceneData => {
+                    const container = sceneData.renderer.domElement.parentElement;
+                    if (container) {
+                        sceneData.camera.aspect = container.clientWidth / container.clientHeight;
+                        sceneData.camera.updateProjectionMatrix();
+                        sceneData.renderer.setSize(container.clientWidth, container.clientHeight);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

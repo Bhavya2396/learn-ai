@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heights and Distances - Problem Solving Module (Fixed)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --geometry-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --trig-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--trig-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+        }
+
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--trig-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--trig-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .geometry-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .geometry-description {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 800px;
+            margin: 20px auto;
+            line-height: 1.6;
+        }
+
+        .theorem-box {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            max-width: 700px;
+            backdrop-filter: blur(10px);
+        }
+
+        .theorem-title {
+            font-size: 1.3rem;
+            color: var(--text-accent);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .theorem-content {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .value-display {
+            font-size: 1.5rem;
+            color: var(--text-accent);
+            padding: 15px 30px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            border: 2px solid var(--glass-border);
+            margin: 15px 0;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+        }
+
+        .threejs-container {
+            width: 100%;
+            max-width: 800px;
+            height: 450px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 20px 0;
+        }
+
+        .calculation-steps {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            max-width: 600px;
+        }
+
+        .step {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin: 10px 0;
+            padding: 8px 12px;
+            border-left: 3px solid var(--text-accent);
+        }
+
+        .theory-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 24px;
+            margin: 40px auto 0 auto;
+            width: 100%;
+            max-width: 1400px;
+            justify-items: center;
+        }
+        
+        .theory-card {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 28px 20px 20px 20px;
+            min-width: 0;
+            max-width: 300px;
+            width: 100%;
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+            cursor: pointer;
+            text-align: center;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            box-shadow: var(--shadow-primary);
+        }
+
+        .theory-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .theory-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .theory-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .theory-text {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .geometry-title {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📐 Heights and Distances - Problem Solving (Fixed)</h1>
+        <p>Chapter 9: Real-World Trigonometry Applications with Step-by-Step Solutions</p>
+    </div>
+
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage">
+            <div class="stage-content active">
+                <h2 class="geometry-title">Welcome to Problem Solving! 🎯</h2>
+                <div class="value-display">4 Real-World Trigonometry Problems</div>
+                <p class="geometry-description">
+                    Master practical applications of angles of elevation and depression through 
+                    detailed step-by-step solutions with stunning 3D animations!
+                </p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">📚 Complete Lesson</button>
+            <button class="demo-btn" data-demo="example2">🪜 Example 2: Ladder</button>
+            <button class="demo-btn" data-demo="example3">🏭 Example 3: Chimney</button>
+            <button class="demo-btn" data-demo="example4">🚩 Example 4: Flagstaff</button>
+            
+            <button class="demo-btn" data-demo="example6">🏢 Example 6: Buildings</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+
+        <div class="theory-cards">
+            <div class="theory-card">
+                <div class="theory-icon">🪜</div>
+                <div class="theory-title">Ladder Problems</div>
+                <div class="theory-text">Use sin, cos, tan to find ladder length and placement distance — Identify opposite/adjacent, use sin θ = height/ladder, cos θ = base/ladder, tan θ = height/base</div>
+            </div>
+            
+            <div class="theory-card">
+                <div class="theory-icon">🏭</div>
+                <div class="theory-title">Height Observation</div>
+                <div class="theory-text">Calculate heights using angle of elevation from a distance — Draw right triangle, use tan θ = (top height − eye level)/horizontal distance</div>
+            </div>
+            
+            <div class="theory-card">
+                <div class="theory-icon">🚩</div>
+                <div class="theory-title">Multiple Heights</div>
+                <div class="theory-text">Find unknown heights when objects are stacked vertically — Solve base distance first, then use tan for each top to combine heights</div>
+            </div>
+            
+            <div class="theory-card">
+                <div class="theory-icon">🏢</div>
+                <div class="theory-title">Depression Angles</div>
+                <div class="theory-text">Look downward from tall buildings using alternate angles — Angle of depression at top equals angle of elevation at ground; tan θ = height/horizontal distance</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // GLOBAL STATE MANAGEMENT
+        // ============================================
+        
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let threeJsScenes = [];
+        let currentDemo = null;
+        let currentDemoAborted = false;
+        let currentRunId = 0;
+        let currentTaskId = null;
+        let animationTimeouts = [];
+        let activeTasks = new Set();
+        let isPlaying = false;
+
+        // ============================================
+        // TEACHER VOICE CLASS
+        // ============================================
+
+        class TeacherVoice {
+            constructor(taskId = null) {
+                this.synth = window.speechSynthesis;
+                this.voice = null;
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.taskId = taskId;
+                this.initVoice();
+            }
+
+            initVoice() {
+                const setVoice = () => {
+                    const voices = this.synth.getVoices();
+                    this.voice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+                };
+                
+                if (this.synth.getVoices().length > 0) {
+                    setVoice();
+                } else {
+                    this.synth.onvoiceschanged = setVoice;
+                }
+            }
+
+            async speak(text) {
+                if (!this.isEnabled || !shouldContinue(this.taskId)) {
+                    return Promise.resolve();
+                }
+
+                return new Promise((resolve) => {
+                    this.currentUtterance = new SpeechSynthesisUtterance(text);
+                    this.currentUtterance.voice = this.voice;
+                    this.currentUtterance.rate = 1.0;
+                    this.currentUtterance.pitch = 1.0;
+                    
+                    this.currentUtterance.onend = () => {
+                        if (shouldContinue(this.taskId)) {
+                            resolve();
+                        }
+                    };
+                    
+                    this.currentUtterance.onerror = () => resolve();
+                    
+                    if (this.isEnabled && shouldContinue(this.taskId)) {
+                        this.synth.speak(this.currentUtterance);
+                    } else {
+                        resolve();
+                    }
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.currentUtterance = null;
+            }
+        }
+
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        function shouldContinue(taskId) {
+            if (!taskId) return true;
+            return activeTasks.has(taskId) && !currentDemoAborted;
+        }
+
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            currentTeacher = new TeacherVoice(taskId);
+            return currentTeacher;
+        }
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            isPlaying = false;
+            
+            activeTasks.clear();
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            
+            threeJsScenes.forEach(sceneData => {
+                if (sceneData.renderer && sceneData.renderer.domElement) {
+                    sceneData.renderer.domElement.remove();
+                }
+                if (sceneData.scene) {
+                    sceneData.scene.clear();
+                }
+            });
+            threeJsScenes = [];
+            
+            gsap.killTweensOf("*");
+            
+            currentRunId++;
+            currentDemoAborted = false;
+        }
+
+        function createStageContent() {
+            const stage = document.querySelector('.demo-stage');
+            stage.innerHTML = '<div class="stage-content active"></div>';
+            return stage.querySelector('.stage-content');
+        }
+
+        // ============================================
+        // THREE.JS SCENE SETUP
+        // ============================================
+
+        function createThreeJsScene(container) {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(
+                50,
+                container.clientWidth / container.clientHeight,
+                0.1,
+                1000
+            );
+            
+            const renderer = new THREE.WebGLRenderer({ 
+                antialias: true, 
+                alpha: true 
+            });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setClearColor(0x000000, 0);
+            container.appendChild(renderer.domElement);
+            
+            camera.position.z = 12;
+            
+            const sceneData = { scene, camera, renderer };
+            threeJsScenes.push(sceneData);
+            
+            function animate() {
+                if (!container.parentElement) return;
+                requestAnimationFrame(animate);
+                renderer.render(scene, camera);
+            }
+            animate();
+            
+            return sceneData;
+        }
+
+        // ============================================
+        // DRAWING HELPER FUNCTIONS
+        // ============================================
+
+        function drawLine(sceneData, x1, y1, x2, y2, color = 0xffffff, thickness = 2) {
+            const material = new THREE.LineBasicMaterial({ 
+                color: color, 
+                linewidth: thickness 
+            });
+            const geometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(x1, y1, 0),
+                new THREE.Vector3(x2, y2, 0)
+            ]);
+            const line = new THREE.Line(geometry, material);
+            sceneData.scene.add(line);
+            return line;
+        }
+
+        function drawDashedLine(sceneData, x1, y1, x2, y2, color = 0xffffff) {
+            const material = new THREE.LineDashedMaterial({
+                color: color,
+                dashSize: 0.2,
+                gapSize: 0.1
+            });
+            const geometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(x1, y1, 0),
+                new THREE.Vector3(x2, y2, 0)
+            ]);
+            const line = new THREE.Line(geometry, material);
+            line.computeLineDistances();
+            sceneData.scene.add(line);
+            return line;
+        }
+
+        function drawPoint(sceneData, x, y, color = 0xfbbf24, size = 0.15) {
+            const geometry = new THREE.SphereGeometry(size);
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const point = new THREE.Mesh(geometry, material);
+            point.position.set(x, y, 0);
+            sceneData.scene.add(point);
+            return point;
+        }
+
+        function drawAngleArc(sceneData, centerX, centerY, startAngle, endAngle, radius, color = 0xfbbf24) {
+            const curve = new THREE.EllipseCurve(
+                centerX, centerY,
+                radius, radius,
+                startAngle, endAngle,
+                false,
+                0
+            );
+
+            const points = curve.getPoints(50);
+            const geometry = new THREE.BufferGeometry().setFromPoints(points.map(p => new THREE.Vector3(p.x, p.y, 0)));
+            const material = new THREE.LineBasicMaterial({ color: color, linewidth: 2 });
+            const arc = new THREE.Line(geometry, material);
+            sceneData.scene.add(arc);
+            return arc;
+        }
+
+        function drawLabel(sceneData, text, x, y, color = '#ffffff', size = 1) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 128;
+
+            context.font = 'bold 72px Arial';
+            context.fillStyle = color;
+            context.textAlign = 'center';
+            context.fillText(text, 128, 70);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(material);
+            sprite.position.set(x, y, 0);
+            sprite.scale.set(2.5 * size, 1.2 * size, 1);
+
+            sceneData.scene.add(sprite);
+            return sprite;
+        }
+
+        function drawRightTriangle(sceneData, baseX, baseY, width, height, color = 0x4facfe, filled = false) {
+            const points = [
+                new THREE.Vector3(baseX, baseY, 0),
+                new THREE.Vector3(baseX + width, baseY, 0),
+                new THREE.Vector3(baseX + width, baseY + height, 0),
+                new THREE.Vector3(baseX, baseY, 0)
+            ];
+
+            if (filled) {
+                const shape = new THREE.Shape();
+                shape.moveTo(baseX, baseY);
+                shape.lineTo(baseX + width, baseY);
+                shape.lineTo(baseX + width, baseY + height);
+                shape.lineTo(baseX, baseY);
+
+                const geometry = new THREE.ShapeGeometry(shape);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: color, 
+                    transparent: true, 
+                    opacity: 0.3,
+                    side: THREE.DoubleSide
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                sceneData.scene.add(mesh);
+            }
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: color, linewidth: 3 });
+            const line = new THREE.Line(geometry, material);
+            sceneData.scene.add(line);
+            return line;
+        }
+
+        function drawRightAngleMarker(sceneData, x, y, size, orientation = 'bottom-left') {
+            // Draw a small square to indicate 90 degree angle
+            const points = [];
+            
+            if (orientation === 'bottom-left') {
+                points.push(new THREE.Vector3(x, y, 0));
+                points.push(new THREE.Vector3(x + size, y, 0));
+                points.push(new THREE.Vector3(x + size, y + size, 0));
+                points.push(new THREE.Vector3(x, y + size, 0));
+                points.push(new THREE.Vector3(x, y, 0));
+            } else if (orientation === 'bottom-right') {
+                points.push(new THREE.Vector3(x, y, 0));
+                points.push(new THREE.Vector3(x - size, y, 0));
+                points.push(new THREE.Vector3(x - size, y + size, 0));
+                points.push(new THREE.Vector3(x, y + size, 0));
+                points.push(new THREE.Vector3(x, y, 0));
+            }
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+            const marker = new THREE.Line(geometry, material);
+            sceneData.scene.add(marker);
+            return marker;
+        }
+
+        function drawPole(sceneData, x, y, height, color = 0x8b4513) {
+            const geometry = new THREE.BoxGeometry(0.3, height, 0.2);
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const pole = new THREE.Mesh(geometry, material);
+            pole.position.set(x, y + height/2, 0);
+            sceneData.scene.add(pole);
+            return pole;
+        }
+
+        function drawPerson(sceneData, x, y, color = 0x4facfe) {
+            // Head
+            const headGeometry = new THREE.CircleGeometry(0.2, 16);
+            const headMaterial = new THREE.MeshBasicMaterial({ color: 0xffc0cb });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.set(x, y + 0.9, 0);
+            sceneData.scene.add(head);
+
+            // Body
+            const bodyGeometry = new THREE.BoxGeometry(0.3, 0.6, 0.2);
+            const bodyMaterial = new THREE.MeshBasicMaterial({ color: color });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.set(x, y + 0.4, 0);
+            sceneData.scene.add(body);
+
+            return { head, body };
+        }
+
+        function drawBuilding(sceneData, x, y, width, height, color = 0x5f9ea0) {
+            const geometry = new THREE.BoxGeometry(width, height, 0.3);
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const building = new THREE.Mesh(geometry, material);
+            building.position.set(x, y + height/2, 0);
+            sceneData.scene.add(building);
+            return building;
+        }
+
+        // ============================================
+        // EXAMPLE 2: LADDER PROBLEM
+        // ============================================
+
+        async function showExample2() {
+            const taskId = `example2-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            activeTasks.add(taskId);
+            const teacher = createNewTeacher(taskId);
+            await showExample2Content(taskId);
+        }
+
+        async function showExample2Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Example 2: Electrician's Ladder Problem 🪜</h2>
+                <p class="geometry-description">
+                    An electrician needs to repair an electric fault on a pole of height 5 m. She needs to reach 
+                    a point 1.3 m below the top. Find the ladder length when inclined at 60° to horizontal.
+                </p>
+                <div class="threejs-container" id="example2-threejs"></div>
+                <div class="calculation-steps" id="calc-steps-2">
+                    <div class="step">Given: Pole height DA = 5 m, Point B is 1.3 m below top</div>
+                    <div class="step">Find: Ladder length BC and distance DC</div>
+                </div>
+                <div class="value-display" id="example2-value">Let's solve step by step!</div>
+            `;
+
+            await wait(100);
+            const container = document.getElementById('example2-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("Example 2: An electrician needs to repair a pole 5 meters high at a point 1.3 meters below the top.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw ground
+            drawLine(sceneData, -6, -2.5, 6, -2.5, 0x90ee90, 3);
+            await wait(500);
+
+            // Draw pole (5m = 5 units)
+            const poleHeight = 5;
+            const pole = drawPole(sceneData, -2, -2.5, poleHeight, 0x8b4513);
+            pole.scale.y = 0;
+            gsap.to(pole.scale, { y: 1, duration: 1, ease: "power2.out" });
+            
+            drawLabel(sceneData, 'D', -2.7, -2.5 - 0.5, '#8b4513', 1.0);
+            drawLabel(sceneData, 'A', -2.7, -2.5 + poleHeight + 0.4, '#ff6347', 1.0);
+
+            await wait(1200);
+            await teacher.speak("The pole D A is 5 meters tall.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw height label
+            drawLabel(sceneData, '5 m', -3.5, 0, '#43e97b', 0.9);
+
+            // Mark point B (3.7m from ground)
+            const targetHeight = 3.7;
+            const pointB = drawPoint(sceneData, -2, -2.5 + targetHeight, 0xff0000, 0.15);
+            pointB.scale.set(0, 0, 0);
+            gsap.to(pointB.scale, { x: 1, y: 1, z: 1, duration: 0.5, ease: "back.out(1.7)" });
+            drawLabel(sceneData, 'B', -2.7, -2.5 + targetHeight, '#ff0000', 1.0);
+
+            await wait(800);
+            await teacher.speak("Point B is 3.7 meters from the ground, which is 1.3 meters below the top.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw DB label (the 3.7m height from D to B on the pole)
+            drawLabel(sceneData, 'DB = 3.7 m', -3.5, -2.5 + targetHeight/2, '#43e97b', 0.8);
+
+            // Draw point C on ground
+            const baseDistance = 2.14;
+            const pointC = drawPoint(sceneData, -2 + baseDistance, -2.5, 0x4facfe, 0.15);
+            pointC.scale.set(0, 0, 0);
+            gsap.to(pointC.scale, { x: 1, y: 1, z: 1, duration: 0.5, delay: 0.3, ease: "back.out(1.7)" });
+            drawLabel(sceneData, 'C', -2 + baseDistance + 0.5, -2.5 - 0.5, '#4facfe', 1.0);
+
+            await wait(1000);
+
+            // Draw ladder BC
+            const ladder = drawLine(sceneData, -2 + baseDistance, -2.5, -2, -2.5 + targetHeight, 0xffa500, 4);
+            ladder.scale.x = 0;
+            gsap.to(ladder.scale, { x: 1, duration: 1.2, ease: "power2.out" });
+
+            await wait(1500);
+            await teacher.speak("The ladder B C is placed from point C to point B at 60 degrees.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw distance DC label (horizontal distance on ground)
+            drawLabel(sceneData, '2.14 m', -2 + baseDistance/2, -2.5 - 0.9, '#4facfe', 0.9);
+
+            // Draw right triangle DBC with RIGHT ANGLE AT D
+            // Points: D (base of pole at ground), C (ground point), B (on pole at 3.7m)
+            const trianglePoints = [
+                new THREE.Vector3(-2, -2.5, 0),                    // D (bottom-left, at pole base)
+                new THREE.Vector3(-2 + baseDistance, -2.5, 0),     // C (bottom-right, on ground)
+                new THREE.Vector3(-2, -2.5 + targetHeight, 0),     // B (top-left, on pole)
+                new THREE.Vector3(-2, -2.5, 0)                     // back to D
+            ];
+
+            // Draw filled triangle
+            const triangleShape = new THREE.Shape();
+            triangleShape.moveTo(-2, -2.5);
+            triangleShape.lineTo(-2 + baseDistance, -2.5);
+            triangleShape.lineTo(-2, -2.5 + targetHeight);
+            triangleShape.lineTo(-2, -2.5);
+
+            const triangleGeometry = new THREE.ShapeGeometry(triangleShape);
+            const triangleMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x00ff00, 
+                transparent: true, 
+                opacity: 0.3,
+                side: THREE.DoubleSide
+            });
+            const triangleMesh = new THREE.Mesh(triangleGeometry, triangleMaterial);
+            sceneData.scene.add(triangleMesh);
+
+            // Draw triangle outline
+            const triangleGeometryLine = new THREE.BufferGeometry().setFromPoints(trianglePoints);
+            const triangleMaterialLine = new THREE.LineBasicMaterial({ color: 0x00ff00, linewidth: 3 });
+            const triangle = new THREE.Line(triangleGeometryLine, triangleMaterialLine);
+            sceneData.scene.add(triangle);
+            
+            triangle.scale.set(0, 0, 0);
+            triangleMesh.scale.set(0, 0, 0);
+            gsap.to(triangle.scale, { x: 1, y: 1, z: 1, duration: 0.8, delay: 0.3, ease: "back.out(1.7)" });
+            gsap.to(triangleMesh.scale, { x: 1, y: 1, z: 1, duration: 0.8, delay: 0.3, ease: "back.out(1.7)" });
+
+            await wait(1200);
+
+            // Draw 60-degree angle arc at C (from ladder BC to horizontal DC)
+            // Point C is at (-2 + baseDistance, -2.5)
+            // Angle from C to B (going left and up)
+            const bcAngle = Math.atan2(targetHeight, -baseDistance);
+            // Angle from C to D (going left along ground) is Math.PI
+            // Draw arc from BC direction to DC direction (60 degrees)
+            const angleArc = drawAngleArc(sceneData, -2 + baseDistance, -2.5, bcAngle, Math.PI, 1.0, 0xfbbf24);
+            angleArc.scale.set(0, 0, 0);
+            gsap.to(angleArc.scale, { x: 1, y: 1, z: 1, duration: 0.8 });
+            drawLabel(sceneData, '60°', -2 + baseDistance - 1.0, -2.5 + 0.3, '#fbbf24', 0.9);
+
+            await wait(1000);
+
+            // Draw right angle marker at D (base of pole where it meets ground)
+            drawRightAngleMarker(sceneData, -2, -2.5, 0.3, 'bottom-left');
+
+            await wait(500);
+
+            // Add calculation steps
+            const calcSteps = document.getElementById('calc-steps-2');
+
+            await wait(1000);
+            const step1 = document.createElement('div');
+            step1.className = 'step';
+            step1.textContent = 'Step 1: DB = 5 - 1.3 = 3.7 m';
+            calcSteps.appendChild(step1);
+            gsap.from(step1, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Step 1: D B equals 5 minus 1.3, which is 3.7 meters.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            const step2 = document.createElement('div');
+            step2.className = 'step';
+            step2.textContent = 'Step 2: sin(60°) = DB/BC = √3/2';
+            calcSteps.appendChild(step2);
+            gsap.from(step2, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Step 2: sine of 60 degrees equals D B divided by B C, which equals square root 3 divided by 2.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            const step3 = document.createElement('div');
+            step3.className = 'step';
+            step3.textContent = 'Step 3: BC = 3.7 × 2/√3 = 7.4/1.73 = 4.28 m';
+            calcSteps.appendChild(step3);
+            gsap.from(step3, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Step 3: B C equals 3.7 times 2 divided by square root 3, which is 4.28 meters.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            const step4 = document.createElement('div');
+            step4.className = 'step';
+            step4.textContent = 'Step 4: cot(60°) = DC/DB = 1/√3';
+            calcSteps.appendChild(step4);
+            gsap.from(step4, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Step 4: cotangent of 60 degrees equals D C divided by D B, which is 1 divided by square root 3.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            const step5 = document.createElement('div');
+            step5.className = 'step';
+            step5.style.color = '#43e97b';
+            step5.style.fontSize = '1.2rem';
+            step5.textContent = 'Answer: Ladder = 4.28 m, Distance = 2.14 m';
+            calcSteps.appendChild(step5);
+            gsap.from(step5, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Therefore, the ladder should be 4.28 meters long and placed 2.14 meters from the pole!");
+            if (!shouldContinue(taskId)) return;
+
+            // Update value display
+            const valueDisplay = document.getElementById('example2-value');
+            valueDisplay.textContent = 'Ladder = 4.28 m | Distance = 2.14 m';
+            gsap.to(valueDisplay, { scale: 1.1, duration: 0.3, yoyo: true, repeat: 3 });
+
+            await wait(3000);
+        }
+
+        // ============================================
+        // EXAMPLE 3: CHIMNEY OBSERVER
+        // ============================================
+
+        async function showExample3() {
+            const taskId = `example3-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            activeTasks.add(taskId);
+            const teacher = createNewTeacher(taskId);
+            await showExample3Content(taskId);
+        }
+
+        async function showExample3Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Example 3: Chimney Height from Observer 🏭</h2>
+                <p class="geometry-description">
+                    An observer 1.5 m tall is 28.5 m away from a chimney. The angle of elevation 
+                    of the top of the chimney from her eyes is 45°. Find the height of the chimney.
+                </p>
+                <div class="threejs-container" id="example3-threejs"></div>
+                <div class="calculation-steps" id="calc-steps-3">
+                    <div class="step">Given: Observer height CD = 1.5 m, Distance DE = 28.5 m, Angle = 45°</div>
+                    <div class="step">Find: Total chimney height AB = ?</div>
+                </div>
+                <div class="value-display" id="example3-value">Let's solve step by step!</div>
+            `;
+
+            await wait(100);
+            const container = document.getElementById('example3-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("Example 3: An observer 1.5 meters tall stands 28.5 meters from a chimney.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw ground
+            drawLine(sceneData, -6, -2.5, 6, -2.5, 0x90ee90, 3);
+            await wait(500);
+
+            // Draw observer (1.5m = 1.5 units, but scale to 1 unit visually)
+            const observerHeight = 1;
+            const person = drawPerson(sceneData, 3, -2.5, 0x4facfe);
+            person.head.scale.set(0, 0, 0);
+            person.body.scale.set(0, 0, 0);
+            gsap.to(person.head.scale, { x: 1, y: 1, z: 1, duration: 0.5, ease: "back.out(1.7)" });
+            gsap.to(person.body.scale, { x: 1, y: 1, z: 1, duration: 0.5, delay: 0.2, ease: "back.out(1.7)" });
+            
+            drawLabel(sceneData, 'C', 3.7, -2.5 - 0.5, '#4facfe', 1.0);
+            drawLabel(sceneData, 'D', 3.7, -2.5 + observerHeight + 0.5, '#4facfe', 1.0);
+
+            await wait(1000);
+            await teacher.speak("The observer C D is 1.5 meters tall.");
+            if (!shouldContinue(taskId)) return;
+
+            // Observer height label
+            drawLabel(sceneData, '1.5 m', 4.5, -2.5 + observerHeight/2, '#ff6b6b', 0.8);
+
+            // Draw chimney (30m = 6 units visually)
+            const chimneyHeight = 6;
+            const chimney = drawBuilding(sceneData, -3, -2.5, 0.8, chimneyHeight, 0x8b4513);
+            chimney.scale.y = 0;
+            gsap.to(chimney.scale, { y: 1, duration: 1.2, ease: "power2.out" });
+            
+            drawLabel(sceneData, 'A', -3.8, -2.5 + chimneyHeight + 0.4, '#ff6347', 1.0);
+            drawLabel(sceneData, 'B', -3.8, -2.5 - 0.7, '#8b4513', 1.0);
+
+            await wait(1500);
+
+            // Chimney height label
+            drawLabel(sceneData, '30 m', -4.8, -2.5 + chimneyHeight/2, '#43e97b', 1.0);
+
+            // Draw horizontal line from eye level
+            const eyeLevel = -2.5 + observerHeight;
+            const horizontal = drawDashedLine(sceneData, 3, eyeLevel, -3, eyeLevel, 0xffff00);
+            horizontal.scale.x = 0;
+            gsap.to(horizontal.scale, { x: 1, duration: 0.8, ease: "power2.out" });
+            
+            drawLabel(sceneData, 'E', -3.6, eyeLevel - 0.5, '#ffff00', 0.9);
+
+            await wait(1000);
+            await teacher.speak("From eye level D, the horizontal distance D E to the chimney is 28.5 meters.");
+            if (!shouldContinue(taskId)) return;
+
+            // Distance label
+            drawLabel(sceneData, '28.5 m', 0, eyeLevel - 0.8, '#ffff00', 1.0);
+
+            // Draw line of sight
+            const lineOfSight = drawLine(sceneData, 3, eyeLevel, -3, -2.5 + chimneyHeight, 0xff00ff, 3);
+            lineOfSight.scale.x = 0;
+            gsap.to(lineOfSight.scale, { x: 1, duration: 1, ease: "power2.out" });
+
+            await wait(1200);
+
+            // Draw triangle (D-E-A with right angle at E)
+            const triangleHeight = chimneyHeight - observerHeight;
+            const triangleWidth = 6;
+            const triangle = drawRightTriangle(sceneData, 3, eyeLevel, -triangleWidth, triangleHeight, 0x00ff00, true);
+            triangle.scale.set(0, 0, 0);
+            gsap.to(triangle.scale, { x: 1, y: 1, z: 1, duration: 0.8, delay: 0.3, ease: "back.out(1.7)" });
+
+            await wait(1500);
+
+            // Draw 45 degree angle arc at D (from line of sight DA to horizontal line DE)
+            const angleDA = Math.atan2(triangleHeight, -triangleWidth); // Angle from D to A
+            const angleDE = Math.PI; // Angle from D to E (horizontal left)
+            const angleArc = drawAngleArc(sceneData, 3, eyeLevel, angleDA, angleDE, 1.5, 0xfbbf24);
+            angleArc.scale.set(0, 0, 0);
+            gsap.to(angleArc.scale, { x: 1, y: 1, z: 1, duration: 0.8 });
+            drawLabel(sceneData, '45°', 1.2, eyeLevel + 0.8, '#fbbf24', 1.1);
+
+            await wait(1000);
+
+            // Draw right angle marker at E
+            drawRightAngleMarker(sceneData, -3, eyeLevel, 0.3, 'bottom-right');
+
+            // Add calculation steps
+            const calcSteps = document.getElementById('calc-steps-3');
+            
+            await wait(1000);
+            const step1 = document.createElement('div');
+            step1.className = 'step';
+            step1.textContent = 'Step 1: tan(45°) = AE/DE = 1';
+            calcSteps.appendChild(step1);
+            gsap.from(step1, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Step 1: tangent of 45 degrees equals A E divided by D E, which equals 1.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            const step2 = document.createElement('div');
+            step2.className = 'step';
+            step2.textContent = 'Step 2: AE = DE = 28.5 m';
+            calcSteps.appendChild(step2);
+            gsap.from(step2, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Step 2: Therefore A E equals D E, which is 28.5 meters.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            const step3 = document.createElement('div');
+            step3.className = 'step';
+            step3.textContent = 'Step 3: AB = AE + BE = AE + CD';
+            calcSteps.appendChild(step3);
+            gsap.from(step3, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Step 3: Total height A B equals A E plus B E, which is A E plus C D.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            const step4 = document.createElement('div');
+            step4.className = 'step';
+            step4.style.color = '#43e97b';
+            step4.style.fontSize = '1.2rem';
+            step4.textContent = 'Answer: AB = 28.5 + 1.5 = 30 m';
+            calcSteps.appendChild(step4);
+            gsap.from(step4, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Therefore, the chimney height is 30 meters!");
+            if (!shouldContinue(taskId)) return;
+
+            // Update value display
+            const valueDisplay = document.getElementById('example3-value');
+            valueDisplay.textContent = 'Chimney Height = 30 m';
+            gsap.to(valueDisplay, { scale: 1.1, duration: 0.3, yoyo: true, repeat: 3 });
+
+            await wait(3000);
+        }
+
+        // ============================================
+        // EXAMPLE 4: FLAGSTAFF PROBLEM
+        // ============================================
+
+        async function showExample4() {
+            const taskId = `example4-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            activeTasks.add(taskId);
+            const teacher = createNewTeacher(taskId);
+            await showExample4Content(taskId);
+        }
+
+        async function showExample4Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Example 4: Building with Flagstaff 🚩</h2>
+                <p class="geometry-description">
+                    From point P, the angle of elevation of a 10 m building's top is 30°. 
+                    A flag on top has angle of elevation 45°. Find flagstaff length and distance from P.
+                </p>
+                <div class="threejs-container" id="example4-threejs"></div>
+                <div class="calculation-steps" id="calc-steps-4">
+                    <div class="step">Given: Building AB = 10 m, Angle to B = 30°, Angle to D = 45°</div>
+                    <div class="step">Find: Distance AP and Flagstaff height DB</div>
+                </div>
+                <div class="value-display" id="example4-value">Let's solve step by step!</div>
+            `;
+
+            await wait(100);
+            const container = document.getElementById('example4-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("Example 4: From point P, we observe a 10 meter building with a flagstaff on top.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw ground
+            drawLine(sceneData, -6, -2.5, 6, -2.5, 0x90ee90, 3);
+            await wait(500);
+
+            // Draw observer point P
+            const pointP = drawPoint(sceneData, 3, -2.5, 0xff0000, 0.2);
+            pointP.scale.set(0, 0, 0);
+            gsap.to(pointP.scale, { x: 1, y: 1, z: 1, duration: 0.5, ease: "back.out(1.7)" });
+            drawLabel(sceneData, 'P', 3.7, -2.5 - 0.5, '#ff0000', 1.1);
+
+            await wait(800);
+
+            // Draw building (10m = 2 units visually)
+            const buildingHeight = 2;
+            const building = drawBuilding(sceneData, -2, -2.5, 0.8, buildingHeight, 0x5f9ea0);
+            building.scale.y = 0;
+            gsap.to(building.scale, { y: 1, duration: 1, ease: "power2.out" });
+            
+            drawLabel(sceneData, 'A', -2.8, -2.5 - 0.7, '#5f9ea0', 1.0);
+            drawLabel(sceneData, 'B', -2.5, -2.5 + buildingHeight + 0.2, '#5f9ea0', 1.1);
+
+            await wait(1200);
+            await teacher.speak("The building A B is 10 meters tall.");
+            if (!shouldContinue(taskId)) return;
+
+            // Building height label
+            drawLabel(sceneData, '10 m', -3.8, -2.5 + buildingHeight/2, '#5f9ea0', 0.9);
+
+            // Draw flagstaff (7.32m ≈ 1.464 units)
+            const flagstaffHeight = 1.464;
+            const flagstaff = drawPole(sceneData, -2, -2.5 + buildingHeight, flagstaffHeight, 0xff4444);
+            flagstaff.scale.y = 0;
+            gsap.to(flagstaff.scale, { y: 1, duration: 1, delay: 0.3, ease: "power2.out" });
+            
+            drawLabel(sceneData, 'D', -1.6, -2.5 + buildingHeight + flagstaffHeight, '#ffff00', 1.0);
+
+            await wait(1200);
+
+            // Flagstaff height label
+            drawLabel(sceneData, '7.32 m', -3.8, -2.5 + buildingHeight + flagstaffHeight/2, '#ff4444', 0.8);
+
+            // Distance label
+            drawLabel(sceneData, '17.32 m', 0.5, -2.5 - 0.9, '#4facfe', 1.0);
+
+            await wait(500);
+
+            // Line to building top (30 degrees)
+            const line30 = drawLine(sceneData, 3, -2.5, -2, -2.5 + buildingHeight, 0x43e97b, 3);
+            line30.scale.x = 0;
+            gsap.to(line30.scale, { x: 1, duration: 1, ease: "power2.out" });
+
+            await wait(1200);
+            await teacher.speak("Drawing a line from P to B creates a 30 degree angle.");
+            if (!shouldContinue(taskId)) return;
+
+            // Line to flagstaff top (45 degrees)
+            const line45 = drawLine(sceneData, 3, -2.5, -2, -2.5 + buildingHeight + flagstaffHeight, 0xffff00, 3);
+            line45.scale.x = 0;
+            gsap.to(line45.scale, { x: 1, duration: 1, delay: 0.3, ease: "power2.out" });
+
+            await wait(1500);
+            await teacher.speak("Drawing a line from P to D creates a 45 degree angle.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw triangle (P-A-B with right angle at A)
+            const triangle1 = drawRightTriangle(sceneData, 3, -2.5, -5, buildingHeight, 0x00ff00, true);
+            triangle1.scale.set(0, 0, 0);
+            gsap.to(triangle1.scale, { x: 1, y: 1, z: 1, duration: 0.8, delay: 0.3, ease: "back.out(1.7)" });
+
+            await wait(1000);
+
+            // Draw angle arcs at P (from line of sight to horizontal)
+            const angle30Rad = Math.atan2(buildingHeight, -5); // Angle from P to B
+            const angle30 = drawAngleArc(sceneData, 3, -2.5, angle30Rad, Math.PI, 1.5, 0x43e97b);
+            angle30.scale.set(0, 0, 0);
+            gsap.to(angle30.scale, { x: 1, y: 1, z: 1, duration: 0.8 });
+            drawLabel(sceneData, '30°', 1.3, -2.5 + 0.4, '#43e97b', 0.9);
+
+            await wait(500);
+
+            const angle45Rad = Math.atan2(buildingHeight + flagstaffHeight, -5); // Angle from P to D
+            const angle45 = drawAngleArc(sceneData, 3, -2.5, angle45Rad, Math.PI, 1.8, 0xffff00);
+            angle45.scale.set(0, 0, 0);
+            gsap.to(angle45.scale, { x: 1, y: 1, z: 1, duration: 0.8 });
+            drawLabel(sceneData, '45°', 0.5, -2.5 + 1.2, '#ffff00', 0.9);
+
+            await wait(1000);
+
+            // Draw right angle marker at A
+            drawRightAngleMarker(sceneData, -2, -2.5, 0.3, 'bottom-left');
+
+            // Add calculation steps
+            const calcSteps = document.getElementById('calc-steps-4');
+            
+            await wait(1000);
+            const step1 = document.createElement('div');
+            step1.className = 'step';
+            step1.textContent = 'Step 1: tan(30°) = AB/AP → 1/√3 = 10/AP';
+            calcSteps.appendChild(step1);
+            gsap.from(step1, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Step 1: tangent of 30 degrees equals A B divided by A P.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            const step2 = document.createElement('div');
+            step2.className = 'step';
+            step2.textContent = 'Step 2: AP = 10√3 = 17.32 m';
+            calcSteps.appendChild(step2);
+            gsap.from(step2, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Step 2: A P equals 10 root 3, which is 17.32 meters.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            const step3 = document.createElement('div');
+            step3.className = 'step';
+            step3.textContent = 'Step 3: tan(45°) = AD/AP → 1 = AD/17.32';
+            calcSteps.appendChild(step3);
+            gsap.from(step3, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Step 3: tangent of 45 degrees equals A D divided by A P, which equals 1.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            const step4 = document.createElement('div');
+            step4.className = 'step';
+            step4.textContent = 'Step 4: AD = 17.32 m';
+            calcSteps.appendChild(step4);
+            gsap.from(step4, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Step 4: A D equals 17.32 meters.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            const step5 = document.createElement('div');
+            step5.className = 'step';
+            step5.style.color = '#43e97b';
+            step5.style.fontSize = '1.2rem';
+            step5.textContent = 'Answer: Distance = 17.32 m, Flagstaff = 7.32 m';
+            calcSteps.appendChild(step5);
+            gsap.from(step5, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Therefore, the distance is 17.32 meters and the flagstaff is 7.32 meters!");
+            if (!shouldContinue(taskId)) return;
+
+            // Update value display
+            const valueDisplay = document.getElementById('example4-value');
+            valueDisplay.textContent = 'Distance = 17.32 m | Flagstaff = 7.32 m';
+            gsap.to(valueDisplay, { scale: 1.1, duration: 0.3, yoyo: true, repeat: 3 });
+
+            await wait(3000);
+        }
+
+
+        // ============================================
+        // EXAMPLE 6: BUILDINGS PROBLEM
+        // ============================================
+
+        async function showExample6() {
+            const taskId = `example6-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            activeTasks.add(taskId);
+            const teacher = createNewTeacher(taskId);
+            await showExample6Content(taskId);
+        }
+
+        async function showExample6Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Example 6: Depression Angles from Building 🏢</h2>
+                <p class="geometry-description">
+                    From a 60 m building top, angles of depression to two objects are 30° and 45°. 
+                    Find the distance between the objects.
+                </p>
+                <div class="threejs-container" id="example6-threejs"></div>
+                <div class="calculation-steps" id="calc-steps-6">
+                    <div class="step">Given: Building height AB = 60 m, Depression angles = 30° and 45°</div>
+                    <div class="step">Find: Distance between objects CD = ?</div>
+                </div>
+                <div class="value-display" id="example6-value">Let's solve step by step!</div>
+            `;
+
+            await wait(100);
+            const container = document.getElementById('example6-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("Example 6: From the top of a 60 meter building, we observe two objects at different depression angles.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw ground
+            drawLine(sceneData, -6, -2.5, 6, -2.5, 0x90ee90, 3);
+            await wait(500);
+
+            // Draw building (60m = 6 units)
+            const buildingHeight = 6;
+            const building = drawBuilding(sceneData, -2, -2.5, 0.8, buildingHeight, 0x5f9ea0);
+            building.scale.y = 0;
+            gsap.to(building.scale, { y: 1, duration: 1.2, ease: "power2.out" });
+            
+            drawLabel(sceneData, 'A', -2.8, -2.5 + buildingHeight + 0.4, '#ff6347', 1.0);
+            drawLabel(sceneData, 'B', -2.8, -2.5 - 0.5, '#5f9ea0', 1.0);
+
+            await wait(1500);
+            await teacher.speak("The building A B is 60 meters tall.");
+            if (!shouldContinue(taskId)) return;
+
+            // Building height label
+            drawLabel(sceneData, '60 m', -3.8, -2.5 + buildingHeight/2, '#43e97b', 1.0);
+
+            // Draw horizontal reference line
+            const topLevel = -2.5 + buildingHeight;
+            const horizontal = drawDashedLine(sceneData, -2, topLevel, 6, topLevel, 0xffff00);
+            horizontal.scale.x = 0;
+            gsap.to(horizontal.scale, { x: 1, duration: 0.8, ease: "power2.out" });
+
+            await wait(1000);
+
+            // First object (45 degrees) - closer, at 60m
+            const distC = 6; // 60m
+            const pointC = drawPoint(sceneData, -2 + distC, -2.5, 0xff0000, 0.15);
+            pointC.scale.set(0, 0, 0);
+            gsap.to(pointC.scale, { x: 1, y: 1, z: 1, duration: 0.5, ease: "back.out(1.7)" });
+            drawLabel(sceneData, 'C', -2 + distC + 0.5, -2.5 - 0.5, '#ff0000', 1.0);
+
+            await wait(800);
+            await teacher.speak("The first object is at point C.");
+            if (!shouldContinue(taskId)) return;
+
+            // Distance BC label
+            drawLabel(sceneData, '60 m', -2 + distC/2, -2.5 - 1.0, '#ff6b6b', 0.9);
+
+            // Line of depression to C (45 degrees)
+            const lineC = drawLine(sceneData, -2, topLevel, -2 + distC, -2.5, 0x4facfe, 3);
+            lineC.scale.x = 0;
+            gsap.to(lineC.scale, { x: 1, duration: 1, ease: "power2.out" });
+
+            await wait(1200);
+
+            // Depression angle arc (45 degrees)
+            const depressionAngle45 = -Math.PI/4;
+            const depressionArc45 = drawAngleArc(sceneData, -2, topLevel, depressionAngle45, 0, 1.2, 0xfbbf24);
+            depressionArc45.scale.set(0, 0, 0);
+            gsap.to(depressionArc45.scale, { x: 1, y: 1, z: 1, duration: 0.8 });
+            drawLabel(sceneData, '45°', -0.8, topLevel - 0.6, '#fbbf24', 1.0);
+
+            // Elevation angle arc (45 degrees) at C
+            const angleToAFromC = Math.atan2(buildingHeight, -distC);
+            const elevationArc45 = drawAngleArc(sceneData, -2 + distC, -2.5, angleToAFromC, Math.PI, 1.2, 0x43e97b);
+            elevationArc45.scale.set(0, 0, 0);
+            gsap.to(elevationArc45.scale, { x: 1, y: 1, z: 1, duration: 0.8 });
+            drawLabel(sceneData, '45°', -2 + distC - 1.2, -2.5 + 0.2, '#43e97b', 0.9);
+
+            await wait(1000);
+            await teacher.speak("The angle of depression is 45 degrees, which equals the angle of elevation by alternate angles.");
+            if (!shouldContinue(taskId)) return;
+
+            // Second object (30 degrees) - farther
+            const distD = 6 + 4.392; // 103.92m total, difference of 43.92m
+            // Constrain to visible area
+            const visibleDistD = Math.min(distD, 10);
+            const pointD = drawPoint(sceneData, -2 + visibleDistD, -2.5, 0xfa709a, 0.15);
+            pointD.scale.set(0, 0, 0);
+            gsap.to(pointD.scale, { x: 1, y: 1, z: 1, duration: 0.5, delay: 0.3, ease: "back.out(1.7)" });
+            drawLabel(sceneData, 'D', -2 + visibleDistD + 0.5, -2.5 - 0.5, '#fa709a', 1.0);
+
+            await wait(800);
+            await teacher.speak("The second object is at point D, farther away.");
+            if (!shouldContinue(taskId)) return;
+
+            // Distance BD label (approximation for visual)
+            
+
+            // Line of depression to D (30 degrees)
+            const lineD = drawLine(sceneData, -2, topLevel, -2 + visibleDistD, -2.5, 0xfa709a, 3);
+            lineD.scale.x = 0;
+            gsap.to(lineD.scale, { x: 1, duration: 1.2, delay: 0.3, ease: "power2.out" });
+
+            await wait(1200);
+
+            // Depression angle arc (30 degrees)
+            const depressionAngle30 = -Math.PI/6;
+            const depressionArc30 = drawAngleArc(sceneData, -2, topLevel, depressionAngle30, 0, 1.5, 0xff6b6b);
+            depressionArc30.scale.set(0, 0, 0);
+            gsap.to(depressionArc30.scale, { x: 1, y: 1, z: 1, duration: 0.8 });
+            drawLabel(sceneData, '30°', 0.6, topLevel - 1.0, '#ff6b6b', 1.0);
+
+            await wait(1000);
+            await teacher.speak("The angle of depression to the farther object D is 30 degrees.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw triangles
+            const triangle45 = drawRightTriangle(sceneData, -2 + distC, -2.5, -distC, buildingHeight, 0x00ff00, true);
+            triangle45.scale.set(0, 0, 0);
+            gsap.to(triangle45.scale, { x: 1, y: 1, z: 1, duration: 0.8, ease: "back.out(1.7)" });
+
+            await wait(1000);
+
+            // Draw right angle marker at B
+            drawRightAngleMarker(sceneData, -2, -2.5, 0.3, 'bottom-left');
+
+            // Add calculation steps
+            const calcSteps = document.getElementById('calc-steps-6');
+            
+            await wait(1000);
+            const step1 = document.createElement('div');
+            step1.className = 'step';
+            step1.textContent = 'Step 1: For 45°: tan(45°) = AB/BC = 1';
+            calcSteps.appendChild(step1);
+            gsap.from(step1, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Step 1: Using tangent of 45 degrees which equals 1.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            const step2 = document.createElement('div');
+            step2.className = 'step';
+            step2.textContent = 'Step 2: BC = AB = 60 m';
+            calcSteps.appendChild(step2);
+            gsap.from(step2, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Step 2: B C equals A B which is 60 meters.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            const step3 = document.createElement('div');
+            step3.className = 'step';
+            step3.textContent = 'Step 3: For 30°: tan(30°) = AB/BD = 1/√3';
+            calcSteps.appendChild(step3);
+            gsap.from(step3, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Step 3: Using tangent of 30 degrees which is 1 divided by root 3.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            const step4 = document.createElement('div');
+            step4.className = 'step';
+            step4.textContent = 'Step 4: BD = 60√3 = 103.92 m';
+            calcSteps.appendChild(step4);
+            gsap.from(step4, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Step 4: B D equals 60 root 3, which is 103.92 meters.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            const step5 = document.createElement('div');
+            step5.className = 'step';
+            step5.style.color = '#43e97b';
+            step5.style.fontSize = '1.2rem';
+            step5.textContent = 'Answer: CD = BD - BC = 103.92 - 60 = 43.92 m';
+            calcSteps.appendChild(step5);
+            gsap.from(step5, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Therefore, the distance between the objects is 43.92 meters!");
+            if (!shouldContinue(taskId)) return;
+
+            // Distance between objects label (removed as requested)
+
+            // Update value display
+            const valueDisplay = document.getElementById('example6-value');
+            valueDisplay.textContent = 'Distance Between Objects = 43.92 m';
+            gsap.to(valueDisplay, { scale: 1.1, duration: 0.3, yoyo: true, repeat: 3 });
+
+            await wait(3000);
+        }
+
+
+        // ============================================
+        // COMPLETE LESSON FUNCTION
+        // ============================================
+
+        async function showCompleteLesson() {
+            const taskId = `complete-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            activeTasks.add(taskId);
+            const teacher = createNewTeacher(taskId);
+
+            await teacher.speak("Welcome to the complete lesson on Heights and Distances Problem Solving! Let's explore all 4 examples.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+
+            await teacher.speak("Let's begin with Example 2: The Electrician's Ladder Problem.");
+            await showExample2Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+
+            await teacher.speak("Moving to Example 3: Finding Chimney Height from an Observer.");
+            await showExample3Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+
+            await teacher.speak("Now Example 4: A Building with a Flagstaff on Top.");
+            await showExample4Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+
+            
+
+            await teacher.speak("Example 6: Using angles of depression from a multi-storeyed building.");
+            await showExample6Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+
+            
+
+            // Summary
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="geometry-title">🎓 Complete Lesson Summary</h2>
+                <div class="value-display">4 Problems Mastered!</div>
+                <div class="theorem-box">
+                    <div class="theorem-title">Key Concepts Learned</div>
+                    <div class="theorem-content">
+                        ✓ <strong>Ladder problems:</strong> Using sin, cos, tan ratios<br>
+                        ✓ <strong>Height calculations:</strong> Angle of elevation method<br>
+                        ✓ <strong>Multiple heights:</strong> Stacked objects problems<br>
+                        ✓ <strong>Shadow problems:</strong> Different sun altitudes<br>
+                        ✓ <strong>Depression angles:</strong> Alternate angle property<br>
+                        ✓ <strong>Width calculations:</strong> Cross-river measurements<br><br>
+                        <strong>Master Formula:</strong> tan θ = Opposite/Adjacent<br>
+                        <strong>Key Insight:</strong> Angle of depression = Angle of elevation
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("Congratulations! You've completed all 6 examples with step-by-step solutions. You now understand real-world trigonometry!");
+        }
+
+        // ============================================
+        // RESET FUNCTION
+        // ============================================
+
+        function resetApplication() {
+            stopCurrentDemo();
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Welcome to Problem Solving! 🎯</h2>
+                <div class="value-display">4 Real-World Trigonometry Problems</div>
+                <p class="geometry-description">
+                    Master practical applications of angles of elevation and depression through 
+                    detailed step-by-step solutions with stunning 3D animations!
+                </p>
+            `;
+
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            currentDemo = null;
+
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any example to continue exploring real-world trigonometry!");
+            }, 500);
+        }
+
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome to Heights and Distances Problem Solving! Explore 4 real-world trigonometry examples with step-by-step solutions!");
+            }, 500);
+
+            // Demo button event handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'example2':
+                            showExample2();
+                            break;
+                        case 'example3':
+                            showExample3();
+                            break;
+                        case 'example4':
+                            showExample4();
+                            break;
+                        
+                        case 'example6':
+                            showExample6();
+                            break;
+                        
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+
+            // Audio control button
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+
+            // Window resize handler for Three.js scenes
+            window.addEventListener('resize', () => {
+                threeJsScenes.forEach(sceneData => {
+                    const container = sceneData.renderer.domElement.parentElement;
+                    if (container) {
+                        sceneData.camera.aspect = container.clientWidth / container.clientHeight;
+                        sceneData.camera.updateProjectionMatrix();
+                        sceneData.renderer.setSize(container.clientWidth, container.clientHeight);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

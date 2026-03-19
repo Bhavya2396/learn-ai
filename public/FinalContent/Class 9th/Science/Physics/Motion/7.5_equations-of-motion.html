@@ -1,0 +1,2352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equations of Motion - Physics in Motion</title>
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(124, 58, 237, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(124, 58, 237, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(45deg, #7c3aed, #a855f7, #c084fc);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Demo Stage */
+        .demo-stage {
+            background: linear-gradient(to bottom, #1e293b, #334155, #475569);
+            border-radius: 25px;
+            min-height: 500px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            overflow: visible;
+            border: 3px solid rgba(124, 58, 237, 0.4);
+            padding: 40px;
+        }
+
+        /* Equations Introduction Demo */
+        .equations-intro-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            min-height: 500px;
+            overflow-y: auto;
+        }
+
+        .equations-intro-demo.active {
+            display: block;
+        }
+
+        .intro-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+        }
+
+        .intro-title {
+            color: #7c3aed;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        .intro-description {
+            font-size: 1.3rem;
+            line-height: 1.8;
+            color: #e2e8f0;
+            max-width: 800px;
+            margin-bottom: 40px;
+        }
+
+        .equations-preview {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .equation-card {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid rgba(124, 58, 237, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .equation-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(124, 58, 237, 0.3);
+        }
+
+        .equation-number {
+            color: #a855f7;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .equation-formula {
+            font-family: 'Courier New', monospace;
+            font-size: 1.8rem;
+            color: #fbbf24;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .equation-description {
+            color: #c084fc;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        /* Three Equations Demo */
+        .three-equations-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            min-height: 500px;
+            overflow-y: auto;
+        }
+
+        .three-equations-demo.active {
+            display: block;
+        }
+
+        .equations-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            height: 100%;
+        }
+
+        .equation-detailed-card {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(124, 58, 237, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .equation-title {
+            color: #7c3aed;
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .main-equation {
+            font-family: 'Courier New', monospace;
+            font-size: 2rem;
+            color: #fbbf24;
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(251, 191, 36, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .equation-details {
+            color: #e2e8f0;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+
+        .equation-use {
+            background: rgba(124, 58, 237, 0.2);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            color: #c084fc;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* Examples Demo */
+        .examples-demo {
+            display: none;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 100%;
+        }
+
+        .examples-demo.active {
+            display: block;
+        }
+
+        .examples-container {
+            position: relative;
+            padding: 20px 0;
+            width: 100%;
+        }
+        
+        .carousel-nav {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .carousel-btn {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
+        }
+        
+        .carousel-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.4);
+        }
+        
+        .carousel-btn:disabled {
+            background: #475569;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            opacity: 0.6;
+        }
+
+        .example-card {
+            background: rgba(15, 23, 42, 0.9);
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid rgba(124, 58, 237, 0.3);
+            display: none;
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        .example-card.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .example-header {
+            margin-bottom: 25px;
+        }
+        
+        .solutions-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        
+        .solution-row {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        
+        .solution-parts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 900px) {
+            .solution-row {
+                grid-template-columns: 1fr;
+            }
+            .solution-parts {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .example-title {
+            color: #7c3aed;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .example-problem {
+            background: rgba(124, 58, 237, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #7c3aed;
+            line-height: 1.6;
+            max-width: 800px;
+        }
+
+        .solution-section {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(124, 58, 237, 0.2);
+        }
+
+        .part-title {
+            color: #fbbf24;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-align: center;
+            background: rgba(251, 191, 36, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .solution-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .solution-step {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            opacity: 1;
+            transition: all 0.5s ease;
+        }
+
+        .step-label {
+            color: #fbbf24;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .step-calculation {
+            font-family: 'Courier New', monospace;
+            color: #10b981;
+            font-size: 1.1rem;
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+
+        .final-answer {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(34, 197, 94, 0.3));
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            text-align: center;
+            font-weight: bold;
+            color: #10b981;
+            border: 2px solid rgba(16, 185, 129, 0.4);
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        /* Interactive Calculator Demo */
+        .calculator-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            min-height: 500px;
+            max-height: 100%;
+            overflow-y: auto;
+        }
+
+        .calculator-demo.active {
+            display: block;
+        }
+
+        .calculator-container {
+            display: flex;
+            gap: 30px;
+            min-height: 500px;
+            flex-wrap: wrap;
+        }
+
+        .calculator-controls {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(124, 58, 237, 0.3);
+            min-width: 350px;
+            height: fit-content;
+            overflow-y: auto;
+        }
+
+        .calculator-title {
+            color: #7c3aed;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .equation-selector {
+            margin-bottom: 20px;
+        }
+
+        .selector-label {
+            display: block;
+            color: #a855f7;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .selector-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid rgba(124, 58, 237, 0.4);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+        }
+        
+        .selector-input option {
+            background-color: #1e293b;
+            color: white;
+        }
+
+        .input-group {
+            margin: 15px 0;
+        }
+
+        .input-label {
+            display: block;
+            color: #c084fc;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid rgba(124, 58, 237, 0.4);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .calc-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 15px 0;
+        }
+
+        .calc-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
+        }
+
+        .result-display {
+            background: rgba(16, 185, 129, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid rgba(16, 185, 129, 0.4);
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #10b981;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calculator-display {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(124, 58, 237, 0.3);
+            height: fit-content;
+            min-width: 350px;
+            overflow-y: auto;
+        }
+
+        .display-title {
+            color: #7c3aed;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .equation-display {
+            background: rgba(251, 191, 36, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+            border: 2px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .current-equation {
+            font-family: 'Courier New', monospace;
+            font-size: 2rem;
+            color: #fbbf24;
+            margin: 15px 0;
+        }
+
+        .equation-explanation {
+            color: #e2e8f0;
+            line-height: 1.6;
+            margin-top: 15px;
+        }
+
+        .calculation-steps {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .step-by-step {
+            color: #10b981;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            font-size: 1.1rem;
+        }
+
+        /* Graphical Derivation Demo */
+        .graphical-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            min-height: 500px;
+            overflow-y: auto;
+        }
+
+        .graphical-demo.active {
+            display: block;
+        }
+
+        .graphical-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            height: 100%;
+        }
+
+        .graph-section {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(124, 58, 237, 0.3);
+        }
+
+        .graph-title {
+            color: #7c3aed;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            position: relative;
+        }
+
+        .derivation-explanation {
+            margin-top: 15px;
+            color: #e2e8f0;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+
+        .derivation-formula {
+            background: rgba(251, 191, 36, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            color: #fbbf24;
+            text-align: center;
+        }
+
+        /* Questions Demo */
+        .questions-demo {
+            display: none;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .questions-demo.active {
+            display: block;
+        }
+
+        .questions-container {
+            position: relative;
+            padding: 20px 0;
+            width: 100%;
+        }
+        
+        .question-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 4px solid #7c3aed;
+            display: none;
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        .question-card.active {
+            display: block;
+        }
+
+        .question-number {
+            color: #7c3aed;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .question-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            color: #e2e8f0;
+        }
+
+        .answer-section {
+            background: rgba(124, 58, 237, 0.1);
+            padding: 15px;
+            margin-top: 5px;
+            border-radius: 10px;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.5s ease;
+        }
+
+        .answer-section.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .show-answer-btn {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .show-answer-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            color: #7c3aed;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            border: none;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
+            min-width: 150px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(124, 58, 237, 0.4);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Theory Section */
+        .theory-section {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(124, 58, 237, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .concept-box {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(168, 85, 247, 0.2));
+            padding: 25px;
+            border-radius: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+        }
+
+        .concept-box-title {
+            font-size: 1.5rem;
+            color: #7c3aed;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .concept-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #e2e8f0;
+        }
+
+        .formula-highlight {
+            background: rgba(251, 191, 36, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 20px 0;
+            border: 2px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .equations-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .equation-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            border: 2px solid rgba(124, 58, 237, 0.3);
+        }
+
+        .equation-box-title {
+            color: #a855f7;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .equation-box-formula {
+            font-family: 'Courier New', monospace;
+            font-size: 1.5rem;
+            color: #fbbf24;
+            margin: 10px 0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2.2rem; }
+            .demo-stage { padding: 30px 20px; min-height: 400px; }
+            .demo-buttons { flex-direction: column; align-items: center; }
+            .equations-preview { grid-template-columns: 1fr; }
+            .equations-container { grid-template-columns: 1fr; }
+            .calculator-container { 
+                flex-direction: column; 
+                gap: 20px;
+            }
+            .calculator-controls, .calculator-display {
+                width: 100%;
+                min-width: 100%;
+            }
+            .graphical-container { grid-template-columns: 1fr; }
+            .questions-grid { grid-template-columns: 1fr; }
+            .equations-grid { grid-template-columns: 1fr; }
+            .examples-container { grid-template-columns: 1fr; }
+            .solution-steps { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 20px 15px; }
+            .header h1 { font-size: 1.8rem; }
+            .demo-stage { padding: 20px 15px; }
+            .theory-section { padding: 20px; }
+            .main-equation { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Equations of Motion</h1>
+            <p>Master the three fundamental equations that describe uniformly accelerated motion! Learn to solve complex motion problems using these powerful mathematical tools.</p>
+        </div>
+
+        <!-- Demo Stage -->
+        <div class="demo-stage" id="stage">
+            <!-- Equations Introduction Demo -->
+            <div class="equations-intro-demo" id="equations-intro-demo">
+                <div class="intro-content">
+                    <div class="intro-title">Three Equations of Motion</div>
+                    <div class="intro-description">
+                        When an object moves along a straight line with uniform acceleration, we can relate its velocity, 
+                        acceleration, and distance using three fundamental equations. These equations are the foundation 
+                        of kinematics and help us solve complex motion problems.
+                    </div>
+                    <div class="equations-preview">
+                        <div class="equation-card">
+                            <div class="equation-number">Equation 1</div>
+                            <div class="equation-formula">v = u + at</div>
+                            <div class="equation-description">Velocity-Time Relation</div>
+                        </div>
+                        <div class="equation-card">
+                            <div class="equation-number">Equation 2</div>
+                            <div class="equation-formula">s = ut + ½at²</div>
+                            <div class="equation-description">Position-Time Relation</div>
+                        </div>
+                        <div class="equation-card">
+                            <div class="equation-number">Equation 3</div>
+                            <div class="equation-formula">v² = u² + 2as</div>
+                            <div class="equation-description">Position-Velocity Relation</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Three Equations Demo -->
+            <div class="three-equations-demo" id="three-equations-demo">
+                <div class="equations-container">
+                    <div class="equation-detailed-card">
+                        <div class="equation-title">First Equation of Motion</div>
+                        <div class="main-equation">v = u + at</div>
+                        <div class="equation-details">
+                            <strong>Where:</strong><br>
+                            v = final velocity (m/s)<br>
+                            u = initial velocity (m/s)<br>
+                            a = acceleration (m/s²)<br>
+                            t = time (s)
+                        </div>
+                        <div class="equation-use">Used when time is known</div>
+                    </div>
+
+                    <div class="equation-detailed-card">
+                        <div class="equation-title">Second Equation of Motion</div>
+                        <div class="main-equation">s = ut + ½at²</div>
+                        <div class="equation-details">
+                            <strong>Where:</strong><br>
+                            s = displacement (m)<br>
+                            u = initial velocity (m/s)<br>
+                            t = time (s)<br>
+                            a = acceleration (m/s²)
+                        </div>
+                        <div class="equation-use">Used when final velocity is unknown</div>
+                    </div>
+
+                    <div class="equation-detailed-card">
+                        <div class="equation-title">Third Equation of Motion</div>
+                        <div class="main-equation">v² = u² + 2as</div>
+                        <div class="equation-details">
+                            <strong>Where:</strong><br>
+                            v = final velocity (m/s)<br>
+                            u = initial velocity (m/s)<br>
+                            a = acceleration (m/s²)<br>
+                            s = displacement (m)
+                        </div>
+                        <div class="equation-use">Used when time is unknown</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Calculator Demo -->
+            <div class="calculator-demo" id="calculator-demo">
+                <div class="calculator-container">
+                    <div class="calculator-controls">
+                        <div class="calculator-title">Motion Calculator</div>
+                        
+                        <div class="equation-selector">
+                            <label class="selector-label">Choose Equation:</label>
+                            <select class="selector-input" id="equation-selector">
+                                <option value="1">v = u + at</option>
+                                <option value="2">s = ut + ½at²</option>
+                                <option value="3">v² = u² + 2as</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Initial Velocity (u) m/s:</label>
+                            <input type="number" class="input-field" id="initial-velocity" value="0">
+                        </div>
+
+                        <div class="input-group" id="final-velocity-group">
+                            <label class="input-label">Final Velocity (v) m/s:</label>
+                            <input type="number" class="input-field" id="final-velocity" value="">
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Acceleration (a) m/s²:</label>
+                            <input type="number" class="input-field" id="acceleration" value="1">
+                        </div>
+
+                        <div class="input-group" id="time-group">
+                            <label class="input-label">Time (t) s:</label>
+                            <input type="number" class="input-field" id="time" value="5">
+                        </div>
+
+                        <div class="input-group" id="displacement-group" style="display: none;">
+                            <label class="input-label">Displacement (s) m:</label>
+                            <input type="number" class="input-field" id="displacement" value="">
+                        </div>
+
+                        <button class="calc-btn" onclick="calculateMotion()">Calculate</button>
+                        
+                        <div class="result-display" id="calculation-result">
+                            Select equation and enter values to calculate
+                        </div>
+                    </div>
+
+                    <div class="calculator-display">
+                        <div class="display-title">Equation Details</div>
+                        <div class="equation-display">
+                            <div class="current-equation" id="current-equation">v = u + at</div>
+                            <div class="equation-explanation" id="equation-explanation">
+                                This equation relates final velocity to initial velocity, acceleration, and time.
+                                It's derived from the definition of acceleration.
+                            </div>
+                        </div>
+                        <div class="calculation-steps" id="calculation-steps">
+                            <div class="step-by-step">
+                                Enter values in the calculator to see step-by-step solution
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Graphical Derivation Demo -->
+            <div class="graphical-demo" id="graphical-demo">
+                <div class="graphical-container">
+                    <div class="graph-section">
+                        <div class="graph-title">Velocity-Time Graph</div>
+                        <div class="chart-container">
+                            <canvas id="velocity-time-chart"></canvas>
+                        </div>
+                        <div class="derivation-explanation">
+                            From the velocity-time graph, we can derive all three equations:
+                            <div class="derivation-formula">Slope = acceleration = (v-u)/t</div>
+                            <div class="derivation-formula">Area = displacement = ut + ½(v-u)t</div>
+                        </div>
+                    </div>
+
+                    <div class="graph-section">
+                        <div class="graph-title">Graphical Derivation</div>
+                        <div class="derivation-explanation">
+                            <strong>First Equation (v = u + at):</strong><br>
+                            From the slope of velocity-time graph:<br>
+                            Slope = (v - u) / t = a<br>
+                            Therefore: v = u + at<br><br>
+
+                            <strong>Second Equation (s = ut + ½at²):</strong><br>
+                            Area under the graph = displacement<br>
+                            Area = Rectangle + Triangle<br>
+                            s = ut + ½(v-u)t<br>
+                            Substituting v = u + at:<br>
+                            s = ut + ½at²<br><br>
+
+                            <strong>Third Equation (v² = u² + 2as):</strong><br>
+                            From equations 1 and 2, eliminating t:<br>
+                            t = (v-u)/a<br>
+                            s = u(v-u)/a + ½a((v-u)/a)²<br>
+                            Simplifying: v² = u² + 2as
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Examples Demo -->
+            <div class="examples-demo" id="examples-demo">
+                <div class="examples-container">
+                    <!-- Example 7.5 -->
+                    <div class="example-card" id="example-1" data-example-id="1">
+                        <div class="example-header">
+                            <div class="example-title">Example 7.5</div>
+                            <div class="example-problem">
+                                <strong>Problem:</strong> A train starting from rest attains a velocity of 72 km/h in 5 minutes. 
+                                Assuming uniform acceleration, find (i) the acceleration and (ii) the distance travelled.
+                            </div>
+                        </div>
+
+                        <div class="solutions-container">
+                            <!-- Given Data Row -->
+                            <div class="solution-row">
+                                <div class="solution-section">
+                                    <div class="part-title">Given Data</div>
+                                    <div class="solution-steps">
+                                        <div class="solution-step" id="ex1-given">
+                                            <div class="step-label">Given:</div>
+                                            <div class="step-calculation">
+                                                u = 0 (starting from rest)<br>
+                                                v = 72 km/h = 72 × (5/18) = 20 m/s<br>
+                                                t = 5 minutes = 300 s
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Solutions in horizontal layout -->
+                                <div class="solution-parts">
+                                    <div class="solution-section">
+                                        <div class="part-title">(i) Finding Acceleration</div>
+                                        <div class="solution-steps">
+                                            <div class="solution-step" id="ex1-part1-step1">
+                                                <div class="step-label">Using Equation 1:</div>
+                                                <div class="step-calculation">v = u + at</div>
+                                            </div>
+                                            <div class="solution-step" id="ex1-part1-step2">
+                                                <div class="step-label">Rearranging:</div>
+                                                <div class="step-calculation">a = (v - u) / t</div>
+                                            </div>
+                                            <div class="solution-step" id="ex1-part1-step3">
+                                                <div class="step-label">Substituting:</div>
+                                                <div class="step-calculation">a = (20 - 0) / 300 = 1/15 m/s²</div>
+                                            </div>
+                                            <div class="final-answer" id="ex1-part1-answer">
+                                                Acceleration = 1/15 m/s² ≈ 0.067 m/s²
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="solution-section">
+                                        <div class="part-title">(ii) Finding Distance</div>
+                                        <div class="solution-steps">
+                                            <div class="solution-step" id="ex1-part2-step1">
+                                                <div class="step-label">Using Equation 3:</div>
+                                                <div class="step-calculation">v² = u² + 2as</div>
+                                            </div>
+                                            <div class="solution-step" id="ex1-part2-step2">
+                                                <div class="step-label">Rearranging:</div>
+                                                <div class="step-calculation">s = (v² - u²) / (2a)</div>
+                                            </div>
+                                            <div class="solution-step" id="ex1-part2-step3">
+                                                <div class="step-label">Substituting:</div>
+                                                <div class="step-calculation">s = (20² - 0²) / (2 × 1/15) = 3000 m = 3 km</div>
+                                            </div>
+                                            <div class="final-answer" id="ex1-part2-answer">
+                                                Distance travelled = 3 km
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Example 7.6 -->
+                    <div class="example-card" id="example-2" data-example-id="2">
+                        <div class="example-header">
+                            <div class="example-title">Example 7.6</div>
+                            <div class="example-problem">
+                                <strong>Problem:</strong> A car accelerates uniformly from 18 km/h to 36 km/h in 5 s. 
+                                Calculate (i) the acceleration and (ii) the distance covered.
+                            </div>
+                        </div>
+
+                        <div class="solutions-container">
+                            <!-- Given Data Row -->
+                            <div class="solution-row">
+                                <div class="solution-section">
+                                    <div class="part-title">Given Data</div>
+                                    <div class="solution-steps">
+                                        <div class="solution-step" id="ex2-given">
+                                            <div class="step-label">Given:</div>
+                                            <div class="step-calculation">
+                                                u = 18 km/h = 18 × (5/18) = 5 m/s<br>
+                                                v = 36 km/h = 36 × (5/18) = 10 m/s<br>
+                                                t = 5 s
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Solutions in horizontal layout -->
+                                <div class="solution-parts">
+                                    <div class="solution-section">
+                                        <div class="part-title">(i) Finding Acceleration</div>
+                                        <div class="solution-steps">
+                                            <div class="solution-step" id="ex2-part1-step1">
+                                                <div class="step-label">Using Equation 1:</div>
+                                                <div class="step-calculation">a = (v - u) / t</div>
+                                            </div>
+                                            <div class="solution-step" id="ex2-part1-step2">
+                                                <div class="step-label">Substituting values:</div>
+                                                <div class="step-calculation">a = (10 - 5) / 5 = 1 m/s²</div>
+                                            </div>
+                                            <div class="final-answer" id="ex2-part1-answer">
+                                                Acceleration = 1 m/s²
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="solution-section">
+                                        <div class="part-title">(ii) Finding Distance</div>
+                                        <div class="solution-steps">
+                                            <div class="solution-step" id="ex2-part2-step1">
+                                                <div class="step-label">Using Equation 2:</div>
+                                                <div class="step-calculation">s = ut + ½at²</div>
+                                            </div>
+                                            <div class="solution-step" id="ex2-part2-step2">
+                                                <div class="step-label">Substituting values:</div>
+                                                <div class="step-calculation">s = 5×5 + ½×1×5² = 25 + 12.5 = 37.5 m</div>
+                                            </div>
+                                            <div class="final-answer" id="ex2-part2-answer">
+                                                Distance covered = 37.5 m
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Braking Example -->
+                    <div class="example-card" id="example-3" data-example-id="3">
+                        <div class="example-header">
+                            <div class="example-title">Braking Example</div>
+                            <div class="example-problem">
+                                <strong>Problem:</strong> Brakes applied to a car produce acceleration of 6 m/s² in opposite direction. 
+                                If the car takes 2 s to stop, calculate the distance it travels during this time.
+                            </div>
+                        </div>
+
+                        <div class="solutions-container">
+                            <!-- Given Data Row -->
+                            <div class="solution-row">
+                                <div class="solution-section">
+                                    <div class="part-title">Given Data</div>
+                                    <div class="solution-steps">
+                                        <div class="solution-step" id="ex3-given">
+                                            <div class="step-label">Given:</div>
+                                            <div class="step-calculation">
+                                                a = -6 m/s² (opposite to motion)<br>
+                                                t = 2 s<br>
+                                                v = 0 m/s (car stops)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Solutions in horizontal layout -->
+                                <div class="solution-parts">
+                                    <div class="solution-section">
+                                        <div class="part-title">Finding Initial Velocity</div>
+                                        <div class="solution-steps">
+                                            <div class="solution-step" id="ex3-step1">
+                                                <div class="step-label">Using Equation 1:</div>
+                                                <div class="step-calculation">v = u + at</div>
+                                            </div>
+                                            <div class="solution-step" id="ex3-step2">
+                                                <div class="step-label">Rearranging:</div>
+                                                <div class="step-calculation">u = v - at = 0 - (-6)×2 = 12 m/s</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="solution-section">
+                                        <div class="part-title">Finding Distance</div>
+                                        <div class="solution-steps">
+                                            <div class="solution-step" id="ex3-step3">
+                                                <div class="step-label">Using Equation 2:</div>
+                                                <div class="step-calculation">s = ut + ½at²</div>
+                                            </div>
+                                            <div class="solution-step" id="ex3-step4">
+                                                <div class="step-label">Substituting values:</div>
+                                                <div class="step-calculation">s = 12×2 + ½×(-6)×2² = 24 - 12 = 12 m</div>
+                                            </div>
+                                            <div class="final-answer" id="ex3-answer">
+                                                Distance travelled = 12 m
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Navigation buttons -->
+                    <div class="carousel-nav" id="examples-nav">
+                        <button class="carousel-btn" id="examples-prev">← Previous Example</button>
+                        <button class="carousel-btn" id="examples-next">Next Example →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Questions Demo -->
+            <div class="questions-demo" id="questions-demo">
+                <h2 style="color: #7c3aed; text-align: center; margin-bottom: 30px;">Practice Questions</h2>
+                
+                <div class="questions-container">
+                    <div class="question-card" id="question-1" data-question-id="1">
+                        <div class="question-number">Q1.</div>
+                        <div class="question-text">
+                            A bus starting from rest moves with uniform acceleration of 0.1 m/s² for 2 minutes. 
+                            Find (a) the speed acquired, (b) the distance travelled.
+                        </div>
+                        <button class="show-answer-btn" onclick="showAnswer(1)">Show Answer</button>
+                        <div class="answer-section" id="answer-1">
+                            <strong>Solution:</strong><br>
+                            Given: u = 0, a = 0.1 m/s², t = 2 min = 120 s<br><br>
+                            <strong>(a) Speed acquired:</strong><br>
+                            Using v = u + at<br>
+                            v = 0 + 0.1 × 120 = 12 m/s<br><br>
+                            <strong>(b) Distance travelled:</strong><br>
+                            Using s = ut + ½at²<br>
+                            s = 0×120 + ½×0.1×120² = 720 m
+                        </div>
+                    </div>
+                    
+                    <div class="question-card" id="question-2" data-question-id="2">
+                        <div class="question-number">Q2.</div>
+                        <div class="question-text">
+                            A train is travelling at 90 km/h. Brakes are applied to produce uniform acceleration of -0.5 m/s². 
+                            Find how far the train will go before it stops.
+                        </div>
+                        <button class="show-answer-btn" onclick="showAnswer(2)">Show Answer</button>
+                        <div class="answer-section" id="answer-2">
+                            <strong>Solution:</strong><br>
+                            Given: u = 90 km/h = 25 m/s, a = -0.5 m/s², v = 0<br><br>
+                            Using v² = u² + 2as<br>
+                            0² = 25² + 2×(-0.5)×s<br>
+                            0 = 625 - s<br>
+                            s = 625 m<br><br>
+                            <strong>Answer: 625 m</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="question-card" id="question-3" data-question-id="3">
+                        <div class="question-number">Q3.</div>
+                        <div class="question-text">
+                            A trolley going down an inclined plane has acceleration of 2 cm/s². 
+                            What will be its velocity 3 s after the start?
+                        </div>
+                        <button class="show-answer-btn" onclick="showAnswer(3)">Show Answer</button>
+                        <div class="answer-section" id="answer-3">
+                            <strong>Solution:</strong><br>
+                            Given: u = 0 (starts from rest), a = 2 cm/s² = 0.02 m/s², t = 3 s<br><br>
+                            Using v = u + at<br>
+                            v = 0 + 0.02 × 3 = 0.06 m/s = 6 cm/s<br><br>
+                            <strong>Answer: 6 cm/s</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="question-card" id="question-4" data-question-id="4">
+                        <div class="question-number">Q4.</div>
+                        <div class="question-text">
+                            A racing car has uniform acceleration of 4 m/s². 
+                            What distance will it cover in 10 s after start?
+                        </div>
+                        <button class="show-answer-btn" onclick="showAnswer(4)">Show Answer</button>
+                        <div class="answer-section" id="answer-4">
+                            <strong>Solution:</strong><br>
+                            Given: u = 0 (starts from rest), a = 4 m/s², t = 10 s<br><br>
+                            Using s = ut + ½at²<br>
+                            s = 0×10 + ½×4×10² = 0 + 2×100 = 200 m<br><br>
+                            <strong>Answer: 200 m</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="question-card" id="question-5" data-question-id="5">
+                        <div class="question-number">Q5.</div>
+                        <div class="question-text">
+                            A stone is thrown vertically upward with velocity 5 m/s. If acceleration is 10 m/s² downward, 
+                            find the height attained and time to reach there.
+                        </div>
+                        <button class="show-answer-btn" onclick="showAnswer(5)">Show Answer</button>
+                        <div class="answer-section" id="answer-5">
+                            <strong>Solution:</strong><br>
+                            Given: u = 5 m/s, a = -10 m/s² (downward), v = 0 (at maximum height)<br><br>
+                            <strong>Height attained:</strong><br>
+                            Using v² = u² + 2as<br>
+                            0² = 5² + 2×(-10)×s<br>
+                            s = 25/20 = 1.25 m<br><br>
+                            <strong>Time to reach:</strong><br>
+                            Using v = u + at<br>
+                            0 = 5 + (-10)×t<br>
+                            t = 0.5 s<br><br>
+                            <strong>Answer: Height = 1.25 m, Time = 0.5 s</strong>
+                        </div>
+                    </div>
+                    
+                    <!-- Navigation buttons -->
+                    <div class="carousel-nav" id="questions-nav">
+                        <button class="carousel-btn" id="questions-prev">← Previous Question</button>
+                        <button class="carousel-btn" id="questions-next">Next Question →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="demo-title">Explore Equations of Motion</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playCompleteLesson()">📚 Complete Lesson</button>
+                <button class="demo-btn" onclick="showEquationsIntro()">📖 Introduction</button>
+                <button class="demo-btn" onclick="showThreeEquations()">🔢 Three Equations</button>
+                <button class="demo-btn" onclick="showCalculator()">🧮 Interactive Calculator</button>
+                <button class="demo-btn" onclick="showGraphicalDerivation()">📈 Graphical Derivation</button>
+                <button class="demo-btn" onclick="showExamples()">📝 NCERT Examples</button>
+                <button class="demo-btn" onclick="showQuestions()">❓ Practice Questions</button>
+                <button class="demo-btn" onclick="resetAllClick()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Theory Section -->
+        <div class="theory-section">
+            <div class="concept-box">
+                <div class="concept-box-title">Equations of Motion</div>
+                <div class="concept-text">
+                    The equations of motion are mathematical relationships that describe the motion of objects under 
+                    uniform acceleration. These three equations connect velocity, acceleration, time, and displacement, 
+                    allowing us to solve complex motion problems.
+                </div>
+            </div>
+
+            <div class="equations-grid">
+                <div class="equation-box">
+                    <div class="equation-box-title">First Equation</div>
+                    <div class="equation-box-formula">v = u + at</div>
+                    <div style="color: #e2e8f0; margin-top: 10px;">Velocity-Time Relation</div>
+                </div>
+                <div class="equation-box">
+                    <div class="equation-box-title">Second Equation</div>
+                    <div class="equation-box-formula">s = ut + ½at²</div>
+                    <div style="color: #e2e8f0; margin-top: 10px;">Position-Time Relation</div>
+                </div>
+                <div class="equation-box">
+                    <div class="equation-box-title">Third Equation</div>
+                    <div class="equation-box-formula">v² = u² + 2as</div>
+                    <div style="color: #e2e8f0; margin-top: 10px;">Position-Velocity Relation</div>
+                </div>
+            </div>
+
+            <div class="concept-box">
+                <div class="concept-box-title">When to Use Each Equation</div>
+                <div class="concept-text">
+                    • <strong>First Equation (v = u + at):</strong> Use when you know or need to find time<br>
+                    • <strong>Second Equation (s = ut + ½at²):</strong> Use when final velocity is unknown<br>
+                    • <strong>Third Equation (v² = u² + 2as):</strong> Use when time is unknown<br><br>
+                    
+                    <strong>Key Variables:</strong><br>
+                    • u = initial velocity (m/s)<br>
+                    • v = final velocity (m/s)<br>
+                    • a = acceleration (m/s²)<br>
+                    • t = time (s)<br>
+                    • s = displacement (m)
+                </div>
+            </div>
+
+            <div class="concept-box">
+                <div class="concept-box-title">Important Points</div>
+                <div class="concept-text">
+                    • These equations apply only to uniformly accelerated motion<br>
+                    • Acceleration can be positive (speeding up) or negative (slowing down)<br>
+                    • Always convert units to SI units before calculation<br>
+                    • Choose the equation that contains the unknown quantity you need to find<br>
+                    • The equations can be derived graphically from velocity-time graphs<br>
+                    • Sign conventions: Choose positive direction and stick to it throughout
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice Teacher System
+        class PhysicsTeacher {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.9, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+        }
+
+        // Global state management
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let isPlaying = false;
+        let animationTimeline = null;
+        let currentDemoAborted = false;
+        let activeAnimations = [];
+        let currentRunId = 0;
+        let charts = {};
+        let currentTaskId = null;
+
+        // Chart.js default configuration
+        Chart.defaults.color = '#e2e8f0';
+        Chart.defaults.backgroundColor = 'rgba(124, 58, 237, 0.2)';
+        Chart.defaults.borderColor = '#7c3aed';
+
+        // State management functions
+        function createNewTimeline() {
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            gsap.killTweensOf("*");
+            
+            const newTimeline = gsap.timeline();
+            animationTimeline = newTimeline;
+            return newTimeline;
+        }
+
+        function trackAnimation(animation) {
+            if (animation) {
+                activeAnimations.push(animation);
+            }
+            return animation;
+        }
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null; // Reset task ID
+            
+            // Stop teacher
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            // Clear auto-progression timer
+            if (exampleAutoProgressTimer) {
+                clearTimeout(exampleAutoProgressTimer);
+                exampleAutoProgressTimer = null;
+            }
+            
+            // Kill all animations
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            
+            gsap.killTweensOf("*");
+            
+            // Hide all demos
+            document.querySelectorAll('.equations-intro-demo, .three-equations-demo, .calculator-demo, .graphical-demo, .examples-demo, .questions-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            // Hide all example and question cards
+            document.querySelectorAll('.example-card, .question-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Reset carousel indices
+            currentExampleIndex = 0;
+            currentQuestionIndex = 0;
+            
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false; // Different task is running
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTeacher = new PhysicsTeacher();
+            return currentTeacher;
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            const teacher = createNewTeacher();
+            teacher.speak("Welcome to Equations of Motion! Let's master the three fundamental equations that describe uniformly accelerated motion and learn to solve complex motion problems!");
+            
+            // Initialize equation selector
+            updateEquationDisplay();
+            
+            // Initialize carousels
+            initCarousels();
+        });
+
+        // Complete Lesson
+        async function playCompleteLesson() {
+            stopCurrentDemo();
+            isPlaying = true;
+            const taskId = 'complete-lesson-' + Date.now();
+            currentTaskId = taskId;
+            setActiveButton(0);
+            
+            const teacher = createNewTeacher();
+            
+            await resetAll();
+            await wait(100);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📚 Complete Equations of Motion Lesson");
+            
+            await teacher.speak("Let's begin our complete lesson on Equations of Motion. We'll learn the three fundamental equations and how to apply them to solve motion problems.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Start with equations introduction
+            await showEquationsIntroInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Show three equations in detail
+            await teacher.speak("Now let's examine each equation in detail and understand when to use them.");
+            if (!shouldContinue(taskId)) return;
+            await showThreeEquationsInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Show graphical derivation
+            await teacher.speak("Let's see how these equations can be derived graphically from velocity-time graphs.");
+            if (!shouldContinue(taskId)) return;
+            await showGraphicalDerivationInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Show examples
+            await teacher.speak("Now let's solve the NCERT examples to see how these equations are applied in practice.");
+            if (!shouldContinue(taskId)) return;
+            await showExamplesInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Show calculator
+            await teacher.speak("Finally, try the interactive calculator to practice solving motion problems with different equations.");
+            if (!shouldContinue(taskId)) return;
+            await showCalculatorInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Excellent! You now understand the three equations of motion and can solve complex motion problems using these powerful mathematical tools!");
+            
+            isPlaying = false;
+            currentTaskId = null;
+        }
+
+        // Equations Introduction Demo
+        async function showEquationsIntro() {
+            stopCurrentDemo();
+            isPlaying = true;
+            const taskId = 'intro-' + Date.now();
+            currentTaskId = taskId;
+            setActiveButton(1);
+            
+            const teacher = createNewTeacher();
+            await showEquationsIntroInternal(teacher, taskId);
+            
+            isPlaying = false;
+            currentTaskId = null;
+        }
+
+        async function showEquationsIntroInternal(teacher, taskId = null) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📖 Introduction to Equations of Motion");
+            
+            document.getElementById('equations-intro-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("When an object moves with uniform acceleration, we can relate its velocity, acceleration, and distance using three fundamental equations.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            
+            await teacher.speak("The first equation relates velocity and time. The second equation relates position and time. The third equation relates position and velocity, eliminating time.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            
+            await teacher.speak("These equations are the foundation of kinematics and can be derived graphically from velocity-time graphs. Let's explore each one in detail!");
+        }
+
+        // Three Equations Demo
+        async function showThreeEquations() {
+            stopCurrentDemo();
+            isPlaying = true;
+            const taskId = 'three-equations-' + Date.now();
+            currentTaskId = taskId;
+            setActiveButton(2);
+            
+            const teacher = createNewTeacher();
+            await showThreeEquationsInternal(teacher, taskId);
+            
+            isPlaying = false;
+            currentTaskId = null;
+        }
+
+        async function showThreeEquationsInternal(teacher, taskId = null) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🔢 The Three Equations of Motion");
+            
+            document.getElementById('three-equations-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Let's examine each equation in detail and understand when to use them.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("The first equation, v equals u plus a t, is used when you know or need to find time. It comes directly from the definition of acceleration.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            
+            await teacher.speak("The second equation, s equals u t plus half a t squared, is used when the final velocity is unknown. It relates displacement to time.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            
+            await teacher.speak("The third equation, v squared equals u squared plus 2 a s, is used when time is unknown. It directly relates velocity to displacement.");
+        }
+
+        // Interactive Calculator Demo
+        async function showCalculator() {
+            stopCurrentDemo();
+            isPlaying = true;
+            const taskId = 'calculator-' + Date.now();
+            currentTaskId = taskId;
+            setActiveButton(3);
+            
+            const teacher = createNewTeacher();
+            await showCalculatorInternal(teacher, taskId);
+            
+            isPlaying = false;
+            currentTaskId = null;
+        }
+
+        async function showCalculatorInternal(teacher, taskId = null) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🧮 Interactive Motion Calculator");
+            
+            document.getElementById('calculator-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Use this interactive calculator to practice solving motion problems. Choose an equation, enter the known values, and see the step-by-step solution!");
+            if (!shouldContinue(taskId)) return;
+        }
+
+        // Update equation display based on selection
+        function updateEquationDisplay() {
+            const selector = document.getElementById('equation-selector');
+            const equation = document.getElementById('current-equation');
+            const explanation = document.getElementById('equation-explanation');
+            const finalVelocityGroup = document.getElementById('final-velocity-group');
+            const timeGroup = document.getElementById('time-group');
+            const displacementGroup = document.getElementById('displacement-group');
+            
+            // Reset all groups
+            finalVelocityGroup.style.display = 'block';
+            timeGroup.style.display = 'block';
+            displacementGroup.style.display = 'none';
+            
+            switch(selector.value) {
+                case '1':
+                    equation.textContent = 'v = u + at';
+                    explanation.textContent = 'This equation relates final velocity to initial velocity, acceleration, and time. It\'s derived from the definition of acceleration.';
+                    displacementGroup.style.display = 'none';
+                    break;
+                case '2':
+                    equation.textContent = 's = ut + ½at²';
+                    explanation.textContent = 'This equation relates displacement to initial velocity, acceleration, and time. It\'s used when final velocity is unknown.';
+                    finalVelocityGroup.style.display = 'none';
+                    displacementGroup.style.display = 'block';
+                    break;
+                case '3':
+                    equation.textContent = 'v² = u² + 2as';
+                    explanation.textContent = 'This equation relates velocities to acceleration and displacement. It\'s used when time is unknown.';
+                    timeGroup.style.display = 'none';
+                    displacementGroup.style.display = 'block';
+                    break;
+            }
+        }
+
+        // Calculate motion using selected equation
+        function calculateMotion() {
+            const equationNum = document.getElementById('equation-selector').value;
+            const u = parseFloat(document.getElementById('initial-velocity').value) || 0;
+            const v = parseFloat(document.getElementById('final-velocity').value);
+            const a = parseFloat(document.getElementById('acceleration').value);
+            const t = parseFloat(document.getElementById('time').value);
+            const s = parseFloat(document.getElementById('displacement').value);
+            
+            const resultDiv = document.getElementById('calculation-result');
+            const stepsDiv = document.getElementById('calculation-steps');
+            
+            let result, steps;
+            
+            switch(equationNum) {
+                case '1': // v = u + at
+                    if (isNaN(a) || isNaN(t)) {
+                        resultDiv.innerHTML = '⚠️ Please enter acceleration and time';
+                        return;
+                    }
+                    result = u + a * t;
+                    steps = `
+                        <div class="step-by-step">
+                            Given: u = ${u} m/s, a = ${a} m/s², t = ${t} s<br><br>
+                            Using: v = u + at<br>
+                            v = ${u} + ${a} × ${t}<br>
+                            v = ${u} + ${a * t}<br>
+                            v = ${result.toFixed(2)} m/s
+                        </div>
+                    `;
+                    resultDiv.innerHTML = `<strong>Final Velocity:</strong> ${result.toFixed(2)} m/s`;
+                    break;
+                    
+                case '2': // s = ut + ½at²
+                    if (isNaN(a) || isNaN(t)) {
+                        resultDiv.innerHTML = '⚠️ Please enter acceleration and time';
+                        return;
+                    }
+                    result = u * t + 0.5 * a * t * t;
+                    steps = `
+                        <div class="step-by-step">
+                            Given: u = ${u} m/s, a = ${a} m/s², t = ${t} s<br><br>
+                            Using: s = ut + ½at²<br>
+                            s = ${u} × ${t} + ½ × ${a} × ${t}²<br>
+                            s = ${u * t} + ½ × ${a} × ${t * t}<br>
+                            s = ${u * t} + ${0.5 * a * t * t}<br>
+                            s = ${result.toFixed(2)} m
+                        </div>
+                    `;
+                    resultDiv.innerHTML = `<strong>Displacement:</strong> ${result.toFixed(2)} m`;
+                    break;
+                    
+                case '3': // v² = u² + 2as
+                    if (isNaN(a) || isNaN(s)) {
+                        resultDiv.innerHTML = '⚠️ Please enter acceleration and displacement';
+                        return;
+                    }
+                    result = Math.sqrt(u * u + 2 * a * s);
+                    steps = `
+                        <div class="step-by-step">
+                            Given: u = ${u} m/s, a = ${a} m/s², s = ${s} m<br><br>
+                            Using: v² = u² + 2as<br>
+                            v² = ${u}² + 2 × ${a} × ${s}<br>
+                            v² = ${u * u} + ${2 * a * s}<br>
+                            v² = ${u * u + 2 * a * s}<br>
+                            v = √${u * u + 2 * a * s} = ${result.toFixed(2)} m/s
+                        </div>
+                    `;
+                    resultDiv.innerHTML = `<strong>Final Velocity:</strong> ${result.toFixed(2)} m/s`;
+                    break;
+            }
+            
+            stepsDiv.innerHTML = steps;
+            
+            if (currentTeacher) {
+                currentTeacher.speak(`The calculated result is ${result.toFixed(2)} ${equationNum === '2' ? 'meters' : 'meters per second'}.`);
+            }
+        }
+
+        // Graphical Derivation Demo
+        async function showGraphicalDerivation() {
+            stopCurrentDemo();
+            isPlaying = true;
+            const taskId = 'graphical-' + Date.now();
+            currentTaskId = taskId;
+            setActiveButton(4);
+            
+            const teacher = createNewTeacher();
+            await showGraphicalDerivationInternal(teacher, taskId);
+            
+            isPlaying = false;
+            currentTaskId = null;
+        }
+
+        async function showGraphicalDerivationInternal(teacher, taskId = null) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📈 Graphical Derivation");
+            
+            document.getElementById('graphical-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            // Create velocity-time graph
+            createVelocityTimeGraph();
+            
+            await teacher.speak("All three equations of motion can be derived graphically from a velocity-time graph for uniformly accelerated motion.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            
+            await teacher.speak("The slope of the velocity-time graph gives us acceleration, leading to the first equation. The area under the graph gives us displacement, leading to the second and third equations.");
+        }
+
+        function createVelocityTimeGraph() {
+            const ctx = document.getElementById('velocity-time-chart').getContext('2d');
+            charts.velocityTime = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [0, 1, 2, 3, 4, 5],
+                    datasets: [{
+                        label: 'Velocity',
+                        data: [5, 8, 11, 14, 17, 20],
+                        borderColor: '#7c3aed',
+                        backgroundColor: 'rgba(124, 58, 237, 0.3)',
+                        tension: 0,
+                        fill: true,
+                        pointRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                afterBody: function(context) {
+                                    return 'Slope = acceleration\nArea = displacement';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Time (s)' } },
+                        y: { title: { display: true, text: 'Velocity (m/s)' } }
+                    }
+                }
+            });
+        }
+
+        // Examples Demo
+        async function showExamples() {
+            stopCurrentDemo();
+            isPlaying = true;
+            const taskId = 'examples-' + Date.now();
+            currentTaskId = taskId;
+            setActiveButton(5);
+            
+            const teacher = createNewTeacher();
+            await showExamplesInternal(teacher, taskId);
+            
+            isPlaying = false;
+            currentTaskId = null;
+        }
+
+        async function showExamplesInternal(teacher, taskId = null) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📝 NCERT Examples");
+            
+            document.getElementById('examples-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            // Initialize carousel and show first example
+            currentExampleIndex = 0;
+            initCarousels();
+            
+            await teacher.speak("Let's solve the NCERT examples step by step. Watch as each solution unfolds, showing how to choose and apply the correct equation.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Narrate the first example and animate its steps
+            narrateCurrentExample();
+            if (!shouldContinue(taskId)) return;
+            
+            await animateExampleSteps('ex1');
+            if (!shouldContinue(taskId)) return;
+            
+            // Set auto-progression timer only for complete lesson
+            if (taskId && taskId.startsWith('complete-lesson') && currentExampleIndex < totalExamples - 1) {
+                exampleAutoProgressTimer = setTimeout(() => {
+                    if (shouldContinue(taskId)) {
+                        showNextExample();
+                    }
+                }, 15000); // Auto-progress after 15 seconds
+            }
+        }
+
+        async function animateExampleSteps(exampleId) {
+            // We no longer need to animate steps as they're all visible by default
+            return;
+        }
+
+        // Questions Demo
+        async function showQuestions() {
+            stopCurrentDemo();
+            isPlaying = true;
+            const taskId = 'questions-' + Date.now();
+            currentTaskId = taskId;
+            setActiveButton(6);
+            
+            const teacher = createNewTeacher();
+            await showQuestionsInternal(teacher, taskId);
+            
+            isPlaying = false;
+            currentTaskId = null;
+        }
+
+        async function showQuestionsInternal(teacher, taskId = null) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("❓ Practice Questions");
+            
+            document.getElementById('questions-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            // Initialize carousel and show first question
+            currentQuestionIndex = 0;
+            initCarousels();
+            
+            await teacher.speak("Let's test your understanding with practice questions. Click 'Show Answer' to see detailed step-by-step solutions.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Narrate the first question
+            await wait(1000);
+            narrateCurrentQuestion();
+        }
+
+        // Carousel Navigation System
+        let currentExampleIndex = 0;
+        let currentQuestionIndex = 0;
+        const totalExamples = 3;
+        const totalQuestions = 5;
+        let exampleAutoProgressTimer = null;
+        
+        function initCarousels() {
+            // Initialize examples carousel
+            document.getElementById('example-1').classList.add('active');
+            updateExampleNavButtons();
+            
+            // Initialize questions carousel
+            document.getElementById('question-1').classList.add('active');
+            updateQuestionNavButtons();
+            
+            // Add event listeners for navigation buttons
+            document.getElementById('examples-prev').addEventListener('click', showPreviousExample);
+            document.getElementById('examples-next').addEventListener('click', showNextExample);
+            document.getElementById('questions-prev').addEventListener('click', showPreviousQuestion);
+            document.getElementById('questions-next').addEventListener('click', showNextQuestion);
+        }
+        
+        // Examples carousel functions
+        function showPreviousExample() {
+            if (currentExampleIndex > 0) {
+                navigateToExample(currentExampleIndex - 1);
+            }
+        }
+        
+        function showNextExample() {
+            if (currentExampleIndex < totalExamples - 1) {
+                navigateToExample(currentExampleIndex + 1);
+            }
+        }
+        
+        function navigateToExample(index) {
+            // Clear auto-progress timer if exists
+            if (exampleAutoProgressTimer) {
+                clearTimeout(exampleAutoProgressTimer);
+                exampleAutoProgressTimer = null;
+            }
+            
+            // Hide current example
+            document.getElementById(`example-${currentExampleIndex + 1}`).classList.remove('active');
+            
+            // Show new example
+            currentExampleIndex = index;
+            const newExample = document.getElementById(`example-${currentExampleIndex + 1}`);
+            newExample.classList.add('active');
+            
+            // Update navigation buttons
+            updateExampleNavButtons();
+            
+            // Narrate the current example
+            narrateCurrentExample();
+            
+            // Set auto-progress timer only for complete lesson and not the last example
+            if (currentTaskId && currentTaskId.startsWith('complete-lesson') && currentExampleIndex < totalExamples - 1) {
+                exampleAutoProgressTimer = setTimeout(() => {
+                    if (shouldContinue(currentTaskId)) {
+                        showNextExample();
+                    }
+                }, 20000); // Auto-progress after 20 seconds
+            }
+        }
+        
+        function updateExampleNavButtons() {
+            document.getElementById('examples-prev').disabled = currentExampleIndex === 0;
+            document.getElementById('examples-next').disabled = currentExampleIndex === totalExamples - 1;
+        }
+        
+        function narrateCurrentExample() {
+            if (!currentTeacher) return;
+            
+            const exampleNarrations = {
+                0: "Example 7.5: A train starting from rest attains 72 kilometers per hour in 5 minutes. We need to find acceleration and distance.",
+                1: "Example 7.6: A car accelerates uniformly from 18 to 36 kilometers per hour in 5 seconds.",
+                2: "Braking example: Understanding negative acceleration when brakes are applied to a car."
+            };
+            
+            currentTeacher.speak(exampleNarrations[currentExampleIndex]);
+        }
+        
+        // Questions carousel functions
+        function showPreviousQuestion() {
+            if (currentQuestionIndex > 0) {
+                navigateToQuestion(currentQuestionIndex - 1);
+            }
+        }
+        
+        function showNextQuestion() {
+            if (currentQuestionIndex < totalQuestions - 1) {
+                navigateToQuestion(currentQuestionIndex + 1);
+            }
+        }
+        
+        function navigateToQuestion(index) {
+            // Hide current question
+            document.getElementById(`question-${currentQuestionIndex + 1}`).classList.remove('active');
+            
+            // Show new question
+            currentQuestionIndex = index;
+            document.getElementById(`question-${currentQuestionIndex + 1}`).classList.add('active');
+            
+            // Update navigation buttons
+            updateQuestionNavButtons();
+            
+            // Narrate the current question
+            narrateCurrentQuestion();
+        }
+        
+        function updateQuestionNavButtons() {
+            document.getElementById('questions-prev').disabled = currentQuestionIndex === 0;
+            document.getElementById('questions-next').disabled = currentQuestionIndex === totalQuestions - 1;
+        }
+        
+        function narrateCurrentQuestion() {
+            if (!currentTeacher) return;
+            
+            const questionNarrations = {
+                0: "Question 1: A bus starting from rest moves with uniform acceleration of 0.1 meters per second squared for 2 minutes.",
+                1: "Question 2: A train is travelling at 90 kilometers per hour. Brakes are applied to produce uniform deceleration.",
+                2: "Question 3: A trolley going down an inclined plane has acceleration of 2 centimeters per second squared.",
+                3: "Question 4: A racing car has uniform acceleration of 4 meters per second squared.",
+                4: "Question 5: A stone is thrown vertically upward with velocity 5 meters per second."
+            };
+            
+            currentTeacher.speak(questionNarrations[currentQuestionIndex]);
+        }
+        
+        // Show answer function
+        function showAnswer(questionNumber) {
+            const answerSection = document.getElementById(`answer-${questionNumber}`);
+            answerSection.classList.add('show');
+            
+            if (currentTeacher) {
+                const answers = {
+                    1: "For the bus problem: speed acquired is 12 meters per second, distance travelled is 720 meters.",
+                    2: "The train will travel 625 meters before stopping.",
+                    3: "The trolley's velocity after 3 seconds will be 6 centimeters per second.",
+                    4: "The racing car will cover 200 meters in 10 seconds.",
+                    5: "The stone will reach a height of 1.25 meters in 0.5 seconds."
+                };
+                currentTeacher.speak(answers[questionNumber]);
+            }
+        }
+
+        // Helper Functions
+        async function resetAll() {
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            gsap.killTweensOf("*");
+            
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            
+            // Clear auto-progression timer
+            if (exampleAutoProgressTimer) {
+                clearTimeout(exampleAutoProgressTimer);
+                exampleAutoProgressTimer = null;
+            }
+            
+            // Hide all demos
+            document.querySelectorAll('.equations-intro-demo, .three-equations-demo, .calculator-demo, .graphical-demo, .examples-demo, .questions-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            // Hide all example and question cards
+            document.querySelectorAll('.example-card, .question-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            updateTitle("Explore Equations of Motion");
+            
+            // Reset calculator
+            document.getElementById('equation-selector').value = '1';
+            document.getElementById('initial-velocity').value = '0';
+            document.getElementById('final-velocity').value = '';
+            document.getElementById('acceleration').value = '1';
+            document.getElementById('time').value = '5';
+            document.getElementById('displacement').value = '';
+            document.getElementById('calculation-result').innerHTML = 'Select equation and enter values to calculate';
+            document.getElementById('calculation-steps').innerHTML = '<div class="step-by-step">Enter values in the calculator to see step-by-step solution</div>';
+            
+            updateEquationDisplay();
+            
+            // Reset is no longer needed for solution steps as they're always visible
+            
+            // Reset answer sections
+            document.querySelectorAll('.answer-section').forEach(section => {
+                section.classList.remove('show');
+            });
+            
+            // Reset carousel indices
+            currentExampleIndex = 0;
+            currentQuestionIndex = 0;
+            
+            // Destroy charts
+            Object.values(charts).forEach(chart => {
+                if (chart && chart.destroy) {
+                    chart.destroy();
+                }
+            });
+            charts = {};
+            
+            await wait(500);
+        }
+
+        function updateTitle(title) {
+            document.getElementById('demo-title').textContent = title;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Reset Button Handler
+        async function resetAllClick() {
+            stopCurrentDemo();
+            isPlaying = false;
+            await resetAll();
+        }
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+            
+            if (!globalAudioEnabled && currentTeacher) {
+                currentTeacher.stop();
+            }
+        });
+
+        // Event listeners
+        document.getElementById('equation-selector').addEventListener('change', updateEquationDisplay);
+        
+        // Enter key support for calculator
+        ['initial-velocity', 'final-velocity', 'acceleration', 'time', 'displacement'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        calculateMotion();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

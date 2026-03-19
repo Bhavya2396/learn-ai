@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Introduction to Polynomials - Interactive Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --equation-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            --solution-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--equation-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+            max-height: 600px;
+            transition: all 0.3s ease;
+        }
+
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+            overflow: auto;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1) translateY(0); }
+            to { opacity: 0; transform: scale(0.95) translateY(-20px); }
+        }
+
+        @keyframes slideInFromRight {
+            from { opacity: 0; transform: translateX(30px) scale(0.98); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--equation-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--equation-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .math-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .math-description {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 20px auto;
+            line-height: 1.8;
+            padding: 15px;
+        }
+
+        .formula-box {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px auto;
+            backdrop-filter: blur(10px);
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .formula {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--text-accent);
+            font-family: 'Courier New', monospace;
+        }
+
+        .value-display {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-accent);
+            text-align: center;
+            margin: 20px 0;
+            text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+        }
+
+        .content-card {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 15px 0;
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        .content-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+        }
+
+        .example-box {
+            background: linear-gradient(135deg, rgba(67, 233, 123, 0.1), rgba(56, 249, 215, 0.1));
+            border: 2px solid rgba(67, 233, 123, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .invalid-box {
+            background: linear-gradient(135deg, rgba(250, 112, 154, 0.1), rgba(254, 225, 64, 0.1));
+            border: 2px solid rgba(250, 112, 154, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .term-item {
+            display: inline-block;
+            background: var(--accent-gradient);
+            color: white;
+            padding: 10px 20px;
+            margin: 8px;
+            border-radius: 25px;
+            font-weight: 600;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .coefficient-label {
+            display: inline-block;
+            background: var(--warning-gradient);
+            color: white;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .quiz-option {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        .quiz-option.correct {
+            background: var(--success-gradient);
+            border-color: transparent;
+        }
+
+        .quiz-option.incorrect {
+            background: var(--secondary-gradient);
+            border-color: transparent;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--glass-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-gradient);
+            transition: width 0.5s ease;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .step-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            transition: var(--transition);
+        }
+
+        .step-dot.active {
+            background: var(--accent-gradient);
+            transform: scale(1.3);
+        }
+
+        .interactive-input {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 12px 20px;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            text-align: center;
+            width: 200px;
+            margin: 10px;
+        }
+
+        .interactive-input:focus {
+            outline: none;
+            border-color: var(--text-accent);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+        }
+
+        .action-btn {
+            background: var(--success-gradient);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin: 10px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(67, 233, 123, 0.4);
+        }
+
+        .highlight-text {
+            color: var(--text-accent);
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+        }
+
+        .variable-tag {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            display: inline-block;
+            margin: 5px;
+            font-weight: 600;
+        }
+
+        .constant-tag {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            display: inline-block;
+            margin: 5px;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 350px;
+            margin: 20px auto;
+        }
+
+        .scroll-content {
+            width: 100%;
+            padding: 10px;
+            overflow: visible;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(251, 191, 36, 0.8); }
+        }
+
+        .glow-effect {
+            animation: glow 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="header">
+        <h1>📐 Introduction to Polynomials 📐</h1>
+        <p>Interactive Learning Experience | Mathematics Made Visual</p>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage">
+            <div id="stage-content" class="stage-content active"></div>
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">📚 Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">🎯 Variables & Constants</button>
+            <button class="demo-btn" data-demo="algebraic">🔢 Algebraic Expressions</button>
+            <button class="demo-btn" data-demo="definition">📖 Polynomial Definition</button>
+            <button class="demo-btn" data-demo="valid-invalid">✅❌ Valid vs Invalid</button>
+            <button class="demo-btn" data-demo="standard-form">📊 Standard Form</button>
+            <button class="demo-btn" data-demo="example">💡 Example Analysis</button>
+            <button class="demo-btn" data-demo="visualization">📈 Visualization</button>
+            <button class="demo-btn" data-demo="interactive">🎮 Interactive Demo</button>
+            <button class="demo-btn" data-demo="quiz">🏆 Quiz Time</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+    </div>
+
+    <script>
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let currentDemo = null;
+        let quizScore = 0;
+        let currentQuizQuestion = 0;
+
+        // Text-to-Speech Teacher
+        class Teacher {
+            constructor() {
+                this.synthesis = window.speechSynthesis;
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+            }
+
+            speak(text) {
+                if (!this.isEnabled || !this.synthesis) return;
+
+                this.stop();
+
+                this.currentUtterance = new SpeechSynthesisUtterance(text);
+                this.currentUtterance.rate = 0.9;
+                this.currentUtterance.pitch = 1;
+                this.currentUtterance.volume = 1;
+
+                const voices = this.synthesis.getVoices();
+                const preferredVoice = voices.find(voice => 
+                    voice.lang.startsWith('en') && voice.name.includes('Female')
+                ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+
+                if (preferredVoice) {
+                    this.currentUtterance.voice = preferredVoice;
+                }
+
+                this.synthesis.speak(this.currentUtterance);
+            }
+
+            stop() {
+                if (this.synthesis) {
+                    this.synthesis.cancel();
+                }
+            }
+        }
+
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            currentTeacher = new Teacher();
+            return currentTeacher;
+        }
+
+        function transitionToNextStep(content) {
+            const stageContent = document.getElementById('stage-content');
+            stageContent.style.animation = 'fadeOut 0.3s ease-out';
+            
+            setTimeout(() => {
+                stageContent.innerHTML = content;
+                stageContent.style.animation = 'fadeIn 0.5s ease-out';
+            }, 300);
+        }
+
+        function stopCurrentDemo() {
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+        }
+
+        // Complete Lesson
+        function showCompleteLesson() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+            let step = 0;
+
+            const steps = [
+                {
+                    content: `
+                        <h2 class="math-title">Welcome to Polynomials! 🎉</h2>
+                        <div class="value-display">Let's Begin Our Journey</div>
+                        <div class="math-description">
+                            Polynomials are one of the most important concepts in algebra. 
+                            Let's explore them step by step!
+                        </div>
+                        <div class="formula-box">
+                            <p class="formula">p(x) = aₙxⁿ + aₙ₋₁xⁿ⁻¹ + ... + a₁x + a₀</p>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Start Learning →</button>
+                    `,
+                    speech: "Welcome to the fascinating world of polynomials! Get ready to discover the building blocks of algebra."
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 12px;">Variables vs Constants 🔤</h2>
+                        <div style="width: 100%; padding: 0 20px;">
+                            <div class="content-card" style="padding: 15px; margin: 10px 0;">
+                                <h3 style="color: #4facfe; margin-bottom: 10px; font-size: 1.1rem;">Variables</h3>
+                                <p style="font-size: 1rem; line-height: 1.6;">
+                                    <span class="variable-tag">x</span>
+                                    <span class="variable-tag">y</span>
+                                    <span class="variable-tag">z</span>
+                                </p>
+                                <p style="color: #e2e8f0; margin-top: 10px; font-size: 0.95rem;">
+                                    Variables can take <span class="highlight-text">any real value</span>. 
+                                    They represent unknown or changing quantities.
+                                </p>
+                            </div>
+                            <div class="content-card" style="padding: 15px; margin: 10px 0;">
+                                <h3 style="color: #f5576c; margin-bottom: 10px; font-size: 1.1rem;">Constants</h3>
+                                <p style="font-size: 1rem; line-height: 1.6;">
+                                    <span class="constant-tag">a</span>
+                                    <span class="constant-tag">b</span>
+                                    <span class="constant-tag">c</span>
+                                </p>
+                                <p style="color: #e2e8f0; margin-top: 10px; font-size: 0.95rem;">
+                                    Constants remain <span class="highlight-text">fixed</span> in a given problem. 
+                                    They represent known values.
+                                </p>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Continue →</button>
+                    `,
+                    speech: "First, let's understand the difference between variables and constants. Variables like x, y, and z can take any real value, while constants like a, b, and c remain fixed in a problem."
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 12px;">Algebraic Expressions 🔢</h2>
+                        <div style="width: 100%; padding: 0 20px;">
+                            <div class="math-description" style="font-size: 0.95rem; margin-bottom: 12px;">
+                                Algebraic expressions are combinations of variables and constants
+                            </div>
+                            <div class="formula-box" style="padding: 15px;">
+                                <p class="formula" style="font-size: 1.3rem;">
+                                    (constant) × (variable)
+                                </p>
+                            </div>
+                            <div class="content-card" style="padding: 15px; margin: 12px 0;">
+                                <h3 style="color: #43e97b; margin-bottom: 12px; font-size: 1.1rem;">Examples:</h3>
+                                <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
+                                    <div class="term-item" style="font-size: 1.1rem; padding: 8px 14px;">2x</div>
+                                    <div class="term-item" style="font-size: 1.1rem; padding: 8px 14px;">3x</div>
+                                    <div class="term-item" style="font-size: 1.1rem; padding: 8px 14px;">-x</div>
+                                    <div class="term-item" style="font-size: 1.1rem; padding: 8px 14px;">-½x</div>
+                                </div>
+                                <p style="color: #e2e8f0; margin-top: 12px; font-size: 0.95rem;">
+                                    Each expression is formed by multiplying a constant with a variable
+                                </p>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Next →</button>
+                    `,
+                    speech: "Algebraic expressions are formed by multiplying constants with variables. For example, 2x, 3x, negative x, and negative one-half x are all algebraic expressions."
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 12px;">What is a Polynomial? 📖</h2>
+                        <div style="width: 100%; padding: 0 20px;">
+                            <div class="content-card glow-effect" style="padding: 15px; margin: 10px 0;">
+                                <h3 style="color: #fbbf24; font-size: 1.15rem; margin-bottom: 10px;">Definition</h3>
+                                <p style="font-size: 1.05rem; line-height: 1.6; color: #e2e8f0;">
+                                    A polynomial is an algebraic expression where variables have 
+                                    <span class="highlight-text">only whole number exponents</span>
+                                </p>
+                            </div>
+                            <div class="example-box" style="padding: 12px; margin: 10px 0;">
+                                <h4 style="color: #43e97b; margin-bottom: 8px; font-size: 1rem;">✅ Valid:</h4>
+                                <p class="formula" style="font-size: 1.2rem;">x³ - x² + 4x + 7</p>
+                                <p style="color: #e2e8f0; margin-top: 8px; font-size: 0.9rem;">
+                                    All exponents (3, 2, 1, 0) are whole numbers
+                                </p>
+                            </div>
+                            <div class="invalid-box" style="padding: 12px; margin: 10px 0;">
+                                <h4 style="color: #fa709a; margin-bottom: 8px; font-size: 1rem;">❌ Invalid:</h4>
+                                <p class="formula" style="font-size: 1.1rem;">x + 1/x</p>
+                                <p style="color: #e2e8f0; margin-top: 5px; font-size: 0.85rem;">
+                                    (contains x⁻¹, negative exponent)
+                                </p>
+                                <p class="formula" style="font-size: 1.1rem; margin-top: 10px;">√x + 3</p>
+                                <p style="color: #e2e8f0; margin-top: 5px; font-size: 0.85rem;">
+                                    (contains x^(1/2), fractional exponent)
+                                </p>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Continue →</button>
+                    `,
+                    speech: "A polynomial is an algebraic expression where variables have only whole number exponents. x cubed minus x squared plus 4x plus 7 is valid because all exponents are whole numbers. However, x plus 1 over x is invalid because it has a negative exponent, and square root of x plus 3 is invalid because it has a fractional exponent."
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 12px;">Standard Form 📊</h2>
+                        <div style="width: 100%; padding: 0 20px;">
+                            <div class="formula-box" style="margin-bottom: 15px; padding: 15px;">
+                                <p class="formula" style="font-size: 1.3rem;">
+                                    p(x) = aₙxⁿ + aₙ₋₁xⁿ⁻¹ + ... + a₁x + a₀
+                                </p>
+                            </div>
+                            <div class="content-card" style="padding: 15px;">
+                                <h3 style="color: #4facfe; margin-bottom: 12px; font-size: 1.1rem;">Key Components:</h3>
+                                <div style="text-align: left; max-width: 550px; margin: 0 auto; font-size: 0.95rem;">
+                                    <p style="margin: 10px 0; color: #e2e8f0;">
+                                        <span class="highlight-text">• Coefficients:</span> Numbers multiplying each power
+                                    </p>
+                                    <p style="margin: 10px 0; color: #e2e8f0;">
+                                        <span class="highlight-text">• Terms:</span> Individual parts like aₙxⁿ, a₁x, a₀
+                                    </p>
+                                    <p style="margin: 10px 0; color: #e2e8f0;">
+                                        <span class="highlight-text">• Degree:</span> Highest power of the variable
+                                    </p>
+                                    <p style="margin: 10px 0; color: #e2e8f0;">
+                                        <span class="highlight-text">• Constant term:</span> a₀ (term without variable)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Next →</button>
+                    `,
+                    speech: "The standard form of a polynomial arranges terms in descending order of exponents. It has coefficients which are numbers multiplying each power, terms which are individual parts, and a degree which is the highest power of the variable."
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 15px;">Valid vs Invalid Polynomials ✓✗</h2>
+                        <div style="width: 100%; padding: 0 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <!-- Valid Polynomials - LEFT -->
+                            <div class="content-card" style="padding: 15px; margin: 0;">
+                                <h3 style="color: #43e97b; font-size: 1.05rem; margin-bottom: 12px; text-align: center;">✅ Valid Polynomials</h3>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div class="example-box" style="padding: 10px;">
+                                        <p class="formula" style="font-size: 1.1rem; color: #43e97b;">x² + 3x + 2</p>
+                                        <p style="font-size: 0.8rem; color: #e2e8f0; margin-top: 5px;">Powers: 2, 1, 0 (all whole numbers)</p>
+                                    </div>
+                                    <div class="example-box" style="padding: 10px;">
+                                        <p class="formula" style="font-size: 1.1rem; color: #43e97b;">5x⁴ - 2x³ + x</p>
+                                        <p style="font-size: 0.8rem; color: #e2e8f0; margin-top: 5px;">Powers: 4, 3, 1 (all whole numbers)</p>
+                                    </div>
+                                    <div class="example-box" style="padding: 10px;">
+                                        <p class="formula" style="font-size: 1.1rem; color: #43e97b;">7</p>
+                                        <p style="font-size: 0.8rem; color: #e2e8f0; margin-top: 5px;">Constant (power 0)</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Invalid Polynomials - RIGHT -->
+                            <div class="content-card" style="padding: 15px; margin: 0;">
+                                <h3 style="color: #fa709a; font-size: 1.05rem; margin-bottom: 12px; text-align: center;">❌ Invalid Polynomials</h3>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div class="invalid-box" style="padding: 10px;">
+                                        <p class="formula" style="font-size: 1.1rem; color: #fa709a;">x⁻² + 3x</p>
+                                        <p style="font-size: 0.8rem; color: #e2e8f0; margin-top: 5px;">Has negative exponent (-2)</p>
+                                    </div>
+                                    <div class="invalid-box" style="padding: 10px;">
+                                        <p class="formula" style="font-size: 1.1rem; color: #fa709a;">√x + 5</p>
+                                        <p style="font-size: 0.8rem; color: #e2e8f0; margin-top: 5px;">Has fractional exponent (1/2)</p>
+                                    </div>
+                                    <div class="invalid-box" style="padding: 10px;">
+                                        <p class="formula" style="font-size: 1.1rem; color: #fa709a;">x + 1/x</p>
+                                        <p style="font-size: 0.8rem; color: #e2e8f0; margin-top: 5px;">Contains x⁻¹ (negative exponent)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()" style="margin-top: 15px;">Continue →</button>
+                    `,
+                    speech: "Now let's identify valid and invalid polynomials. Valid polynomials have only whole number exponents like x squared plus 3x plus 2, or 5x to the fourth minus 2x cubed plus x. Invalid polynomials have negative exponents like x to the negative 2, or fractional exponents like square root of x, or division by variables like 1 over x."
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 12px;">Visualization 📊</h2>
+                        <div style="width: 100%; padding: 0 20px;">
+                            <div class="math-description" style="font-size: 0.95rem; margin-bottom: 12px;">
+                                Let's visualize how polynomials look as graphs
+                            </div>
+                            <div class="content-card" style="padding: 15px; margin: 10px 0;">
+                                <h3 style="color: #4facfe; margin-bottom: 10px; font-size: 1rem;">Polynomial Graphs</h3>
+                                <div style="display: flex; flex-direction: column; gap: 10px; text-align: left; font-size: 0.9rem;">
+                                    <div style="background: rgba(79, 172, 254, 0.1); padding: 10px; border-radius: 8px;">
+                                        <p style="color: #4facfe; font-weight: 600;">Degree 1 (Linear):</p>
+                                        <p style="color: #e2e8f0; margin-top: 5px;">f(x) = 2x + 1 → Straight line</p>
+                                    </div>
+                                    <div style="background: rgba(67, 233, 123, 0.1); padding: 10px; border-radius: 8px;">
+                                        <p style="color: #43e97b; font-weight: 600;">Degree 2 (Quadratic):</p>
+                                        <p style="color: #e2e8f0; margin-top: 5px;">f(x) = x² - 4x + 3 → Parabola (U-shape)</p>
+                                    </div>
+                                    <div style="background: rgba(245, 87, 108, 0.1); padding: 10px; border-radius: 8px;">
+                                        <p style="color: #f5576c; font-weight: 600;">Degree 3 (Cubic):</p>
+                                        <p style="color: #e2e8f0; margin-top: 5px;">f(x) = x³ - 3x² + 2 → S-curve shape</p>
+                                    </div>
+                                    <div style="background: rgba(251, 191, 36, 0.1); padding: 10px; border-radius: 8px;">
+                                        <p style="color: #fbbf24; font-weight: 600;">Higher Degrees:</p>
+                                        <p style="color: #e2e8f0; margin-top: 5px;">More complex curves with multiple turns</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="value-display" style="font-size: 1.1rem; margin-top: 12px;">
+                                📈 Each polynomial creates a unique smooth curve!
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Next →</button>
+                    `,
+                    speech: "Polynomials create beautiful curves when graphed. A linear polynomial with degree 1 creates a straight line. A quadratic polynomial with degree 2 creates a parabola or U-shape. A cubic polynomial with degree 3 creates an S-curve. Higher degree polynomials create even more complex smooth curves with multiple turns."
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 12px;">Example Analysis 💡</h2>
+                        <div style="width: 100%; padding: 0 20px;">
+                            <div class="formula-box" style="padding: 15px; margin-bottom: 12px;">
+                                <p class="formula" style="font-size: 1.4rem; color: #fbbf24;">
+                                    -x³ + 4x² + 7x - 2
+                                </p>
+                            </div>
+                            <div class="content-card" style="padding: 15px; margin: 10px 0;">
+                                <h3 style="color: #43e97b; margin-bottom: 12px; font-size: 1.1rem;">Terms:</h3>
+                                <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;">
+                                    <span class="term-item" style="font-size: 1rem; padding: 6px 12px;">-x³</span>
+                                    <span class="term-item" style="font-size: 1rem; padding: 6px 12px;">4x²</span>
+                                    <span class="term-item" style="font-size: 1rem; padding: 6px 12px;">7x</span>
+                                    <span class="term-item" style="font-size: 1rem; padding: 6px 12px;">-2</span>
+                                </div>
+                            </div>
+                            <div class="content-card" style="padding: 15px; margin: 10px 0;">
+                                <h3 style="color: #f5576c; margin-bottom: 12px; font-size: 1.1rem;">Coefficients:</h3>
+                                <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;">
+                                    <span class="coefficient-label" style="font-size: 0.9rem; padding: 5px 10px;">-1</span>
+                                    <span class="coefficient-label" style="font-size: 0.9rem; padding: 5px 10px;">4</span>
+                                    <span class="coefficient-label" style="font-size: 0.9rem; padding: 5px 10px;">7</span>
+                                    <span class="coefficient-label" style="font-size: 0.9rem; padding: 5px 10px;">-2</span>
+                                </div>
+                            </div>
+                            <div class="content-card" style="padding: 12px;">
+                                <p style="font-size: 0.95rem; color: #e2e8f0;">
+                                    <span class="highlight-text">Degree:</span> 3 | 
+                                    <span class="highlight-text">Leading:</span> -1 | 
+                                    <span class="highlight-text">Constant:</span> -2
+                                </p>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Finish →</button>
+                    `,
+                    speech: "Let's analyze the polynomial negative x cubed plus 4x squared plus 7x minus 2. It has four terms: negative x cubed, 4x squared, 7x, and negative 2. The coefficients are negative 1, 4, 7, and negative 2. The degree is 3, which is the highest power."
+                }
+            ];
+
+            window.nextStep = function() {
+                step++;
+                if (step < steps.length) {
+                    transitionToNextStep(steps[step].content);
+                    setTimeout(() => teacher.speak(steps[step].speech), 500);
+                } else {
+                    const finalContent = `
+                        <h2 class="math-title">Congratulations! 🎉</h2>
+                        <div class="value-display">Lesson Complete!</div>
+                        <div class="math-description">
+                            You've successfully learned the fundamentals of polynomials!
+                        </div>
+                        <div class="formula-box glow-effect">
+                            <p style="font-size: 1.3rem; color: #43e97b;">
+                                ✓ Variables & Constants<br>
+                                ✓ Algebraic Expressions<br>
+                                ✓ Polynomial Definition<br>
+                                ✓ Valid vs Invalid Polynomials<br>
+                                ✓ Visualization<br>
+                                ✓ Standard Form<br>
+                                ✓ Terms & Coefficients
+                            </p>
+                        </div>
+                    `;
+                    transitionToNextStep(finalContent);
+                    teacher.speak("Congratulations! You have successfully completed the lesson on introduction to polynomials!");
+                }
+            };
+
+            transitionToNextStep(steps[0].content);
+            setTimeout(() => teacher.speak(steps[0].speech), 500);
+        }
+
+        // Variables & Constants
+        function showIntroduction() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.5rem; margin-bottom: 15px;">Variables vs Constants 🔤</h2>
+                <div class="comparison-grid" style="padding: 0 20px;">
+                    <div class="content-card" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2)); padding: 20px; margin: 0;">
+                        <h3 style="color: #4facfe; font-size: 1.3rem; margin-bottom: 15px;">Variables</h3>
+                        <div style="margin: 15px 0;">
+                            <span class="variable-tag" style="font-size: 1.1rem;">x</span>
+                            <span class="variable-tag" style="font-size: 1.1rem;">y</span>
+                            <span class="variable-tag" style="font-size: 1.1rem;">z</span>
+                        </div>
+                        <p style="font-size: 1rem; line-height: 1.6; color: #e2e8f0; margin-top: 15px;">
+                            Can take <span class="highlight-text">any real value</span>
+                        </p>
+                        <p style="font-size: 0.9rem; color: #cbd5e0; margin-top: 10px;">
+                            Represent unknown or changing quantities
+                        </p>
+                        <div class="example-box" style="margin-top: 15px; padding: 12px;">
+                            <p style="font-size: 0.95rem; color: #e2e8f0;">
+                                Example: x = 1, 2, 3, ..., 100, ...
+                            </p>
+                        </div>
+                    </div>
+                    <div class="content-card" style="background: linear-gradient(135deg, rgba(240, 147, 251, 0.2), rgba(245, 87, 108, 0.2)); padding: 20px; margin: 0;">
+                        <h3 style="color: #f5576c; font-size: 1.3rem; margin-bottom: 15px;">Constants</h3>
+                        <div style="margin: 15px 0;">
+                            <span class="constant-tag" style="font-size: 1.1rem;">a</span>
+                            <span class="constant-tag" style="font-size: 1.1rem;">b</span>
+                            <span class="constant-tag" style="font-size: 1.1rem;">c</span>
+                        </div>
+                        <p style="font-size: 1rem; line-height: 1.6; color: #e2e8f0; margin-top: 15px;">
+                            Remain <span class="highlight-text">fixed</span> in a problem
+                        </p>
+                        <p style="font-size: 0.9rem; color: #cbd5e0; margin-top: 10px;">
+                            Represent known values
+                        </p>
+                        <div class="example-box" style="margin-top: 15px; padding: 12px;">
+                            <p style="font-size: 0.95rem; color: #e2e8f0;">
+                                Example: a = 5 (stays 5 throughout)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("Let's understand the fundamental difference between variables and constants. Variables like x, y, and z can take any real value and represent unknown quantities. Constants like a, b, and c remain fixed in a given problem and represent known values.");
+            }, 500);
+        }
+
+        // Algebraic Expressions
+        function showAlgebraic() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.5rem; margin-bottom: 12px;">Algebraic Expressions 🔢</h2>
+                <div style="width: 100%; padding: 0 20px;">
+                    <div class="math-description" style="font-size: 1rem; margin-bottom: 15px;">
+                        Algebraic expressions combine constants and variables
+                    </div>
+                    <div class="formula-box" style="margin: 15px auto; padding: 18px;">
+                        <p class="formula" style="font-size: 1.4rem;">
+                            (constant) × (variable)
+                        </p>
+                        <p style="color: #e2e8f0; margin-top: 10px; font-size: 0.9rem;">
+                            General Form
+                        </p>
+                    </div>
+                    <div class="content-card" style="padding: 18px;">
+                        <h3 style="color: #43e97b; font-size: 1.2rem; margin-bottom: 15px;">Examples:</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin: 15px 0;">
+                            <div class="term-item" style="font-size: 1.2rem; padding: 8px 16px;">2x</div>
+                            <div class="term-item" style="font-size: 1.2rem; padding: 8px 16px;">3x</div>
+                            <div class="term-item" style="font-size: 1.2rem; padding: 8px 16px;">-x</div>
+                            <div class="term-item" style="font-size: 1.2rem; padding: 8px 16px;">-½x</div>
+                        </div>
+                        <p style="color: #e2e8f0; margin-top: 15px; font-size: 1rem; line-height: 1.6;">
+                            Each expression is formed by multiplying a constant with a variable
+                        </p>
+                    </div>
+                    <div class="content-card" style="margin-top: 15px; padding: 15px;">
+                        <h3 style="color: #4facfe; margin-bottom: 12px; font-size: 1.1rem;">Breaking Down:</h3>
+                        <div style="text-align: left; max-width: 450px; margin: 0 auto; font-size: 0.95rem;">
+                            <p style="margin: 8px 0; color: #e2e8f0;">
+                                <span class="highlight-text">2x</span> = 2 × x
+                            </p>
+                            <p style="margin: 8px 0; color: #e2e8f0;">
+                                <span class="highlight-text">3x</span> = 3 × x
+                            </p>
+                            <p style="margin: 8px 0; color: #e2e8f0;">
+                                <span class="highlight-text">-x</span> = -1 × x
+                            </p>
+                            <p style="margin: 8px 0; color: #e2e8f0;">
+                                <span class="highlight-text">-½x</span> = -0.5 × x
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("Algebraic expressions are formed by multiplying constants with variables. For example, 2x equals 2 times x, 3x equals 3 times x, negative x equals negative 1 times x, and negative one-half x equals negative 0.5 times x.");
+            }, 500);
+        }
+
+        // Polynomial Definition
+        function showDefinition() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.5rem; margin-bottom: 15px;">What is a Polynomial? 📖</h2>
+                <div style="width: 100%; padding: 0 20px;">
+                    <div class="content-card glow-effect" style="margin: 15px auto; max-width: 700px; padding: 18px;">
+                        <h3 style="color: #fbbf24; font-size: 1.3rem; margin-bottom: 12px;">Definition</h3>
+                        <p style="font-size: 1.1rem; line-height: 1.7; color: #e2e8f0;">
+                            A polynomial is an algebraic expression where variables have 
+                            <span class="highlight-text" style="font-size: 1.2rem;">only whole number exponents</span>
+                        </p>
+                    </div>
+                    <div class="formula-box" style="margin: 18px auto; padding: 18px;">
+                        <p style="color: #e2e8f0; margin-bottom: 8px; font-size: 0.95rem;">General Form:</p>
+                        <p class="formula" style="font-size: 1.3rem;">
+                            p(x) = aₙxⁿ + aₙ₋₁xⁿ⁻¹ + ... + a₁x + a₀
+                        </p>
+                    </div>
+                    <div class="content-card" style="padding: 18px;">
+                        <h3 style="color: #43e97b; font-size: 1.2rem; margin-bottom: 15px;">Key Requirements:</h3>
+                        <div style="text-align: left; max-width: 550px; margin: 0 auto; font-size: 1rem;">
+                            <p style="margin: 10px 0; color: #e2e8f0;">
+                                ✓ Exponents must be <span class="highlight-text">whole numbers</span> (0, 1, 2, 3, ...)
+                            </p>
+                            <p style="margin: 10px 0; color: #e2e8f0;">
+                                ✓ Exponents must be <span class="highlight-text">non-negative</span>
+                            </p>
+                            <p style="margin: 10px 0; color: #e2e8f0;">
+                                ✓ Coefficients can be any <span class="highlight-text">real numbers</span>
+                            </p>
+                            <p style="margin: 10px 0; color: #e2e8f0;">
+                                ✓ No division by variables
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("A polynomial is an algebraic expression where variables have only whole number exponents. The exponents must be non-negative whole numbers like 0, 1, 2, 3, and so on. Coefficients can be any real numbers, and there should be no division by variables.");
+            }, 500);
+        }
+
+        // Valid vs Invalid
+        function showValidInvalid() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.5rem; margin-bottom: 15px;">Valid vs Invalid Polynomials ✅❌</h2>
+                <div style="width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 20px;">
+                    <div class="example-box" style="margin: 0; padding: 15px;">
+                        <h3 style="color: #43e97b; font-size: 1.2rem; margin-bottom: 12px;">✅ Valid Polynomial</h3>
+                        <p class="formula" style="font-size: 1.3rem; margin: 12px 0;">x³ - x² + 4x + 7</p>
+                        <div style="background: rgba(67, 233, 123, 0.1); padding: 12px; border-radius: 8px; margin-top: 12px;">
+                            <p style="font-size: 0.95rem; color: #e2e8f0; margin: 6px 0;">
+                                <span class="highlight-text">x³</span> → exponent = 3 ✓
+                            </p>
+                            <p style="font-size: 0.95rem; color: #e2e8f0; margin: 6px 0;">
+                                <span class="highlight-text">x²</span> → exponent = 2 ✓
+                            </p>
+                            <p style="font-size: 0.95rem; color: #e2e8f0; margin: 6px 0;">
+                                <span class="highlight-text">x</span> → exponent = 1 ✓
+                            </p>
+                            <p style="font-size: 0.95rem; color: #e2e8f0; margin: 6px 0;">
+                                <span class="highlight-text">7</span> → exponent = 0 ✓
+                            </p>
+                        </div>
+                        <p style="color: #e2e8f0; margin-top: 12px; font-size: 0.95rem; font-weight: 600;">
+                            All exponents are whole numbers!
+                        </p>
+                    </div>
+
+                    <div class="invalid-box" style="margin: 0; padding: 15px;">
+                        <h3 style="color: #fa709a; font-size: 1.2rem; margin-bottom: 12px;">❌ Invalid Examples</h3>
+                        
+                        <div style="margin: 12px 0; padding: 12px; background: rgba(250, 112, 154, 0.1); border-radius: 8px;">
+                            <p class="formula" style="font-size: 1.2rem;">x + 1/x</p>
+                            <p style="color: #e2e8f0; margin-top: 8px; font-size: 0.9rem;">
+                                <span class="highlight-text">Problem:</span> 1/x = x⁻¹
+                            </p>
+                            <p style="color: #fa709a; font-weight: 600; margin-top: 6px; font-size: 0.9rem;">
+                                ❌ Negative exponent (-1)
+                            </p>
+                        </div>
+
+                        <div style="margin: 12px 0; padding: 12px; background: rgba(250, 112, 154, 0.1); border-radius: 8px;">
+                            <p class="formula" style="font-size: 1.2rem;">√x + 3</p>
+                            <p style="color: #e2e8f0; margin-top: 8px; font-size: 0.9rem;">
+                                <span class="highlight-text">Problem:</span> √x = x^(1/2)
+                            </p>
+                            <p style="color: #fa709a; font-weight: 600; margin-top: 6px; font-size: 0.9rem;">
+                                ❌ Fractional exponent (1/2)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("Let's compare valid and invalid polynomials. x cubed minus x squared plus 4x plus 7 is valid because all exponents 3, 2, 1, and 0 are whole numbers. However, x plus 1 over x is invalid because it contains x to the negative 1 power. Similarly, square root of x plus 3 is invalid because square root of x equals x to the power of one-half, which is a fractional exponent.");
+            }, 500);
+        }
+
+        // Standard Form
+        function showStandardForm() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.5rem; margin-bottom: 15px;">Standard Form of Polynomials 📊</h2>
+                <div style="width: 100%; padding: 0 20px;">
+                    <div class="formula-box" style="margin: 18px auto; padding: 18px;">
+                        <p style="color: #e2e8f0; margin-bottom: 10px; font-size: 0.95rem;">Standard Form:</p>
+                        <p class="formula" style="font-size: 1.4rem;">
+                            p(x) = aₙxⁿ + aₙ₋₁xⁿ⁻¹ + ... + a₁x + a₀
+                        </p>
+                    </div>
+
+                    <div class="content-card" style="padding: 18px;">
+                        <h3 style="color: #4facfe; font-size: 1.2rem; margin-bottom: 15px;">Key Components:</h3>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div style="padding: 12px; background: rgba(79, 172, 254, 0.1); border-radius: 8px;">
+                                <p style="font-size: 1.05rem; color: #fbbf24; font-weight: 600; margin-bottom: 6px;">
+                                    Coefficients
+                                </p>
+                                <p style="font-size: 0.9rem; color: #e2e8f0; line-height: 1.5;">
+                                    Numbers multiplying each power
+                                </p>
+                            </div>
+
+                            <div style="padding: 12px; background: rgba(67, 233, 123, 0.1); border-radius: 8px;">
+                                <p style="font-size: 1.05rem; color: #fbbf24; font-weight: 600; margin-bottom: 6px;">
+                                    Terms
+                                </p>
+                                <p style="font-size: 0.9rem; color: #e2e8f0; line-height: 1.5;">
+                                    Individual parts separated by + or -
+                                </p>
+                            </div>
+
+                            <div style="padding: 12px; background: rgba(240, 147, 251, 0.1); border-radius: 8px;">
+                                <p style="font-size: 1.05rem; color: #fbbf24; font-weight: 600; margin-bottom: 6px;">
+                                    Degree
+                                </p>
+                                <p style="font-size: 0.9rem; color: #e2e8f0; line-height: 1.5;">
+                                    Highest power of the variable
+                                </p>
+                            </div>
+
+                            <div style="padding: 12px; background: rgba(250, 112, 154, 0.1); border-radius: 8px;">
+                                <p style="font-size: 1.05rem; color: #fbbf24; font-weight: 600; margin-bottom: 6px;">
+                                    Constant Term
+                                </p>
+                                <p style="font-size: 0.9rem; color: #e2e8f0; line-height: 1.5;">
+                                    Term without any variable
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("The standard form of a polynomial arranges terms in descending order of exponents. It consists of coefficients which are numbers multiplying each power, terms which are individual parts separated by plus or minus signs, degree which is the highest power of the variable, and the constant term which has no variable.");
+            }, 500);
+        }
+
+        // Example Analysis
+        function showExample() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.5rem; margin-bottom: 12px;">Detailed Example Analysis 💡</h2>
+                <div style="width: 100%; padding: 0 20px;">
+                    <div class="formula-box glow-effect" style="margin: 15px auto; padding: 15px;">
+                        <p style="color: #e2e8f0; margin-bottom: 8px; font-size: 0.9rem;">Polynomial:</p>
+                        <p class="formula" style="font-size: 1.6rem; color: #fbbf24;">
+                            -x³ + 4x² + 7x - 2
+                        </p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="content-card" style="margin: 0; padding: 15px;">
+                            <h3 style="color: #43e97b; font-size: 1.2rem; margin-bottom: 12px;">Terms:</h3>
+                            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;">
+                                <span class="term-item" style="font-size: 1.1rem; padding: 8px 14px;">-x³</span>
+                                <span class="term-item" style="font-size: 1.1rem; padding: 8px 14px;">+4x²</span>
+                                <span class="term-item" style="font-size: 1.1rem; padding: 8px 14px;">+7x</span>
+                                <span class="term-item" style="font-size: 1.1rem; padding: 8px 14px;">-2</span>
+                            </div>
+                        </div>
+
+                        <div class="content-card" style="margin: 0; padding: 15px;">
+                            <h3 style="color: #f5576c; font-size: 1.2rem; margin-bottom: 12px;">Coefficients:</h3>
+                            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;">
+                                <span class="coefficient-label" style="font-size: 1rem; padding: 6px 12px;">-1</span>
+                                <span class="coefficient-label" style="font-size: 1rem; padding: 6px 12px;">+4</span>
+                                <span class="coefficient-label" style="font-size: 1rem; padding: 6px 12px;">+7</span>
+                                <span class="coefficient-label" style="font-size: 1rem; padding: 6px 12px;">-2</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="content-card" style="margin-top: 15px; padding: 15px;">
+                        <h3 style="color: #4facfe; font-size: 1.2rem; margin-bottom: 12px;">Analysis:</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div style="padding: 10px; background: rgba(251, 191, 36, 0.1); border-radius: 8px;">
+                                <p style="font-size: 1rem; color: #e2e8f0;">
+                                    <span class="highlight-text">Degree:</span> 3
+                                </p>
+                            </div>
+                            <div style="padding: 10px; background: rgba(79, 172, 254, 0.1); border-radius: 8px;">
+                                <p style="font-size: 1rem; color: #e2e8f0;">
+                                    <span class="highlight-text">Leading:</span> -1
+                                </p>
+                            </div>
+                            <div style="padding: 10px; background: rgba(67, 233, 123, 0.1); border-radius: 8px;">
+                                <p style="font-size: 1rem; color: #e2e8f0;">
+                                    <span class="highlight-text">Constant:</span> -2
+                                </p>
+                            </div>
+                            <div style="padding: 10px; background: rgba(240, 147, 251, 0.1); border-radius: 8px;">
+                                <p style="font-size: 1rem; color: #e2e8f0;">
+                                    <span class="highlight-text">Type:</span> Cubic
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("Let's analyze the polynomial negative x cubed plus 4x squared plus 7x minus 2 in detail. It has 4 terms: negative x cubed, 4x squared, 7x, and negative 2. The coefficients are negative 1, 4, 7, and negative 2. The degree is 3, making it a cubic polynomial. The leading coefficient is negative 1, and the constant term is negative 2.");
+            }, 500);
+        }
+
+        // Visualization with Chart
+        function showVisualization() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.5rem; margin-bottom: 12px;">Polynomial Visualization 📈</h2>
+                <div style="width: 100%; padding: 0 20px;">
+                    <div class="math-description" style="font-size: 0.95rem; margin-bottom: 12px;">
+                        Visual representation of: p(x) = -x³ + 4x² + 7x - 2
+                    </div>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="polynomialChart"></canvas>
+                    </div>
+                    <div class="content-card" style="padding: 15px; margin-top: 12px;">
+                        <h3 style="color: #43e97b; margin-bottom: 10px; font-size: 1.1rem;">Key Observations:</h3>
+                        <p style="color: #e2e8f0; margin: 6px 0; font-size: 0.95rem;">
+                            • Cubic polynomial behavior
+                        </p>
+                        <p style="color: #e2e8f0; margin: 6px 0; font-size: 0.95rem;">
+                            • Crosses y-axis at -2 (constant term)
+                        </p>
+                        <p style="color: #e2e8f0; margin: 6px 0; font-size: 0.95rem;">
+                            • Shape determined by coefficients
+                        </p>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            setTimeout(() => {
+                const ctx = document.getElementById('polynomialChart').getContext('2d');
+                
+                const xValues = [];
+                const yValues = [];
+                for (let x = -3; x <= 5; x += 0.1) {
+                    xValues.push(x);
+                    const y = -Math.pow(x, 3) + 4*Math.pow(x, 2) + 7*x - 2;
+                    yValues.push(y);
+                }
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: xValues,
+                        datasets: [{
+                            label: 'p(x) = -x³ + 4x² + 7x - 2',
+                            data: yValues,
+                            borderColor: 'rgba(79, 172, 254, 1)',
+                            backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#e2e8f0', font: { size: 12 } }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#e2e8f0', font: { size: 10 } }
+                            },
+                            y: {
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#e2e8f0', font: { size: 10 } }
+                            }
+                        }
+                    }
+                });
+
+                teacher.speak("This visualization shows the graph of the polynomial negative x cubed plus 4x squared plus 7x minus 2. Notice how the curve crosses the y-axis at negative 2, which is our constant term. The shape of the curve is characteristic of a cubic polynomial with a negative leading coefficient.");
+            }, 500);
+        }
+
+        // Interactive Demo
+        function showInteractiveDemo() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.5rem; margin-bottom: 12px;">Interactive Polynomial Builder 🎮</h2>
+                <div style="width: 100%; padding: 0 20px;">
+                    <div class="math-description" style="font-size: 0.95rem; margin-bottom: 12px;">
+                        Build your own polynomial by choosing coefficients!
+                    </div>
+                    <div class="content-card" style="padding: 15px;">
+                        <p style="font-size: 1.1rem; color: #fbbf24; margin-bottom: 15px;">
+                            p(x) = <span id="coef-a">1</span>x² + <span id="coef-b">1</span>x + <span id="coef-c">0</span>
+                        </p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin: 15px 0;">
+                            <div>
+                                <label style="color: #e2e8f0; font-size: 0.9rem;">
+                                    Coef of x²:
+                                    <input type="range" id="input-a" min="-5" max="5" value="1" style="width: 100%; margin-top: 8px;">
+                                </label>
+                            </div>
+                            <div>
+                                <label style="color: #e2e8f0; font-size: 0.9rem;">
+                                    Coef of x:
+                                    <input type="range" id="input-b" min="-5" max="5" value="1" style="width: 100%; margin-top: 8px;">
+                                </label>
+                            </div>
+                            <div>
+                                <label style="color: #e2e8f0; font-size: 0.9rem;">
+                                    Constant:
+                                    <input type="range" id="input-c" min="-5" max="5" value="0" style="width: 100%; margin-top: 8px;">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-container" style="height: 280px; margin-top: 12px;">
+                        <canvas id="interactiveChart"></canvas>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            setTimeout(() => {
+                let chartInstance = null;
+
+                function updatePolynomial() {
+                    const a = parseInt(document.getElementById('input-a').value);
+                    const b = parseInt(document.getElementById('input-b').value);
+                    const c = parseInt(document.getElementById('input-c').value);
+
+                    document.getElementById('coef-a').textContent = a;
+                    document.getElementById('coef-b').textContent = b >= 0 ? `+${b}` : b;
+                    document.getElementById('coef-c').textContent = c >= 0 ? `+${c}` : c;
+
+                    const xValues = [];
+                    const yValues = [];
+                    for (let x = -5; x <= 5; x += 0.1) {
+                        xValues.push(x);
+                        const y = a*x*x + b*x + c;
+                        yValues.push(y);
+                    }
+
+                    const ctx = document.getElementById('interactiveChart').getContext('2d');
+
+                    if (chartInstance) {
+                        chartInstance.destroy();
+                    }
+
+                    chartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: xValues,
+                            datasets: [{
+                                label: `p(x) = ${a}x² + ${b}x + ${c}`,
+                                data: yValues,
+                                borderColor: 'rgba(67, 233, 123, 1)',
+                                backgroundColor: 'rgba(67, 233, 123, 0.1)',
+                                borderWidth: 3,
+                                pointRadius: 0,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: {
+                                    labels: { color: '#e2e8f0', font: { size: 12 } }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                    ticks: { color: '#e2e8f0', font: { size: 10 } }
+                                },
+                                y: {
+                                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                    ticks: { color: '#e2e8f0', font: { size: 10 } }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                document.getElementById('input-a').addEventListener('input', updatePolynomial);
+                document.getElementById('input-b').addEventListener('input', updatePolynomial);
+                document.getElementById('input-c').addEventListener('input', updatePolynomial);
+
+                updatePolynomial();
+
+                teacher.speak("Try adjusting the sliders to see how changing coefficients affects the shape of the polynomial! Move the sliders and watch the graph change in real-time.");
+            }, 500);
+        }
+
+        // Quiz
+        function showQuiz() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+            currentQuizQuestion = 0;
+            quizScore = 0;
+
+            const questions = [
+                {
+                    question: "Which of the following is a valid polynomial?",
+                    options: ["x + 1/x", "√x + 3", "x³ - 2x + 5", "x^(-2) + 1"],
+                    correct: 2,
+                    explanation: "x³ - 2x + 5 is valid because all exponents (3, 1, 0) are whole numbers."
+                },
+                {
+                    question: "What is the degree of the polynomial 4x⁵ - 3x² + 7?",
+                    options: ["2", "3", "5", "7"],
+                    correct: 2,
+                    explanation: "The degree is 5, which is the highest power of x in the polynomial."
+                },
+                {
+                    question: "In the polynomial 2x³ + 5x² - x + 8, what is the constant term?",
+                    options: ["2", "5", "-1", "8"],
+                    correct: 3,
+                    explanation: "The constant term is 8, which is the term without any variable."
+                },
+                {
+                    question: "What are the coefficients in -3x² + 7x - 4?",
+                    options: ["-3, 7, -4", "3, 7, 4", "-3, 7, 4", "3, -7, -4"],
+                    correct: 0,
+                    explanation: "The coefficients are -3, 7, and -4, matching the signs of each term."
+                }
+            ];
+
+            function showQuestion() {
+                const q = questions[currentQuizQuestion];
+                const content = `
+                    <h2 class="math-title" style="font-size: 1.5rem; margin-bottom: 12px;">Quiz Time! 🏆</h2>
+                    <div style="width: 100%; padding: 0 20px;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${(currentQuizQuestion / questions.length) * 100}%"></div>
+                        </div>
+                        <div class="content-card" style="padding: 18px;">
+                            <p style="font-size: 1rem; color: #e2e8f0; margin-bottom: 8px;">
+                                Question ${currentQuizQuestion + 1} of ${questions.length}
+                            </p>
+                            <h3 style="color: #fbbf24; font-size: 1.15rem; margin: 15px 0;">
+                                ${q.question}
+                            </h3>
+                            <div id="quiz-options">
+                                ${q.options.map((opt, idx) => `
+                                    <div class="quiz-option" onclick="checkAnswer(${idx})" style="padding: 12px; margin: 8px 0; font-size: 0.95rem;">
+                                        ${opt}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="value-display" style="font-size: 1.8rem; margin-top: 10px;">
+                            Score: ${quizScore} / ${questions.length}
+                        </div>
+                    </div>
+                `;
+                transitionToNextStep(content);
+            }
+
+            window.checkAnswer = function(selectedIdx) {
+                const q = questions[currentQuizQuestion];
+                const options = document.querySelectorAll('.quiz-option');
+                
+                options[selectedIdx].style.pointerEvents = 'none';
+                
+                if (selectedIdx === q.correct) {
+                    options[selectedIdx].classList.add('correct');
+                    quizScore++;
+                    teacher.speak("Correct! " + q.explanation);
+                } else {
+                    options[selectedIdx].classList.add('incorrect');
+                    options[q.correct].classList.add('correct');
+                    teacher.speak("Incorrect. " + q.explanation);
+                }
+
+                setTimeout(() => {
+                    currentQuizQuestion++;
+                    if (currentQuizQuestion < questions.length) {
+                        showQuestion();
+                    } else {
+                        showQuizResults();
+                    }
+                }, 3000);
+            };
+
+            function showQuizResults() {
+                const percentage = (quizScore / questions.length) * 100;
+                const content = `
+                    <h2 class="math-title">Quiz Complete! 🎉</h2>
+                    <div class="value-display" style="font-size: 2.5rem;">${quizScore} / ${questions.length}</div>
+                    <div class="content-card glow-effect" style="padding: 25px;">
+                        <p style="font-size: 1.4rem; color: ${percentage >= 75 ? '#43e97b' : '#f5576c'};">
+                            ${percentage}% Correct
+                        </p>
+                        <p style="font-size: 1.05rem; color: #e2e8f0; margin-top: 15px;">
+                            ${percentage >= 75 ? 'Excellent work! You have a great understanding of polynomials!' : 
+                              'Good effort! Review the concepts and try again!'}
+                        </p>
+                    </div>
+                `;
+                transitionToNextStep(content);
+                teacher.speak(`Quiz complete! You scored ${quizScore} out of ${questions.length}. ${percentage >= 75 ? 'Excellent work!' : 'Keep practicing!'}`);
+            }
+
+            showQuestion();
+            teacher.speak("Let's test your knowledge! Answer these questions about polynomials.");
+        }
+
+        // Reset
+        function resetApplication() {
+            stopCurrentDemo();
+            quizScore = 0;
+            currentQuizQuestion = 0;
+
+            const content = `
+                <h2 class="math-title">Welcome to Polynomials! ✨</h2>
+                <div class="value-display">Interactive Learning</div>
+                <div class="math-description">
+                    Explore the fascinating world of polynomials with stunning animations 
+                    and interactive visualizations!
+                </div>
+                <div class="formula-box">
+                    <p class="formula">p(x) = aₙxⁿ + aₙ₋₁xⁿ⁻¹ + ... + a₁x + a₀</p>
+                    <p style="color: #e2e8f0; margin-top: 15px;">
+                        From basic expressions to complex equations!
+                    </p>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            currentDemo = null;
+
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to explore the amazing world of polynomials!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+
+            const initialContent = `
+                <h2 class="math-title">Welcome to Polynomials! ✨</h2>
+                <div class="value-display">Interactive Learning</div>
+                <div class="math-description">
+                    Experience mathematics like never before! Learn about polynomials 
+                    with stunning animations and interactive demos!
+                </div>
+                <div class="formula-box">
+                    <p class="formula">p(x) = aₙxⁿ + aₙ₋₁xⁿ⁻¹ + ... + a₁x + a₀</p>
+                    <p style="color: #e2e8f0; margin-top: 15px;">
+                        Explore the beauty of algebra with visual learning!
+                    </p>
+                </div>
+            `;
+
+            transitionToNextStep(initialContent);
+
+            setTimeout(() => {
+                teacher.speak("Welcome to Introduction to Polynomials! Explore the fundamental concepts of algebraic expressions with amazing visualizations!");
+            }, 500);
+
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'algebraic':
+                            showAlgebraic();
+                            break;
+                        case 'definition':
+                            showDefinition();
+                            break;
+                        case 'valid-invalid':
+                            showValidInvalid();
+                            break;
+                        case 'standard-form':
+                            showStandardForm();
+                            break;
+                        case 'example':
+                            showExample();
+                            break;
+                        case 'visualization':
+                            showVisualization();
+                            break;
+                        case 'interactive':
+                            showInteractiveDemo();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

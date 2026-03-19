@@ -1,0 +1,1911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry: Angles Subtended by Chords - Interactive Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --geometry-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header - Compact */
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--geometry-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Layout */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Demo Stage - Takes most space */
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+        }
+
+        /* Stage Content */
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Controls - Below Demo */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--geometry-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--geometry-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Geometry Canvas */
+        .geometry-canvas {
+            width: 100%;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .geometry-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .geometry-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .geometry-description {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 20px auto;
+            line-height: 1.6;
+        }
+
+        /* Animation elements */
+        .circle {
+            fill: none;
+            stroke: #4facfe;
+            stroke-width: 2;
+            opacity: 0;
+        }
+
+        .chord {
+            stroke: #f5576c;
+            stroke-width: 3;
+            opacity: 0;
+        }
+
+        .angle-arc {
+            fill: none;
+            stroke: #fbbf24;
+            stroke-width: 2;
+            opacity: 0;
+        }
+
+        .point {
+            fill: #43e97b;
+            opacity: 0;
+        }
+
+        .label {
+            fill: white;
+            font-size: 14px;
+            font-weight: 600;
+            opacity: 0;
+        }
+
+        .theorem-box {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .theorem-title {
+            color: var(--text-accent);
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .theorem-content {
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .value-display {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .interactive-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .slider-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 200px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--accent-gradient);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .play-btn {
+            padding: 10px 20px;
+            background: var(--success-gradient);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .play-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(67, 233, 123, 0.4);
+        }
+
+        /* Quiz Styles */
+        .quiz-container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .quiz-question {
+            font-size: 1.2rem;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .quiz-option {
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: left;
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        .quiz-option.correct {
+            background: rgba(67, 233, 123, 0.3);
+            border-color: #43e97b;
+        }
+
+        .quiz-option.incorrect {
+            background: rgba(245, 87, 108, 0.3);
+            border-color: #f5576c;
+        }
+
+        /* Three.js Container */
+        .threejs-container {
+            width: 100%;
+            height: 450px;
+            border-radius: 15px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            width: 100%;
+            max-width: 600px;
+            height: 350px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px auto;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 15px;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        /* Theory Cards Styles */
+        .theory-cards-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .theory-section-title {
+            font-size: 1.8rem;
+            color: var(--text-accent);
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: 600;
+            background: var(--geometry-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .theory-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .theory-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 0;
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .theory-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(79, 172, 254, 0.4);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.2);
+        }
+
+        .theory-card-header {
+            background: var(--geometry-gradient);
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .theory-card-header h3 {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+            text-align: center;
+        }
+
+        .theory-card-content {
+            padding: 20px;
+        }
+
+        .theory-card-content p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
+        .theory-card-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .theory-card-content strong {
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.5rem; }
+            .geometry-title { font-size: 1.2rem; }
+            .value-display { font-size: 2rem; }
+            .demo-btn { padding: 10px 18px; font-size: 0.85rem; }
+            .geometry-canvas { height: 300px; }
+            .threejs-container { height: 350px; }
+            .theory-section-title { font-size: 1.5rem; }
+            .theory-cards-grid { grid-template-columns: 1fr; gap: 15px; }
+            .theory-card-content { padding: 15px; }
+            .theory-card-content p { font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="header">
+        <h1>✨ Geometry Mastery: Angles Subtended by Chords</h1>
+        <p>Interactive 3D Visualizations & Animated Learning Experience</p>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage" id="demo-stage"></div>
+        
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">📚 Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">🎯 Introduction</button>
+            <button class="demo-btn" data-demo="basic-concepts">📐 Basic Concepts</button>
+            <button class="demo-btn" data-demo="chord-angle">🔗 Chord-Angle Relation</button>
+            <button class="demo-btn" data-demo="equal-chords">⚖️ Equal Chords Theorem</button>
+            <button class="demo-btn" data-demo="converse">🔄 Converse Theorem</button>
+            <button class="demo-btn" data-demo="interactive">🎮 Interactive Demo</button>
+            <button class="demo-btn" data-demo="quiz">🎯 Quiz Challenge</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+
+        <!-- Theory Cards Section -->
+        <div class="theory-cards-section">
+            <h2 class="theory-section-title">📚 Key Theory Cards</h2>
+            <div class="theory-cards-grid">
+                <div class="theory-card">
+                    <div class="theory-card-header">
+                        <h3>🎯 Basic Definition</h3>
+                    </div>
+                    <div class="theory-card-content">
+                        <p><strong>Chord:</strong> A line segment connecting two points on a circle.</p>
+                        <p><strong>Angle Subtended:</strong> The angle formed at a point by two lines drawn from that point to the endpoints of a chord.</p>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-card-header">
+                        <h3>📐 Central Angle Theorem</h3>
+                    </div>
+                    <div class="theory-card-content">
+                        <p><strong>Theorem:</strong> The angle subtended by a chord at the center of a circle is twice the angle subtended at any point on the circumference.</p>
+                        <p><strong>Formula:</strong> ∠AOB = 2 × ∠ACB</p>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-card-header">
+                        <h3>⚖️ Equal Chords Theorem</h3>
+                    </div>
+                    <div class="theory-card-content">
+                        <p><strong>Theorem:</strong> Equal chords of a circle subtend equal angles at the center.</p>
+                        <p><strong>Converse:</strong> If two chords subtend equal angles at the center, then the chords are equal in length.</p>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-card-header">
+                        <h3>🔗 Chord Properties</h3>
+                    </div>
+                    <div class="theory-card-content">
+                        <p><strong>Longer chords</strong> subtend larger angles at the center.</p>
+                        <p><strong>Shorter chords</strong> subtend smaller angles at the center.</p>
+                        <p><strong>Diameter</strong> subtends the largest possible angle (180°) at the center.</p>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-card-header">
+                        <h3>📏 Practical Applications</h3>
+                    </div>
+                    <div class="theory-card-content">
+                        <p>• <strong>Architecture:</strong> Designing circular structures</p>
+                        <p>• <strong>Engineering:</strong> Calculating forces in circular components</p>
+                        <p>• <strong>Navigation:</strong> Determining positions using circular geometry</p>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-card-header">
+                        <h3>🧮 Quick Formulas</h3>
+                    </div>
+                    <div class="theory-card-content">
+                        <p><strong>Chord Length:</strong> c = 2r × sin(θ/2)</p>
+                        <p><strong>Central Angle:</strong> θ = 2 × arcsin(c/2r)</p>
+                        <p><strong>Circumference Angle:</strong> φ = θ/2</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let activeTasks = new Set();
+        let currentRunId = 0;
+        let isPlaying = false;
+        let currentDemo = null;
+        let threeJsScenes = [];
+        let currentDemoAborted = false;
+        let currentTaskId = null;
+        let animationTimeouts = [];
+
+        // Teacher Voice System
+        class TeacherVoice {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.voice = null;
+                this.rate = 0.9;
+                this.pitch = 1.0;
+                this.volume = 0.8;
+                this.isEnabled = true;
+                this.currentUtterance = null;
+                this.isDestroyed = false;
+                this.setupVoice();
+            }
+
+            setupVoice() {
+                const loadVoices = () => {
+                    const voices = this.synth.getVoices();
+                    this.voice = voices.find(v => v.lang.includes('en')) || voices[0];
+                };
+                loadVoices();
+                this.synth.onvoiceschanged = loadVoices;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !globalAudioEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.voice = this.voice;
+                        utterance.rate = this.rate;
+                        utterance.pitch = this.pitch;
+                        utterance.volume = this.volume;
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        this.synth.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+            }
+        }
+
+        // State management functions
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            // Clean up Three.js scenes
+            threeJsScenes.forEach(scene => {
+                if (scene.renderer) {
+                    scene.renderer.dispose();
+                }
+                if (scene.animationId) {
+                    cancelAnimationFrame(scene.animationId);
+                }
+            });
+            threeJsScenes = [];
+            
+            activeTasks.clear();
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentTeacher = new TeacherVoice();
+            currentTeacher.isEnabled = globalAudioEnabled;
+            return currentTeacher;
+        }
+
+        // Utility functions
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+
+
+        function createStageContent() {
+            const stage = document.getElementById('demo-stage');
+            stage.innerHTML = '';
+            const content = document.createElement('div');
+            content.className = 'stage-content active';
+            stage.appendChild(content);
+            return content;
+        }
+
+        // Three.js Circle with Chord Visualization
+        function createThreeJsCircleScene(container, config = {}) {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setClearColor(0x000000, 0);
+            container.appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const pointLight = new THREE.PointLight(0xffffff, 0.8);
+            pointLight.position.set(5, 5, 5);
+            scene.add(pointLight);
+            
+            // Create circle
+            const circleGeometry = new THREE.RingGeometry(2.8, 3, 64);
+            const circleMaterial = new THREE.MeshPhongMaterial({
+                color: 0x4facfe,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.8
+            });
+            const circle = new THREE.Mesh(circleGeometry, circleMaterial);
+            scene.add(circle);
+            
+            // Create inner disc for better visibility
+            const discGeometry = new THREE.CircleGeometry(3, 64);
+            const discMaterial = new THREE.MeshPhongMaterial({
+                color: 0x2a5298,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.3
+            });
+            const disc = new THREE.Mesh(discGeometry, discMaterial);
+            scene.add(disc);
+            
+            camera.position.z = 8;
+            
+            const sceneData = {
+                scene,
+                camera,
+                renderer,
+                circle,
+                disc,
+                chords: [],
+                points: [],
+                animationId: null
+            };
+            
+            // Animation loop
+            function animate() {
+                sceneData.animationId = requestAnimationFrame(animate);
+                
+                if (config.rotate) {
+                    circle.rotation.z += 0.005;
+                    disc.rotation.z += 0.005;
+                }
+                
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+            threeJsScenes.push(sceneData);
+            return sceneData;
+        }
+
+        // Add chord to Three.js scene
+        function addChordToScene(sceneData, angle1, angle2, color = 0xf5576c) {
+            const radius = 3;
+            const x1 = radius * Math.cos(angle1);
+            const y1 = radius * Math.sin(angle1);
+            const x2 = radius * Math.cos(angle2);
+            const y2 = radius * Math.sin(angle2);
+            
+            const points = [
+                new THREE.Vector3(x1, y1, 0),
+                new THREE.Vector3(x2, y2, 0)
+            ];
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ 
+                color: color,
+                linewidth: 3
+            });
+            const chord = new THREE.Line(geometry, material);
+            sceneData.scene.add(chord);
+            sceneData.chords.push(chord);
+            
+            // Add points at endpoints
+            const pointGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+            const pointMaterial = new THREE.MeshPhongMaterial({ color: 0x43e97b });
+            
+            const point1 = new THREE.Mesh(pointGeometry, pointMaterial);
+            point1.position.set(x1, y1, 0);
+            sceneData.scene.add(point1);
+            sceneData.points.push(point1);
+            
+            const point2 = new THREE.Mesh(pointGeometry, pointMaterial);
+            point2.position.set(x2, y2, 0);
+            sceneData.scene.add(point2);
+            sceneData.points.push(point2);
+            
+            return { chord, point1, point2 };
+        }
+
+        // Add angle arc to Three.js scene
+        function addAngleArcToScene(sceneData, centerAngle, arcAngle, radius = 3, color = 0xfbbf24) {
+            const curve = new THREE.EllipseCurve(
+                0, 0,
+                radius, radius,
+                centerAngle - arcAngle/2, centerAngle + arcAngle/2,
+                false,
+                0
+            );
+            
+            const points = curve.getPoints(50);
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ 
+                color: color,
+                linewidth: 2
+            });
+            const arc = new THREE.Line(geometry, material);
+            sceneData.scene.add(arc);
+            
+            return arc;
+        }
+
+        // Introduction with 3D Animation
+        async function showIntroduction() {
+            const taskId = `intro-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Introduction to Angles Subtended by Chords</h2>
+                <div class="threejs-container" id="intro-threejs"></div>
+                <p class="geometry-description">
+                    Watch as we explore the beautiful relationship between chords and angles in a circle!
+                </p>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('intro-threejs');
+            const sceneData = createThreeJsCircleScene(container, { rotate: true });
+            
+            await teacher.speak("Welcome to the fascinating world of circle geometry! A chord is a line segment connecting two points on a circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            // Add first chord
+            addChordToScene(sceneData, 0, Math.PI * 0.6, 0xf5576c);
+            
+            await teacher.speak("When a chord connects two points, it creates angles at different positions.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add angle arc
+            addAngleArcToScene(sceneData, Math.PI * 0.3, Math.PI * 0.6);
+            
+            await teacher.speak("The angle subtended by a chord can be measured from the center or from any point on the circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Basic Concepts with Chart.js
+        async function showBasicConcepts() {
+            const taskId = `basic-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Basic Concepts: Types of Angles</h2>
+                <div class="chart-container">
+                    <canvas id="angles-chart"></canvas>
+                </div>
+                <div class="theorem-box">
+                    <div class="theorem-title">Key Concept</div>
+                    <div class="theorem-content">
+                        An angle subtended at the center is twice the angle subtended at any point on the circle.
+                    </div>
+                </div>
+            `;
+            
+            await wait(100);
+            
+            // Create Chart.js visualization
+            const ctx = document.getElementById('angles-chart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Angle at Center', 'Angle at Circumference'],
+                    datasets: [{
+                        label: 'Angle Measure (degrees)',
+                        data: [120, 60],
+                        backgroundColor: [
+                            'rgba(79, 172, 254, 0.6)',
+                            'rgba(245, 87, 108, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(79, 172, 254, 1)',
+                            'rgba(245, 87, 108, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 180,
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeOutBounce'
+                    }
+                }
+            });
+            
+            await teacher.speak("Let's understand the different types of angles. The angle at the center is always twice the angle at the circumference for the same chord.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(4000);
+            
+            // Animate the chart values
+            chart.data.datasets[0].data = [140, 70];
+            chart.update();
+            
+            await teacher.speak("Notice how this relationship holds true regardless of the chord's position!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Chord-Angle Relationship with Interactive 3D
+        async function showChordAngleRelationship() {
+            const taskId = `chord-angle-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Chord Length and Angle Relationship</h2>
+                <div class="threejs-container" id="chord-angle-threejs"></div>
+                <div class="value-display" id="angle-value">Angle: 60°</div>
+                <p class="geometry-description">
+                    Longer chords subtend larger angles at the center!
+                </p>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('chord-angle-threejs');
+            const sceneData = createThreeJsCircleScene(container, { rotate: false });
+            
+            await teacher.speak("Let's see how the length of a chord affects the angle it subtends at the center.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Animate different chord lengths
+            const angles = [Math.PI * 0.3, Math.PI * 0.5, Math.PI * 0.7, Math.PI * 0.9];
+            const angleDisplay = document.getElementById('angle-value');
+            
+            for (let i = 0; i < angles.length; i++) {
+                if (!shouldContinue(taskId)) return;
+                
+                // Clear previous chords
+                sceneData.chords.forEach(chord => sceneData.scene.remove(chord));
+                sceneData.points.forEach(point => sceneData.scene.remove(point));
+                sceneData.chords = [];
+                sceneData.points = [];
+                
+                const angle = angles[i];
+                addChordToScene(sceneData, 0, angle, 0xf5576c);
+                addAngleArcToScene(sceneData, angle / 2, angle, 3, 0xfbbf24);
+                
+                const degrees = Math.round(angle * 180 / Math.PI);
+                angleDisplay.textContent = `Angle: ${degrees}°`;
+                
+                await wait(1500);
+            }
+            
+            await teacher.speak("As you can see, longer chords create larger angles at the center. This is a fundamental relationship in circle geometry!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Equal Chords Theorem with Side-by-Side 3D Comparison
+        async function showEqualChordsTheorem() {
+            const taskId = `equal-chords-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Equal Chords Theorem</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%;">
+                    <div class="threejs-container" id="equal-chord-1" style="height: 350px;"></div>
+                    <div class="threejs-container" id="equal-chord-2" style="height: 350px;"></div>
+                </div>
+                <div class="theorem-box">
+                    <div class="theorem-title">⚖️ Equal Chords Theorem</div>
+                    <div class="theorem-content">
+                        Equal chords of a circle subtend equal angles at the center.
+                    </div>
+                </div>
+            `;
+            
+            await wait(100);
+            
+            const container1 = document.getElementById('equal-chord-1');
+            const container2 = document.getElementById('equal-chord-2');
+            const sceneData1 = createThreeJsCircleScene(container1, { rotate: false });
+            const sceneData2 = createThreeJsCircleScene(container2, { rotate: false });
+            
+            await teacher.speak("The Equal Chords Theorem states that equal chords subtend equal angles at the center.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add equal chords to both circles
+            const chordAngle = Math.PI * 0.6;
+            addChordToScene(sceneData1, 0, chordAngle, 0xf5576c);
+            addAngleArcToScene(sceneData1, chordAngle / 2, chordAngle, 3, 0xfbbf24);
+            
+            await wait(500);
+            
+            addChordToScene(sceneData2, Math.PI * 0.2, Math.PI * 0.2 + chordAngle, 0xf5576c);
+            addAngleArcToScene(sceneData2, Math.PI * 0.2 + chordAngle / 2, chordAngle, 3, 0xfbbf24);
+            
+            await teacher.speak("Notice how both chords have the same length and subtend the same angle at their respective centers, even though they're positioned differently.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(4000);
+            isPlaying = false;
+        }
+
+        // Converse Theorem
+        async function showConverseTheorem() {
+            const taskId = `converse-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Converse Theorem</h2>
+                <div class="threejs-container" id="converse-threejs"></div>
+                <div class="theorem-box">
+                    <div class="theorem-title">🔄 Converse Theorem</div>
+                    <div class="theorem-content">
+                        If two chords subtend equal angles at the center, then the chords are equal in length.
+                    </div>
+                </div>
+                <div class="value-display" id="converse-value">Equal Angles → Equal Chords</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('converse-threejs');
+            const sceneData = createThreeJsCircleScene(container, { rotate: false });
+            
+            await teacher.speak("The converse theorem is equally important: if two chords subtend equal angles at the center, then the chords themselves must be equal in length.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Add two chords with equal angles
+            const angle = Math.PI * 0.5;
+            addChordToScene(sceneData, 0, angle, 0xf5576c);
+            addAngleArcToScene(sceneData, angle / 2, angle, 3, 0xfbbf24);
+            
+            await wait(1000);
+            
+            addChordToScene(sceneData, Math.PI, Math.PI + angle, 0x43e97b);
+            addAngleArcToScene(sceneData, Math.PI + angle / 2, angle, 3, 0xfa709a);
+            
+            await teacher.speak("Both angles are equal, therefore both chords must have the same length. This completes the bidirectional relationship!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(4000);
+            isPlaying = false;
+        }
+
+        // Interactive Demo with Real-time Chart
+        async function showInteractiveDemo() {
+            const taskId = `interactive-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Interactive Demonstration</h2>
+                <div class="threejs-container" id="interactive-threejs"></div>
+                <div class="interactive-controls">
+                    <div class="slider-container">
+                        <span class="slider-label">Chord Angle</span>
+                        <input type="range" id="angle-slider" min="30" max="160" value="60">
+                        <span class="slider-label" id="angle-display">60°</span>
+                    </div>
+                </div>
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="interactive-chart"></canvas>
+                </div>
+            `;
+            
+            await wait(100);
+            
+            const container = document.getElementById('interactive-threejs');
+            const sceneData = createThreeJsCircleScene(container, { rotate: false });
+            const slider = document.getElementById('angle-slider');
+            const angleDisplay = document.getElementById('angle-display');
+            
+            // Track arc objects for cleanup
+            let currentArc = null;
+            
+            // Create Chart
+            const ctx = document.getElementById('interactive-chart').getContext('2d');
+            const chartData = {
+                labels: ['Center Angle', 'Circumference Angle'],
+                datasets: [{
+                    label: 'Angle (degrees)',
+                    data: [60, 30],
+                    backgroundColor: [
+                        'rgba(79, 172, 254, 0.6)',
+                        'rgba(245, 87, 108, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgba(79, 172, 254, 1)',
+                        'rgba(245, 87, 108, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            };
+            
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 180,
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    },
+                    animation: { duration: 300 }
+                }
+            });
+            
+            function updateVisualization(angleDegrees) {
+                const angleRadians = angleDegrees * Math.PI / 180;
+                
+                // Update 3D scene - clean up previous elements
+                sceneData.chords.forEach(chord => sceneData.scene.remove(chord));
+                sceneData.points.forEach(point => sceneData.scene.remove(point));
+                sceneData.chords = [];
+                sceneData.points = [];
+                
+                // Remove previous arc if it exists
+                if (currentArc) {
+                    sceneData.scene.remove(currentArc);
+                    currentArc = null;
+                }
+                
+                // Add new chord and arc
+                addChordToScene(sceneData, 0, angleRadians, 0xf5576c);
+                currentArc = addAngleArcToScene(sceneData, angleRadians / 2, angleRadians, 3, 0xfbbf24);
+                
+                // Update chart
+                chart.data.datasets[0].data = [angleDegrees, angleDegrees / 2];
+                chart.update();
+                
+                angleDisplay.textContent = `${angleDegrees}°`;
+            }
+            
+            slider.addEventListener('input', (e) => {
+                updateVisualization(parseInt(e.target.value));
+            });
+            
+            // Initial visualization
+            updateVisualization(60);
+            
+            await teacher.speak("Now it's your turn! Use the slider to change the chord angle and see how it affects both the center angle and the circumference angle in real-time!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(5000);
+            isPlaying = false;
+        }
+
+        // Quiz
+        async function showQuiz() {
+            const taskId = `quiz-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            const questions = [
+                {
+                    question: "What is the relationship between equal chords and the angles they subtend at the center?",
+                    options: [
+                        "Equal chords subtend equal angles",
+                        "Equal chords subtend different angles",
+                        "Chord length doesn't affect angles",
+                        "Only diameter affects angles"
+                    ],
+                    correct: 0
+                },
+                {
+                    question: "If a chord subtends an angle of 80° at the center, what angle does it subtend on the circumference?",
+                    options: [
+                        "80°",
+                        "160°",
+                        "40°",
+                        "20°"
+                    ],
+                    correct: 2
+                },
+                {
+                    question: "According to the converse theorem, if two chords subtend equal angles at the center, what can we conclude?",
+                    options: [
+                        "The chords are parallel",
+                        "The chords are equal in length",
+                        "The chords are perpendicular",
+                        "Nothing can be concluded"
+                    ],
+                    correct: 1
+                }
+            ];
+            
+            let currentQuestion = 0;
+            let score = 0;
+            
+            function showQuestion() {
+                const q = questions[currentQuestion];
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="geometry-title">Question ${currentQuestion + 1} of ${questions.length}</h2>
+                        <div class="quiz-question">${q.question}</div>
+                        <div class="quiz-options">
+                            ${q.options.map((opt, i) => `
+                                <div class="quiz-option" data-index="${i}">${opt}</div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                
+                document.querySelectorAll('.quiz-option').forEach((option, index) => {
+                    option.addEventListener('click', function() {
+                        const isCorrect = index === q.correct;
+                        
+                        if (isCorrect) {
+                            this.classList.add('correct');
+                            score++;
+                        } else {
+                            this.classList.add('incorrect');
+                            document.querySelectorAll('.quiz-option')[q.correct].classList.add('correct');
+                        }
+                        
+                        document.querySelectorAll('.quiz-option').forEach(opt => {
+                            opt.style.pointerEvents = 'none';
+                        });
+                        
+                        setTimeout(() => {
+                            currentQuestion++;
+                            if (currentQuestion < questions.length) {
+                                showQuestion();
+                            } else {
+                                showResults();
+                            }
+                        }, 2000);
+                    });
+                });
+            }
+            
+            function showResults() {
+                const percentage = (score / questions.length) * 100;
+                content.innerHTML = `
+                    <h2 class="geometry-title">Quiz Complete!</h2>
+                    <div class="value-display">${score}/${questions.length}</div>
+                    <p class="geometry-description">
+                        You scored ${percentage.toFixed(0)}%! 
+                        ${percentage >= 80 ? 'Excellent work! 🌟' : 
+                          percentage >= 60 ? 'Good job! 👍' : 'Keep practicing! 📚'}
+                    </p>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="quiz-chart"></canvas>
+                    </div>
+                `;
+                
+                // Create results chart
+                const ctx = document.getElementById('quiz-chart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Correct', 'Incorrect'],
+                        datasets: [{
+                            data: [score, questions.length - score],
+                            backgroundColor: [
+                                'rgba(67, 233, 123, 0.8)',
+                                'rgba(245, 87, 108, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgba(67, 233, 123, 1)',
+                                'rgba(245, 87, 108, 1)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#ffffff',
+                                    font: { size: 14 }
+                                }
+                            }
+                        },
+                        animation: {
+                            animateRotate: true,
+                            animateScale: true,
+                            duration: 1500
+                        }
+                    }
+                });
+            }
+            
+            await teacher.speak("Let's test your knowledge with a quick quiz!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            showQuestion();
+            
+            await wait(2000);
+            isPlaying = false;
+        }
+
+        // Complete Lesson
+        async function showCompleteLesson() {
+            const taskId = `complete-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            // Welcome message
+            const welcomeContent = createStageContent();
+            welcomeContent.innerHTML = `
+                <h2 class="geometry-title">Complete Lesson: Angles Subtended by Chords</h2>
+                <div class="value-display">Let's Learn Everything! 🚀</div>
+                <p class="geometry-description">
+                    We'll go through all the important concepts step by step with amazing 3D animations!
+                </p>
+            `;
+            
+            await teacher.speak("Welcome to the complete lesson on angles subtended by chords! We'll explore everything step by step with beautiful visualizations.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Introduction
+            await teacher.speak("First, let's understand the basic concepts.");
+            if (!shouldContinue(taskId)) return;
+            await showIntroductionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Basic Concepts
+            await teacher.speak("Now let's examine different types of angles.");
+            if (!shouldContinue(taskId)) return;
+            await showBasicConceptsContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Chord-Angle Relationship
+            await teacher.speak("Let's see how chord length affects angles.");
+            if (!shouldContinue(taskId)) return;
+            await showChordAngleRelationshipContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Equal Chords Theorem
+            await teacher.speak("Now for the important theorem about equal chords.");
+            if (!shouldContinue(taskId)) return;
+            await showEqualChordsTheoremContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Converse Theorem
+            await teacher.speak("And finally, the converse theorem.");
+            if (!shouldContinue(taskId)) return;
+            await showConverseTheoremContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            // Final message
+            const finalContent = createStageContent();
+            finalContent.innerHTML = `
+                <h2 class="geometry-title">Congratulations! 🎉</h2>
+                <div class="value-display">Lesson Complete!</div>
+                <p class="geometry-description">
+                    You've mastered angles subtended by chords with interactive 3D visualizations! 
+                    Try the interactive demo or test your knowledge with the quiz.
+                </p>
+            `;
+            
+            await teacher.speak("Congratulations! You've completed the full lesson on angles subtended by chords with amazing 3D animations. You now understand all the key theorems and their proofs. Fantastic work!");
+            
+            isPlaying = false;
+        }
+
+        // Content functions for complete lesson (don't call stopCurrentDemo)
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Introduction to Angles Subtended by Chords</h2>
+                <div class="threejs-container" id="intro-threejs"></div>
+                <p class="geometry-description">
+                    Watch as we explore the beautiful relationship between chords and angles in a circle!
+                </p>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('intro-threejs');
+            const sceneData = createThreeJsCircleScene(container, { rotate: true });
+            
+            await teacher.speak("Welcome to the fascinating world of circle geometry! A chord is a line segment connecting two points on a circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            // Add first chord
+            addChordToScene(sceneData, 0, Math.PI * 0.6, 0xf5576c);
+            
+            await teacher.speak("When a chord connects two points, it creates angles at different positions.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add angle arc
+            addAngleArcToScene(sceneData, Math.PI * 0.3, Math.PI * 0.6);
+            
+            await teacher.speak("The angle subtended by a chord can be measured from the center or from any point on the circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showBasicConceptsContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Basic Concepts: Types of Angles</h2>
+                <div class="chart-container">
+                    <canvas id="angles-chart"></canvas>
+                </div>
+                <div class="theorem-box">
+                    <div class="theorem-title">Key Concept</div>
+                    <div class="theorem-content">
+                        An angle subtended at the center is twice the angle subtended at any point on the circle.
+                    </div>
+                </div>
+            `;
+            
+            await wait(100);
+            
+            // Create Chart.js visualization
+            const ctx = document.getElementById('angles-chart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Angle at Center', 'Angle at Circumference'],
+                    datasets: [{
+                        label: 'Angle Measure (degrees)',
+                        data: [120, 60],
+                        backgroundColor: [
+                            'rgba(79, 172, 254, 0.6)',
+                            'rgba(245, 87, 108, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(79, 172, 254, 1)',
+                            'rgba(245, 87, 108, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 180,
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeOutBounce'
+                    }
+                }
+            });
+            
+            await teacher.speak("Let's understand the different types of angles. The angle at the center is always twice the angle at the circumference for the same chord.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(4000);
+            
+            // Animate the chart values
+            chart.data.datasets[0].data = [140, 70];
+            chart.update();
+            
+            await teacher.speak("Notice how this relationship holds true regardless of the chord's position!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showChordAngleRelationshipContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Chord Length and Angle Relationship</h2>
+                <div class="threejs-container" id="chord-angle-threejs"></div>
+                <div class="value-display" id="angle-value">Angle: 60°</div>
+                <p class="geometry-description">
+                    Longer chords subtend larger angles at the center!
+                </p>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('chord-angle-threejs');
+            const sceneData = createThreeJsCircleScene(container, { rotate: false });
+            
+            await teacher.speak("Let's see how the length of a chord affects the angle it subtends at the center.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Animate different chord lengths
+            const angles = [Math.PI * 0.3, Math.PI * 0.5, Math.PI * 0.7, Math.PI * 0.9];
+            const angleDisplay = document.getElementById('angle-value');
+            
+            for (let i = 0; i < angles.length; i++) {
+                if (!shouldContinue(taskId)) return;
+                
+                // Clear previous chords
+                sceneData.chords.forEach(chord => sceneData.scene.remove(chord));
+                sceneData.points.forEach(point => sceneData.scene.remove(point));
+                sceneData.chords = [];
+                sceneData.points = [];
+                
+                const angle = angles[i];
+                addChordToScene(sceneData, 0, angle, 0xf5576c);
+                addAngleArcToScene(sceneData, angle / 2, angle, 3, 0xfbbf24);
+                
+                const degrees = Math.round(angle * 180 / Math.PI);
+                angleDisplay.textContent = `Angle: ${degrees}°`;
+                
+                await wait(1500);
+            }
+            
+            await teacher.speak("As you can see, longer chords create larger angles at the center. This is a fundamental relationship in circle geometry!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showEqualChordsTheoremContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Equal Chords Theorem</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%;">
+                    <div class="threejs-container" id="equal-chord-1" style="height: 350px;"></div>
+                    <div class="threejs-container" id="equal-chord-2" style="height: 350px;"></div>
+                </div>
+                <div class="theorem-box">
+                    <div class="theorem-title">⚖️ Equal Chords Theorem</div>
+                    <div class="theorem-content">
+                        Equal chords of a circle subtend equal angles at the center.
+                    </div>
+                </div>
+            `;
+            
+            await wait(100);
+            
+            const container1 = document.getElementById('equal-chord-1');
+            const container2 = document.getElementById('equal-chord-2');
+            const sceneData1 = createThreeJsCircleScene(container1, { rotate: false });
+            const sceneData2 = createThreeJsCircleScene(container2, { rotate: false });
+            
+            await teacher.speak("The Equal Chords Theorem states that equal chords subtend equal angles at the center.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add equal chords to both circles
+            const chordAngle = Math.PI * 0.6;
+            addChordToScene(sceneData1, 0, chordAngle, 0xf5576c);
+            addAngleArcToScene(sceneData1, chordAngle / 2, chordAngle, 3, 0xfbbf24);
+            
+            await wait(500);
+            
+            addChordToScene(sceneData2, Math.PI * 0.2, Math.PI * 0.2 + chordAngle, 0xf5576c);
+            addAngleArcToScene(sceneData2, Math.PI * 0.2 + chordAngle / 2, chordAngle, 3, 0xfbbf24);
+            
+            await teacher.speak("Notice how both chords have the same length and subtend the same angle at their respective centers, even though they're positioned differently.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(4000);
+        }
+
+        async function showConverseTheoremContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Converse Theorem</h2>
+                <div class="threejs-container" id="converse-threejs"></div>
+                <div class="theorem-box">
+                    <div class="theorem-title">🔄 Converse Theorem</div>
+                    <div class="theorem-content">
+                        If two chords subtend equal angles at the center, then the chords are equal in length.
+                    </div>
+                </div>
+                <div class="value-display" id="converse-value">Equal Angles → Equal Chords</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('converse-threejs');
+            const sceneData = createThreeJsCircleScene(container, { rotate: false });
+            
+            await teacher.speak("The converse theorem is equally important: if two chords subtend equal angles at the center, then the chords themselves must be equal in length.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Add two chords with equal angles
+            const angle = Math.PI * 0.5;
+            addChordToScene(sceneData, 0, angle, 0xf5576c);
+            addAngleArcToScene(sceneData, angle / 2, angle, 3, 0xfbbf24);
+            
+            await wait(1000);
+            
+            addChordToScene(sceneData, Math.PI, Math.PI + angle, 0x43e97b);
+            addAngleArcToScene(sceneData, Math.PI + angle / 2, angle, 3, 0xfa709a);
+            
+            await teacher.speak("Both angles are equal, therefore both chords must have the same length. This completes the bidirectional relationship!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(4000);
+        }
+
+        function resetApplication() {
+            stopCurrentDemo();
+            
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="geometry-title">Welcome to Geometry Mastery! ✨</h2>
+                <div class="value-display">Let's Explore!</div>
+                <p class="geometry-description">
+                    Discover the beautiful relationships between chords and angles in circles with stunning 3D animations! 
+                    Choose a lesson below to begin your geometric journey!
+                </p>
+                <div class="threejs-container" id="welcome-threejs"></div>
+            `;
+            
+            setTimeout(() => {
+                const container = document.getElementById('welcome-threejs');
+                if (container) {
+                    createThreeJsCircleScene(container, { rotate: true });
+                }
+            }, 100);
+            
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            currentDemo = null;
+            
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to continue your geometry exploration with amazing 3D visualizations!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+            
+            // Show welcome animation
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="geometry-title">Welcome to Geometry Mastery! ✨</h2>
+                <div class="value-display">3D Interactive Learning</div>
+                <p class="geometry-description">
+                    Experience geometry like never before with stunning Three.js animations and interactive Chart.js visualizations!
+                </p>
+                <div class="threejs-container" id="welcome-threejs"></div>
+            `;
+            
+            setTimeout(() => {
+                const container = document.getElementById('welcome-threejs');
+                if (container) {
+                    createThreeJsCircleScene(container, { rotate: true });
+                }
+                teacher.speak("Welcome to Geometry Mastery! Explore the fascinating world of angles and chords with amazing three D animations!");
+            }, 500);
+            
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'basic-concepts':
+                            showBasicConcepts();
+                            break;
+                        case 'chord-angle':
+                            showChordAngleRelationship();
+                            break;
+                        case 'equal-chords':
+                            showEqualChordsTheorem();
+                            break;
+                        case 'converse':
+                            showConverseTheorem();
+                            break;
+                        case 'interactive':
+                            showInteractiveDemo();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+            
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+            
+            // Handle window resize for Three.js scenes
+            window.addEventListener('resize', () => {
+                threeJsScenes.forEach(sceneData => {
+                    const container = sceneData.renderer.domElement.parentElement;
+                    if (container) {
+                        sceneData.camera.aspect = container.clientWidth / container.clientHeight;
+                        sceneData.camera.updateProjectionMatrix();
+                        sceneData.renderer.setSize(container.clientWidth, container.clientHeight);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

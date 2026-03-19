@@ -1,0 +1,3909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear Equations in Two Variables - Interactive Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --equation-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            --solution-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--equation-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+            transition: all 0.3s ease;
+        }
+
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+            overflow: hidden;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1) translateY(0); }
+            to { opacity: 0; transform: scale(0.95) translateY(-20px); }
+        }
+
+        @keyframes slideInFromRight {
+            from { opacity: 0; transform: translateX(30px) scale(0.98); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+
+        @keyframes slideOutToLeft {
+            from { opacity: 1; transform: translateX(0) scale(1); }
+            to { opacity: 0; transform: translateX(-30px) scale(0.98); }
+        }
+
+        .step-transition {
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .step-content {
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            will-change: transform, opacity;
+        }
+
+        .step-content.exiting {
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--equation-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--equation-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .math-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .math-description {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 20px auto;
+            line-height: 1.8;
+            padding: 15px;
+        }
+
+        .narration-box {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 700px;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        .value-display {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--equation-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .equation-display {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--text-accent);
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .number-line-container {
+            width: 100%;
+            max-width: 800px;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .cartesian-container {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            margin: 20px 0;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 15px;
+            padding: 15px;
+        }
+
+        .formula-box {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: var(--shadow-primary);
+        }
+
+        .formula {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--equation-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-family: 'Courier New', monospace;
+        }
+
+        .example-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .example-content {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .solutions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+            max-width: 600px;
+        }
+
+        .solution-bubble {
+            background: var(--solution-gradient);
+            color: #1a1a2e;
+            padding: 20px;
+            border-radius: 20px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+            max-width: 800px;
+        }
+
+        .comparison-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .comparison-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+        }
+
+        .comparison-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--text-accent);
+        }
+
+        .comparison-card p {
+            font-size: 1.1rem;
+            margin: 10px 0;
+            color: var(--text-secondary);
+        }
+
+        .quiz-question {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px auto;
+            max-width: 700px;
+            text-align: center;
+        }
+
+        .question-text {
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .quiz-option {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 1.05rem;
+            text-align: left;
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(10px);
+        }
+
+        .quiz-option.correct {
+            background: var(--success-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        .quiz-option.incorrect {
+            background: var(--warning-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        .feedback-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .feedback-message.correct {
+            background: rgba(67, 233, 123, 0.2);
+            color: #43e97b;
+        }
+
+        .feedback-message.incorrect {
+            background: rgba(250, 112, 154, 0.2);
+            color: #fa709a;
+        }
+
+        .interactive-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 500px;
+            margin: 20px auto;
+        }
+
+        .interactive-demo-container {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+            max-width: 100%;
+        }
+
+        .interactive-demo-controls {
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .interactive-demo-chart {
+            flex: 1;
+            min-width: 400px;
+            height: 400px;
+        }
+
+        @media (max-width: 768px) {
+            .interactive-demo-container {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .interactive-demo-controls {
+                max-width: 100%;
+            }
+            
+            .interactive-demo-chart {
+                min-width: 100%;
+                height: 300px;
+            }
+        }
+
+        .slider-container {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: var(--glass-border);
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--equation-gradient);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--equation-gradient);
+            cursor: pointer;
+            border: none;
+        }
+
+        .step-indicator {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 12px 20px;
+            margin: 15px auto;
+            display: inline-block;
+            font-size: 1rem;
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        .chart-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .chart-title {
+            font-size: 1.4rem;
+            color: var(--text-accent);
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .chart-description {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .comparison-item {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: var(--transition);
+        }
+
+        .comparison-item:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.2);
+        }
+
+        .comparison-item canvas {
+            margin-bottom: 15px;
+            border-radius: 10px;
+        }
+
+        .comparison-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-accent);
+            margin-top: 10px;
+        }
+
+        /* Theory Section Styles */
+        .theory-section {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .theory-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .theory-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .theory-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theory-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+        }
+
+        .theory-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            border-color: var(--primary-color);
+        }
+
+        .theory-card-header {
+            margin-bottom: 1rem;
+        }
+
+        .theory-card-header h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .theory-card-content {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .theory-card-content p {
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        .theory-card-content strong {
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        .theory-example {
+            background: rgba(79, 172, 254, 0.1);
+            border: 1px solid rgba(79, 172, 254, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+
+        .theory-card-content ul {
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .theory-card-content li {
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        /* Mobile Responsive Design */
+        @media (max-width: 768px) {
+            .theory-section {
+                margin: 1rem auto;
+                padding: 0 0.5rem;
+            }
+
+            .theory-title {
+                font-size: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .theory-cards {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .theory-card {
+                padding: 1rem;
+                margin: 0 0.5rem;
+            }
+
+            .theory-card-header h3 {
+                font-size: 1.1rem;
+            }
+
+            .theory-card-content p,
+            .theory-card-content li {
+                font-size: 0.9rem;
+            }
+
+            .theory-example {
+                font-size: 0.85rem;
+                padding: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .theory-section {
+                padding: 0 0.25rem;
+            }
+
+            .theory-title {
+                font-size: 1.3rem;
+            }
+
+            .theory-card {
+                padding: 0.8rem;
+                margin: 0 0.25rem;
+            }
+
+            .theory-card-header h3 {
+                font-size: 1rem;
+            }
+
+            .theory-card-content p,
+            .theory-card-content li {
+                font-size: 0.85rem;
+            }
+
+            .theory-example {
+                font-size: 0.8rem;
+                padding: 0.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Linear Equations in Two Variables</h1>
+        <p>Interactive Visual Learning Experience</p>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage" id="demo-stage">
+            <!-- Dynamic content will be inserted here -->
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">📚 Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">🎯 Introduction</button>
+            <button class="demo-btn" data-demo="solution-chart">📊 Solution Chart</button>
+            <button class="demo-btn" data-demo="one-variable">1️⃣ One Variable</button>
+            <button class="demo-btn" data-demo="live-plotter">🎯 Live Plotter</button>
+            <button class="demo-btn" data-demo="one-var-graph">📊 One Var Graph</button>
+            <button class="demo-btn" data-demo="distribution-viz">📈 Distribution</button>
+            <button class="demo-btn" data-demo="two-variables">2️⃣ Two Variables</button>
+            <button class="demo-btn" data-demo="two-var-graph">📈 Two Var Graph</button>
+            <button class="demo-btn" data-demo="infinitely-many">♾️ Infinite Solutions</button>
+            <button class="demo-btn" data-demo="comparison">⚖️ Comparison</button>
+            <button class="demo-btn" data-demo="interactive">🎮 Interactive</button>
+            <button class="demo-btn" data-demo="one-var-questions">❓ One Var Quiz</button>
+            <button class="demo-btn" data-demo="two-var-questions">❓ Two Var Quiz</button>
+            <button class="demo-btn" data-demo="quiz">🏆 Final Quiz</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+    </div>
+
+    <!-- Theory Section -->
+    <div class="theory-section">
+        <h2 class="theory-title">📖 Theory & Concepts</h2>
+        <div class="theory-cards">
+            <div class="theory-card">
+                <div class="theory-card-header">
+                    <h3>🎯 What are Linear Equations?</h3>
+                </div>
+                <div class="theory-card-content">
+                    <p>A linear equation is an algebraic equation in which each term is either a constant or the product of a constant and a single variable. The highest power of the variable is 1.</p>
+                    <div class="theory-example">
+                        <strong>General Form:</strong> ax + by = c
+                        <br><strong>Example:</strong> 2x + 3y = 6
+                    </div>
+                </div>
+            </div>
+
+            <div class="theory-card">
+                <div class="theory-card-header">
+                    <h3>📊 One Variable vs Two Variables</h3>
+                </div>
+                <div class="theory-card-content">
+                    <p><strong>One Variable:</strong> Has only one unknown (x)</p>
+                    <div class="theory-example">
+                        <strong>Example:</strong> 2x + 5 = 11
+                        <br><strong>Solution:</strong> x = 3
+                    </div>
+                    <p><strong>Two Variables:</strong> Has two unknowns (x and y)</p>
+                    <div class="theory-example">
+                        <strong>Example:</strong> 2x + 3y = 12
+                        <br><strong>Solutions:</strong> Multiple pairs (x, y)
+                    </div>
+                </div>
+            </div>
+
+            <div class="theory-card">
+                <div class="theory-card-header">
+                    <h3>📈 Graphical Representation</h3>
+                </div>
+                <div class="theory-card-content">
+                    <p>Linear equations in two variables can be represented as straight lines on a coordinate plane.</p>
+                    <div class="theory-example">
+                        <strong>Slope-Intercept Form:</strong> y = mx + b
+                        <br><strong>Where:</strong> m = slope, b = y-intercept
+                    </div>
+                    <p>Every point on the line represents a solution to the equation.</p>
+                </div>
+            </div>
+
+            <div class="theory-card">
+                <div class="theory-card-header">
+                    <h3>♾️ Types of Solutions</h3>
+                </div>
+                <div class="theory-card-content">
+                    <p><strong>Unique Solution:</strong> Lines intersect at one point</p>
+                    <p><strong>No Solution:</strong> Parallel lines (never meet)</p>
+                    <p><strong>Infinite Solutions:</strong> Same line (coincident lines)</p>
+                    <div class="theory-example">
+                        <strong>System:</strong> 
+                        <br>2x + 3y = 6
+                        <br>4x + 6y = 12
+                        <br><strong>Result:</strong> Infinite solutions
+                    </div>
+                </div>
+            </div>
+
+            <div class="theory-card">
+                <div class="theory-card-header">
+                    <h3>🔧 Methods to Solve</h3>
+                </div>
+                <div class="theory-card-content">
+                    <p><strong>1. Substitution Method:</strong> Solve one equation for one variable, then substitute</p>
+                    <p><strong>2. Elimination Method:</strong> Add or subtract equations to eliminate a variable</p>
+                    <p><strong>3. Graphical Method:</strong> Plot both equations and find intersection point</p>
+                    <div class="theory-example">
+                        <strong>Example:</strong> x + y = 5, x - y = 1
+                        <br><strong>Solution:</strong> x = 3, y = 2
+                    </div>
+                </div>
+            </div>
+
+            <div class="theory-card">
+                <div class="theory-card-header">
+                    <h3>💡 Real-World Applications</h3>
+                </div>
+                <div class="theory-card-content">
+                    <p>Linear equations are used in:</p>
+                    <ul>
+                        <li><strong>Economics:</strong> Supply and demand curves</li>
+                        <li><strong>Physics:</strong> Motion with constant velocity</li>
+                        <li><strong>Engineering:</strong> Circuit analysis</li>
+                        <li><strong>Business:</strong> Cost and revenue analysis</li>
+                    </ul>
+                    <div class="theory-example">
+                        <strong>Example:</strong> If a taxi charges £2 base fare + £1.50 per mile
+                        <br><strong>Equation:</strong> Cost = 2 + 1.5x (where x = miles)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="audio-control">
+        <button class="control-btn" id="mute-btn">
+            <span class="mute-icon">🔊</span>
+            <span class="unmute-icon">🔇</span>
+        </button>
+    </div>
+
+    <script>
+        let currentDemo = null;
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let currentTaskId = null;
+        let quizScore = 0;
+        let answeredQuestions = 0;
+
+        class Teacher {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.voice = null;
+                this.isEnabled = globalAudioEnabled;
+                this.initVoice();
+            }
+
+            initVoice() {
+                const voices = this.synth.getVoices();
+                this.voice = voices.find(v => v.lang === 'en-US') || voices[0];
+            }
+
+            speak(text) {
+                return new Promise((resolve) => {
+                    if (!this.isEnabled) {
+                        // If audio is disabled, wait based on text length (approximate reading time)
+                        const readingTime = Math.max(3000, text.length * 50);
+                        setTimeout(resolve, readingTime);
+                        return;
+                    }
+
+                    this.synth.cancel();
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.voice = this.voice;
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    
+                    utterance.onend = () => {
+                        // Add a longer pause after narration completes for quiz feedback
+                        setTimeout(resolve, 2500);
+                    };
+                    
+                    utterance.onerror = () => {
+                        resolve();
+                    };
+                    
+                    this.synth.speak(utterance);
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+            }
+
+            speakQuizFeedback(text) {
+                return new Promise((resolve) => {
+                    if (!this.isEnabled) {
+                        // If audio is disabled, wait based on text length (approximate reading time)
+                        const readingTime = Math.max(5000, text.length * 60);
+                        setTimeout(resolve, readingTime);
+                        return;
+                    }
+
+                    this.synth.cancel();
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.voice = this.voice;
+                    utterance.rate = 0.8; // Slower for quiz feedback
+                    utterance.pitch = 1.0;
+                    
+                    utterance.onend = () => {
+                        // Longer pause for quiz feedback to ensure comprehension
+                        setTimeout(resolve, 3000);
+                    };
+                    
+                    utterance.onerror = () => {
+                        resolve();
+                    };
+                    
+                    this.synth.speak(utterance);
+                });
+            }
+        }
+
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            currentTeacher = new Teacher();
+            return currentTeacher;
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Chart creation utility function
+        function createChart(canvasId, type, data, options = {}) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return null;
+            
+            const ctx = canvas.getContext('2d');
+            
+            const defaultOptions = {
+                responsive: true,
+                maintainAspectRatio: true,
+                animation: {
+                    duration: 1000,
+                    easing: 'easeInOutQuart'
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 10,
+                        cornerRadius: 10,
+                        titleFont: { size: 14 },
+                        bodyFont: { size: 12 }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.8)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.8)'
+                        }
+                    }
+                }
+            };
+            
+            return new Chart(ctx, {
+                type: type,
+                data: data,
+                options: { ...defaultOptions, ...options }
+            });
+        }
+
+        function createStageContent() {
+            const stage = document.getElementById('demo-stage');
+            stage.innerHTML = '';
+            const content = document.createElement('div');
+            content.className = 'stage-content active step-content';
+            stage.appendChild(content);
+            return content;
+        }
+
+        function clearStage() {
+            const stage = document.getElementById('demo-stage');
+            const content = stage.querySelector('.stage-content');
+            if (content) {
+                content.classList.add('exiting');
+                setTimeout(() => {
+                    stage.innerHTML = '';
+                }, 400);
+            }
+        }
+
+        // New smooth transition function
+        function transitionToNextStep(newContent, delay = 0) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const stage = document.getElementById('demo-stage');
+                    const currentContent = stage.querySelector('.stage-content');
+                    
+                    if (currentContent) {
+                        // Create new content element
+                        const newContentElement = document.createElement('div');
+                        newContentElement.className = 'stage-content step-content';
+                        newContentElement.innerHTML = newContent;
+                        newContentElement.style.opacity = '0';
+                        newContentElement.style.transform = 'translateX(50px)';
+                        stage.appendChild(newContentElement);
+                        
+                        // Animate out current content and in new content simultaneously
+                        currentContent.style.transition = 'all 0.5s ease-in-out';
+                        currentContent.style.opacity = '0';
+                        currentContent.style.transform = 'translateX(-50px)';
+                        
+                        newContentElement.style.transition = 'all 0.5s ease-in-out';
+                        setTimeout(() => {
+                            newContentElement.style.opacity = '1';
+                            newContentElement.style.transform = 'translateX(0)';
+                        }, 50);
+                        
+                        // Clean up after animation
+                        setTimeout(() => {
+                            if (currentContent && currentContent.parentNode) {
+                                currentContent.parentNode.removeChild(currentContent);
+                            }
+                            newContentElement.classList.add('active');
+                            resolve();
+                        }, 500);
+                    } else {
+                        const content = document.createElement('div');
+                        content.className = 'stage-content active step-content';
+                        content.innerHTML = newContent;
+                        stage.appendChild(content);
+                        resolve();
+                    }
+                }, delay);
+            });
+        }
+
+        // Step completion tracking
+        let currentStepComplete = false;
+        let stepCompletionCallbacks = [];
+
+        function markStepComplete() {
+            currentStepComplete = true;
+            stepCompletionCallbacks.forEach(callback => callback());
+            stepCompletionCallbacks = [];
+        }
+
+        function waitForStepCompletion() {
+            return new Promise((resolve) => {
+                if (currentStepComplete) {
+                    resolve();
+                } else {
+                    stepCompletionCallbacks.push(resolve);
+                }
+            });
+        }
+
+        function resetStepCompletion() {
+            currentStepComplete = false;
+        }
+
+        function stopCurrentDemo() {
+            if (currentTaskId) {
+                currentTaskId = Date.now();
+            }
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            resetStepCompletion();
+        }
+
+        // COMPLETE LESSON
+        async function showCompleteLesson() {
+            stopCurrentDemo();
+            const taskId = Date.now();
+            currentTaskId = taskId;
+            const teacher = createNewTeacher();
+            resetStepCompletion();
+
+            // Welcome message
+            const welcomeContent = `
+                <h2 class="math-title">📚 Complete Linear Equations Lesson</h2>
+                <div class="value-display">Let's Learn Everything!</div>
+                <p class="math-description">
+                    We'll go through all the important concepts step by step.
+                    From basic variables to infinite solutions!
+                </p>
+            `;
+            await transitionToNextStep(welcomeContent);
+            await teacher.speak("Welcome to the complete linear equations lesson! We'll go through everything step by step.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Introduction
+            await showIntroductionContent(taskId);
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Solution Chart
+            await showSolutionChartContent(taskId);
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // One Variable
+            await showOneVariableContent(taskId);
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Live Plotter
+            await showLivePlotterContent(taskId);
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // One Variable Graph
+            await showOneVarGraphContent(taskId);
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Distribution Viz
+            await showDistributionVizContent(taskId);
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Two Variables
+            await showTwoVariablesContent(taskId);
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Two Variable Graph
+            await showTwoVarGraphContent(taskId);
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Infinitely Many Solutions
+            await showInfinitelyManyContent(taskId);
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Comparison
+            await showComparisonContent(taskId);
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Final message
+            const finalContent = `
+                <h2 class="math-title">🎉 Lesson Complete!</h2>
+                <div class="value-display">Well Done!</div>
+                <p class="math-description">
+                    You've learned about linear equations in one and two variables!
+                    Try the quizzes to test your knowledge!
+                </p>
+            `;
+            await transitionToNextStep(finalContent);
+            await teacher.speak("Congratulations! You've completed the full lesson on linear equations. You now understand the difference between one-variable and two-variable equations, how to graph them, and why they have different numbers of solutions!");
+        }
+
+        // INTRODUCTION
+        async function showIntroduction() {
+            stopCurrentDemo();
+            const taskId = Date.now();
+            currentTaskId = taskId;
+            const teacher = createNewTeacher();
+            resetStepCompletion();
+
+            // Step 1: Welcome
+            const step1Content = `
+                <div class="step-indicator">Step 1 of 4</div>
+                <h2 class="math-title">🎯 What is a Variable?</h2>
+                <div class="narration-box">
+                    A variable is an unknown value represented by a letter like x or y.
+                    Think of it as a mystery number we need to find!
+                </div>
+                <div class="value-display">x = ?</div>
+            `;
+            await transitionToNextStep(step1Content);
+            await teacher.speak("Welcome to the world of linear equations! Let's start by understanding what a variable is.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 2: Equation Definition
+            const step2Content = `
+                <div class="step-indicator">Step 2 of 4</div>
+                <h2 class="math-title">⚖️ What is an Equation?</h2>
+                <div class="narration-box">
+                    An equation shows that two expressions are equal.
+                    It's like a mathematical balance - what's on the left equals what's on the right!
+                </div>
+                <div class="equation-display">x + 3 = 7</div>
+                <p class="math-description">This means: "Some number plus 3 equals 7"</p>
+            `;
+            await transitionToNextStep(step2Content);
+            await teacher.speak("An equation is like a balanced scale. Both sides must be equal. Let's see an example.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 3: Linear Equation
+            const step3Content = `
+                <div class="step-indicator">Step 3 of 4</div>
+                <h2 class="math-title">📏 Linear Equations</h2>
+                <div class="narration-box">
+                    Linear equations create straight lines when graphed.
+                    They're called "linear" because of this line property!
+                </div>
+                <div class="formula-box">
+                    <p class="formula">ax + by + c = 0</p>
+                    <p style="color: #e2e8f0; margin-top: 15px;">
+                        This is the standard form of a linear equation
+                    </p>
+                </div>
+            `;
+            await transitionToNextStep(step3Content);
+            await teacher.speak("A linear equation forms a straight line when graphed. The general form is ax plus by plus c equals zero.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 4: Two Types
+            const step4Content = `
+                <div class="step-indicator">Step 4 of 4</div>
+                <h2 class="math-title">🎭 Two Types</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h3>One Variable</h3>
+                        <div class="equation-display" style="font-size: 1.5rem;">2x + 5 = 0</div>
+                        <p>One unknown to find</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h3>Two Variables</h3>
+                        <div class="equation-display" style="font-size: 1.5rem;">2x + 3y = 12</div>
+                        <p>Two unknowns to find</p>
+                    </div>
+                </div>
+                <div class="narration-box">
+                    Let's explore each type and discover their unique characteristics!
+                </div>
+            `;
+            await transitionToNextStep(step4Content);
+            await teacher.speak("We can have equations with one variable or two variables. Each type has unique properties we'll explore!");
+            await wait(2000);
+            markStepComplete();
+        }
+
+        // ONE VARIABLE
+        async function showOneVariable() {
+            stopCurrentDemo();
+            const taskId = Date.now();
+            currentTaskId = taskId;
+            const teacher = createNewTeacher();
+            resetStepCompletion();
+
+            // Step 1: Introduction
+            const step1Content = `
+                <div class="step-indicator">Step 1 of 4</div>
+                <h2 class="math-title">1️⃣ One Variable Equations</h2>
+                <div class="narration-box">
+                    In a one-variable equation, we have only ONE unknown to find.
+                    Let's see what this means!
+                </div>
+                <div class="equation-display">2x + 5 = 0</div>
+                <p class="math-description">Here, 'x' is the only variable we need to find</p>
+            `;
+            await transitionToNextStep(step1Content);
+            await teacher.speak("Let's explore one-variable equations. These have only ONE unknown value to find.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 2: Solving Process
+            const step2Content = `
+                <div class="step-indicator">Step 2 of 4</div>
+                <h2 class="math-title">🔍 Solving the Equation</h2>
+                <div class="narration-box">
+                    Step 1: Start with the equation
+                </div>
+                <div class="equation-display">2x + 5 = 0</div>
+                <div class="narration-box" style="margin-top: 20px;">
+                    Step 2: Subtract 5 from both sides
+                </div>
+                <div class="equation-display">2x = -5</div>
+            `;
+            await transitionToNextStep(step2Content);
+            await teacher.speak("To solve this, we need to isolate x. First, we subtract 5 from both sides.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 3: Final Solution
+            const step3Content = `
+                <div class="step-indicator">Step 3 of 4</div>
+                <h2 class="math-title">✨ The Solution</h2>
+                <div class="narration-box">
+                    Step 3: Divide both sides by 2
+                </div>
+                <div class="equation-display">x = -2.5</div>
+                <div class="value-display">Solution: x = -2.5</div>
+                <div class="narration-box" style="margin-top: 20px;">
+                    This is the ONLY value that satisfies our equation!
+                </div>
+            `;
+            await transitionToNextStep(step3Content);
+            await teacher.speak("Now we divide both sides by 2 to get x equals negative 2.5. This is our unique solution!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 4: Key Point
+            const step4Content = `
+                <div class="step-indicator">Step 4 of 4</div>
+                <h2 class="math-title">🎯 Key Takeaway</h2>
+                <div class="formula-box">
+                    <p class="formula">1 Variable = 1 Solution</p>
+                </div>
+                <div class="narration-box">
+                    One-variable equations ALWAYS have exactly ONE unique solution.
+                    No more, no less - just one specific value!
+                </div>
+            `;
+            await transitionToNextStep(step4Content);
+            await teacher.speak("The most important thing to remember: one-variable equations always have exactly ONE unique solution!");
+            await wait(2000);
+            markStepComplete();
+        }
+
+        // ONE VARIABLE GRAPH
+        async function showOneVarGraph() {
+            stopCurrentDemo();
+            const taskId = Date.now();
+            currentTaskId = taskId;
+            const teacher = createNewTeacher();
+            resetStepCompletion();
+
+            // Step 1: Number Line Introduction
+            const step1Content = `
+                <div class="step-indicator">Step 1 of 3</div>
+                <h2 class="math-title">📊 Visualizing on a Number Line</h2>
+                <div class="narration-box">
+                    A number line shows all possible values.
+                    Let's mark where our solution appears!
+                </div>
+                <div class="number-line-container" id="numberLine1"></div>
+            `;
+            await transitionToNextStep(step1Content);
+            await wait(500);
+            createNumberLine(document.getElementById('numberLine1'), {
+                min: -6, max: 4, solution: null, showSolution: false
+            });
+            await teacher.speak("Let's visualize our solution on a number line. This helps us see where our answer fits in the world of numbers.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 2: Show Solution
+            const step2Content = `
+                <div class="step-indicator">Step 2 of 3</div>
+                <h2 class="math-title">🎯 Marking the Solution</h2>
+                <div class="equation-display">x = -2.5</div>
+                <div class="narration-box">
+                    Our solution appears as a single point at x = -2.5
+                </div>
+                <div class="number-line-container" id="numberLine2"></div>
+            `;
+            await transitionToNextStep(step2Content);
+            await wait(500);
+            createNumberLine(document.getElementById('numberLine2'), {
+                min: -6, max: 4, solution: -2.5, showSolution: true, animate: true
+            });
+            await teacher.speak("Now watch carefully as we mark our solution, x equals negative 2.5, on the number line. This single point represents our answer!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 3: Conclusion
+            const step3Content = `
+                <div class="step-indicator">Step 3 of 3</div>
+                <h2 class="math-title">✨ The Big Picture</h2>
+                <div class="value-display">One Point = One Solution</div>
+                <div class="narration-box">
+                    One-variable equations give us a single point on the number line.
+                    This represents our one unique solution!
+                </div>
+                <div class="number-line-container" id="numberLine3"></div>
+            `;
+            await transitionToNextStep(step3Content);
+            await wait(500);
+            createNumberLine(document.getElementById('numberLine3'), {
+                min: -6, max: 4, solution: -2.5, showSolution: true
+            });
+            await teacher.speak("This is what makes one-variable equations special - they give us one precise point, one exact answer!");
+            await wait(2000);
+            markStepComplete();
+        }
+
+        // ONE VARIABLE QUESTIONS
+        async function showOneVarQuestions() {
+            stopCurrentDemo();
+            const taskId = Date.now();
+            currentTaskId = taskId;
+            const teacher = createNewTeacher();
+
+            const questions = [
+                {
+                    question: "How many solutions does a one-variable linear equation have?",
+                    options: ["Zero solutions", "One solution", "Two solutions", "Infinite solutions"],
+                    correct: 1,
+                    explanation: "Correct! One-variable equations have exactly ONE unique solution. Just one specific value satisfies the equation!"
+                },
+                {
+                    question: "What is the solution to: 3x + 6 = 0?",
+                    options: ["x = 2", "x = -2", "x = 6", "x = -6"],
+                    correct: 1,
+                    explanation: "Excellent! Subtract 6 from both sides to get 3x = -6, then divide by 3 to get x = -2!"
+                },
+                {
+                    question: "On a number line, how does a one-variable solution appear?",
+                    options: ["As a line", "As a single point", "As multiple points", "As a curve"],
+                    correct: 1,
+                    explanation: "Perfect! A one-variable solution appears as a single point on the number line, representing that unique value!"
+                }
+            ];
+
+            for (let i = 0; i < questions.length; i++) {
+                if (currentTaskId !== taskId) return;
+
+                const q = questions[i];
+                
+                const content = createStageContent();
+                content.innerHTML = `
+                    <div class="step-indicator">Question ${i + 1} of ${questions.length}</div>
+                    <div class="quiz-question">
+                        <div class="question-text">${q.question}</div>
+                        <div class="quiz-options" id="options-${i}">
+                            ${q.options.map((opt, idx) => `
+                                <div class="quiz-option" data-index="${idx}">${opt}</div>
+                            `).join('')}
+                        </div>
+                        <div id="feedback-${i}"></div>
+                    </div>
+                    <div class="narration-box">
+                        Take your time and think carefully about what we've learned!
+                    </div>
+                `;
+                
+                teacher.speak(`Question ${i + 1}: ${q.question}`);
+
+                // Wait for answer
+                await new Promise(resolve => {
+                    const options = document.querySelectorAll(`#options-${i} .quiz-option`);
+                    options.forEach(opt => {
+                        opt.addEventListener('click', async function() {
+                            const selected = parseInt(this.getAttribute('data-index'));
+                            options.forEach(o => o.style.pointerEvents = 'none');
+                            
+                            if (selected === q.correct) {
+                                this.classList.add('correct');
+                                document.getElementById(`feedback-${i}`).innerHTML = `
+                                    <div class="feedback-message correct">
+                                        ✅ ${q.explanation}
+                                    </div>
+                                `;
+                                await teacher.speakQuizFeedback(q.explanation);
+                                quizScore++;
+                            } else {
+                                this.classList.add('incorrect');
+                                options[q.correct].classList.add('correct');
+                                document.getElementById(`feedback-${i}`).innerHTML = `
+                                    <div class="feedback-message incorrect">
+                                        ❌ Not quite! The correct answer is: ${q.options[q.correct]}
+                                    </div>
+                                `;
+                                await teacher.speakQuizFeedback(`Not quite right. The correct answer is ${q.options[q.correct]}`);
+                            }
+                            
+                            answeredQuestions++;
+                            setTimeout(resolve, 6000);
+                        });
+                    });
+                });
+
+                if (currentTaskId !== taskId) return;
+                clearStage();
+                await wait(500);
+            }
+
+            if (currentTaskId === taskId) {
+                const content = createStageContent();
+                content.innerHTML = `
+                    <h2 class="math-title">📊 Quiz Results</h2>
+                    <div class="value-display">${quizScore}/${questions.length}</div>
+                    <div class="narration-box">
+                        ${quizScore === questions.length ? 
+                            "Perfect score! You've mastered one-variable equations! 🎉" :
+                            "Good effort! Review the concepts and try again to improve! 💪"}
+                    </div>
+                `;
+                await teacher.speak(`Quiz complete! You scored ${quizScore} out of ${questions.length}`);
+            }
+        }
+
+        // TWO VARIABLES
+        async function showTwoVariables() {
+            stopCurrentDemo();
+            const taskId = Date.now();
+            currentTaskId = taskId;
+            const teacher = createNewTeacher();
+            resetStepCompletion();
+
+            // Step 1: Introduction
+            const step1Content = `
+                <div class="step-indicator">Step 1 of 4</div>
+                <h2 class="math-title">2️⃣ Two Variable Equations</h2>
+                <div class="narration-box">
+                    Two-variable equations have TWO unknowns: usually x and y.
+                    They represent relationships between two quantities!
+                </div>
+                <div class="equation-display">2x + 3y = 12</div>
+                <p class="math-description">Both x and y are variables we work with!</p>
+            `;
+            await transitionToNextStep(step1Content);
+            await teacher.speak("Now let's explore two-variable equations. These involve TWO unknowns and are more complex and interesting!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 2: Standard Form
+            const step2Content = `
+                <div class="step-indicator">Step 2 of 4</div>
+                <h2 class="math-title">📐 Standard Form</h2>
+                <div class="formula-box">
+                    <p class="formula">ax + by + c = 0</p>
+                    <p style="color: #e2e8f0; margin-top: 15px; font-size: 1.1rem;">
+                        Where a, b, and c are constants (known numbers)
+                    </p>
+                </div>
+                <div class="narration-box">
+                    a, b, and c are coefficients - they tell us how to combine x and y
+                </div>
+            `;
+            await transitionToNextStep(step2Content);
+            await teacher.speak("The standard form of a two-variable equation is: a times x plus b times y plus c equals zero.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 3: Examples
+            const step3Content = `
+                <div class="step-indicator">Step 3 of 4</div>
+                <h2 class="math-title">📝 Real Examples</h2>
+                <div class="example-box">
+                    <div class="example-content">
+                        <p style="margin: 15px 0; font-size: 1.2rem;">
+                            <strong>Example 1:</strong> 2x + 3y = 12
+                        </p>
+                        <p style="margin: 15px 0; font-size: 1.2rem;">
+                            <strong>Example 2:</strong> x + y = 176
+                        </p>
+                        <p style="margin: 15px 0; font-size: 1.2rem;">
+                            <strong>Example 3:</strong> 5x - 3y = 4
+                        </p>
+                    </div>
+                </div>
+                <div class="narration-box">
+                    Each equation shows a different relationship between x and y!
+                </div>
+            `;
+            await transitionToNextStep(step3Content);
+            await teacher.speak("Here are some examples of two-variable equations you might encounter in real life!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 4: Key Concept
+            const step4Content = `
+                <div class="step-indicator">Step 4 of 4</div>
+                <h2 class="math-title">💡 Key Difference</h2>
+                <div class="value-display">Many Solutions!</div>
+                <div class="narration-box">
+                    Two-variable equations have MULTIPLE solutions!
+                    For example, in 2x + 3y = 12:
+                    <br><br>
+                    • When x = 0, y = 4 ✓
+                    <br>
+                    • When x = 3, y = 2 ✓
+                    <br>
+                    • When x = 6, y = 0 ✓
+                    <br><br>
+                    All of these are valid solutions!
+                </div>
+            `;
+            await transitionToNextStep(step4Content);
+            await teacher.speak("Unlike one-variable equations, two-variable equations don't have just one solution - they have many solutions!");
+            await wait(2000);
+            markStepComplete();
+        }
+
+        // TWO VARIABLE GRAPH
+        async function showTwoVarGraph() {
+            stopCurrentDemo();
+            const taskId = Date.now();
+            currentTaskId = taskId;
+            const teacher = createNewTeacher();
+            resetStepCompletion();
+
+            // Step 1: Coordinate System
+            const step1Content = `
+                <div class="step-indicator">Step 1 of 4</div>
+                <h2 class="math-title">📈 The Coordinate Plane</h2>
+                <div style="display: flex; gap: 20px; align-items: center; max-width: 100%;">
+                    <div style="flex: 0.3; max-width: 250px;">
+                        <div class="narration-box" style="font-size: 0.95rem; line-height: 1.5;">
+                            We use a 2D plane with two axes:
+                            <br><br>
+                            • Horizontal axis is for x values
+                            <br>
+                            • Vertical axis is for y values
+                        </div>
+                    </div>
+                    <div class="cartesian-container" id="cartesianEmpty" style="flex: 0.7; min-width: 400px; height: 350px;"></div>
+                </div>
+            `;
+            await transitionToNextStep(step1Content);
+            await wait(500);
+            createCartesianPlane(document.getElementById('cartesianEmpty'), {
+                points: [],
+                showLine: false
+            });
+            await teacher.speak("To graph two-variable equations, we use a coordinate plane with an x-axis and a y-axis.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 2: Plotting Points
+            const step2Content = `
+                <div class="step-indicator">Step 2 of 4</div>
+                <h2 class="math-title">📍 Plotting Solutions</h2>
+                <div class="equation-display" style="font-size: 1.5rem; padding: 15px;">2x + 3y = 12</div>
+                <div style="display: flex; gap: 20px; align-items: center; max-width: 100%;">
+                    <div style="flex: 0.3; max-width: 250px;">
+                        <div class="narration-box" style="font-size: 0.95rem; line-height: 1.5;">
+                            Each point represents a solution: (x, y)
+                        </div>
+                    </div>
+                    <div class="cartesian-container" id="cartesianPoints" style="flex: 0.7; min-width: 400px; height: 350px;"></div>
+                </div>
+            `;
+            await transitionToNextStep(step2Content);
+            await wait(500);
+            createCartesianPlane(document.getElementById('cartesianPoints'), {
+                points: [[0, 4], [3, 2], [6, 0]],
+                lineEquation: { a: 2, b: 3, c: -12 },
+                showLine: false,
+                animatePoints: true
+            });
+            await teacher.speak("Let's plot some solution points for the equation 2x plus 3y equals 12. Watch as each point appears!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 3: Drawing the Line
+            const step3Content = `
+                <div class="step-indicator">Step 3 of 4</div>
+                <h2 class="math-title">✨ The Magic Line</h2>
+                <div class="equation-display" style="font-size: 1.5rem; padding: 15px;">2x + 3y = 12</div>
+                <div style="display: flex; gap: 20px; align-items: center; max-width: 100%;">
+                    <div style="flex: 0.3; max-width: 250px;">
+                        <div class="narration-box" style="font-size: 0.95rem; line-height: 1.5;">
+                            All solutions lie on this straight line!
+                        </div>
+                    </div>
+                    <div class="cartesian-container" id="cartesianLine" style="flex: 0.7; min-width: 400px; height: 350px;"></div>
+                </div>
+            `;
+            await transitionToNextStep(step3Content);
+            await wait(500);
+            createCartesianPlane(document.getElementById('cartesianLine'), {
+                points: [[0, 4], [3, 2], [6, 0]],
+                lineEquation: { a: 2, b: 3, c: -12 },
+                title: "2x + 3y = 12",
+                showLine: true
+            });
+            await teacher.speak("Here's the magic! When we connect all the solution points, they form a perfect straight line!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 4: Conclusion
+            const step4Content = `
+                <div class="step-indicator">Step 4 of 4</div>
+                <h2 class="math-title">♾️ Infinite Solutions</h2>
+                <div class="value-display">∞ Points on the Line</div>
+                <div style="display: flex; gap: 20px; align-items: center; max-width: 100%;">
+                    <div style="flex: 0.3; max-width: 250px;">
+                        <div class="narration-box" style="font-size: 0.95rem; line-height: 1.5;">
+                            Unlike one-variable equations (one point), two-variable equations create a whole line of solutions!
+                            <br><br>
+                            Every point on this line satisfies our equation!
+                        </div>
+                    </div>
+                    <div class="cartesian-container" id="cartesianFinal" style="flex: 0.7; min-width: 400px; height: 350px;"></div>
+                </div>
+            `;
+            await transitionToNextStep(step4Content);
+            await wait(500);
+            createCartesianPlane(document.getElementById('cartesianFinal'), {
+                points: [[0, 4], [3, 2], [6, 0]],
+                lineEquation: { a: 2, b: 3, c: -12 },
+                showLine: true
+            });
+            await teacher.speak("Every point on this line is a solution! That's infinitely many solutions!");
+            await wait(2000);
+            markStepComplete();
+        }
+
+        // TWO VARIABLE QUESTIONS
+        async function showTwoVarQuestions() {
+            stopCurrentDemo();
+            const taskId = Date.now();
+            currentTaskId = taskId;
+            const teacher = createNewTeacher();
+            resetStepCompletion();
+
+            const questions = [
+                {
+                    question: "How many solutions does a two-variable linear equation have?",
+                    options: ["No solutions", "One solution", "Two solutions", "Infinitely many solutions"],
+                    correct: 3,
+                    explanation: "Perfect! Two-variable equations have infinitely many solutions! Every point on the line is a solution!"
+                },
+                {
+                    question: "What shape does a two-variable equation make on a graph?",
+                    options: ["A point", "A straight line", "A curve", "A circle"],
+                    correct: 1,
+                    explanation: "Excellent! Two-variable linear equations always form a straight line on the coordinate plane!"
+                }
+            ];
+
+            for (let i = 0; i < questions.length; i++) {
+                if (currentTaskId !== taskId) return;
+
+                const q = questions[i];
+                teacher.speak(`Question ${i + 1}: ${q.question}`);
+                
+                const content = createStageContent();
+                content.innerHTML = `
+                    <div class="step-indicator">Question ${i + 1} of ${questions.length}</div>
+                    <div class="quiz-question">
+                        <div class="question-text">${q.question}</div>
+                        <div class="quiz-options" id="options2-${i}">
+                            ${q.options.map((opt, idx) => `
+                                <div class="quiz-option" data-index="${idx}">${opt}</div>
+                            `).join('')}
+                        </div>
+                        <div id="feedback2-${i}"></div>
+                    </div>
+                    <div class="narration-box">
+                        Think about what we learned about two-variable equations!
+                    </div>
+                `;
+
+                await new Promise(resolve => {
+                    const options = document.querySelectorAll(`#options2-${i} .quiz-option`);
+                    options.forEach(opt => {
+                        opt.addEventListener('click', function() {
+                            const selected = parseInt(this.getAttribute('data-index'));
+                            options.forEach(o => o.style.pointerEvents = 'none');
+                            
+                            if (selected === q.correct) {
+                                this.classList.add('correct');
+                                document.getElementById(`feedback2-${i}`).innerHTML = `
+                                    <div class="feedback-message correct">
+                                        ✅ ${q.explanation}
+                                    </div>
+                                `;
+                                teacher.speakQuizFeedback(q.explanation);
+                            } else {
+                                this.classList.add('incorrect');
+                                options[q.correct].classList.add('correct');
+                                document.getElementById(`feedback2-${i}`).innerHTML = `
+                                    <div class="feedback-message incorrect">
+                                        ❌ Not quite! The correct answer is: ${q.options[q.correct]}
+                                    </div>
+                                `;
+                                teacher.speakQuizFeedback(`Not quite right. The correct answer is ${q.options[q.correct]}`);
+                            }
+                            
+                            setTimeout(resolve, 6000);
+                        });
+                    });
+                });
+
+                if (currentTaskId !== taskId) return;
+                clearStage();
+                await wait(500);
+            }
+
+            if (currentTaskId === taskId) {
+                const content = createStageContent();
+                content.innerHTML = `
+                    <h2 class="math-title">📊 Great Job!</h2>
+                    <div class="value-display">Quiz Complete! ✅</div>
+                    <div class="narration-box">
+                        You're learning about two-variable equations brilliantly!
+                        Keep exploring to master this topic! 🌟
+                    </div>
+                `;
+                teacher.speak("Great job completing the two-variable equations quiz!");
+            }
+        }
+
+        // INFINITELY MANY
+        async function showInfinitelyMany() {
+            stopCurrentDemo();
+            const taskId = Date.now();
+            currentTaskId = taskId;
+            const teacher = createNewTeacher();
+            resetStepCompletion();
+
+            // Step 1: Concept Introduction
+            const step1Content = `
+                <div class="step-indicator">Step 1 of 3</div>
+                <h2 class="math-title">♾️ Infinitely Many Solutions</h2>
+                <div class="narration-box">
+                    Two-variable equations have INFINITELY many solutions!
+                    <br><br>
+                    This means there are unlimited pairs of (x, y) values
+                    that make the equation true!
+                </div>
+                <div class="value-display">∞</div>
+            `;
+            await transitionToNextStep(step1Content);
+            await teacher.speak("Let's understand why two-variable equations have infinitely many solutions. This is fascinating!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 2: Show Examples
+            const step2Content = `
+                <div class="step-indicator">Step 2 of 3</div>
+                <h2 class="math-title">📝 Example Solutions</h2>
+                <div class="equation-display">2x + 3y = 12</div>
+                <div class="solutions-grid">
+                    <div class="solution-bubble">(0, 4)</div>
+                    <div class="solution-bubble">(3, 2)</div>
+                    <div class="solution-bubble">(6, 0)</div>
+                    <div class="solution-bubble">(1.5, 3)</div>
+                    <div class="solution-bubble">(4.5, 1)</div>
+                    <div class="solution-bubble">...</div>
+                </div>
+                <div class="narration-box">
+                    And these are just a FEW examples!
+                    There are infinitely more solutions!
+                </div>
+            `;
+            await transitionToNextStep(step2Content);
+            await teacher.speak("Let's see some example solutions for the equation 2x plus 3y equals 12. Notice how many different pairs work!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 3: Visual Understanding
+            const step3Content = `
+                <div class="step-indicator">Step 3 of 3</div>
+                <h2 class="math-title">🎯 Why Infinitely Many?</h2>
+                <div style="display: flex; gap: 20px; align-items: flex-start; max-width: 100%;">
+                    <div style="flex: 0.4; max-width: 300px;">
+                        <div class="narration-box" style="margin-bottom: 15px; font-size: 0.95rem; line-height: 1.5;">
+                            When graphed, all solutions form a straight line.
+                        </div>
+                        <div class="narration-box" style="margin-bottom: 15px; font-size: 0.95rem; line-height: 1.5;">
+                            Since a line contains infinite points, we have infinitely many solutions!
+                        </div>
+                        <div class="narration-box" style="font-size: 0.95rem; line-height: 1.5;">
+                            This is what makes two-variable equations special!
+                        </div>
+                    </div>
+                    <div class="cartesian-container" id="infiniteGraph" style="flex: 0.6; min-width: 400px; height: 350px;"></div>
+                </div>
+            `;
+            await transitionToNextStep(step3Content);
+            await wait(500);
+            createCartesianPlane(document.getElementById('infiniteGraph'), {
+                points: [[0, 4], [3, 2], [6, 0]],
+                lineEquation: { a: 2, b: 3, c: -12 },
+                showLine: true
+            });
+            await teacher.speak("When we graph all these solutions, they form a continuous line. Every point on that line is a solution!");
+            await wait(2000);
+            markStepComplete();
+        }
+
+        // COMPARISON
+        async function showComparison() {
+            stopCurrentDemo();
+            const taskId = Date.now();
+            currentTaskId = taskId;
+            const teacher = createNewTeacher();
+            resetStepCompletion();
+
+            // Step 1: Side by Side
+            const step1Content = `
+                <div class="step-indicator">Step 1 of 3</div>
+                <h2 class="math-title">⚖️ Comparison</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h3>One Variable</h3>
+                        <div class="equation-display" style="font-size: 1.3rem;">2x + 5 = 0</div>
+                    </div>
+                    <div class="comparison-card">
+                        <h3>Two Variables</h3>
+                        <div class="equation-display" style="font-size: 1.3rem;">2x + 3y = 12</div>
+                    </div>
+                </div>
+                <div class="narration-box">
+                    Notice the difference? One has one unknown, the other has two!
+                </div>
+            `;
+            await transitionToNextStep(step1Content);
+            await teacher.speak("Let's compare one-variable and two-variable equations side by side to see the key differences!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 2: Solutions Comparison
+            const step2Content = `
+                <div class="step-indicator">Step 2 of 3</div>
+                <h2 class="math-title">🔢 Number of Solutions</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h3>One Variable</h3>
+                        <div class="value-display" style="font-size: 2rem;">1</div>
+                        <p>ONE unique solution</p>
+                        <p style="font-size: 1.1rem; margin-top: 10px;">x = -2.5</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h3>Two Variables</h3>
+                        <div class="value-display" style="font-size: 2rem;">∞</div>
+                        <p>INFINITE solutions</p>
+                        <p style="font-size: 1.1rem; margin-top: 10px;">(0,4), (3,2), (6,0)...</p>
+                    </div>
+                </div>
+            `;
+            await transitionToNextStep(step2Content);
+            await teacher.speak("The number of solutions is completely different! One variable gives us ONE solution, while two variables give us INFINITE solutions!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 3: Graph Comparison
+            const step3Content = `
+                <div class="step-indicator">Step 3 of 3</div>
+                <h2 class="math-title">📊 Graphical Representation</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h3>One Variable</h3>
+                        <p>📍 A single POINT</p>
+                        <p style="margin-top: 10px;">on a number line</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h3>Two Variables</h3>
+                        <p>📈 A straight LINE</p>
+                        <p style="margin-top: 10px;">on a coordinate plane</p>
+                    </div>
+                </div>
+                <div class="narration-box">
+                    This is the fundamental difference between
+                    one-variable and two-variable equations!
+                </div>
+            `;
+            await transitionToNextStep(step3Content);
+            await teacher.speak("On a graph, one-variable equations give us a single point, while two-variable equations give us an entire line!");
+            await wait(2000);
+            markStepComplete();
+        }
+
+        // SOLUTION CHART (3rd position - after Introduction)
+        async function showSolutionChart() {
+            stopCurrentDemo();
+            const taskId = Date.now();
+            currentTaskId = taskId;
+            const teacher = createNewTeacher();
+            resetStepCompletion();
+
+            const content = `
+                <h2 class="math-title">📊 Solution Comparison Charts</h2>
+                <div class="chart-description">
+                    Visualizing the fundamental difference between one-variable and two-variable equations
+                </div>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <canvas id="oneVarChart" width="250" height="250"></canvas>
+                        <div class="comparison-label">One Variable</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="twoVarChart" width="250" height="250"></canvas>
+                        <div class="comparison-label">Two Variables</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="solutionCountChart" width="250" height="250"></canvas>
+                        <div class="comparison-label">Solution Count</div>
+                    </div>
+                </div>
+                <div class="narration-box">
+                    These charts show how one-variable equations have exactly ONE solution, 
+                    while two-variable equations have INFINITELY many solutions!
+                </div>
+            `;
+            
+            await transitionToNextStep(content);
+            await teacher.speak("Let's visualize the key difference between one-variable and two-variable equations using these comparison charts.");
+            if (currentTaskId !== taskId) return;
+            await wait(1000);
+            
+            // One Variable Chart (Number Line)
+            createChart('oneVarChart', 'scatter', {
+                datasets: [{
+                    label: 'One Variable Solution',
+                    data: [{ x: -2.5, y: 0 }],
+                    backgroundColor: 'rgba(79, 172, 254, 0.8)',
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    pointRadius: 12,
+                    pointHoverRadius: 15
+                }]
+            }, {
+                scales: {
+                    x: { min: -5, max: 5, ticks: { color: '#e2e8f0' } },
+                    y: { min: -1, max: 1, ticks: { display: false } }
+                }
+            });
+            
+            // Two Variable Chart (Line)
+            createChart('twoVarChart', 'line', {
+                datasets: [{
+                    label: 'Two Variable Solutions',
+                    data: [
+                        { x: -3, y: 6 }, { x: -2, y: 5.33 }, { x: -1, y: 4.67 },
+                        { x: 0, y: 4 }, { x: 1, y: 3.33 }, { x: 2, y: 2.67 },
+                        { x: 3, y: 2 }, { x: 4, y: 1.33 }, { x: 5, y: 0.67 }
+                    ],
+                    borderColor: 'rgba(251, 191, 36, 1)',
+                    backgroundColor: 'rgba(251, 191, 36, 0.2)',
+                    tension: 0,
+                    pointRadius: 3
+                }]
+            }, {
+                scales: {
+                    x: { min: -4, max: 6, ticks: { color: '#e2e8f0' } },
+                    y: { min: 0, max: 7, ticks: { color: '#e2e8f0' } }
+                }
+            });
+            
+            // Solution Count Chart
+            createChart('solutionCountChart', 'bar', {
+                labels: ['One Variable', 'Two Variables'],
+                datasets: [{
+                    data: [1, 1000],
+                    backgroundColor: [
+                        'rgba(79, 172, 254, 0.8)',
+                        'rgba(251, 191, 36, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(79, 172, 254, 1)',
+                        'rgba(251, 191, 36, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            }, {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 1200,
+                        ticks: {
+                            color: '#e2e8f0',
+                            callback: function(value) {
+                                if (value === 1000) return '∞';
+                                return value;
+                            }
+                        }
+                    },
+                    x: { ticks: { color: '#e2e8f0' } }
+                }
+            });
+            
+            await wait(3000);
+            markStepComplete();
+        }
+
+        // LIVE PLOTTER (5th position - after One Variable)
+        async function showLivePlotter() {
+            stopCurrentDemo();
+            const taskId = Date.now();
+            currentTaskId = taskId;
+            const teacher = createNewTeacher();
+            resetStepCompletion();
+
+            const content = `
+                <h2 class="math-title">🎯 Live Equation Plotter</h2>
+                <div class="chart-description">
+                    Watch how different one-variable equations create different points on the number line
+                </div>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <canvas id="eq1Chart" width="250" height="250"></canvas>
+                        <div class="comparison-label">2x + 5 = 0</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="eq2Chart" width="250" height="250"></canvas>
+                        <div class="comparison-label">3x - 6 = 0</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="eq3Chart" width="250" height="250"></canvas>
+                        <div class="comparison-label">x + 3 = 0</div>
+                    </div>
+                </div>
+                <div class="narration-box">
+                    Each equation creates a single point on the number line. 
+                    Notice how different equations give us different solution points!
+                </div>
+            `;
+            
+            await transitionToNextStep(content);
+            await teacher.speak("Now let's see how one-variable equations create single points on a number line. Each equation gives us exactly one solution!");
+            if (currentTaskId !== taskId) return;
+            await wait(1000);
+            
+            // Equation 1: 2x + 5 = 0, solution: x = -2.5
+            createChart('eq1Chart', 'scatter', {
+                datasets: [{
+                    label: 'Solution',
+                    data: [{ x: -2.5, y: 0 }],
+                    backgroundColor: 'rgba(79, 172, 254, 0.8)',
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    pointRadius: 12,
+                    pointHoverRadius: 15
+                }]
+            }, {
+                scales: {
+                    x: { min: -5, max: 5, ticks: { color: '#e2e8f0' } },
+                    y: { min: -1, max: 1, ticks: { display: false } }
+                }
+            });
+            
+            // Equation 2: 3x - 6 = 0, solution: x = 2
+            createChart('eq2Chart', 'scatter', {
+                datasets: [{
+                    label: 'Solution',
+                    data: [{ x: 2, y: 0 }],
+                    backgroundColor: 'rgba(251, 191, 36, 0.8)',
+                    borderColor: 'rgba(251, 191, 36, 1)',
+                    pointRadius: 12,
+                    pointHoverRadius: 15
+                }]
+            }, {
+                scales: {
+                    x: { min: -5, max: 5, ticks: { color: '#e2e8f0' } },
+                    y: { min: -1, max: 1, ticks: { display: false } }
+                }
+            });
+            
+            // Equation 3: x + 3 = 0, solution: x = -3
+            createChart('eq3Chart', 'scatter', {
+                datasets: [{
+                    label: 'Solution',
+                    data: [{ x: -3, y: 0 }],
+                    backgroundColor: 'rgba(67, 233, 123, 0.8)',
+                    borderColor: 'rgba(67, 233, 123, 1)',
+                    pointRadius: 12,
+                    pointHoverRadius: 15
+                }]
+            }, {
+                scales: {
+                    x: { min: -5, max: 5, ticks: { color: '#e2e8f0' } },
+                    y: { min: -1, max: 1, ticks: { display: false } }
+                }
+            });
+            
+            await wait(3000);
+            markStepComplete();
+        }
+
+        // DISTRIBUTION VIZ (7th position - after One Var Graph)
+        async function showDistributionViz() {
+            stopCurrentDemo();
+            const taskId = Date.now();
+            currentTaskId = taskId;
+            const teacher = createNewTeacher();
+            resetStepCompletion();
+
+            const content = `
+                <h2 class="math-title">📈 Solution Distribution Comparison</h2>
+                <div class="chart-description">
+                    Comparing how solutions are distributed: single points vs continuous lines
+                </div>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <canvas id="singlePointChart" width="250" height="250"></canvas>
+                        <div class="comparison-label">One Variable</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="continuousLineChart" width="250" height="250"></canvas>
+                        <div class="comparison-label">Two Variables</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="combinedChart" width="250" height="250"></canvas>
+                        <div class="comparison-label">Combined View</div>
+                    </div>
+                </div>
+                <div class="narration-box">
+                    One-variable equations create isolated points, while two-variable equations 
+                    create continuous lines with infinite solution points!
+                </div>
+            `;
+            
+            await transitionToNextStep(content);
+            await teacher.speak("Let's compare how solutions are distributed. One-variable equations create single points, while two-variable equations create continuous lines!");
+            if (currentTaskId !== taskId) return;
+            await wait(1000);
+            
+            // Single Point Chart (One Variable)
+            createChart('singlePointChart', 'scatter', {
+                datasets: [{
+                    label: 'One Variable Solution',
+                    data: [{ x: 2, y: 1 }],
+                    backgroundColor: 'rgba(79, 172, 254, 0.8)',
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    pointRadius: 15,
+                    pointHoverRadius: 18
+                }]
+            }, {
+                scales: {
+                    x: { min: -2, max: 6, ticks: { color: '#e2e8f0' } },
+                    y: { min: -1, max: 3, ticks: { color: '#e2e8f0' } }
+                }
+            });
+            
+            // Continuous Line Chart (Two Variables)
+            createChart('continuousLineChart', 'line', {
+                datasets: [{
+                    label: 'Two Variable Solutions',
+                    data: [
+                        { x: -2, y: 0 }, { x: -1, y: 0.5 }, { x: 0, y: 1 },
+                        { x: 1, y: 1.5 }, { x: 2, y: 2 }, { x: 3, y: 2.5 },
+                        { x: 4, y: 3 }, { x: 5, y: 3.5 }
+                    ],
+                    borderColor: 'rgba(251, 191, 36, 1)',
+                    backgroundColor: 'rgba(251, 191, 36, 0.2)',
+                    tension: 0,
+                    pointRadius: 3,
+                    fill: true
+                }]
+            }, {
+                scales: {
+                    x: { min: -2, max: 6, ticks: { color: '#e2e8f0' } },
+                    y: { min: -1, max: 4, ticks: { color: '#e2e8f0' } }
+                }
+            });
+            
+            // Combined View Chart
+            createChart('combinedChart', 'line', {
+                datasets: [
+                    {
+                        label: 'One Variable (Point)',
+                        data: [{ x: 2, y: 1 }],
+                        type: 'scatter',
+                        backgroundColor: 'rgba(79, 172, 254, 0.8)',
+                        borderColor: 'rgba(79, 172, 254, 1)',
+                        pointRadius: 12,
+                        showLine: false
+                    },
+                    {
+                        label: 'Two Variables (Line)',
+                        data: [
+                            { x: -2, y: 0 }, { x: -1, y: 0.5 }, { x: 0, y: 1 },
+                            { x: 1, y: 1.5 }, { x: 2, y: 2 }, { x: 3, y: 2.5 },
+                            { x: 4, y: 3 }, { x: 5, y: 3.5 }
+                        ],
+                        borderColor: 'rgba(251, 191, 36, 1)',
+                        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                        tension: 0,
+                        pointRadius: 2
+                    }
+                ]
+            }, {
+                scales: {
+                    x: { min: -2, max: 6, ticks: { color: '#e2e8f0' } },
+                    y: { min: -1, max: 4, ticks: { color: '#e2e8f0' } }
+                }
+            });
+            
+            await wait(4000);
+            markStepComplete();
+        }
+
+        // INTERACTIVE DEMO
+        async function showInteractiveDemo() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+            resetStepCompletion();
+            teacher.speak("Try adjusting the sliders to create your own equation and see how the line changes in real-time!");
+
+            const interactiveContent = `
+                <h2 class="math-title">🎮 Interactive Demo</h2>
+                <div class="equation-display" id="interactiveEq">2x + 3y = 12</div>
+                <div class="interactive-demo-container">
+                    <div class="interactive-demo-controls" id="interactiveControls" style="opacity: 0; transform: translateX(-30px);">
+                        <div class="slider-container">
+                            <div class="slider-label">
+                                <span>Coefficient a:</span>
+                                <span id="aValue">2</span>
+                            </div>
+                            <input type="range" id="aSlider" min="-5" max="5" value="2" step="1">
+                        </div>
+                        <div class="slider-container">
+                            <div class="slider-label">
+                                <span>Coefficient b:</span>
+                                <span id="bValue">3</span>
+                            </div>
+                            <input type="range" id="bSlider" min="-5" max="5" value="3" step="1">
+                        </div>
+                        <div class="slider-container">
+                            <div class="slider-label">
+                                <span>Constant c:</span>
+                                <span id="cValue">-12</span>
+                            </div>
+                            <input type="range" id="cSlider" min="-20" max="20" value="-12" step="1">
+                        </div>
+                        <p class="math-description" style="margin-top: 20px;">Adjust the sliders to see how the line changes!</p>
+                    </div>
+                    <div class="cartesian-container interactive-demo-chart" id="interactiveChart" style="opacity: 0; transform: translateX(30px);"></div>
+                </div>
+            `;
+            
+            await transitionToNextStep(interactiveContent);
+
+            // Animate controls first
+            setTimeout(() => {
+                const controls = document.getElementById('interactiveControls');
+                if (controls) {
+                    controls.style.transition = 'all 0.6s ease-out';
+                    controls.style.opacity = '1';
+                    controls.style.transform = 'translateX(0)';
+                }
+            }, 500);
+
+            // Animate chart second
+            setTimeout(() => {
+                const chart = document.getElementById('interactiveChart');
+                if (chart) {
+                    chart.style.transition = 'all 0.6s ease-out';
+                    chart.style.opacity = '1';
+                    chart.style.transform = 'translateX(0)';
+                }
+            }, 1200);
+
+            let a = 2, b = 3, c = -12;
+
+            function updateEquation() {
+                document.getElementById('interactiveEq').textContent = 
+                    `${a}x + ${b}y + ${c} = 0`;
+                
+                const points = [];
+                for (let x = -5; x <= 5; x++) {
+                    if (b !== 0) {
+                        const y = -(a * x + c) / b;
+                        if (y >= -5 && y <= 5) {
+                            points.push([x, y]);
+                        }
+                    }
+                }
+
+                document.getElementById('interactiveChart').innerHTML = '';
+                createCartesianPlane(document.getElementById('interactiveChart'), {
+                    points: points.slice(0, 3),
+                    lineEquation: { a, b, c },
+                    showLine: true
+                });
+            }
+
+            document.getElementById('aSlider').addEventListener('input', (e) => {
+                a = parseInt(e.target.value);
+                document.getElementById('aValue').textContent = a;
+                updateEquation();
+            });
+
+            document.getElementById('bSlider').addEventListener('input', (e) => {
+                b = parseInt(e.target.value);
+                document.getElementById('bValue').textContent = b;
+                updateEquation();
+            });
+
+            document.getElementById('cSlider').addEventListener('input', (e) => {
+                c = parseInt(e.target.value);
+                document.getElementById('cValue').textContent = c;
+                updateEquation();
+            });
+
+            updateEquation();
+        }
+
+        // FINAL QUIZ
+        async function showQuiz() {
+            stopCurrentDemo();
+            const taskId = Date.now();
+            currentTaskId = taskId;
+            const teacher = createNewTeacher();
+            resetStepCompletion();
+
+            quizScore = 0;
+            const questions = [
+                {
+                    question: "What is the main difference between one-variable and two-variable equations?",
+                    options: [
+                        "Number of unknowns",
+                        "Number of constants",
+                        "Difficulty level",
+                        "Graph color"
+                    ],
+                    correct: 0,
+                    explanation: "Correct! The main difference is the number of unknowns - one-variable equations have one unknown, while two-variable equations have two unknowns!"
+                },
+                {
+                    question: "If 3x - 9 = 0, what is x?",
+                    options: ["x = -3", "x = 3", "x = 9", "x = -9"],
+                    correct: 1,
+                    explanation: "Perfect! 3x = 9, so x = 3. This is the unique solution!"
+                },
+                {
+                    question: "How does a two-variable equation appear on a graph?",
+                    options: [
+                        "As a single point",
+                        "As a straight line",
+                        "As a parabola",
+                        "As a circle"
+                    ],
+                    correct: 1,
+                    explanation: "Excellent! Two-variable linear equations always form a straight line on the coordinate plane!"
+                },
+                {
+                    question: "Which statement is true about solutions?",
+                    options: [
+                        "One variable = One solution",
+                        "Two variables = Two solutions",
+                        "Both have the same number of solutions",
+                        "Neither has solutions"
+                    ],
+                    correct: 0,
+                    explanation: "Correct! One-variable equations have exactly ONE solution, while two-variable equations have infinitely many solutions!"
+                }
+            ];
+
+            teacher.speak("Welcome to the final quiz! This will test everything you've learned. Let's begin!");
+            await wait(3000);
+
+            for (let i = 0; i < questions.length; i++) {
+                if (currentTaskId !== taskId) return;
+
+                const q = questions[i];
+                teacher.speak(`Question ${i + 1}: ${q.question}`);
+                
+                const content = createStageContent();
+                content.innerHTML = `
+                    <div class="step-indicator">Question ${i + 1} of ${questions.length}</div>
+                    <div class="quiz-question">
+                        <div class="question-text">${q.question}</div>
+                        <div class="quiz-options" id="quiz-options-${i}">
+                            ${q.options.map((opt, idx) => `
+                                <div class="quiz-option" data-index="${idx}">${opt}</div>
+                            `).join('')}
+                        </div>
+                        <div id="quiz-feedback-${i}"></div>
+                    </div>
+                `;
+
+                await new Promise(resolve => {
+                    const options = document.querySelectorAll(`#quiz-options-${i} .quiz-option`);
+                    options.forEach(opt => {
+                        opt.addEventListener('click', function() {
+                            const selected = parseInt(this.getAttribute('data-index'));
+                            options.forEach(o => o.style.pointerEvents = 'none');
+                            
+                            if (selected === q.correct) {
+                                this.classList.add('correct');
+                                document.getElementById(`quiz-feedback-${i}`).innerHTML = `
+                                    <div class="feedback-message correct">
+                                        ✅ ${q.explanation}
+                                    </div>
+                                `;
+                                teacher.speakQuizFeedback(q.explanation);
+                                quizScore++;
+                            } else {
+                                this.classList.add('incorrect');
+                                options[q.correct].classList.add('correct');
+                                document.getElementById(`quiz-feedback-${i}`).innerHTML = `
+                                    <div class="feedback-message incorrect">
+                                        ❌ The correct answer is: ${q.options[q.correct]}
+                                    </div>
+                                `;
+                                teacher.speakQuizFeedback(`Incorrect. The right answer is ${q.options[q.correct]}`);
+                            }
+                            
+                            setTimeout(resolve, 7000);
+                        });
+                    });
+                });
+
+                if (currentTaskId !== taskId) return;
+                clearStage();
+                await wait(500);
+            }
+
+            if (currentTaskId === taskId) {
+                const percentage = (quizScore / questions.length) * 100;
+                const grade = percentage >= 80 ? "Excellent! 🌟" : 
+                             percentage >= 60 ? "Good Job! 👍" : 
+                             "Keep Practicing! 💪";
+
+                teacher.speak(`Quiz complete! You scored ${quizScore} out of ${questions.length}. ${grade}`);
+                
+                const content = createStageContent();
+                content.innerHTML = `
+                    <h2 class="math-title">🏆 Final Results</h2>
+                    <div class="value-display">${quizScore}/${questions.length}</div>
+                    <div class="formula-box">
+                        <p class="formula">${Math.round(percentage)}%</p>
+                        <p style="color: #e2e8f0; margin-top: 15px; font-size: 1.3rem;">
+                            ${grade}
+                        </p>
+                    </div>
+                    <div class="narration-box">
+                        ${percentage >= 80 ? 
+                            "Outstanding! You've mastered linear equations! 🎉" :
+                            percentage >= 60 ?
+                            "Great effort! Review the concepts to improve further! 📚" :
+                            "Keep studying! Practice makes perfect! 💪"}
+                    </div>
+                `;
+            }
+        }
+
+        // Content Functions (used by complete lesson)
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            
+            // Step 1: Welcome
+            const step1Content = `
+                <div class="step-indicator">Step 1 of 4</div>
+                <h2 class="math-title">🎯 What is a Variable?</h2>
+                <div class="narration-box">
+                    A variable is an unknown value represented by a letter like x or y.
+                    Think of it as a mystery number we need to find!
+                </div>
+                <div class="value-display">x = ?</div>
+            `;
+            await transitionToNextStep(step1Content);
+            await teacher.speak("Welcome to the world of linear equations! Let's start by understanding what a variable is.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 2: Equation Definition
+            const step2Content = `
+                <div class="step-indicator">Step 2 of 4</div>
+                <h2 class="math-title">⚖️ What is an Equation?</h2>
+                <div class="narration-box">
+                    An equation shows that two expressions are equal.
+                    It's like a mathematical balance - what's on the left equals what's on the right!
+                </div>
+                <div class="equation-display">x + 3 = 7</div>
+                <p class="math-description">This means: "Some number plus 3 equals 7"</p>
+            `;
+            await transitionToNextStep(step2Content);
+            await teacher.speak("An equation is like a balanced scale. Both sides must be equal. Let's see an example.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 3: Linear Equation
+            const step3Content = `
+                <div class="step-indicator">Step 3 of 4</div>
+                <h2 class="math-title">📏 Linear Equations</h2>
+                <div class="narration-box">
+                    Linear equations create straight lines when graphed.
+                    They're called "linear" because of this line property!
+                </div>
+                <div class="formula-box">
+                    <p class="formula">ax + by + c = 0</p>
+                    <p style="color: #e2e8f0; margin-top: 15px;">
+                        This is the standard form of a linear equation
+                    </p>
+                </div>
+            `;
+            await transitionToNextStep(step3Content);
+            await teacher.speak("A linear equation forms a straight line when graphed. The general form is ax plus by plus c equals zero.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 4: Two Types
+            const step4Content = `
+                <div class="step-indicator">Step 4 of 4</div>
+                <h2 class="math-title">🎭 Two Types</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h3>One Variable</h3>
+                        <div class="equation-display" style="font-size: 1.5rem;">2x + 5 = 0</div>
+                        <p>One unknown to find</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h3>Two Variables</h3>
+                        <div class="equation-display" style="font-size: 1.5rem;">2x + 3y = 12</div>
+                        <p>Two unknowns to find</p>
+                    </div>
+                </div>
+                <div class="narration-box">
+                    Let's explore each type and discover their unique characteristics!
+                </div>
+            `;
+            await transitionToNextStep(step4Content);
+            await teacher.speak("We can have equations with one variable or two variables. Each type has unique properties we'll explore!");
+            await wait(2000);
+            markStepComplete();
+        }
+
+        async function showOneVariableContent(taskId) {
+            const teacher = currentTeacher;
+            
+            // Step 1: Introduction
+            const step1Content = `
+                <div class="step-indicator">Step 1 of 4</div>
+                <h2 class="math-title">1️⃣ One Variable Equations</h2>
+                <div class="narration-box">
+                    In a one-variable equation, we have only ONE unknown to find.
+                    Let's see what this means!
+                </div>
+                <div class="equation-display">2x + 5 = 0</div>
+                <p class="math-description">Here, 'x' is the only variable we need to find</p>
+            `;
+            await transitionToNextStep(step1Content);
+            await teacher.speak("Let's explore one-variable equations. These have only ONE unknown value to find.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 2: Solving Process
+            const step2Content = `
+                <div class="step-indicator">Step 2 of 4</div>
+                <h2 class="math-title">🔍 Solving the Equation</h2>
+                <div class="narration-box">
+                    Step 1: Start with the equation
+                </div>
+                <div class="equation-display">2x + 5 = 0</div>
+                <div class="narration-box" style="margin-top: 20px;">
+                    Step 2: Subtract 5 from both sides
+                </div>
+                <div class="equation-display">2x = -5</div>
+            `;
+            await transitionToNextStep(step2Content);
+            await teacher.speak("To solve this, we need to isolate x. First, we subtract 5 from both sides.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 3: Final Solution
+            const step3Content = `
+                <div class="step-indicator">Step 3 of 4</div>
+                <h2 class="math-title">✨ The Solution</h2>
+                <div class="narration-box">
+                    Step 3: Divide both sides by 2
+                </div>
+                <div class="equation-display">x = -2.5</div>
+                <div class="value-display">Solution: x = -2.5</div>
+                <div class="narration-box" style="margin-top: 20px;">
+                    This is the ONLY value that satisfies our equation!
+                </div>
+            `;
+            await transitionToNextStep(step3Content);
+            await teacher.speak("Now we divide both sides by 2 to get x equals negative 2.5. This is our unique solution!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 4: Key Point
+            const step4Content = `
+                <div class="step-indicator">Step 4 of 4</div>
+                <h2 class="math-title">🎯 Key Takeaway</h2>
+                <div class="formula-box">
+                    <p class="formula">1 Variable = 1 Solution</p>
+                </div>
+                <div class="narration-box">
+                    One-variable equations ALWAYS have exactly ONE unique solution.
+                    No more, no less - just one specific value!
+                </div>
+            `;
+            await transitionToNextStep(step4Content);
+            await teacher.speak("The most important thing to remember: one-variable equations always have exactly ONE unique solution!");
+            await wait(2000);
+            markStepComplete();
+        }
+
+        async function showOneVarGraphContent(taskId) {
+            const teacher = currentTeacher;
+            
+            // Step 1: Number Line Introduction
+            const step1Content = `
+                <div class="step-indicator">Step 1 of 3</div>
+                <h2 class="math-title">📊 Visualizing on a Number Line</h2>
+                <div class="narration-box">
+                    A number line shows all possible values.
+                    Let's mark where our solution appears!
+                </div>
+                <div class="number-line-container" id="numberLine1"></div>
+            `;
+            await transitionToNextStep(step1Content);
+            await wait(500);
+            createNumberLine(document.getElementById('numberLine1'), {
+                min: -6, max: 4, solution: null, showSolution: false
+            });
+            await teacher.speak("Let's visualize our solution on a number line. This helps us see where our answer fits in the world of numbers.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 2: Show Solution
+            const step2Content = `
+                <div class="step-indicator">Step 2 of 3</div>
+                <h2 class="math-title">🎯 Marking the Solution</h2>
+                <div class="equation-display">x = -2.5</div>
+                <div class="narration-box">
+                    Our solution appears as a single point at x = -2.5
+                </div>
+                <div class="number-line-container" id="numberLine2"></div>
+            `;
+            await transitionToNextStep(step2Content);
+            await wait(500);
+            createNumberLine(document.getElementById('numberLine2'), {
+                min: -6, max: 4, solution: -2.5, showSolution: true, animate: true
+            });
+            await teacher.speak("Now watch carefully as we mark our solution, x equals negative 2.5, on the number line. This single point represents our answer!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 3: Conclusion
+            const step3Content = `
+                <div class="step-indicator">Step 3 of 3</div>
+                <h2 class="math-title">✨ The Big Picture</h2>
+                <div class="value-display">One Point = One Solution</div>
+                <div class="narration-box">
+                    One-variable equations give us a single point on the number line.
+                    This represents our one unique solution!
+                </div>
+                <div class="number-line-container" id="numberLine3"></div>
+            `;
+            await transitionToNextStep(step3Content);
+            await wait(500);
+            createNumberLine(document.getElementById('numberLine3'), {
+                min: -6, max: 4, solution: -2.5, showSolution: true
+            });
+            await teacher.speak("This is what makes one-variable equations special - they give us one precise point, one exact answer!");
+            await wait(2000);
+            markStepComplete();
+        }
+
+        async function showTwoVariablesContent(taskId) {
+            const teacher = currentTeacher;
+            
+            // Step 1: Introduction
+            const step1Content = `
+                <div class="step-indicator">Step 1 of 4</div>
+                <h2 class="math-title">2️⃣ Two Variable Equations</h2>
+                <div class="narration-box">
+                    Two-variable equations have TWO unknowns: usually x and y.
+                    They represent relationships between two quantities!
+                </div>
+                <div class="equation-display">2x + 3y = 12</div>
+                <p class="math-description">Both x and y are variables we work with!</p>
+            `;
+            await transitionToNextStep(step1Content);
+            await teacher.speak("Now let's explore two-variable equations. These involve TWO unknowns and are more complex and interesting!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 2: Standard Form
+            const step2Content = `
+                <div class="step-indicator">Step 2 of 4</div>
+                <h2 class="math-title">📐 Standard Form</h2>
+                <div class="formula-box">
+                    <p class="formula">ax + by + c = 0</p>
+                    <p style="color: #e2e8f0; margin-top: 15px; font-size: 1.1rem;">
+                        Where a, b, and c are constants (known numbers)
+                    </p>
+                </div>
+                <div class="narration-box">
+                    a, b, and c are coefficients - they tell us how to combine x and y
+                </div>
+            `;
+            await transitionToNextStep(step2Content);
+            await teacher.speak("The standard form of a two-variable equation is: a times x plus b times y plus c equals zero.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 3: Examples
+            const step3Content = `
+                <div class="step-indicator">Step 3 of 4</div>
+                <h2 class="math-title">📝 Real Examples</h2>
+                <div class="example-box">
+                    <div class="example-content">
+                        <p style="margin: 15px 0; font-size: 1.2rem;">
+                            <strong>Example 1:</strong> 2x + 3y = 12
+                        </p>
+                        <p style="margin: 15px 0; font-size: 1.2rem;">
+                            <strong>Example 2:</strong> x + y = 176
+                        </p>
+                        <p style="margin: 15px 0; font-size: 1.2rem;">
+                            <strong>Example 3:</strong> 5x - 3y = 4
+                        </p>
+                    </div>
+                </div>
+                <div class="narration-box">
+                    Each equation shows a different relationship between x and y!
+                </div>
+            `;
+            await transitionToNextStep(step3Content);
+            await teacher.speak("Here are some examples of two-variable equations you might encounter in real life!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 4: Key Concept
+            const step4Content = `
+                <div class="step-indicator">Step 4 of 4</div>
+                <h2 class="math-title">💡 Key Difference</h2>
+                <div class="value-display">Many Solutions!</div>
+                <div class="narration-box">
+                    Two-variable equations have MULTIPLE solutions!
+                    For example, in 2x + 3y = 12:
+                    <br><br>
+                    • When x = 0, y = 4 ✓
+                    <br>
+                    • When x = 3, y = 2 ✓
+                    <br>
+                    • When x = 6, y = 0 ✓
+                    <br><br>
+                    All of these are valid solutions!
+                </div>
+            `;
+            await transitionToNextStep(step4Content);
+            await teacher.speak("Unlike one-variable equations, two-variable equations don't have just one solution - they have many solutions!");
+            await wait(2000);
+            markStepComplete();
+        }
+
+        async function showTwoVarGraphContent(taskId) {
+            const teacher = currentTeacher;
+            
+            // Step 1: Coordinate System
+            const step1Content = `
+                <div class="step-indicator">Step 1 of 4</div>
+                <h2 class="math-title">📈 The Coordinate Plane</h2>
+                <div style="display: flex; gap: 20px; align-items: center; max-width: 100%;">
+                    <div style="flex: 0.3; max-width: 250px;">
+                        <div class="narration-box" style="font-size: 0.95rem; line-height: 1.5;">
+                            We use a 2D plane with two axes:
+                            <br><br>
+                            • Horizontal axis is for x values
+                            <br>
+                            • Vertical axis is for y values
+                        </div>
+                    </div>
+                    <div class="cartesian-container" id="cartesianEmpty" style="flex: 0.7; min-width: 400px; height: 350px;"></div>
+                </div>
+            `;
+            await transitionToNextStep(step1Content);
+            await wait(500);
+            createCartesianPlane(document.getElementById('cartesianEmpty'), {
+                points: [],
+                showLine: false
+            });
+            await teacher.speak("To graph two-variable equations, we use a coordinate plane with an x-axis and a y-axis.");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 2: Plotting Points
+            const step2Content = `
+                <div class="step-indicator">Step 2 of 4</div>
+                <h2 class="math-title">📍 Plotting Solutions</h2>
+                <div class="equation-display" style="font-size: 1.5rem; padding: 15px;">2x + 3y = 12</div>
+                <div style="display: flex; gap: 20px; align-items: center; max-width: 100%;">
+                    <div style="flex: 0.3; max-width: 250px;">
+                        <div class="narration-box" style="font-size: 0.95rem; line-height: 1.5;">
+                            Each point represents a solution: (x, y)
+                        </div>
+                    </div>
+                    <div class="cartesian-container" id="cartesianPoints" style="flex: 0.7; min-width: 400px; height: 350px;"></div>
+                </div>
+            `;
+            await transitionToNextStep(step2Content);
+            await wait(500);
+            createCartesianPlane(document.getElementById('cartesianPoints'), {
+                points: [[0, 4], [3, 2], [6, 0]],
+                lineEquation: { a: 2, b: 3, c: -12 },
+                showLine: false,
+                animatePoints: true
+            });
+            await teacher.speak("Let's plot some solution points for the equation 2x plus 3y equals 12. Watch as each point appears!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 3: Drawing the Line
+            const step3Content = `
+                <div class="step-indicator">Step 3 of 4</div>
+                <h2 class="math-title">✨ The Magic Line</h2>
+                <div class="equation-display" style="font-size: 1.5rem; padding: 15px;">2x + 3y = 12</div>
+                <div style="display: flex; gap: 20px; align-items: center; max-width: 100%;">
+                    <div style="flex: 0.3; max-width: 250px;">
+                        <div class="narration-box" style="font-size: 0.95rem; line-height: 1.5;">
+                            All solutions lie on this straight line!
+                        </div>
+                    </div>
+                    <div class="cartesian-container" id="cartesianLine" style="flex: 0.7; min-width: 400px; height: 350px;"></div>
+                </div>
+            `;
+            await transitionToNextStep(step3Content);
+            await wait(500);
+            createCartesianPlane(document.getElementById('cartesianLine'), {
+                points: [[0, 4], [3, 2], [6, 0]],
+                lineEquation: { a: 2, b: 3, c: -12 },
+                title: "2x + 3y = 12",
+                showLine: true
+            });
+            await teacher.speak("Here's the magic! When we connect all the solution points, they form a perfect straight line!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 4: Conclusion
+            const step4Content = `
+                <div class="step-indicator">Step 4 of 4</div>
+                <h2 class="math-title">♾️ Infinite Solutions</h2>
+                <div class="value-display">∞ Points on the Line</div>
+                <div style="display: flex; gap: 20px; align-items: center; max-width: 100%;">
+                    <div style="flex: 0.3; max-width: 250px;">
+                        <div class="narration-box" style="font-size: 0.95rem; line-height: 1.5;">
+                            Unlike one-variable equations (one point), two-variable equations create a whole line of solutions!
+                            <br><br>
+                            Every point on this line satisfies our equation!
+                        </div>
+                    </div>
+                    <div class="cartesian-container" id="cartesianFinal" style="flex: 0.7; min-width: 400px; height: 350px;"></div>
+                </div>
+            `;
+            await transitionToNextStep(step4Content);
+            await wait(500);
+            createCartesianPlane(document.getElementById('cartesianFinal'), {
+                points: [[0, 4], [3, 2], [6, 0]],
+                lineEquation: { a: 2, b: 3, c: -12 },
+                showLine: true
+            });
+            await teacher.speak("Every point on this line is a solution! That's infinitely many solutions!");
+            await wait(2000);
+            markStepComplete();
+        }
+
+        async function showInfinitelyManyContent(taskId) {
+            const teacher = currentTeacher;
+            
+            // Step 1: Concept Introduction
+            const step1Content = `
+                <div class="step-indicator">Step 1 of 3</div>
+                <h2 class="math-title">♾️ Infinitely Many Solutions</h2>
+                <div class="narration-box">
+                    Two-variable equations have INFINITELY many solutions!
+                    <br><br>
+                    This means there are unlimited pairs of (x, y) values
+                    that make the equation true!
+                </div>
+                <div class="value-display">∞</div>
+            `;
+            await transitionToNextStep(step1Content);
+            await teacher.speak("Let's understand why two-variable equations have infinitely many solutions. This is fascinating!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 2: Show Examples
+            const step2Content = `
+                <div class="step-indicator">Step 2 of 3</div>
+                <h2 class="math-title">📝 Example Solutions</h2>
+                <div class="equation-display">2x + 3y = 12</div>
+                <div class="solutions-grid">
+                    <div class="solution-bubble">(0, 4)</div>
+                    <div class="solution-bubble">(3, 2)</div>
+                    <div class="solution-bubble">(6, 0)</div>
+                    <div class="solution-bubble">(1.5, 3)</div>
+                    <div class="solution-bubble">(4.5, 1)</div>
+                    <div class="solution-bubble">...</div>
+                </div>
+                <div class="narration-box">
+                    And these are just a FEW examples!
+                    There are infinitely more solutions!
+                </div>
+            `;
+            await transitionToNextStep(step2Content);
+            await teacher.speak("Let's see some example solutions for the equation 2x plus 3y equals 12. Notice how many different pairs work!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 3: Visual Understanding
+            const step3Content = `
+                <div class="step-indicator">Step 3 of 3</div>
+                <h2 class="math-title">🎯 Why Infinitely Many?</h2>
+                <div style="display: flex; gap: 20px; align-items: flex-start; max-width: 100%;">
+                    <div style="flex: 0.4; max-width: 300px;">
+                        <div class="narration-box" style="margin-bottom: 15px; font-size: 0.95rem; line-height: 1.5;">
+                            When graphed, all solutions form a straight line.
+                        </div>
+                        <div class="narration-box" style="margin-bottom: 15px; font-size: 0.95rem; line-height: 1.5;">
+                            Since a line contains infinite points, we have infinitely many solutions!
+                        </div>
+                        <div class="narration-box" style="font-size: 0.95rem; line-height: 1.5;">
+                            This is what makes two-variable equations special!
+                        </div>
+                    </div>
+                    <div class="cartesian-container" id="infiniteGraph" style="flex: 0.6; min-width: 400px; height: 350px;"></div>
+                </div>
+            `;
+            await transitionToNextStep(step3Content);
+            await wait(500);
+            createCartesianPlane(document.getElementById('infiniteGraph'), {
+                points: [[0, 4], [3, 2], [6, 0]],
+                lineEquation: { a: 2, b: 3, c: -12 },
+                showLine: true
+            });
+            await teacher.speak("When we graph all these solutions, they form a continuous line. Every point on that line is a solution!");
+            await wait(2000);
+            markStepComplete();
+        }
+
+        async function showComparisonContent(taskId) {
+            const teacher = currentTeacher;
+            
+            // Step 1: Side by Side
+            const step1Content = `
+                <div class="step-indicator">Step 1 of 3</div>
+                <h2 class="math-title">⚖️ Comparison</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h3>One Variable</h3>
+                        <div class="equation-display" style="font-size: 1.3rem;">2x + 5 = 0</div>
+                    </div>
+                    <div class="comparison-card">
+                        <h3>Two Variables</h3>
+                        <div class="equation-display" style="font-size: 1.3rem;">2x + 3y = 12</div>
+                    </div>
+                </div>
+                <div class="narration-box">
+                    Notice the difference? One has one unknown, the other has two!
+                </div>
+            `;
+            await transitionToNextStep(step1Content);
+            await teacher.speak("Let's compare one-variable and two-variable equations side by side to see the key differences!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 2: Solutions Comparison
+            const step2Content = `
+                <div class="step-indicator">Step 2 of 3</div>
+                <h2 class="math-title">🔢 Number of Solutions</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h3>One Variable</h3>
+                        <div class="value-display" style="font-size: 2rem;">1</div>
+                        <p>ONE unique solution</p>
+                        <p style="font-size: 1.1rem; margin-top: 10px;">x = -2.5</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h3>Two Variables</h3>
+                        <div class="value-display" style="font-size: 2rem;">∞</div>
+                        <p>INFINITE solutions</p>
+                        <p style="font-size: 1.1rem; margin-top: 10px;">(0,4), (3,2), (6,0)...</p>
+                    </div>
+                </div>
+            `;
+            await transitionToNextStep(step2Content);
+            await teacher.speak("The number of solutions is completely different! One variable gives us ONE solution, while two variables give us INFINITE solutions!");
+            if (currentTaskId !== taskId) return;
+            await wait(2000);
+            markStepComplete();
+            await waitForStepCompletion();
+
+            // Step 3: Graph Comparison
+            const step3Content = `
+                <div class="step-indicator">Step 3 of 3</div>
+                <h2 class="math-title">📊 Graphical Representation</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card">
+                        <h3>One Variable</h3>
+                        <p>📍 A single POINT</p>
+                        <p style="margin-top: 10px;">on a number line</p>
+                    </div>
+                    <div class="comparison-card">
+                        <h3>Two Variables</h3>
+                        <p>📈 A straight LINE</p>
+                        <p style="margin-top: 10px;">on a coordinate plane</p>
+                    </div>
+                </div>
+                <div class="narration-box">
+                    This is the fundamental difference between
+                    one-variable and two-variable equations!
+                </div>
+            `;
+            await transitionToNextStep(step3Content);
+            await teacher.speak("On a graph, one-variable equations give us a single point, while two-variable equations give us an entire line!");
+            await wait(2000);
+            markStepComplete();
+        }
+
+        // Content functions for complete lesson
+        async function showSolutionChartContent(taskId) {
+            const teacher = currentTeacher;
+            
+            const content = `
+                <h2 class="math-title">📊 Solution Comparison Charts</h2>
+                <div class="chart-description">
+                    Visualizing the fundamental difference between one-variable and two-variable equations
+                </div>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <canvas id="oneVarChartComplete" width="250" height="250"></canvas>
+                        <div class="comparison-label">One Variable</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="twoVarChartComplete" width="250" height="250"></canvas>
+                        <div class="comparison-label">Two Variables</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="solutionCountChartComplete" width="250" height="250"></canvas>
+                        <div class="comparison-label">Solution Count</div>
+                    </div>
+                </div>
+                <div class="narration-box">
+                    These charts show how one-variable equations have exactly ONE solution, 
+                    while two-variable equations have INFINITELY many solutions!
+                </div>
+            `;
+            
+            await transitionToNextStep(content);
+            await teacher.speak("Let's visualize the key difference between one-variable and two-variable equations using these comparison charts.");
+            if (currentTaskId !== taskId) return;
+            await wait(1000);
+            
+            // One Variable Chart (Number Line)
+            createChart('oneVarChartComplete', 'scatter', {
+                datasets: [{
+                    label: 'One Variable Solution',
+                    data: [{ x: -2.5, y: 0 }],
+                    backgroundColor: 'rgba(79, 172, 254, 0.8)',
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    pointRadius: 12,
+                    pointHoverRadius: 15
+                }]
+            }, {
+                scales: {
+                    x: { min: -5, max: 5, ticks: { color: '#e2e8f0' } },
+                    y: { min: -1, max: 1, ticks: { display: false } }
+                }
+            });
+            
+            // Two Variable Chart (Line)
+            createChart('twoVarChartComplete', 'line', {
+                datasets: [{
+                    label: 'Two Variable Solutions',
+                    data: [
+                        { x: -3, y: 6 }, { x: -2, y: 5.33 }, { x: -1, y: 4.67 },
+                        { x: 0, y: 4 }, { x: 1, y: 3.33 }, { x: 2, y: 2.67 },
+                        { x: 3, y: 2 }, { x: 4, y: 1.33 }, { x: 5, y: 0.67 }
+                    ],
+                    borderColor: 'rgba(251, 191, 36, 1)',
+                    backgroundColor: 'rgba(251, 191, 36, 0.2)',
+                    tension: 0,
+                    pointRadius: 3
+                }]
+            }, {
+                scales: {
+                    x: { min: -4, max: 6, ticks: { color: '#e2e8f0' } },
+                    y: { min: 0, max: 7, ticks: { color: '#e2e8f0' } }
+                }
+            });
+            
+            // Solution Count Chart
+            createChart('solutionCountChartComplete', 'bar', {
+                labels: ['One Variable', 'Two Variables'],
+                datasets: [{
+                    data: [1, 1000],
+                    backgroundColor: [
+                        'rgba(79, 172, 254, 0.8)',
+                        'rgba(251, 191, 36, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(79, 172, 254, 1)',
+                        'rgba(251, 191, 36, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            }, {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 1200,
+                        ticks: {
+                            color: '#e2e8f0',
+                            callback: function(value) {
+                                if (value === 1000) return '∞';
+                                return value;
+                            }
+                        }
+                    },
+                    x: { ticks: { color: '#e2e8f0' } }
+                }
+            });
+            
+            await wait(3000);
+            markStepComplete();
+        }
+
+        async function showLivePlotterContent(taskId) {
+            const teacher = currentTeacher;
+            
+            const content = `
+                <h2 class="math-title">🎯 Live Equation Plotter</h2>
+                <div class="chart-description">
+                    Watch how different one-variable equations create different points on the number line
+                </div>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <canvas id="eq1ChartComplete" width="250" height="250"></canvas>
+                        <div class="comparison-label">2x + 5 = 0</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="eq2ChartComplete" width="250" height="250"></canvas>
+                        <div class="comparison-label">3x - 6 = 0</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="eq3ChartComplete" width="250" height="250"></canvas>
+                        <div class="comparison-label">x + 3 = 0</div>
+                    </div>
+                </div>
+                <div class="narration-box">
+                    Each equation creates a single point on the number line. 
+                    Notice how different equations give us different solution points!
+                </div>
+            `;
+            
+            await transitionToNextStep(content);
+            await teacher.speak("Now let's see how one-variable equations create single points on a number line. Each equation gives us exactly one solution!");
+            if (currentTaskId !== taskId) return;
+            await wait(1000);
+            
+            // Equation 1: 2x + 5 = 0, solution: x = -2.5
+            createChart('eq1ChartComplete', 'scatter', {
+                datasets: [{
+                    label: 'Solution',
+                    data: [{ x: -2.5, y: 0 }],
+                    backgroundColor: 'rgba(79, 172, 254, 0.8)',
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    pointRadius: 12,
+                    pointHoverRadius: 15
+                }]
+            }, {
+                scales: {
+                    x: { min: -5, max: 5, ticks: { color: '#e2e8f0' } },
+                    y: { min: -1, max: 1, ticks: { display: false } }
+                }
+            });
+            
+            // Equation 2: 3x - 6 = 0, solution: x = 2
+            createChart('eq2ChartComplete', 'scatter', {
+                datasets: [{
+                    label: 'Solution',
+                    data: [{ x: 2, y: 0 }],
+                    backgroundColor: 'rgba(251, 191, 36, 0.8)',
+                    borderColor: 'rgba(251, 191, 36, 1)',
+                    pointRadius: 12,
+                    pointHoverRadius: 15
+                }]
+            }, {
+                scales: {
+                    x: { min: -5, max: 5, ticks: { color: '#e2e8f0' } },
+                    y: { min: -1, max: 1, ticks: { display: false } }
+                }
+            });
+            
+            // Equation 3: x + 3 = 0, solution: x = -3
+            createChart('eq3ChartComplete', 'scatter', {
+                datasets: [{
+                    label: 'Solution',
+                    data: [{ x: -3, y: 0 }],
+                    backgroundColor: 'rgba(67, 233, 123, 0.8)',
+                    borderColor: 'rgba(67, 233, 123, 1)',
+                    pointRadius: 12,
+                    pointHoverRadius: 15
+                }]
+            }, {
+                scales: {
+                    x: { min: -5, max: 5, ticks: { color: '#e2e8f0' } },
+                    y: { min: -1, max: 1, ticks: { display: false } }
+                }
+            });
+            
+            await wait(3000);
+            markStepComplete();
+        }
+
+        async function showDistributionVizContent(taskId) {
+            const teacher = currentTeacher;
+            
+            const content = `
+                <h2 class="math-title">📈 Solution Distribution Comparison</h2>
+                <div class="chart-description">
+                    Comparing how solutions are distributed: single points vs continuous lines
+                </div>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <canvas id="singlePointChartComplete" width="250" height="250"></canvas>
+                        <div class="comparison-label">One Variable</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="continuousLineChartComplete" width="250" height="250"></canvas>
+                        <div class="comparison-label">Two Variables</div>
+                    </div>
+                    <div class="comparison-item">
+                        <canvas id="combinedChartComplete" width="250" height="250"></canvas>
+                        <div class="comparison-label">Combined View</div>
+                    </div>
+                </div>
+                <div class="narration-box">
+                    One-variable equations create isolated points, while two-variable equations 
+                    create continuous lines with infinite solution points!
+                </div>
+            `;
+            
+            await transitionToNextStep(content);
+            await teacher.speak("Let's compare how solutions are distributed. One-variable equations create single points, while two-variable equations create continuous lines!");
+            if (currentTaskId !== taskId) return;
+            await wait(1000);
+            
+            // Single Point Chart (One Variable)
+            createChart('singlePointChartComplete', 'scatter', {
+                datasets: [{
+                    label: 'One Variable Solution',
+                    data: [{ x: 2, y: 1 }],
+                    backgroundColor: 'rgba(79, 172, 254, 0.8)',
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    pointRadius: 15,
+                    pointHoverRadius: 18
+                }]
+            }, {
+                scales: {
+                    x: { min: -2, max: 6, ticks: { color: '#e2e8f0' } },
+                    y: { min: -1, max: 3, ticks: { color: '#e2e8f0' } }
+                }
+            });
+            
+            // Continuous Line Chart (Two Variables)
+            createChart('continuousLineChartComplete', 'line', {
+                datasets: [{
+                    label: 'Two Variable Solutions',
+                    data: [
+                        { x: -2, y: 0 }, { x: -1, y: 0.5 }, { x: 0, y: 1 },
+                        { x: 1, y: 1.5 }, { x: 2, y: 2 }, { x: 3, y: 2.5 },
+                        { x: 4, y: 3 }, { x: 5, y: 3.5 }
+                    ],
+                    borderColor: 'rgba(251, 191, 36, 1)',
+                    backgroundColor: 'rgba(251, 191, 36, 0.2)',
+                    tension: 0,
+                    pointRadius: 3,
+                    fill: true
+                }]
+            }, {
+                scales: {
+                    x: { min: -2, max: 6, ticks: { color: '#e2e8f0' } },
+                    y: { min: -1, max: 4, ticks: { color: '#e2e8f0' } }
+                }
+            });
+            
+            // Combined View Chart
+            createChart('combinedChartComplete', 'line', {
+                datasets: [
+                    {
+                        label: 'One Variable (Point)',
+                        data: [{ x: 2, y: 1 }],
+                        type: 'scatter',
+                        backgroundColor: 'rgba(79, 172, 254, 0.8)',
+                        borderColor: 'rgba(79, 172, 254, 1)',
+                        pointRadius: 12,
+                        showLine: false
+                    },
+                    {
+                        label: 'Two Variables (Line)',
+                        data: [
+                            { x: -2, y: 0 }, { x: -1, y: 0.5 }, { x: 0, y: 1 },
+                            { x: 1, y: 1.5 }, { x: 2, y: 2 }, { x: 3, y: 2.5 },
+                            { x: 4, y: 3 }, { x: 5, y: 3.5 }
+                        ],
+                        borderColor: 'rgba(251, 191, 36, 1)',
+                        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                        tension: 0,
+                        pointRadius: 2
+                    }
+                ]
+            }, {
+                scales: {
+                    x: { min: -2, max: 6, ticks: { color: '#e2e8f0' } },
+                    y: { min: -1, max: 4, ticks: { color: '#e2e8f0' } }
+                }
+            });
+            
+            await wait(4000);
+            markStepComplete();
+        }
+
+        // Number Line Function
+        function createNumberLine(container, options) {
+            const { min = -10, max = 10, solution = null, showSolution = false, animate = false } = options;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight;
+            container.appendChild(canvas);
+            
+            const ctx = canvas.getContext('2d');
+            const padding = 50;
+            const lineY = canvas.height / 2;
+            const scale = (canvas.width - 2 * padding) / (max - min);
+            
+            // Draw main line
+            ctx.strokeStyle = '#4facfe';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(padding, lineY);
+            ctx.lineTo(canvas.width - padding, lineY);
+            ctx.stroke();
+            
+            // Draw ticks and labels
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            
+            for (let i = min; i <= max; i++) {
+                const x = padding + (i - min) * scale;
+                ctx.beginPath();
+                ctx.moveTo(x, lineY - 10);
+                ctx.lineTo(x, lineY + 10);
+                ctx.stroke();
+                ctx.fillText(i, x, lineY + 30);
+            }
+            
+            // Draw solution point
+            if (showSolution && solution !== null) {
+                const x = padding + (solution - min) * scale;
+                
+                if (animate) {
+                    setTimeout(() => {
+                        ctx.fillStyle = '#fbbf24';
+                        ctx.beginPath();
+                        ctx.arc(x, lineY, 12, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        ctx.strokeStyle = '#fbbf24';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(x, lineY + 12);
+                        ctx.lineTo(x, lineY + 40);
+                        ctx.stroke();
+                        
+                        ctx.fillStyle = '#fbbf24';
+                        ctx.font = 'bold 16px Arial';
+                        ctx.fillText(`x = ${solution}`, x, lineY + 60);
+                    }, 500);
+                } else {
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.beginPath();
+                    ctx.arc(x, lineY, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillText(`x = ${solution}`, x, lineY + 60);
+                }
+            }
+        }
+
+        // Cartesian Plane Function
+        function createCartesianPlane(container, options) {
+            const { 
+                points = [], 
+                lineEquation = null, 
+                title = "", 
+                showLine = false,
+                animatePoints = false
+            } = options;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight;
+            container.appendChild(canvas);
+            
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const scale = 30;
+            
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            
+            for (let i = -10; i <= 10; i++) {
+                ctx.beginPath();
+                ctx.moveTo(centerX + i * scale, 0);
+                ctx.lineTo(centerX + i * scale, canvas.height);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(0, centerY + i * scale);
+                ctx.lineTo(canvas.width, centerY + i * scale);
+                ctx.stroke();
+            }
+            
+            // Draw axes
+            ctx.strokeStyle = '#4facfe';
+            ctx.lineWidth = 2;
+            
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(canvas.width, centerY);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, 0);
+            ctx.lineTo(centerX, canvas.height);
+            ctx.stroke();
+            
+            // Draw line if requested
+            if (showLine && lineEquation) {
+                const { a, b, c } = lineEquation;
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                
+                let firstPoint = true;
+                for (let x = -10; x <= 10; x += 0.1) {
+                    if (b !== 0) {
+                        const y = -(a * x + c) / b;
+                        const screenX = centerX + x * scale;
+                        const screenY = centerY - y * scale;
+                        
+                        if (firstPoint) {
+                            ctx.moveTo(screenX, screenY);
+                            firstPoint = false;
+                        } else {
+                            ctx.lineTo(screenX, screenY);
+                        }
+                    }
+                }
+                ctx.stroke();
+            }
+            
+            // Draw points
+            const drawPoints = () => {
+                points.forEach((point, index) => {
+                    const [x, y] = point;
+                    const screenX = centerX + x * scale;
+                    const screenY = centerY - y * scale;
+                    
+                    ctx.fillStyle = '#43e97b';
+                    ctx.beginPath();
+                    ctx.arc(screenX, screenY, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.fillText(`(${x},${y})`, screenX + 15, screenY - 10);
+                });
+            };
+            
+            if (animatePoints) {
+                points.forEach((point, index) => {
+                    setTimeout(() => {
+                        const [x, y] = point;
+                        const screenX = centerX + x * scale;
+                        const screenY = centerY - y * scale;
+                        
+                        ctx.fillStyle = '#43e97b';
+                        ctx.beginPath();
+                        ctx.arc(screenX, screenY, 8, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 12px Arial';
+                        ctx.fillText(`(${x},${y})`, screenX + 15, screenY - 10);
+                    }, index * 800);
+                });
+            } else {
+                drawPoints();
+            }
+            
+            // Draw labels
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = '16px Arial';
+            ctx.fillText('x', canvas.width - 20, centerY - 10);
+            ctx.fillText('y', centerX + 10, 20);
+        }
+
+        function resetApplication() {
+            stopCurrentDemo();
+            quizScore = 0;
+            answeredQuestions = 0;
+            resetStepCompletion();
+            
+            const resetContent = `
+                <h2 class="math-title">Welcome to Linear Equations! ✨</h2>
+                <div class="value-display">Let's Explore Mathematics!</div>
+                <p class="math-description">
+                    Discover the fascinating world of linear equations in one and two variables 
+                    with stunning animations and interactive visualizations!
+                </p>
+                <div class="formula-box">
+                    <p class="formula">ax + by + c = 0</p>
+                    <p style="color: #e2e8f0; margin-top: 10px;">
+                        From unique solutions to infinite possibilities!
+                    </p>
+                </div>
+            `;
+            
+            transitionToNextStep(resetContent);
+            
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            currentDemo = null;
+            
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to explore the amazing world of linear equations!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+            resetStepCompletion();
+            
+            const initialContent = `
+                <h2 class="math-title">Welcome to Linear Equations! ✨</h2>
+                <div class="value-display">Interactive Learning</div>
+                <p class="math-description">
+                    Experience mathematics like never before! Learn about linear equations 
+                    in one and two variables with stunning animations and interactive demos!
+                </p>
+                <div class="formula-box">
+                    <p class="formula">ax + by + c = 0</p>
+                    <p style="color: #e2e8f0; margin-top: 10px;">
+                        Explore the beauty of algebra with visual learning!
+                    </p>
+                </div>
+            `;
+            
+            transitionToNextStep(initialContent);
+            
+            setTimeout(() => {
+                teacher.speak("Welcome to Linear Equations! Explore the fascinating relationships between variables with amazing visualizations!");
+            }, 500);
+            
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'solution-chart':
+                            showSolutionChart();
+                            break;
+                        case 'one-variable':
+                            showOneVariable();
+                            break;
+                        case 'live-plotter':
+                            showLivePlotter();
+                            break;
+                        case 'one-var-graph':
+                            showOneVarGraph();
+                            break;
+                        case 'distribution-viz':
+                            showDistributionViz();
+                            break;
+                        case 'two-variables':
+                            showTwoVariables();
+                            break;
+                        case 'two-var-graph':
+                            showTwoVarGraph();
+                            break;
+                        case 'one-var-questions':
+                            showOneVarQuestions();
+                            break;
+                        case 'two-var-questions':
+                            showTwoVarQuestions();
+                            break;
+                        case 'infinitely-many':
+                            showInfinitelyMany();
+                            break;
+                        case 'comparison':
+                            showComparison();
+                            break;
+                        case 'interactive':
+                            showInteractiveDemo();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+            
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

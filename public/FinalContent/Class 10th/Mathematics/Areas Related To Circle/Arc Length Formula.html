@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deriving the Arc Length Formula</title>
+    <style>
+        :root {
+            --primary-blue: #3b82f6;
+            --secondary-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --accent-yellow: #fbbf24;
+            --accent-green: #10b981;
+            --accent-orange: #f97316;
+            --text-light: #f8fafc;
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: var(--text-light);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-purple), var(--accent-pink));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .main-stage {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        #animationCanvas {
+            width: 100%;
+            height: 600px;
+            border-radius: 15px;
+            background: radial-gradient(circle at center, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
+            display: block;
+            cursor: crosshair;
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 1rem;
+            border-radius: 15px;
+            backdrop-filter: blur(15px);
+            border: 2px solid var(--primary-blue);
+            max-width: 280px;
+            z-index: 10;
+        }
+
+        .formula-panel {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 1.5rem;
+            border-radius: 15px;
+            backdrop-filter: blur(15px);
+            border: 2px solid var(--accent-green);
+            max-width: 320px;
+            width: 320px;
+            z-index: 10;
+            font-size: 0.9rem;
+        }
+
+        .derivation-steps {
+            background: rgba(16, 185, 129, 0.1);
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid var(--accent-green);
+            margin: 1rem 0;
+        }
+
+        .step {
+            margin: 0.8rem 0;
+            padding: 0.5rem;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 6px;
+            border-left: 3px solid var(--primary-blue);
+        }
+
+        .current-step {
+            background: rgba(236, 72, 153, 0.2);
+            border-left-color: var(--accent-pink);
+            box-shadow: 0 0 10px rgba(236, 72, 153, 0.3);
+        }
+
+        .formula-display {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(236, 72, 153, 0.1));
+            border: 2px solid var(--accent-yellow);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+        }
+
+        .formula-text {
+            font-size: 1.4rem;
+            color: var(--accent-yellow);
+            margin: 0.5rem 0;
+            font-weight: bold;
+        }
+
+        .formula-building {
+            background: rgba(139, 92, 246, 0.1);
+            border: 2px solid var(--secondary-purple);
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            color: var(--secondary-purple);
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .info-item {
+            margin: 0.8rem 0;
+            font-size: 0.95rem;
+        }
+
+        .info-label {
+            color: var(--secondary-purple);
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+
+        .info-value {
+            color: var(--primary-blue);
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-purple));
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+            min-width: 180px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(59, 130, 246, 0.4);
+        }
+
+        .control-btn.active {
+            background: linear-gradient(135deg, var(--accent-pink), #f43f5e);
+            box-shadow: 0 8px 25px rgba(236, 72, 153, 0.4);
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-blue), var(--accent-pink));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        .narration-text {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin: 1rem 0;
+            border-left: 4px solid var(--accent-pink);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+        }
+
+        .concept-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .concept-card {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 15px;
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .concept-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--secondary-purple);
+            box-shadow: 0 15px 30px rgba(139, 92, 246, 0.2);
+        }
+
+        .concept-title {
+            font-size: 1.4rem;
+            color: var(--secondary-purple);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .audio-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .audio-btn {
+            background: rgba(59, 130, 246, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .audio-btn:hover {
+            transform: scale(1.1);
+            background: var(--primary-blue);
+        }
+
+        .unwrapping-line {
+            stroke-dasharray: 5;
+            animation: dash 2s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: 30;
+            }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px var(--primary-blue); }
+            50% { box-shadow: 0 0 40px var(--primary-blue), 0 0 60px var(--secondary-purple); }
+        }
+
+        .glowing {
+            animation: glow 2s infinite;
+        }
+
+        @media (max-width: 1024px) {
+            .info-panel, .formula-panel {
+                position: relative;
+                max-width: 100%;
+                margin-bottom: 1rem;
+            }
+            .main-stage {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .info-panel, .formula-panel {
+                position: relative;
+                max-width: 100%;
+                margin-bottom: 1rem;
+            }
+            .controls { flex-direction: column; align-items: center; }
+            .control-btn { width: 100%; max-width: 300px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="audio-controls">
+        <button class="audio-btn" id="playPauseBtn" title="Play/Pause Audio">▶</button>
+        <button class="audio-btn" id="muteBtn" title="Mute/Unmute">🔊</button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Deriving the Arc Length Formula</h1>
+            <p class="subtitle">Mathematical Development using the Unitary Method</p>
+        </div>
+
+        <div class="main-stage">
+            <canvas id="animationCanvas"></canvas>
+            
+            <div class="info-panel">
+                <div class="info-item">
+                    <span class="info-label">Current Step:</span>
+                    <span class="info-value" id="currentStep">Introduction</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Circle Radius:</span>
+                    <span class="info-value" id="radiusInfo">100px</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Arc Angle:</span>
+                    <span class="info-value" id="angleInfo">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Circumference:</span>
+                    <span class="info-value" id="circumferenceInfo">2πr</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Method:</span>
+                    <span class="info-value" id="methodInfo">Unitary</span>
+                </div>
+            </div>
+
+            <div class="formula-panel" id="formulaPanel">
+                <h3 style="color: var(--accent-green); margin-bottom: 1rem; text-align: center;">📏 Formula Derivation</h3>
+                
+                <div class="derivation-steps">
+                    <div class="step" id="step1">
+                        <strong>Step 1:</strong> Full circumference = 2πr
+                    </div>
+                    <div class="step" id="step2">
+                        <strong>Step 2:</strong> Full circle angle = 360°
+                    </div>
+                    <div class="step" id="step3">
+                        <strong>Step 3:</strong> Arc length for 1° = 2πr/360
+                    </div>
+                    <div class="step" id="step4">
+                        <strong>Step 4:</strong> Arc length for θ° = (θ/360) × 2πr
+                    </div>
+                </div>
+
+                <div class="formula-building" id="formulaBuilding">
+                    Select a demonstration to begin
+                </div>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="narration-text" id="narrationText">
+            Welcome to the derivation of the arc length formula! We'll use the unitary method to understand how arc length relates to circumference.
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" onclick="AppManager.startCompleteDerivation()">📏 Complete Derivation</button>
+            <button class="control-btn" onclick="AppManager.startExample('circumference')">⭕ Circumference</button>
+            <button class="control-btn" onclick="AppManager.startExample('unwrapping')">📐 Unwrapping Demo</button>
+            <button class="control-btn" onclick="AppManager.startExample('arc-examples')">🌀 Arc Examples</button>
+            <button class="control-btn" onclick="AppManager.reset()">🔄 Reset</button>
+        </div>
+
+        <div class="concept-cards">
+            <div class="concept-card">
+                <div class="concept-title">🎯 Starting Point</div>
+                <p>We begin with what we know about circle circumference:</p>
+                <div class="formula-display">
+                    <div class="formula-text">Circumference = 2πr</div>
+                    <div class="formula-text">Full Circle = 360°</div>
+                </div>
+                <p>The circumference is the total length around the circle's edge.</p>
+            </div>
+            
+            <div class="concept-card">
+                <div class="concept-title">📐 Unitary Method</div>
+                <p>Using proportional reasoning for arc lengths:</p>
+                <div class="formula-display">
+                    <div class="formula-text">If 360° → 2πr</div>
+                    <div class="formula-text">Then 1° → 2πr/360</div>
+                    <div class="formula-text">Then θ° → (θ/360) × 2πr</div>
+                </div>
+                <p>This creates our step-by-step logical progression.</p>
+            </div>
+            
+            <div class="concept-card">
+                <div class="concept-title">🏆 Final Formula</div>
+                <p>The complete arc length formula:</p>
+                <div class="formula-display">
+                    <div class="formula-text">Arc Length = (θ/360) × 2πr</div>
+                </div>
+                <p>Where θ is the angle in degrees and r is the radius. This gives us the exact length of any arc!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('animationCanvas');
+        const ctx = canvas.getContext('2d');
+        let center = { x: 0, y: 0 };
+        const radius = 100;
+
+        // Voice synthesis
+        let isMuted = false;
+
+        // Initialize canvas
+        function initCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            center = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 };
+        }
+
+        // Main Application Manager
+        class AppManager {
+            static currentExample = null;
+            static activeButton = -1;
+            static currentTaskId = 0;
+            static currentRunId = 0;
+            static currentTab = null;
+
+            static destroy() {
+                if (this.currentExample) {
+                    this.currentExample.destroy();
+                    this.currentExample = null;
+                }
+                speechSynthesis.cancel();
+                this.clearCanvas();
+                this.updateProgress(0);
+                this.clearStepHighlights();
+            }
+
+            static startExample(type) {
+                this.destroy();
+                this.setActiveButton(this.getButtonIndex(type));
+                const ids = this.newSession(type);
+                
+                switch(type) {
+                    case 'circumference':
+                        this.currentExample = new CircumferenceExample(ids);
+                        break;
+                    case 'unwrapping':
+                        this.currentExample = new UnwrappingExample(ids);
+                        break;
+                    case 'arc-examples':
+                        this.currentExample = new ArcExamplesExample(ids);
+                        break;
+                }
+                
+                if (this.currentExample) {
+                    this.currentExample.start();
+                }
+            }
+
+            static startCompleteDerivation() {
+                this.destroy();
+                this.setActiveButton(0);
+                const ids = this.newSession('complete-derivation');
+                this.currentExample = new CompleteDerivationExample(ids);
+                this.currentExample.start();
+            }
+
+            static reset() {
+                this.destroy();
+                this.setActiveButton(4);
+                this.drawCircle();
+                document.getElementById('currentStep').textContent = 'Ready';
+                document.getElementById('narrationText').textContent = 'Animation reset. Choose a demonstration to begin.';
+                document.getElementById('formulaBuilding').textContent = 'Select a demonstration to begin';
+                this.clearActiveButtons();
+            }
+
+            static getButtonIndex(type) {
+                const map = { 'circumference': 1, 'unwrapping': 2, 'arc-examples': 3 };
+                return map[type] || 0;
+            }
+
+            static setActiveButton(index) {
+                this.activeButton = index;
+                document.querySelectorAll('.control-btn').forEach((btn, i) => {
+                    btn.classList.toggle('active', i === index);
+                });
+            }
+
+            static clearActiveButtons() {
+                document.querySelectorAll('.control-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+            }
+
+            static clearCanvas() {
+                ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+                this.drawGrid();
+            }
+
+            static newSession(tabName) {
+                this.currentTab = tabName;
+                this.currentTaskId += 1;
+                this.currentRunId = Date.now();
+                return { taskId: this.currentTaskId, runId: this.currentRunId };
+            }
+
+            static isStale(taskId, runId) {
+                return taskId !== this.currentTaskId || runId !== this.currentRunId;
+            }
+
+            static drawGrid() {
+                const width = canvas.clientWidth;
+                const height = canvas.clientHeight;
+                const gridSize = 30;
+                
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.1)';
+                ctx.lineWidth = 1;
+                
+                for (let x = 0; x <= width; x += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+                
+                for (let y = 0; y <= height; y += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+            }
+
+            static drawCircle(centerX = center.x, centerY = center.y, r = radius, strokeColor = '#3b82f6', fillColor = 'rgba(59, 130, 246, 0.1)') {
+                // Draw filled circle
+                ctx.fillStyle = fillColor;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, r, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Draw circle outline
+                ctx.strokeStyle = strokeColor;
+                ctx.lineWidth = 3;
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, r, 0, 2 * Math.PI);
+                ctx.stroke();
+                
+                // Draw center point
+                this.drawPoint(centerX, centerY, '#fbbf24', 'O');
+            }
+
+            static drawPoint(x, y, color, label = '') {
+                ctx.fillStyle = color;
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                if (label) {
+                    ctx.fillStyle = '#f8fafc';
+                    ctx.font = 'bold 16px Segoe UI';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(label, x + 18, y - 8);
+                }
+            }
+
+            static drawArc(centerX, centerY, radius, startAngle, endAngle, color = '#ec4899', lineWidth = 4) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = lineWidth;
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.stroke();
+            }
+
+            static drawHighlightedArc(centerX, centerY, radius, startAngle, endAngle, color = '#ec4899') {
+                // Draw thicker highlighted arc
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 6;
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 10;
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            static drawUnwrappedArc(startX, startY, length, color = '#ec4899') {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 4;
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(startX + length, startY);
+                ctx.stroke();
+                
+                // Draw arrow at the end
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(startX + length, startY);
+                ctx.lineTo(startX + length - 10, startY - 5);
+                ctx.lineTo(startX + length - 10, startY + 5);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            static drawAngleArc(centerX, centerY, radius, startAngle, endAngle, color = '#fbbf24') {
+                const arcRadius = radius * 0.3;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, arcRadius, startAngle, endAngle);
+                ctx.stroke();
+                
+                // Draw angle label
+                const midAngle = (startAngle + endAngle) / 2;
+                const labelX = centerX + (arcRadius + 20) * Math.cos(midAngle);
+                const labelY = centerY + (arcRadius + 20) * Math.sin(midAngle);
+                
+                ctx.fillStyle = color;
+                ctx.font = 'bold 14px Segoe UI';
+                ctx.textAlign = 'center';
+                ctx.fillText('θ', labelX, labelY);
+            }
+
+            static animateCircumferenceUnwrap(centerX, centerY, radius, callback, taskId, runId) {
+                let progress = 0;
+                const circumference = 2 * Math.PI * radius;
+                const straightLineY = centerY + radius + 50;
+                
+                const animate = () => {
+                    if (this.isStale(taskId, runId)) {
+                        return;
+                    }
+                    if (progress >= 1) {
+                        if (callback) callback();
+                        return;
+                    }
+                    
+                    this.clearCanvas();
+                    this.drawCircle(centerX, centerY, radius);
+                    
+                    // Draw the unwrapping line
+                    const unwrappedLength = circumference * progress;
+                    const startX = centerX - circumference / 2;
+                    
+                    ctx.strokeStyle = '#ec4899';
+                    ctx.lineWidth = 4;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(startX, straightLineY);
+                    ctx.lineTo(startX + unwrappedLength, straightLineY);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    // Draw connection from circle to line
+                    const currentAngle = progress * 2 * Math.PI;
+                    const circlePointX = centerX + radius * Math.cos(currentAngle);
+                    const circlePointY = centerY + radius * Math.sin(currentAngle);
+                    
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([3, 3]);
+                    ctx.beginPath();
+                    ctx.moveTo(circlePointX, circlePointY);
+                    ctx.lineTo(startX + unwrappedLength, straightLineY);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    progress += 0.02;
+                    setTimeout(() => requestAnimationFrame(animate), 50);
+                };
+                
+                animate();
+            }
+
+            static updateProgress(progress) {
+                document.getElementById('progressFill').style.width = `${progress}%`;
+            }
+
+            static highlightStep(stepNumber) {
+                this.clearStepHighlights();
+                document.getElementById(`step${stepNumber}`).classList.add('current-step');
+            }
+
+            static clearStepHighlights() {
+                document.querySelectorAll('.step').forEach(step => {
+                    step.classList.remove('current-step');
+                });
+            }
+
+            static updateFormulaBuilding(text) {
+                document.getElementById('formulaBuilding').textContent = text;
+            }
+
+            static speak(text, delay = 0, taskId, runId) {
+                if (isMuted || !text) return Promise.resolve();
+                const localTaskId = taskId ?? this.currentTaskId;
+                const localRunId = runId ?? this.currentRunId;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isStale(localTaskId, localRunId)) {
+                            resolve();
+                            return;
+                        }
+                        speechSynthesis.cancel();
+                        
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.rate = 0.9;
+                        utterance.pitch = 1.1;
+                        utterance.volume = 0.8;
+                        
+                        utterance.onend = () => {
+                            resolve();
+                        };
+                        utterance.onerror = () => {
+                            resolve();
+                        };
+                        
+                        if (!this.isStale(localTaskId, localRunId)) {
+                            speechSynthesis.speak(utterance);
+                            document.getElementById('narrationText').textContent = text;
+                        } else {
+                            resolve();
+                        }
+                    }, delay);
+                });
+            }
+        }
+
+        // Base Example Class
+        class BaseExample {
+            constructor(name, ids) {
+                this.name = name;
+                this.isActive = true;
+                this.taskId = ids?.taskId ?? AppManager.currentTaskId;
+                this.runId = ids?.runId ?? AppManager.currentRunId;
+            }
+
+            destroy() {
+                this.isActive = false;
+                speechSynthesis.cancel();
+            }
+
+            async start() {
+                if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                document.getElementById('currentStep').textContent = this.name;
+                await this.executeSteps();
+            }
+
+            async executeSteps() {
+                // Override in child classes
+            }
+        }
+
+        // Circumference Example
+        class CircumferenceExample extends BaseExample {
+            constructor(ids) {
+                super('Circumference', ids);
+            }
+
+            async executeSteps() {
+                if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                AppManager.clearCanvas();
+                AppManager.highlightStep(1);
+                await AppManager.speak("Let's start with what we know about the circumference of a circle. The circumference is the total distance around the circle's edge.", 500, this.taskId, this.runId);
+                
+                if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                AppManager.drawCircle();
+                AppManager.updateFormulaBuilding('Circumference = 2πr');
+                await AppManager.speak("The circumference of any circle equals 2 pi times the radius. This is the complete distance around the perimeter.", 1500, this.taskId, this.runId);
+                
+                if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                AppManager.highlightStep(2);
+                await AppManager.speak("We also know that a full circle measures 360 degrees. This is our complete angular measurement.", 1500, this.taskId, this.runId);
+                AppManager.updateFormulaBuilding('Full angle = 360°');
+                
+                if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                await AppManager.speak("These two facts - the circumference formula and the total angle - form the foundation for deriving the arc length formula.", 2000, this.taskId, this.runId);
+            }
+        }
+
+        // Unwrapping Example
+        class UnwrappingExample extends BaseExample {
+            constructor(ids) {
+                super('Unwrapping Demo', ids);
+            }
+
+            async executeSteps() {
+                if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                AppManager.clearCanvas();
+                AppManager.highlightStep(3);
+                await AppManager.speak("Now let's visualize how the circumference unwraps into a straight line. This helps us understand the relationship between arcs and linear measurements.", 500, this.taskId, this.runId);
+                
+                if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                await AppManager.speak("Watch as we unwrap the circle's circumference into a straight line below.", 1000, this.taskId, this.runId);
+                
+                AppManager.animateCircumferenceUnwrap(center.x, center.y, radius, async () => {
+                    if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                    await AppManager.speak("The entire circumference has been unwrapped into a straight line. This line has length 2 pi r.", 2000, this.taskId, this.runId);
+                    
+                    if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                    AppManager.updateFormulaBuilding('Unwrapped length = 2πr');
+                    await AppManager.speak("Using the unitary method: if 360 degrees gives us length 2 pi r, then 1 degree gives us 2 pi r divided by 360.", 2500, this.taskId, this.runId);
+                    AppManager.updateFormulaBuilding('1° → 2πr/360');
+                }, this.taskId, this.runId);
+            }
+        }
+
+        // Arc Examples Example
+        class ArcExamplesExample extends BaseExample {
+            constructor(ids) {
+                super('Arc Examples', ids);
+            }
+
+            async executeSteps() {
+                if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                AppManager.clearCanvas();
+                await AppManager.speak("Let's see how different arc angles relate to the full circumference and build our formula step by step.", 500, this.taskId, this.runId);
+                
+                if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                AppManager.drawCircle();
+                AppManager.updateFormulaBuilding('Building formula...');
+                await AppManager.speak("Starting with our full circle of circumference 2 pi r.", 1000, this.taskId, this.runId);
+                
+                if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                // Show 90-degree arc
+                const angle90 = Math.PI / 2;
+                AppManager.drawHighlightedArc(center.x, center.y, radius, 0, angle90);
+                AppManager.drawAngleArc(center.x, center.y, radius, 0, angle90);
+                document.getElementById('angleInfo').textContent = '90°';
+                AppManager.updateFormulaBuilding('90°: (90/360) × 2πr = (1/4) × 2πr');
+                await AppManager.speak("A 90-degree arc is one quarter of the circumference, so its length is 90 over 360 times 2 pi r, which equals one quarter times 2 pi r.", 3000, this.taskId, this.runId);
+                
+                if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                // Show unwrapped 90-degree arc
+                const circumference = 2 * Math.PI * radius;
+                const arc90Length = circumference / 4;
+                const straightLineY = center.y + radius + 50;
+                const startX = center.x - arc90Length / 2;
+                AppManager.drawUnwrappedArc(startX, straightLineY, arc90Length);
+                await AppManager.speak("Here's that 90-degree arc unwrapped into a straight line.", 1500, this.taskId, this.runId);
+                
+                if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                // Show 180-degree arc
+                AppManager.clearCanvas();
+                AppManager.drawCircle();
+                const angle180 = Math.PI;
+                AppManager.drawHighlightedArc(center.x, center.y, radius, 0, angle180);
+                AppManager.drawAngleArc(center.x, center.y, radius, 0, angle180);
+                document.getElementById('angleInfo').textContent = '180°';
+                AppManager.updateFormulaBuilding('180°: (180/360) × 2πr = (1/2) × 2πr');
+                await AppManager.speak("A 180-degree arc is half the circumference, so its length is 180 over 360 times 2 pi r, which equals one half times 2 pi r.", 3000, this.taskId, this.runId);
+                
+                if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                // Show unwrapped 180-degree arc
+                const arc180Length = circumference / 2;
+                const startX180 = center.x - arc180Length / 2;
+                AppManager.drawUnwrappedArc(startX180, straightLineY, arc180Length);
+                await AppManager.speak("Here's the 180-degree arc unwrapped - notice it's twice as long as the 90-degree arc.", 1500, this.taskId, this.runId);
+                
+                if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                AppManager.highlightStep(4);
+                AppManager.updateFormulaBuilding('General Formula: Arc Length = (θ/360) × 2πr');
+                await AppManager.speak("This pattern gives us our general formula: the length of any arc equals theta over 360, times 2 pi r.", 2500, this.taskId, this.runId);
+            }
+        }
+
+        // Complete Derivation Example
+        class CompleteDerivationExample extends BaseExample {
+            constructor(ids) {
+                super('Complete Derivation', ids);
+            }
+
+            async executeSteps() {
+                document.getElementById('currentStep').textContent = 'Complete Derivation';
+                
+                await AppManager.speak("Welcome to the complete derivation of the arc length formula using the unitary method!", 500, this.taskId, this.runId);
+                
+                if (!this.isActive || AppManager.isStale(this.taskId, this.runId)) return;
+                AppManager.updateProgress(10);
+                
+                // Step 1: Circumference
+                if (this.isActive && !AppManager.isStale(this.taskId, this.runId)) {
+                    const circumferenceExample = new CircumferenceExample({ taskId: this.taskId, runId: this.runId });
+                    await circumferenceExample.start();
+                    circumferenceExample.destroy();
+                    AppManager.updateProgress(35);
+                }
+                
+                // Step 2: Unwrapping
+                if (this.isActive && !AppManager.isStale(this.taskId, this.runId)) {
+                    const unwrappingExample = new UnwrappingExample({ taskId: this.taskId, runId: this.runId });
+                    await unwrappingExample.start();
+                    unwrappingExample.destroy();
+                    AppManager.updateProgress(70);
+                }
+                
+                // Step 3: Arc Examples
+                if (this.isActive && !AppManager.isStale(this.taskId, this.runId)) {
+                    const arcExample = new ArcExamplesExample({ taskId: this.taskId, runId: this.runId });
+                    await arcExample.start();
+                    arcExample.destroy();
+                    AppManager.updateProgress(100);
+                }
+                
+                if (this.isActive && !AppManager.isStale(this.taskId, this.runId)) {
+                    AppManager.highlightStep(4);
+                    await AppManager.speak("We have successfully derived the arc length formula using the unitary method! This formula allows us to calculate the length of any arc given its angle and radius.", 3000, this.taskId, this.runId);
+                }
+            }
+        }
+
+        // Audio controls
+        document.getElementById('playPauseBtn').addEventListener('click', () => {
+            if (speechSynthesis.speaking) {
+                speechSynthesis.pause();
+                document.getElementById('playPauseBtn').textContent = '▶';
+            } else {
+                speechSynthesis.resume();
+                document.getElementById('playPauseBtn').textContent = '⏸';
+            }
+        });
+
+        document.getElementById('muteBtn').addEventListener('click', () => {
+            isMuted = !isMuted;
+            document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊';
+            if (isMuted) {
+                speechSynthesis.cancel();
+            }
+        });
+
+        // Initialize
+        window.addEventListener('load', () => {
+            initCanvas();
+            AppManager.clearCanvas();
+            AppManager.drawCircle();
+            
+            AppManager.speak("Welcome to the derivation of the arc length formula! We'll use the unitary method to understand how arc length relates to circumference.");
+        });
+
+        window.addEventListener('resize', () => {
+            initCanvas();
+            AppManager.clearCanvas();
+            AppManager.drawCircle();
+        });
+    </script>
+</body>
+</html>

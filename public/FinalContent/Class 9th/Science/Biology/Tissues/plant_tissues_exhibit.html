@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Tissues and Meristematic Tissues - Interactive Journey</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #2d8659 0%, #4a9d6f 100%);
+            color: white;
+            overflow: hidden;
+            position: relative;
+            height: 100vh;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            opacity: 0.1;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.2" d="M0,96L48,112C96,128,192,160,288,186.7C384,213,480,235,576,213.3C672,192,768,128,864,128C960,128,1056,192,1152,197.3C1248,203,1344,149,1392,122.7L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') repeat-x;
+            animation: wave 10s linear infinite;
+        }
+
+        @keyframes wave {
+            0% { background-position-x: 0; }
+            100% { background-position-x: 1440px; }
+        }
+
+        /* Museum Interface - Compact Header */
+        .museum-header {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            text-align: left;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 10px 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .museum-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+        }
+
+        .exhibit-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .growth-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #27ae60;
+            border-radius: 50%;
+            animation: growth 2s ease-in-out infinite;
+        }
+
+        @keyframes growth {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.7; }
+        }
+
+        /* Journey Navigation - Enhanced */
+        .journey-navigation {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 280px;
+        }
+
+        .journey-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2ecc71;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .journey-steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .journey-btn {
+            background: rgba(46, 204, 113, 0.2);
+            border: 1px solid rgba(46, 204, 113, 0.4);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .journey-btn:hover {
+            background: rgba(46, 204, 113, 0.3);
+            border-color: #2ecc71;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+        }
+
+        .journey-btn.active {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            border-color: #27ae60;
+            box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .journey-btn.completed {
+            background: rgba(52, 152, 219, 0.3);
+            border-color: #3498db;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* 3D Model Container */
+        .model-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+            overflow: hidden;
+            border: none;
+            z-index: 100;
+        }
+
+        .sketchfab-embed-wrapper {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2d8659 0%, #4a9d6f 100%);
+        }
+
+        .sketchfab-embed-wrapper iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 0;
+        }
+
+        /* Information Panel - Enhanced */
+        .info-panel {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            width: 380px;
+            max-height: calc(100vh - 140px);
+            z-index: 800;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .info-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-icon {
+            font-size: 28px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .info-title {
+            flex: 1;
+        }
+
+        .info-title h2 {
+            font-size: 18px;
+            color: #27ae60;
+            margin-bottom: 4px;
+        }
+
+        .info-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .info-content {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Progress Tracker */
+        .progress-tracker {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(39, 174, 96, 0.1));
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .progress-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: #2ecc71;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .progress-percentage {
+            font-size: 18px;
+            color: #27ae60;
+            font-weight: 700;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+            border-radius: 4px;
+            transition: width 0.8s ease;
+            box-shadow: 0 0 10px rgba(39, 174, 96, 0.5);
+        }
+
+        .progress-steps-mini {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .step-mini {
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .step-mini.active {
+            color: #27ae60;
+            font-weight: 600;
+        }
+
+        .step-mini.completed {
+            color: #3498db;
+        }
+
+        /* Information Cards */
+        .info-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .info-card-title {
+            color: #2ecc71;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-card-content {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .info-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-list li {
+            padding: 6px 0;
+            padding-left: 20px;
+            position: relative;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .info-list li:before {
+            content: "🌱";
+            position: absolute;
+            left: 0;
+            font-size: 10px;
+        }
+
+        /* Fun Fact Box */
+        .fun-fact {
+            background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(142, 68, 173, 0.1));
+            border: 1px solid rgba(155, 89, 182, 0.3);
+            border-radius: 12px;
+            padding: 14px;
+            margin: 16px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fun-fact:before {
+            content: "🔬";
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            font-size: 60px;
+            opacity: 0.1;
+        }
+
+        .fun-fact-title {
+            color: #9b59b6;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .fun-fact-text {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 12px;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Voice Controls */
+        .voice-controls {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            position: relative;
+        }
+
+        .control-btn:hover {
+            background: rgba(39, 174, 96, 0.3);
+            border-color: #27ae60;
+            transform: scale(1.1);
+        }
+
+        .control-btn.active {
+            background: rgba(39, 174, 96, 0.4);
+            border-color: #27ae60;
+            box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
+        }
+
+        .control-tooltip {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .control-btn:hover .control-tooltip {
+            opacity: 1;
+        }
+
+        /* Loading Screen */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2d8659 0%, #4a9d6f 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: opacity 1s ease;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-plant {
+            font-size: 60px;
+            animation: growth 1.5s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .loading-progress {
+            width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            animation: loading 2s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 100%; }
+            100% { width: 0%; }
+        }
+
+        /* Voice Indicator */
+        .voice-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(39, 174, 96, 0.5);
+            border-radius: 30px;
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .voice-indicator.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-10px);
+        }
+
+        .voice-waves {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .voice-wave {
+            width: 3px;
+            height: 20px;
+            background: linear-gradient(180deg, #27ae60, #2ecc71);
+            border-radius: 2px;
+            animation: voice-wave 1s ease-in-out infinite;
+        }
+
+        .voice-wave:nth-child(2) { animation-delay: 0.1s; }
+        .voice-wave:nth-child(3) { animation-delay: 0.2s; }
+        .voice-wave:nth-child(4) { animation-delay: 0.3s; }
+        .voice-wave:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes voice-wave {
+            0%, 100% { transform: scaleY(0.3); }
+            50% { transform: scaleY(1); }
+        }
+
+        .narration-text {
+            color: white;
+            font-size: 13px;
+            max-width: 300px;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .action-btn {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .action-btn:hover {
+            background: rgba(46, 204, 113, 0.3);
+            border-color: #2ecc71;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+        }
+
+        /* Custom Scrollbar */
+        .info-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .info-panel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .info-panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #27ae60, #2ecc71);
+            border-radius: 3px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .info-panel {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                top: auto;
+                width: 100%;
+                max-height: 50vh;
+                border-radius: 20px 20px 0 0;
+            }
+            
+            .journey-navigation {
+                bottom: 52vh;
+                max-width: calc(100% - 40px);
+            }
+            
+            .voice-controls {
+                top: auto;
+                bottom: 55vh;
+                right: 10px;
+            }
+            
+            .quick-actions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-plant">🌱</div>
+            <div class="loading-text">Growing Your Plant Tissue Journey...</div>
+            <div class="loading-progress">
+                <div class="loading-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Museum Header -->
+    <div class="museum-header">
+        <div class="museum-title">Plant Tissues & Meristems</div>
+        <div class="exhibit-subtitle">
+            <span class="growth-indicator"></span>
+            The Foundation of Plant Growth
+        </div>
+    </div>
+
+    <!-- Journey Navigation -->
+    <div class="journey-navigation">
+        <div class="journey-title">
+            <span>🌿</span>
+            <span>Tissue Discovery</span>
+        </div>
+        <div class="journey-steps">
+            <button class="journey-btn active" onclick="loadJourneyStep('definition')">
+                <span>📚</span> Definition
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('comparison')">
+                <span>⚖️</span> Plant vs Animal
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('meristem')">
+                <span>🌱</span> Meristem
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('apical')">
+                <span>🔝</span> Apical
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('lateral')">
+                <span>↔️</span> Lateral
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('intercalary')">
+                <span>📏</span> Intercalary
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('activity')">
+                <span>🧪</span> Activity 6.1
+            </button>
+        </div>
+    </div>
+
+    <!-- 3D Model Container -->
+    <div class="model-container">
+        <div class="sketchfab-embed-wrapper">
+            <iframe id="api-frame"
+                    title="Plant Tissue Model" 
+                    frameborder="0" 
+                    allowfullscreen 
+                    mozallowfullscreen="true" 
+                    webkitallowfullscreen="true" 
+                    allow="autoplay; fullscreen; xr-spatial-tracking"
+                    xr-spatial-tracking 
+                    execution-while-out-of-viewport 
+                    execution-while-not-rendered 
+                    web-share 
+                    src="https://sketchfab.com/3d-models/eukaryotic-plant-cell-f258c65762e5435c9d58c1aa136b557a/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0">
+            </iframe>
+        </div>
+    </div>
+
+    <!-- Information Panel -->
+    <div class="info-panel" id="infoPanel">
+        <div class="info-header">
+            <div class="info-icon" id="stepIcon">📚</div>
+            <div class="info-title">
+                <h2 id="stepTitle">What Are Tissues?</h2>
+                <div class="info-subtitle" id="stepSubtitle">Understanding division of labor in living organisms</div>
+            </div>
+        </div>
+
+        <!-- Progress Tracker -->
+        <div class="progress-tracker">
+            <div class="progress-header">
+                <span>Learning Progress</span>
+                <span class="progress-percentage" id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            <div class="progress-steps-mini">
+                <span class="step-mini active" onclick="loadJourneyStep('definition')">Define</span>
+                <span class="step-mini" onclick="loadJourneyStep('comparison')">Compare</span>
+                <span class="step-mini" onclick="loadJourneyStep('meristem')">Meristem</span>
+                <span class="step-mini" onclick="loadJourneyStep('apical')">Apical</span>
+                <span class="step-mini" onclick="loadJourneyStep('lateral')">Lateral</span>
+                <span class="step-mini" onclick="loadJourneyStep('intercalary')">Inter.</span>
+                <span class="step-mini" onclick="loadJourneyStep('activity')">Activity</span>
+            </div>
+        </div>
+
+        <div class="info-content" id="mainDescription">
+            A tissue is a group of cells with similar structure and function working together to perform specific tasks. This division of labor allows multicellular organisms to be more efficient - just like how different workers in a factory have specialized jobs that contribute to the final product.
+        </div>
+
+        <div class="info-card">
+            <div class="info-card-title">
+                <span>🔬</span> Key Concepts
+            </div>
+            <div class="info-card-content">
+                <ul class="info-list" id="keyConcepts">
+                    <li>Tissues are groups of similar cells</li>
+                    <li>Division of labor increases efficiency</li>
+                    <li>Structure matches function</li>
+                    <li>Found in all multicellular organisms</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="fun-fact">
+            <div class="fun-fact-title">Did You Know?</div>
+            <div class="fun-fact-text" id="funFact">
+                The concept of "division of labor" was first used by economist Adam Smith, but it perfectly describes how cells work together in tissues!
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-card-title">
+                <span>🎯</span> Learning Objectives
+            </div>
+            <div class="info-card-content" id="learningObjectives">
+                Understand what tissues are, why they form, and how division of labor makes multicellular life possible.
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Controls -->
+    <div class="voice-controls">
+        <button class="control-btn active" id="voiceToggle" onclick="toggleVoice()">
+            🔊
+            <span class="control-tooltip">Voice Narration</span>
+        </button>
+        <button class="control-btn" onclick="toggleAutoPlay()">
+            ▶️
+            <span class="control-tooltip">Auto Journey</span>
+        </button>
+        <button class="control-btn" onclick="toggleInfo()">
+            ℹ️
+            <span class="control-tooltip">Toggle Info</span>
+        </button>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <button class="action-btn" onclick="startGuidedTour()">
+            <span>🚀</span> Guided Tour
+        </button>
+        <button class="action-btn" onclick="showQuiz()">
+            <span>🎯</span> Test Knowledge
+        </button>
+    </div>
+
+    <!-- Voice Indicator -->
+    <div class="voice-indicator" id="voiceIndicator">
+        <div class="voice-waves">
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+        </div>
+        <div class="narration-text" id="narrationText">Narrating...</div>
+    </div>
+
+    <script>
+        // Journey Step Data with Complete Educational Content
+        const JOURNEY_DATA = {
+            definition: {
+                title: "What Are Tissues?",
+                subtitle: "Understanding division of labor in living organisms",
+                icon: "📚",
+                modelUrl: "https://sketchfab.com/3d-models/eukaryotic-plant-cell-f258c65762e5435c9d58c1aa136b557a/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "A tissue is a group of cells with similar structure and function working together to perform specific tasks. This division of labor allows multicellular organisms to be more efficient - just like how different workers in a factory have specialized jobs that contribute to the final product.",
+                concepts: [
+                    "Tissues are groups of similar cells",
+                    "Division of labor increases efficiency",
+                    "Structure matches function",
+                    "Found in all multicellular organisms"
+                ],
+                funFact: "The concept of 'division of labor' was first used by economist Adam Smith, but it perfectly describes how cells work together in tissues!",
+                objectives: "Understand what tissues are, why they form, and how division of labor makes multicellular life possible.",
+                narration: "Welcome to the fascinating world of plant tissues! You're looking at a plant cell - the basic building block of all plant tissues. But what exactly is a tissue? A tissue is like a team of cells that look similar and work together toward the same goal. Imagine if you tried to build a house all by yourself versus having specialized workers - carpenters, electricians, plumbers - each doing what they do best. That's exactly what happens in multicellular organisms! Cells specialize into tissues, and this division of labor makes plants incredibly efficient. Each tissue has a specific job: some tissues transport water, others make food through photosynthesis, and some provide structural support. This specialization is why plants can grow so tall and complex!"
+            },
+            comparison: {
+                title: "Plant vs Animal Tissues",
+                subtitle: "Key differences in tissue organization",
+                icon: "⚖️",
+                modelUrl: "https://sketchfab.com/3d-models/animal-cell-downloadable-ddc40bb0900544959f02d3ff83c32615/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "While both plants and animals use tissues for division of labor, they've evolved very different solutions. Plant tissues are built around the need to make food from sunlight and remain stationary, while animal tissues support movement and finding food.",
+                concepts: [
+                    "Plant cells have cell walls; animal cells don't",
+                    "Plants make their own food; animals consume it",
+                    "Plants are stationary; animals move",
+                    "Different tissue types reflect different lifestyles"
+                ],
+                funFact: "Plant tissues can live much longer than animal tissues - some tree tissues are thousands of years old!",
+                objectives: "Compare and contrast plant and animal tissue organization and understand why they differ.",
+                narration: "Now you're looking at an animal cell - notice how different it looks from the plant cell! These differences reflect the very different lifestyles of plants and animals. Plant cells have rigid cell walls made of cellulose, which help plants stand upright without a skeleton. Animal cells have flexible membranes that allow for movement and shape changes. Plants are like solar-powered factories that stay in one place and make their own food through photosynthesis. Animals are like mobile consumers that must find and eat their food. These lifestyle differences led to completely different tissue organizations. Plant tissues include specialized transport tissues for moving water and nutrients, photosynthetic tissues for capturing sunlight, and support tissues for staying upright. Animal tissues include muscle for movement, nervous tissue for coordination, and specialized tissues for digestion and circulation."
+            },
+            meristem: {
+                title: "Meristematic Tissues - The Growth Centers",
+                subtitle: "Where new cells are born",
+                icon: "🌱",
+                modelUrl: "https://sketchfab.com/models/6c7b5125d02d4b19b1ba5b58821afdb1/embed?autostart=1&internal=1&tracking=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Meristematic tissues are the growth centers of plants - regions where cells continuously divide to produce new cells. These are like stem cells in animals, capable of becoming any type of plant cell the plant needs.",
+                concepts: [
+                    "Meristematic cells divide continuously",
+                    "They can differentiate into any plant cell type",
+                    "Found in specific growth regions",
+                    "Responsible for primary and secondary growth"
+                ],
+                funFact: "A single meristematic cell can give rise to millions of specialized cells during a plant's lifetime!",
+                objectives: "Understand what meristematic tissues are and their role in plant growth and development.",
+                narration: "Welcome to the plant's growth factory - the meristematic tissue! You're seeing a group of meristematic cells, the most important cells in any plant. These cells are like the plant's stem cells - they have the amazing ability to divide and create new cells throughout the plant's entire life. Unlike animal cells that stop dividing as we age, meristematic cells never stop working! They're small, cube-shaped cells with large nuclei and no specialized structures yet. When a meristematic cell divides, one daughter cell remains meristematic to continue dividing, while the other begins to specialize into whatever the plant needs - root cells, leaf cells, stem cells, or flower cells. This is how plants grow taller, thicker, and develop new organs throughout their lives. These growth centers are strategically located in areas where the plant needs to grow."
+            },
+            apical: {
+                title: "Apical Meristem - Growing Taller",
+                subtitle: "Primary growth at root and shoot tips",
+                icon: "🔝",
+                modelUrl: "https://sketchfab.com/models/0448d83d7856469284358f538961cd64/embed?autostart=1&internal=1&tracking=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Apical meristems are located at the tips of roots and shoots, responsible for primary growth - making plants taller and roots longer. These are the most active growth regions in young plants.",
+                concepts: [
+                    "Located at root and shoot tips",
+                    "Responsible for primary growth (length)",
+                    "Protected by root caps and bud scales",
+                    "Always pushing forward into new territory"
+                ],
+                funFact: "Root apical meristems can grow through soil with a force of up to 300 pounds per square inch!",
+                objectives: "Identify apical meristems and understand their role in primary growth.",
+                narration: "You're now exploring an apical meristem at the tip of a growing root! This is where the magic of plant growth happens. The apical meristem is like the plant's construction crew working at the very front lines. At the root tip, meristematic cells are constantly dividing and pushing the root deeper into the soil, searching for water and nutrients. Notice how the delicate growing tip is protected by a tough root cap - it's like a hard hat for the tender growing cells underneath! The cells produced here will differentiate into specialized root tissues: some become the protective epidermis, others form the transport tissues, and some create storage tissues. At the same time, similar apical meristems at the shoot tips are pushing the plant upward toward the light, creating new leaves and stems. This upward and downward growth from apical meristems is called primary growth, and it's how plants explore their environment and compete for resources."
+            },
+            lateral: {
+                title: "Lateral Meristem - Growing Thicker",
+                subtitle: "Secondary growth for strength and transport",
+                icon: "↔️",
+                modelUrl: "https://sketchfab.com/3d-models/eukaryotic-plant-cell-f258c65762e5435c9d58c1aa136b557a/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Lateral meristems form rings around stems and roots, adding thickness through secondary growth. This is how trees develop thick trunks and how woody plants gain strength to support their height.",
+                concepts: [
+                    "Forms cylindrical growth rings",
+                    "Produces wood and bark",
+                    "Essential for tall, woody plants",
+                    "Creates annual growth rings in trees"
+                ],
+                funFact: "The age of a tree can be determined by counting the annual rings produced by lateral meristem!",
+                objectives: "Understand how lateral meristems create secondary growth and why it's important for woody plants.",
+                narration: "This represents the lateral meristem system, though we need to imagine it forming a complete ring around the stem or root. Lateral meristems are like the plant's expansion team, working to make stems and roots thicker rather than longer. There are two main types: the vascular cambium, which produces new transport tissues (wood toward the inside and phloem toward the outside), and the cork cambium, which produces the protective bark. This secondary growth is crucial for woody plants like trees. As a tree grows taller through apical growth, it needs a stronger, thicker trunk to support all that weight. The lateral meristem adds new layers of wood each growing season, creating the annual rings you see when a tree is cut. Each ring represents one year of growth - wide rings indicate good growing years with plenty of water and nutrients, while narrow rings show years of stress or drought. This secondary growth allows some trees to live for thousands of years and reach incredible heights!"
+            },
+            intercalary: {
+                title: "Intercalary Meristem - Growing from Within",
+                subtitle: "Growth between mature tissues",
+                icon: "📏",
+                modelUrl: "https://sketchfab.com/models/6c7b5125d02d4b19b1ba5b58821afdb1/embed?autostart=1&internal=1&tracking=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Intercalary meristems are located between mature tissues, often at the base of leaves or stems. They allow plants to regrow after being cut or grazed, which is why grass continues growing after mowing.",
+                concepts: [
+                    "Located between mature tissues",
+                    "Common in grasses and some stems",
+                    "Allows regrowth after damage",
+                    "Explains why grass keeps growing after cutting"
+                ],
+                funFact: "Bamboo can grow up to 3 feet in a single day thanks to intercalary meristems in each segment!",
+                objectives: "Identify intercalary meristems and understand their unique role in plant growth and survival.",
+                narration: "Here we see intercalary meristem cells, the plant's secret weapon for survival! Unlike apical meristems that only grow from tips, intercalary meristems are positioned between already mature tissues, usually at the base of leaves or in stem segments. This might seem like an odd place for growth, but it's actually brilliant! When a grass plant is cut by a lawnmower or eaten by an animal, the apical meristem at the tip is destroyed. But the plant doesn't die - the intercalary meristem at the base continues to produce new cells, pushing the leaf up from the bottom. This is why your lawn keeps growing even after you mow it! Bamboo is the champion of intercalary growth - it has meristematic regions at the base of each stem segment, allowing incredibly rapid growth. Some bamboo species can grow several feet in a single day! This type of growth also helps plants recover from damage and is one reason why grasses are so successful in environments where grazing animals are common."
+            },
+            activity: {
+                title: "Activity 6.1 - Root Growth Experiment",
+                subtitle: "Observing meristematic activity in action",
+                icon: "🧪",
+                modelUrl: "https://sketchfab.com/models/0448d83d7856469284358f538961cd64/embed?autostart=1&internal=1&tracking=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "In this hands-on activity, you'll observe root growth in real-time by marking zones on growing roots and measuring their elongation. This experiment demonstrates apical meristem activity and primary growth patterns.",
+                concepts: [
+                    "Mark root zones with ink",
+                    "Measure growth over time",
+                    "Observe which zones elongate most",
+                    "Growth occurs just behind the root tip"
+                ],
+                funFact: "Root tips can grow several millimeters in just 24 hours - fast enough that you can actually measure the difference!",
+                objectives: "Design and conduct an experiment to observe and measure primary root growth, demonstrating scientific inquiry skills.",
+                narration: "Welcome to your hands-on investigation of root growth! In Activity 6.1, you'll become a plant scientist and observe meristematic tissue in action. Here's how the experiment works: First, you'll carefully germinate seeds until you have small seedlings with visible roots about 2-3 centimeters long. Then, using a fine permanent marker, you'll make small marks every 2 millimeters along the root, starting from the tip. These marks will serve as your measuring points. Place the marked seedlings in a growth chamber or simply in water, and observe them daily. What you'll discover is fascinating! The marks near the root tip will spread apart as the root grows, while marks further from the tip barely move. This shows that most growth happens in a zone just behind the root tip - exactly where the apical meristem cells are dividing and elongating! By measuring the distance between marks over several days, you can calculate the rate of root growth and see firsthand how meristematic tissues drive plant growth. This is real science in action!"
+            }
+        };
+
+        // Global Variables
+        let currentStep = 'definition';
+        let voiceEnabled = true;
+        let autoPlayEnabled = false;
+        let currentSpeech = null;
+        let selectedVoice = null;
+        let journeyProgress = 0;
+        let guidedTourActive = false;
+
+        // Initialize Voice System
+        function initVoiceSystem() {
+            if (!('speechSynthesis' in window)) {
+                console.warn('Speech synthesis not supported');
+                voiceEnabled = false;
+                document.getElementById('voiceToggle').style.display = 'none';
+                return;
+            }
+
+            function loadVoices() {
+                const voices = speechSynthesis.getVoices();
+                if (voices.length === 0) return;
+
+                // Prefer natural-sounding voices
+                const preferredVoices = [
+                    'Google UK English Female',
+                    'Microsoft Sonia',
+                    'Microsoft Hazel',
+                    'Samantha',
+                    'Victoria'
+                ];
+
+                for (const name of preferredVoices) {
+                    selectedVoice = voices.find(v => v.name.includes(name));
+                    if (selectedVoice) break;
+                }
+
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(v => v.lang.startsWith('en'));
+                }
+            }
+
+            loadVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        }
+
+        // Load Journey Step
+        function loadJourneyStep(stepId) {
+            const stepData = JOURNEY_DATA[stepId];
+            if (!stepData) return;
+
+            currentStep = stepId;
+            
+            // Update model
+            document.getElementById('api-frame').src = stepData.modelUrl;
+            
+            // Update info panel
+            document.getElementById('stepIcon').textContent = stepData.icon;
+            document.getElementById('stepTitle').textContent = stepData.title;
+            document.getElementById('stepSubtitle').textContent = stepData.subtitle;
+            document.getElementById('mainDescription').textContent = stepData.description;
+            
+            // Update key concepts
+            const conceptsList = document.getElementById('keyConcepts');
+            conceptsList.innerHTML = stepData.concepts.map(c => `<li>${c}</li>`).join('');
+            
+            // Update fun fact
+            document.getElementById('funFact').textContent = stepData.funFact;
+            
+            // Update learning objectives
+            document.getElementById('learningObjectives').textContent = stepData.objectives;
+            
+            // Update navigation buttons
+            updateNavigationButtons(stepId);
+            
+            // Update progress
+            updateProgress();
+            
+            // Play narration if enabled
+            if (voiceEnabled) {
+                speakText(stepData.narration);
+            }
+        }
+
+        // Update Navigation Buttons
+        function updateNavigationButtons(activeStep) {
+            const buttons = document.querySelectorAll('.journey-btn');
+            const steps = ['definition', 'comparison', 'meristem', 'apical', 'lateral', 'intercalary', 'activity'];
+            const activeIndex = steps.indexOf(activeStep);
+            
+            buttons.forEach((btn, index) => {
+                btn.classList.remove('active', 'completed');
+                if (index < activeIndex) {
+                    btn.classList.add('completed');
+                } else if (index === activeIndex) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Update mini steps
+            const miniSteps = document.querySelectorAll('.step-mini');
+            miniSteps.forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index < activeIndex) {
+                    step.classList.add('completed');
+                } else if (index === activeIndex) {
+                    step.classList.add('active');
+                }
+            });
+        }
+
+        // Update Progress
+        function updateProgress() {
+            const steps = ['definition', 'comparison', 'meristem', 'apical', 'lateral', 'intercalary', 'activity'];
+            const currentIndex = steps.indexOf(currentStep);
+            const progress = ((currentIndex + 1) / steps.length) * 100;
+            
+            document.getElementById('progressPercent').textContent = Math.round(progress) + '%';
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        // Speech Functions
+        function speakText(text) {
+            if (!voiceEnabled || !text) return;
+            
+            stopSpeech();
+            
+            currentSpeech = new SpeechSynthesisUtterance(text);
+            if (selectedVoice) {
+                currentSpeech.voice = selectedVoice;
+            }
+            currentSpeech.rate = 0.9;
+            currentSpeech.pitch = 1.0;
+            currentSpeech.volume = 0.9;
+            
+            currentSpeech.onstart = () => {
+                document.getElementById('voiceIndicator').classList.add('visible');
+                document.getElementById('narrationText').textContent = 
+                    text.substring(0, 50) + (text.length > 50 ? '...' : '');
+            };
+            
+            currentSpeech.onend = () => {
+                document.getElementById('voiceIndicator').classList.remove('visible');
+                currentSpeech = null;
+                
+                // Auto-advance if guided tour is active
+                if (guidedTourActive) {
+                    setTimeout(nextStep, 2000);
+                }
+            };
+            
+            speechSynthesis.speak(currentSpeech);
+        }
+
+        function stopSpeech() {
+            if (currentSpeech) {
+                speechSynthesis.cancel();
+                currentSpeech = null;
+                document.getElementById('voiceIndicator').classList.remove('visible');
+            }
+        }
+
+        // Control Functions
+        function toggleVoice() {
+            voiceEnabled = !voiceEnabled;
+            const btn = document.getElementById('voiceToggle');
+            btn.textContent = voiceEnabled ? '🔊' : '🔇';
+            btn.classList.toggle('active', voiceEnabled);
+            
+            if (!voiceEnabled) {
+                stopSpeech();
+            }
+        }
+
+        function toggleAutoPlay() {
+            autoPlayEnabled = !autoPlayEnabled;
+            if (autoPlayEnabled) {
+                startGuidedTour();
+            } else {
+                guidedTourActive = false;
+            }
+        }
+
+        function toggleInfo() {
+            const panel = document.getElementById('infoPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Guided Tour
+        function startGuidedTour() {
+            guidedTourActive = true;
+            const steps = ['definition', 'comparison', 'meristem', 'apical', 'lateral', 'intercalary', 'activity'];
+            let stepIndex = 0;
+            
+            function tourStep() {
+                if (stepIndex < steps.length && guidedTourActive) {
+                    loadJourneyStep(steps[stepIndex]);
+                    stepIndex++;
+                } else {
+                    guidedTourActive = false;
+                    if (voiceEnabled) {
+                        speakText("Excellent! You've completed your journey through plant tissues and meristematic growth. You now understand how plants organize their cells for growth and survival. Try the root growth experiment to see these concepts in action!");
+                    }
+                }
+            }
+            
+            tourStep();
+            window.nextStep = tourStep;
+        }
+
+        // Quiz Function
+        function showQuiz() {
+            const questions = [
+                "What is a tissue and why do multicellular organisms use them?",
+                "How do plant and animal tissues differ?",
+                "Where would you find apical meristems and what do they do?",
+                "Why is lateral meristem important for trees?",
+                "How does intercalary meristem help grass survive mowing?"
+            ];
+            
+            const randomQ = questions[Math.floor(Math.random() * questions.length)];
+            
+            if (voiceEnabled) {
+                speakText(`Time to test your knowledge! Here's your question: ${randomQ} Think about what you've learned about plant tissues and growth!`);
+            }
+        }
+
+        // Initialize
+        function init() {
+            initVoiceSystem();
+            
+            // Hide loading screen
+            setTimeout(() => {
+                const loading = document.getElementById('loadingOverlay');
+                loading.style.opacity = '0';
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                    
+                    // Welcome message
+                    if (voiceEnabled) {
+                        speakText("Welcome to your exploration of plant tissues and meristematic growth! We'll start by understanding what tissues are and why they're so important for multicellular life. Let's begin this fascinating journey!");
+                    }
+                }, 1000);
+            }, 3000);
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                switch(e.key) {
+                    case 'v': toggleVoice(); break;
+                    case 'i': toggleInfo(); break;
+                    case 'g': startGuidedTour(); break;
+                    case 'Escape': stopSpeech(); guidedTourActive = false; break;
+                    case 'ArrowRight': nextStep && nextStep(); break;
+                }
+            });
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>

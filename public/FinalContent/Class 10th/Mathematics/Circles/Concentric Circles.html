@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worked Examples - Concentric Circles</title>
+    <style>
+        :root {
+            --primary-blue: #3b82f6;
+            --secondary-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --accent-yellow: #fbbf24;
+            --accent-green: #10b981;
+            --accent-orange: #f97316;
+            --text-light: #f8fafc;
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: var(--text-light);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-purple), var(--accent-pink));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .duration-badge {
+            display: none;
+        }
+
+        .main-stage {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        #animationCanvas {
+            width: 100%;
+            height: 600px;
+            border-radius: 15px;
+            background: radial-gradient(circle at center, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
+            display: block;
+            cursor: crosshair;
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 1.5rem;
+            border-radius: 15px;
+            backdrop-filter: blur(15px);
+            border: 2px solid var(--primary-blue);
+            max-width: 280px;
+            z-index: 10;
+        }
+
+        .solution-panel {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 1rem;
+            border-radius: 15px;
+            backdrop-filter: blur(15px);
+            border: 2px solid var(--accent-green);
+            max-width: 260px;
+            width: 260px;
+            z-index: 10;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+            font-size: 0.85rem;
+        }
+
+        .info-item {
+            margin: 0.8rem 0;
+            font-size: 0.95rem;
+        }
+
+        .info-label {
+            color: var(--secondary-purple);
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+
+        .info-value {
+            color: var(--primary-blue);
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .solution-step {
+            margin: 0.6rem 0;
+            font-size: 0.8rem;
+            background: rgba(16, 185, 129, 0.1);
+            padding: 0.6rem;
+            border-radius: 6px;
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .equation {
+            font-family: 'Courier New', monospace;
+            color: var(--accent-yellow);
+            font-weight: bold;
+            margin: 0.3rem 0;
+            text-align: center;
+            font-size: 0.75rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-purple));
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+            min-width: 180px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(59, 130, 246, 0.4);
+        }
+
+        .control-btn.active {
+            background: linear-gradient(135deg, var(--accent-pink), #f43f5e);
+            box-shadow: 0 8px 25px rgba(236, 72, 153, 0.4);
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-blue), var(--accent-pink));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        .narration-text {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin: 1rem 0;
+            border-left: 4px solid var(--accent-pink);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+        }
+
+        .concept-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .concept-card {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 15px;
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .concept-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--secondary-purple);
+            box-shadow: 0 15px 30px rgba(139, 92, 246, 0.2);
+        }
+
+        .concept-title {
+            font-size: 1.4rem;
+            color: var(--secondary-purple);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .audio-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .audio-btn {
+            background: rgba(59, 130, 246, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .audio-btn1 {
+            background: rgba(59, 130, 246, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .audio-btn:hover {
+            transform: scale(1.1);
+            background: var(--primary-blue);
+        }
+
+        .formula-display {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(236, 72, 153, 0.1));
+            border: 2px solid var(--primary-blue);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .formula-text {
+            font-size: 1.3rem;
+            font-family: 'Courier New', monospace;
+            color: var(--primary-blue);
+            margin-bottom: 0.5rem;
+        }
+
+        .timer {
+            display: none;
+        }
+
+        .timer-text {
+            color: var(--accent-green);
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px var(--primary-blue); }
+            50% { box-shadow: 0 0 40px var(--primary-blue), 0 0 60px var(--secondary-purple); }
+        }
+
+        .glowing {
+            animation: glow 2s infinite;
+        }
+
+        @media (max-width: 1024px) {
+            .info-panel, .solution-panel {
+                position: relative;
+                max-width: 100%;
+                margin-bottom: 1rem;
+            }
+            .main-stage {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .info-panel, .solution-panel {
+                position: relative;
+                max-width: 100%;
+                margin-bottom: 1rem;
+            }
+            .controls { flex-direction: column; align-items: center; }
+            .control-btn { width: 100%; max-width: 300px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="audio-controls">
+        <button class="audio-btn1" id="playPauseBtn" title="Play/Pause Audio">▶</button>
+        <button class="audio-btn" id="muteBtn" title="Mute/Unmute">🔊</button>
+    </div>
+
+    <div class="timer">
+        <div class="timer-text" id="timerDisplay">00:00</div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Worked Examples - Concentric Circles</h1>
+            <div class="duration-badge">⏱️ Duration: 12-15 minutes</div>
+            <p class="subtitle">Master concentric circle theorems through detailed step-by-step proofs</p>
+        </div>
+
+        <div class="main-stage">
+            <canvas id="animationCanvas"></canvas>
+            
+            <div class="info-panel">
+                <div class="info-item">
+                    <span class="info-label">Current Scene:</span>
+                    <span class="info-value" id="sceneInfo">Welcome</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Outer Radius:</span>
+                    <span class="info-value" id="outerRadiusInfo">150px</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Inner Radius:</span>
+                    <span class="info-value" id="innerRadiusInfo">90px</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Current Example:</span>
+                    <span class="info-value" id="currentExample">None</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Relationship:</span>
+                    <span class="info-value" id="relationshipInfo">Concentric</span>
+                </div>
+            </div>
+
+            <div class="solution-panel" id="solutionPanel">
+                <h3 style="color: var(--accent-green); margin-bottom: 1rem;">📊 Mathematical Solution</h3>
+                <div id="solutionSteps">
+                    <div class="solution-step">
+                        Select an example to see the mathematical solution
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="narration-text" id="narrationText">
+            Welcome to Worked Examples on Concentric Circles! Click "Complete Story" to experience all four examples in one comprehensive journey.
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" onclick="AppManager.startCompleteStory()">🎬 Complete Story</button>
+            <button class="control-btn" onclick="AppManager.startExample('chord')">🎯 Chord Tangent</button>
+            <button class="control-btn" onclick="AppManager.startExample('annulus')">🔄 Area Between Circles</button>
+            <button class="control-btn" onclick="AppManager.startExample('tangents')">📐 Common Tangents</button>
+            <button class="control-btn" onclick="AppManager.startExample('power')">⚡ Power of Point</button>
+            <button class="control-btn" onclick="AppManager.reset()">🔄 Reset</button>
+        </div>
+
+        <div class="concept-cards">
+            <div class="concept-card">
+                <div class="concept-title">🎯 Chord Tangent to Inner Circle</div>
+                <p>When a chord of the larger circle touches the smaller circle, it is bisected at the point of contact. This demonstrates the perpendicular from center theorem.</p>
+                <div class="formula-display">
+                    <div class="formula-text">AP = BP (Chord is bisected)</div>
+                </div>
+            </div>
+            
+            <div class="concept-card">
+                <div class="concept-title">🔄 Area Between Circles (Annulus)</div>
+                <p>The area of the ring region between concentric circles equals π times the difference of the squares of their radii.</p>
+                <div class="formula-display">
+                    <div class="formula-text">Area = π(R² - r²)</div>
+                </div>
+            </div>
+            
+            <div class="concept-card">
+                <div class="concept-title">📐 Common Tangents</div>
+                <p>Concentric circles have no external common tangents because they share the same center. Any tangent to one circle intersects the other.</p>
+                <div class="formula-display">
+                    <div class="formula-text">No external tangents</div>
+                </div>
+            </div>
+
+            <div class="concept-card">
+                <div class="concept-title">⚡ Power of a Point</div>
+                <p>For any external point and secant through concentric circles, the difference in powers relates to the area of the annulus.</p>
+                <div class="formula-display">
+                    <div class="formula-text">Power difference = π(R² - r²)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('animationCanvas');
+        const ctx = canvas.getContext('2d');
+        let center = { x: 0, y: 0 };
+        const outerRadius = 150;
+        const innerRadius = 90;
+
+        // Voice synthesis
+        let isMuted = false;
+
+        // Initialize canvas
+        function initCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            center = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 };
+        }
+
+        // Main Application Manager
+        class AppManager {
+            static currentExample = null;
+            static activeButton = -1;
+            static timerInterval = null;
+            static startTime = null;
+            static runId = 0;
+
+            static bumpRun() {
+                this.runId = Date.now() + Math.random();
+            }
+
+            static destroy() {
+                this.bumpRun();
+                // Stop current example
+                if (this.currentExample) {
+                    this.currentExample.destroy();
+                    this.currentExample = null;
+                }
+                
+                // Stop timer
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+
+                // Stop speech
+                speechSynthesis.cancel();
+
+                // Clear UI
+                this.clearCanvas();
+                this.hideSolutionPanel();
+                this.updateProgress(0);
+            }
+
+            static startExample(type) {
+                this.destroy();
+                this.setActiveButton(this.getButtonIndex(type));
+                
+                switch(type) {
+                    case 'chord':
+                        this.currentExample = new ChordTangentExample();
+                        break;
+                    case 'annulus':
+                        this.currentExample = new AnnulusExample();
+                        break;
+                    case 'tangents':
+                        this.currentExample = new CommonTangentsExample();
+                        break;
+                    case 'power':
+                        this.currentExample = new PowerOfPointExample();
+                        break;
+                }
+                
+                if (this.currentExample) {
+                    this.currentExample.start();
+                }
+            }
+
+            static startCompleteStory() {
+                this.destroy();
+                this.setActiveButton(0);
+                this.startTimer();
+                this.currentExample = new CompleteStoryExample();
+                this.currentExample.start();
+            }
+
+            static reset() {
+                this.destroy();
+                this.setActiveButton(5);
+                this.drawConcentricCircles();
+                document.getElementById('sceneInfo').textContent = 'Ready';
+                document.getElementById('currentExample').textContent = 'None';
+                document.getElementById('narrationText').textContent = 'Animation reset. Choose a demonstration to begin.';
+                this.clearActiveButtons();
+            }
+
+            static getButtonIndex(type) {
+                const map = { 'chord': 1, 'annulus': 2, 'tangents': 3, 'power': 4 };
+                return map[type] || 0;
+            }
+
+            static setActiveButton(index) {
+                this.activeButton = index;
+                document.querySelectorAll('.control-btn').forEach((btn, i) => {
+                    btn.classList.toggle('active', i === index);
+                });
+            }
+
+            static clearActiveButtons() {
+                document.querySelectorAll('.control-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+            }
+
+            static startTimer() {
+                this.startTime = Date.now();
+                this.timerInterval = setInterval(() => {
+                    const elapsed = Date.now() - this.startTime;
+                    const minutes = Math.floor(elapsed / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    document.getElementById('timerDisplay').textContent = 
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }, 1000);
+            }
+
+            static clearCanvas() {
+                ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+                this.drawGrid();
+            }
+
+            static drawGrid() {
+                const width = canvas.clientWidth;
+                const height = canvas.clientHeight;
+                const gridSize = 30;
+                
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.1)';
+                ctx.lineWidth = 1;
+                
+                for (let x = 0; x <= width; x += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+                
+                for (let y = 0; y <= height; y += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+            }
+
+            static drawConcentricCircles(showLabels = true) {
+                // Draw outer circle
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, outerRadius, 0, 2 * Math.PI);
+                ctx.stroke();
+                
+                ctx.fillStyle = 'rgba(59, 130, 246, 0.05)';
+                ctx.fill();
+                
+                // Draw inner circle
+                ctx.strokeStyle = '#ec4899';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, innerRadius, 0, 2 * Math.PI);
+                ctx.stroke();
+                
+                ctx.fillStyle = 'rgba(236, 72, 153, 0.05)';
+                ctx.fill();
+                
+                // Draw center point
+                this.drawPoint(center.x, center.y, '#fbbf24', showLabels ? 'O' : '');
+                
+                if (showLabels) {
+                    // Label radii
+                    this.drawRadiusLine(center.x, center.y, center.x + outerRadius, center.y, 'R');
+                    this.drawRadiusLine(center.x, center.y, center.x + innerRadius, center.y, 'r');
+                }
+            }
+
+            static drawPoint(x, y, color, label = '') {
+                ctx.fillStyle = color;
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                if (label) {
+                    ctx.fillStyle = '#f8fafc';
+                    ctx.font = 'bold 16px Segoe UI';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(label, x + 20, y - 10);
+                }
+            }
+
+            static drawLine(x1, y1, x2, y2, color = '#10b981', width = 3, dash = []) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                ctx.setLineDash(dash);
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            static drawRadiusLine(x1, y1, x2, y2, label = '') {
+                this.drawLine(x1, y1, x2, y2, '#8b5cf6', 2, [5, 5]);
+                
+                if (label) {
+                    const midX = (x1 + x2) / 2;
+                    const midY = (y1 + y2) / 2;
+                    ctx.fillStyle = '#8b5cf6';
+                    ctx.font = 'bold 14px Segoe UI';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(label, midX + 15, midY - 8);
+                }
+            }
+
+            static drawChord(y, label1 = 'A', label2 = 'B') {
+                const distance = Math.abs(center.y - y);
+                if (distance <= outerRadius) {
+                    const offset = Math.sqrt(outerRadius * outerRadius - distance * distance);
+                    const x1 = center.x - offset;
+                    const x2 = center.x + offset;
+                    
+                    this.drawLine(x1, y, x2, y, '#10b981', 4);
+                    this.drawPoint(x1, y, '#f43f5e', label1);
+                    this.drawPoint(x2, y, '#f43f5e', label2);
+                    
+                    return { x1, x2, y };
+                }
+                return null;
+            }
+
+            static updateProgress(progress) {
+                document.getElementById('progressFill').style.width = `${progress}%`;
+            }
+
+            static showSolutionPanel(steps) {
+                const panel = document.getElementById('solutionPanel');
+                const stepsContainer = document.getElementById('solutionSteps');
+                
+                stepsContainer.innerHTML = steps.map(step => 
+                    `<div class="solution-step">${step}</div>`
+                ).join('');
+                
+                panel.style.display = 'block';
+            }
+
+            static hideSolutionPanel() {
+                document.getElementById('solutionPanel').style.display = 'none';
+            }
+
+            static speak(text, delay = 0) {
+                if (isMuted || !text) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        speechSynthesis.cancel(); // Clear any previous speech
+                        
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.rate = 0.9;
+                        utterance.pitch = 1.1;
+                        utterance.volume = 0.8;
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        speechSynthesis.speak(utterance);
+                        document.getElementById('narrationText').textContent = text;
+                    }, delay);
+                });
+            }
+        }
+
+        // Base Example Class
+        class BaseExample {
+            constructor(name) {
+                this.name = name;
+                this.currentStep = 0;
+                this.isActive = true;
+                this.stepInterval = null;
+                this.runId = AppManager.runId;
+            }
+
+            destroy() {
+                this.isActive = false;
+                if (this.stepInterval) {
+                    clearInterval(this.stepInterval);
+                    this.stepInterval = null;
+                }
+                speechSynthesis.cancel();
+            }
+
+            isCancelled() {
+                return !this.isActive || this.runId !== AppManager.runId;
+            }
+
+            async start() {
+                if (this.isCancelled()) return;
+                document.getElementById('currentExample').textContent = this.name;
+                await this.executeSteps();
+            }
+
+            async executeSteps() {
+                // Override in child classes
+            }
+        }
+
+        // Chord Tangent Example
+        class ChordTangentExample extends BaseExample {
+            constructor() {
+                super('Chord Tangent');
+            }
+
+            async executeSteps() {
+                document.getElementById('sceneInfo').textContent = 'Chord Tangent Example';
+                
+                if (this.isCancelled()) return;
+                AppManager.clearCanvas();
+                AppManager.drawConcentricCircles();
+                await AppManager.speak("Our first example explores a beautiful property: when a chord of the larger circle touches the smaller circle, something remarkable happens.", 500);
+                
+                if (this.isCancelled()) return;
+                const chordY = center.y - innerRadius;
+                AppManager.drawChord(chordY);
+                await AppManager.speak("Here we have chord AB of the outer circle. Notice it's positioned to touch the inner circle.", 1000);
+                
+                if (this.isCancelled()) return;
+                AppManager.drawPoint(center.x, chordY, '#10b981', 'P');
+                await AppManager.speak("The chord touches the inner circle at point P. Now watch as we apply the perpendicular from center theorem.", 1000);
+                
+                if (this.isCancelled()) return;
+                AppManager.drawLine(center.x, center.y, center.x, chordY, '#fbbf24', 3);
+                
+                // Draw perpendicular symbol
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(center.x - 10, chordY);
+                ctx.lineTo(center.x - 10, chordY - 10);
+                ctx.lineTo(center.x, chordY - 10);
+                ctx.stroke();
+                
+                await AppManager.speak("We draw radius OP. Since the line is tangent to the inner circle, this radius is perpendicular to the chord.", 1500);
+                
+                if (this.isCancelled()) return;
+                await AppManager.speak("The perpendicular from the center of a circle to any chord bisects that chord. Therefore, AP equals BP.", 1000);
+                
+                if (this.isCancelled()) return;
+                const chordData = AppManager.drawChord(chordY);
+                if (chordData) {
+                    ctx.strokeStyle = '#f43f5e';
+                    ctx.lineWidth = 6;
+                    ctx.beginPath();
+                    ctx.moveTo(chordData.x1, chordY - 8);
+                    ctx.lineTo(center.x - 5, chordY - 8);
+                    ctx.moveTo(center.x + 5, chordY - 8);
+                    ctx.lineTo(chordData.x2, chordY - 8);
+                    ctx.stroke();
+                }
+                await AppManager.speak("This proves that any chord of the outer circle that is tangent to the inner circle is bisected at the point of tangency.", 1500);
+            }
+        }
+
+        // Annulus Example
+        class AnnulusExample extends BaseExample {
+            constructor() {
+                super('Annulus Area');
+            }
+
+            async executeSteps() {
+                document.getElementById('sceneInfo').textContent = 'Annulus Area';
+                
+                const solutionSteps = [
+                    "Given: Concentric circles with radii R and r",
+                    "<div class='equation'>Outer radius R = " + outerRadius + "px</div>",
+                    "<div class='equation'>Inner radius r = " + innerRadius + "px</div>",
+                    "Step 1: Area of outer circle",
+                    "<div class='equation'>A₁ = πR² = π × " + outerRadius + "² = " + Math.round(Math.PI * outerRadius * outerRadius) + "</div>",
+                    "Step 2: Area of inner circle", 
+                    "<div class='equation'>A₂ = πr² = π × " + innerRadius + "² = " + Math.round(Math.PI * innerRadius * innerRadius) + "</div>",
+                    "Step 3: Annulus area",
+                    "<div class='equation'>Annulus = π(R² - r²) = " + Math.round(Math.PI * (outerRadius*outerRadius - innerRadius*innerRadius)) + "</div>"
+                ];
+                
+                AppManager.showSolutionPanel(solutionSteps);
+
+                if (this.isCancelled()) return;
+                AppManager.clearCanvas();
+                AppManager.drawConcentricCircles();
+                await AppManager.speak("Our second example calculates the area of the ring region between concentric circles, called an annulus.", 500);
+                
+                if (this.isCancelled()) return;
+                // Highlight outer circle area
+                ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, outerRadius, 0, 2 * Math.PI);
+                ctx.fill();
+                AppManager.drawConcentricCircles(false);
+                await AppManager.speak("First, we calculate the area of the outer circle: π times R squared.", 1500);
+                
+                if (this.isCancelled()) return;
+                // Highlight inner circle area
+                ctx.fillStyle = 'rgba(236, 72, 153, 0.4)';
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, innerRadius, 0, 2 * Math.PI);
+                ctx.fill();
+                AppManager.drawConcentricCircles(false);
+                await AppManager.speak("Next, the area of the inner circle: π times r squared.", 1500);
+                
+                if (this.isCancelled()) return;
+                // Show annulus
+                AppManager.clearCanvas();
+                AppManager.drawConcentricCircles(false);
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.4)';
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, outerRadius, 0, 2 * Math.PI);
+                ctx.arc(center.x, center.y, innerRadius, 0, 2 * Math.PI, true);
+                ctx.fill();
+                AppManager.drawConcentricCircles();
+                await AppManager.speak("The annulus area is the difference: π times R squared minus π times r squared, which simplifies to π times the quantity R squared minus r squared.", 2500);
+                
+                if (this.isCancelled()) return;
+                await AppManager.speak("You can see the complete mathematical solution on the right panel, showing each step of the calculation.", 1500);
+            }
+        }
+
+        // Common Tangents Example
+        class CommonTangentsExample extends BaseExample {
+            constructor() {
+                super('Common Tangents');
+            }
+
+            async executeSteps() {
+                document.getElementById('sceneInfo').textContent = 'Common Tangents';
+                
+                if (this.isCancelled()) return;
+                AppManager.clearCanvas();
+                AppManager.drawConcentricCircles();
+                await AppManager.speak("Our third example explores why concentric circles have no external common tangents.", 500);
+                
+                if (this.isCancelled()) return;
+                await AppManager.speak("Concentric circles share the same center point. This unique property affects their tangent lines.", 1000);
+                
+                if (this.isCancelled()) return;
+                // Draw a line tangent to outer circle
+                const tangentY = center.y - outerRadius;
+                AppManager.drawLine(0, tangentY, canvas.clientWidth, tangentY, '#10b981', 3);
+                AppManager.drawPoint(center.x, tangentY, '#f43f5e', 'T');
+                await AppManager.speak("Any line tangent to the outer circle, like this one, will intersect the inner circle at two points.", 2000);
+                
+                if (this.isCancelled()) return;
+                // Show intersection points with inner circle
+                const distance = Math.abs(center.y - tangentY);
+                if (distance < innerRadius) {
+                    const offset = Math.sqrt(innerRadius * innerRadius - distance * distance);
+                    AppManager.drawPoint(center.x - offset, tangentY, '#fbbf24');
+                    AppManager.drawPoint(center.x + offset, tangentY, '#fbbf24');
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                if (this.isCancelled()) return;
+                AppManager.clearCanvas();
+                AppManager.drawConcentricCircles();
+                
+                // Draw a line tangent to inner circle
+                const innerTangentY = center.y - innerRadius;
+                AppManager.drawLine(0, innerTangentY, canvas.clientWidth, innerTangentY, '#ec4899', 3);
+                AppManager.drawPoint(center.x, innerTangentY, '#f43f5e', 'P');
+                
+                await AppManager.speak("Conversely, any line tangent to the inner circle will be a secant to the outer circle, intersecting it at two points.", 2000);
+                
+                if (this.isCancelled()) return;
+                // Show intersection with outer circle
+                const distance2 = Math.abs(center.y - innerTangentY);
+                const offset2 = Math.sqrt(outerRadius * outerRadius - distance2 * distance2);
+                AppManager.drawPoint(center.x - offset2, innerTangentY, '#fbbf24', 'A');
+                AppManager.drawPoint(center.x + offset2, innerTangentY, '#fbbf24', 'B');
+                
+                await AppManager.speak("Therefore, concentric circles cannot have external common tangents because they share the same center.", 2000);
+            }
+        }
+
+        // Power of Point Example
+        class PowerOfPointExample extends BaseExample {
+            constructor() {
+                super('Power of Point');
+            }
+
+            async executeSteps() {
+                document.getElementById('sceneInfo').textContent = 'Power of Point';
+                
+                if (this.isCancelled()) return;
+                AppManager.clearCanvas();
+                AppManager.drawConcentricCircles();
+                
+                const pointP = { x: center.x + outerRadius + 80, y: center.y + 30 };
+                AppManager.drawPoint(pointP.x, pointP.y, '#f97316', 'P');
+                
+                await AppManager.speak("Our final example demonstrates the power of a point theorem applied to concentric circles.", 500);
+                
+                if (this.isCancelled()) return;
+                await AppManager.speak("Consider point P outside both concentric circles.", 1000);
+                
+                if (this.isCancelled()) return;
+                const secantEnd = { x: center.x - outerRadius - 50, y: center.y - 40 };
+                AppManager.drawLine(pointP.x, pointP.y, secantEnd.x, secantEnd.y, '#10b981', 3);
+                await AppManager.speak("We draw a secant from P through both circles.", 1500);
+                
+                if (this.isCancelled()) return;
+                // Calculate actual intersection points
+                const outerIntersections = this.calculateLineCircleIntersection(pointP, secantEnd, center, outerRadius);
+                const innerIntersections = this.calculateLineCircleIntersection(pointP, secantEnd, center, innerRadius);
+                
+                let pointA, pointB, pointC, pointD;
+                
+                if (outerIntersections.length >= 2) {
+                    pointA = outerIntersections[0];
+                    pointB = outerIntersections[1];
+                    AppManager.drawPoint(pointA.x, pointA.y, '#f43f5e', 'A');
+                    AppManager.drawPoint(pointB.x, pointB.y, '#f43f5e', 'B');
+                }
+                
+                if (innerIntersections.length >= 2) {
+                    pointC = innerIntersections[0];
+                    pointD = innerIntersections[1];
+                    AppManager.drawPoint(pointC.x, pointC.y, '#10b981', 'C');
+                    AppManager.drawPoint(pointD.x, pointD.y, '#10b981', 'D');
+                }
+                
+                await AppManager.speak("Let A and B be intersection points with the outer circle, and C and D with the inner circle.", 2000);
+                
+                if (!this.isActive) return;
+                // Calculate distances for the mathematical solution
+                if (pointA && pointB && pointC && pointD) {
+                    const PA = Math.sqrt((pointP.x - pointA.x)**2 + (pointP.y - pointA.y)**2);
+                    const PB = Math.sqrt((pointP.x - pointB.x)**2 + (pointP.y - pointB.y)**2);
+                    const PC = Math.sqrt((pointP.x - pointC.x)**2 + (pointP.y - pointC.y)**2);
+                    const PD = Math.sqrt((pointP.x - pointD.x)**2 + (pointP.y - pointD.y)**2);
+                    
+                    const powerOuter = Math.round(PA * PB);
+                    const powerInner = Math.round(PC * PD);
+                    const powerDifference = powerOuter - powerInner;
+                    const theoreticalDifference = Math.round(Math.PI * (outerRadius*outerRadius - innerRadius*innerRadius));
+                    
+                    const solutionSteps = [
+                        "Power of a Point Theorem:",
+                        "Given: Center O, External point P, Secant line",
+                        "<div class='equation'>A, B = intersections with outer circle</div>",
+                        "<div class='equation'>C, D = intersections with inner circle</div>",
+                        "Power calculations:",
+                        "<div class='equation'>Power at P (outer) = PA × PB</div>",
+                        "<div class='equation'>Power at P (inner) = PC × PD</div>",
+                        "Calculated distances from P:",
+                        "<div class='equation'>PA ≈ " + Math.round(PA) + " units</div>",
+                        "<div class='equation'>PB ≈ " + Math.round(PB) + " units</div>",
+                        "<div class='equation'>PC ≈ " + Math.round(PC) + " units</div>",
+                        "<div class='equation'>PD ≈ " + Math.round(PD) + " units</div>",
+                        "Power calculations:",
+                        "<div class='equation'>PA × PB = " + Math.round(PA) + " × " + Math.round(PB) + " = " + powerOuter + "</div>",
+                        "<div class='equation'>PC × PD = " + Math.round(PC) + " × " + Math.round(PD) + " = " + powerInner + "</div>",
+                        "Power difference:",
+                        "<div class='equation'>" + powerOuter + " - " + powerInner + " = " + powerDifference + "</div>",
+                        "Theoretical relationship:",
+                        "<div class='equation'>Power difference = π(R² - r²) ≈ " + theoreticalDifference + "</div>"
+                    ];
+                    
+                    AppManager.showSolutionPanel(solutionSteps);
+                }
+                
+                await AppManager.speak("The power of point P with respect to the outer circle is PA times PB. For the inner circle, it's PC times PD.", 2500);
+                
+                if (this.isCancelled()) return;
+                await AppManager.speak("The difference between these powers equals π times the difference of the squares of the radii, connecting power of a point to the annulus area. Check the detailed calculations on the right.", 3000);
+            }
+
+            calculateLineCircleIntersection(lineStart, lineEnd, circleCenter, radius) {
+                // Convert line to parametric form: P = lineStart + t * (lineEnd - lineStart)
+                const dx = lineEnd.x - lineStart.x;
+                const dy = lineEnd.y - lineStart.y;
+                const fx = lineStart.x - circleCenter.x;
+                const fy = lineStart.y - circleCenter.y;
+                
+                // Quadratic equation: at² + bt + c = 0
+                const a = dx * dx + dy * dy;
+                const b = 2 * (fx * dx + fy * dy);
+                const c = fx * fx + fy * fy - radius * radius;
+                
+                const discriminant = b * b - 4 * a * c;
+                
+                if (discriminant < 0) {
+                    return []; // No intersection
+                }
+                
+                const sqrt_discriminant = Math.sqrt(discriminant);
+                const t1 = (-b - sqrt_discriminant) / (2 * a);
+                const t2 = (-b + sqrt_discriminant) / (2 * a);
+                
+                const intersections = [];
+                
+                if (t1 >= 0 && t1 <= 1) {
+                    intersections.push({
+                        x: lineStart.x + t1 * dx,
+                        y: lineStart.y + t1 * dy,
+                        t: t1
+                    });
+                }
+                
+                if (t2 >= 0 && t2 <= 1 && Math.abs(t2 - t1) > 0.001) {
+                    intersections.push({
+                        x: lineStart.x + t2 * dx,
+                        y: lineStart.y + t2 * dy,
+                        t: t2
+                    });
+                }
+                
+                return intersections.sort((a, b) => a.t - b.t);
+            }
+        }
+
+        // Complete Story Example
+        class CompleteStoryExample extends BaseExample {
+            constructor() {
+                super('Complete Story');
+                this.exampleIndex = 0;
+                this.examples = ['chord', 'annulus', 'tangents', 'power'];
+            }
+
+            async executeSteps() {
+                document.getElementById('sceneInfo').textContent = 'Complete Story';
+                document.getElementById('currentExample').textContent = 'All Examples';
+                
+                await AppManager.speak("Welcome to the complete story of concentric circles! We'll explore four fundamental examples that showcase the beauty and power of these geometric relationships.", 500);
+                
+                if (this.isCancelled()) return;
+                AppManager.updateProgress(5);
+                
+                // Example 1: Chord Tangent
+                if (!this.isCancelled()) {
+                    const chordExample = new ChordTangentExample();
+                    await chordExample.start();
+                    chordExample.destroy();
+                    AppManager.updateProgress(25);
+                }
+                
+                // Example 2: Annulus
+                if (!this.isCancelled()) {
+                    const annulusExample = new AnnulusExample();
+                    await annulusExample.start();
+                    annulusExample.destroy();
+                    AppManager.updateProgress(50);
+                }
+                
+                // Example 3: Common Tangents
+                if (!this.isCancelled()) {
+                    const tangentsExample = new CommonTangentsExample();
+                    await tangentsExample.start();
+                    tangentsExample.destroy();
+                    AppManager.updateProgress(75);
+                }
+                
+                // Example 4: Power of Point
+                if (!this.isCancelled()) {
+                    const powerExample = new PowerOfPointExample();
+                    await powerExample.start();
+                    powerExample.destroy();
+                    AppManager.updateProgress(100);
+                }
+                
+                if (!this.isCancelled()) {
+                    await AppManager.speak("We've completed our journey through concentric circles! These four examples demonstrate the fundamental relationships and applications in geometry. Understanding these concepts opens doors to more advanced geometric theorems.", 2000);
+                }
+            }
+        }
+
+        // Audio controls
+        document.getElementById('playPauseBtn').addEventListener('click', () => {
+            if (speechSynthesis.speaking) {
+                speechSynthesis.pause();
+                document.getElementById('playPauseBtn').textContent = '▶';
+            } else {
+                speechSynthesis.resume();
+                document.getElementById('playPauseBtn').textContent = '⏸';
+            }
+        });
+
+        document.getElementById('muteBtn').addEventListener('click', () => {
+            isMuted = !isMuted;
+            document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊';
+            if (isMuted) {
+                speechSynthesis.cancel();
+            }
+        });
+
+        // Initialize
+        window.addEventListener('load', () => {
+            initCanvas();
+            AppManager.clearCanvas();
+            AppManager.drawConcentricCircles();
+            
+            AppManager.speak("Welcome to Worked Examples on Concentric Circles! Click 'Complete Story' for a comprehensive journey, or choose individual examples below.");
+        });
+
+        window.addEventListener('resize', () => {
+            initCanvas();
+            AppManager.clearCanvas();
+            AppManager.drawConcentricCircles();
+        });
+    </script>
+</body>
+</html>

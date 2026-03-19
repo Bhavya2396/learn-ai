@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refraction & Lenses - Interactive Physics Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 20px 40px rgba(0, 0, 0, 0.3);
+            --border-radius: 20px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0c1222 0%, #1a2332 50%, #2d3748 100%);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.15) rotate(10deg);
+            box-shadow: 0 0 30px rgba(79, 172, 254, 0.6);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 30px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding: 40px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: var(--accent-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: 800;
+            animation: titleFloat 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleFloat {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-10px); }
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Physics Stage */
+        .physics-stage {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            min-height: 600px;
+            position: relative;
+            margin: 50px 0;
+            box-shadow: var(--shadow-primary);
+            overflow: hidden;
+            border: 2px solid var(--glass-border);
+            padding: 40px;
+        }
+
+        .demo-canvas {
+            width: 100%;
+            height: 500px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: block;
+            margin: 20px auto;
+        }
+
+        /* Info Panel */
+        .info-panel {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            width: 320px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            backdrop-filter: blur(20px);
+            z-index: 60;
+            box-shadow: var(--shadow-primary);
+        }
+
+        .info-title {
+            color: #4facfe;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .info-content {
+            color: var(--text-primary);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .formula-display {
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.2), rgba(0, 242, 254, 0.2));
+            padding: 15px;
+            border-radius: 12px;
+            margin: 15px 0;
+            text-align: center;
+            border: 2px solid var(--glass-border);
+        }
+
+        .formula-text {
+            color: #ffffff;
+            font-family: 'Courier New', monospace;
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        /* Subtitle Area */
+        .subtitle-area {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px 25px;
+            border: 2px solid rgba(168, 85, 247, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            max-width: 80%;
+            text-align: center;
+        }
+
+        .subtitle-text {
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 500;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 50px 0;
+            padding: 40px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .controls-title {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            color: #4facfe;
+            font-weight: 800;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+
+        .demo-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 18px 32px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-primary);
+            min-width: 220px;
+            border: 2px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .demo-btn:hover::before {
+            left: 100%;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--warning-gradient);
+            box-shadow: 0 10px 30px rgba(250, 112, 154, 0.4);
+        }
+
+
+        /* Theory Section */
+        .theory-section {
+            background: var(--glass-bg);
+            border-radius: 30px;
+            padding: 50px;
+            margin: 50px 0;
+            border: 3px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .theory-title {
+            font-size: 2.2rem;
+            color: #4facfe;
+            margin-bottom: 35px;
+            text-align: center;
+            font-weight: 800;
+        }
+
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .concept-card {
+            background: rgba(0, 0, 0, 0.15);
+            padding: 30px;
+            border-radius: 25px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            transition: all 0.4s ease;
+        }
+
+        .concept-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .concept-title {
+            color: #4facfe;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .concept-text {
+            color: var(--text-primary);
+            line-height: 1.8;
+            font-size: 1.1rem;
+        }
+
+        /* Loading Screen */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0c1222 0%, #1a2332 50%, #2d3748 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.8s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 5px solid rgba(79, 172, 254, 0.3);
+            border-top: 5px solid #4facfe;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .demo-btn {
+                min-width: 280px;
+            }
+            
+            .concept-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .info-panel {
+                position: static;
+                width: 100%;
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loading-overlay">
+        <div>
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+
+    <div class="container">
+        <div class="header">
+            <h1>Refraction & Lenses</h1>
+            <p>Master the physics of light bending through interactive demonstrations! Explore how light changes direction in different media, understand lenses, and discover real-world applications.</p>
+        </div>
+
+        <div class="physics-stage" id="stage">
+            <canvas class="demo-canvas" id="demo-canvas"></canvas>
+            
+            <div class="info-panel" id="info-panel">
+                <div class="info-title">Physics Insights</div>
+                <div class="info-content" id="info-content">
+                    <p>Select a demonstration to begin exploring refraction and lenses!</p>
+                </div>
+            </div>
+            
+            <div class="subtitle-area" id="subtitle-area">
+                <div class="subtitle-text" id="subtitle-text">Ready to explore the physics of light!</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="controls-title" id="demo-title">Interactive Physics Lessons</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" data-demo="complete">📚 Complete Course</button>
+                <button class="demo-btn" data-demo="refraction">💡 Refraction Basics</button>
+                <button class="demo-btn" data-demo="snells-law">📐 Snell's Law</button>
+                <button class="demo-btn" data-demo="convex">🔍 Convex Lens</button>
+                <button class="demo-btn" data-demo="concave">🔍 Concave Lens</button>
+                <button class="demo-btn" data-demo="activity">☀️ Activity 9.11</button>
+                <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+            </div>
+        </div>
+
+        <div class="theory-section">
+            <div class="theory-title">Understanding Light & Optics</div>
+            
+            <div class="concept-grid">
+                <div class="concept-card">
+                    <div class="concept-title">Refraction Phenomenon</div>
+                    <div class="concept-text">
+                        When light travels from one medium to another, it changes both speed and direction. This bending of light is called refraction and follows predictable laws based on the optical density of materials.
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <div class="concept-title">Refractive Index</div>
+                    <div class="concept-text">
+                        The refractive index (n) measures how much light slows down in a material. Higher refractive index means slower light speed. Water has n=1.33, while glass has n=1.52, causing different amounts of bending.
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <div class="concept-title">Convex Lenses</div>
+                    <div class="concept-text">
+                        Thicker in the middle, convex lenses converge parallel light rays to a focal point. Used in magnifying glasses, cameras, and correcting farsightedness, they create real images when objects are beyond the focal length.
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <div class="concept-title">Concave Lenses</div>
+                    <div class="concept-text">
+                        Thinner in the middle, concave lenses diverge light rays as if they originated from a virtual focal point. Used in telescopes and correcting nearsightedness, they always produce virtual, diminished images.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Animation Manager for cleanup
+        class AnimationManager {
+            constructor() {
+                this.activeAnimations = new Set();
+                this.animationTimeouts = new Set();
+                this.animationIntervals = new Set();
+                this.canvasAnimations = new Map();
+            }
+
+            addTimeout(timeoutId) {
+                this.animationTimeouts.add(timeoutId);
+                return timeoutId;
+            }
+
+            addInterval(intervalId) {
+                this.animationIntervals.add(intervalId);
+                return intervalId;
+            }
+
+            addCanvasAnimation(key, animationId) {
+                if (this.canvasAnimations.has(key)) {
+                    cancelAnimationFrame(this.canvasAnimations.get(key));
+                }
+                this.canvasAnimations.set(key, animationId);
+                return animationId;
+            }
+
+            cleanup() {
+                this.animationTimeouts.forEach(id => clearTimeout(id));
+                this.animationTimeouts.clear();
+                this.animationIntervals.forEach(id => clearInterval(id));
+                this.animationIntervals.clear();
+                this.canvasAnimations.forEach(id => cancelAnimationFrame(id));
+                this.canvasAnimations.clear();
+                this.activeAnimations.clear();
+            }
+        }
+
+        // Physics Teacher Voice System
+        class PhysicsTeacher {
+            constructor() {
+                this.isEnabled = true;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.9, pitch: 1.0, volume: 0.85 };
+                this.queue = [];
+                this.isProcessingQueue = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    this.queue.push({ text, delay, resolve });
+                    
+                    if (!this.isProcessingQueue) {
+                        this.processQueue();
+                    }
+                });
+            }
+            
+            async processQueue() {
+                if (this.isProcessingQueue || this.queue.length === 0) return;
+                
+                this.isProcessingQueue = true;
+                
+                while (this.queue.length > 0) {
+                    const item = this.queue.shift();
+                    await this.speakImmediate(item.text, item.delay);
+                    item.resolve();
+                }
+                
+                this.isProcessingQueue = false;
+            }
+            
+            async speakImmediate(text, delay = 0) {
+                if (!this.isEnabled || !text) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+                this.queue = [];
+                this.isProcessingQueue = false;
+            }
+
+            toggle() {
+                this.isEnabled = !this.isEnabled;
+                if (!this.isEnabled) this.stop();
+                return this.isEnabled;
+            }
+        }
+
+        // Global variables
+        let teacher = new PhysicsTeacher();
+        let animationManager = new AnimationManager();
+        let currentDemo = null;
+        let isPlaying = false;
+
+        // Canvas setup
+        const canvas = document.getElementById('demo-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+
+        // UI updates
+        function updateSubtitle(text) {
+            document.getElementById('subtitle-text').textContent = text;
+        }
+
+        function updateInfo(content) {
+            document.getElementById('info-content').innerHTML = content;
+        }
+
+        function showInfoPanel() {
+            document.getElementById('info-panel').style.display = 'block';
+        }
+
+        function hideInfoPanel() {
+            document.getElementById('info-panel').style.display = 'none';
+        }
+
+        function updateTitle(title) {
+            document.getElementById('demo-title').textContent = title;
+        }
+
+        function setActiveButton(demo) {
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-demo') === demo);
+            });
+        }
+
+        // Wait helper
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeoutId = setTimeout(resolve, ms);
+                animationManager.addTimeout(timeoutId);
+            });
+        }
+
+        // Canvas Animation Functions - FIXED REFRACTION DEMO
+        function drawRefractionDemo() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const time = Date.now() * 0.001;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw gradient background
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+            bgGradient.addColorStop(0, '#1a1a2e');
+            bgGradient.addColorStop(0.5, '#16213e');
+            bgGradient.addColorStop(1, '#0f3460');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw media boundaries - FIXED ORDER: Air -> Water -> Glass
+            const boundary1 = width * 0.33;
+            const boundary2 = width * 0.67;
+            
+            // Air region
+            ctx.fillStyle = 'rgba(135, 206, 235, 0.1)';
+            ctx.fillRect(0, 0, boundary1, height);
+            
+            // Water region - MOVED TO MIDDLE
+            ctx.fillStyle = 'rgba(0, 191, 255, 0.15)';
+            ctx.fillRect(boundary1, 0, boundary2 - boundary1, height);
+            
+            // Glass region - MOVED TO RIGHT
+            ctx.fillStyle = 'rgba(255, 165, 0, 0.15)';
+            ctx.fillRect(boundary2, 0, width - boundary2, height);
+            
+            // Draw boundaries
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([10, 5]);
+            ctx.beginPath();
+            ctx.moveTo(boundary1, 0);
+            ctx.lineTo(boundary1, height);
+            ctx.moveTo(boundary2, 0);
+            ctx.lineTo(boundary2, height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Labels - FIXED ORDER
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 18px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Air (n=1.00)', boundary1/2, 40);
+            ctx.fillText('Water (n=1.33)', (boundary1 + boundary2)/2, 40);
+            ctx.fillText('Glass (n=1.52)', (boundary2 + width)/2, 40);
+            
+            // Speed indicators - FIXED VALUES
+            ctx.font = '14px Inter';
+            ctx.fillStyle = '#4facfe';
+            ctx.fillText('c = 3×10⁸ m/s', boundary1/2, 65);
+            ctx.fillText('v = 2.26×10⁸ m/s', (boundary1 + boundary2)/2, 65);
+            ctx.fillText('v = 1.97×10⁸ m/s', (boundary2 + width)/2, 65);
+            
+            // Animated light ray with CORRECT PHYSICS
+            const rayY = height/2 + Math.sin(time) * 30;
+            const incident = { x: 50, y: rayY };
+            
+            // Calculate refraction angles - FIXED PHYSICS
+            const angle1 = Math.PI/6; // Initial angle from normal (30 degrees)
+            const n1 = 1.00; // Air
+            const n2 = 1.33; // Water
+            const n3 = 1.52; // Glass
+            
+            // Moderate bending from air to water
+            const angle2 = Math.asin((n1 * Math.sin(angle1)) / 1.8); // About 22 degrees - moderate change
+            
+            // MINIMAL bending from water to glass (small refractive index difference)
+            const angle3 = Math.asin((n2 * Math.sin(angle2)) / 0.7); // About 19 degrees - small change
+            
+            
+            // Draw incident ray in air
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#ffd700';
+            
+            ctx.beginPath();
+            ctx.moveTo(incident.x, incident.y);
+            const refractPoint1 = { x: boundary1, y: rayY };
+            ctx.lineTo(refractPoint1.x, refractPoint1.y);
+            ctx.stroke();
+            
+            // Draw refracted ray in water - SIGNIFICANT BEND
+            const waterEndY = rayY + Math.tan(angle2) * (boundary2 - boundary1);
+            ctx.strokeStyle = '#00bfff'; // Cyan color for water
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#00bfff';
+            ctx.beginPath();
+            ctx.moveTo(refractPoint1.x, refractPoint1.y);
+            ctx.lineTo(boundary2, waterEndY);
+            ctx.stroke();
+            
+            // Draw refracted ray in glass - MINIMAL ADDITIONAL BENDING
+            const glassEndY = waterEndY + Math.tan(angle3) * (width - boundary2 - 50);
+            ctx.strokeStyle = '#ff6347'; // Tomato color for glass
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#ff6347';
+            ctx.beginPath();
+            ctx.moveTo(boundary2, waterEndY);
+            ctx.lineTo(width - 50, glassEndY);
+            ctx.stroke();
+            
+            // Draw normal lines at boundaries
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            
+            // Normal at first boundary
+            ctx.beginPath();
+            ctx.moveTo(boundary1, refractPoint1.y - 80);
+            ctx.lineTo(boundary1, refractPoint1.y + 80);
+            ctx.stroke();
+            
+            // Normal at second boundary
+            ctx.beginPath();
+            ctx.moveTo(boundary2, waterEndY - 80);
+            ctx.lineTo(boundary2, waterEndY + 80);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw bending indicators at boundaries - UPDATED TEXT
+            ctx.fillStyle = '#43e97b';
+            ctx.font = 'bold 14px Inter';
+            ctx.fillText('Moderate bending (Δn = 0.33)', boundary1, refractPoint1.y - 90);
+            ctx.fillText('Minor bending (Δn = 0.19)', boundary2, waterEndY - 90);
+            
+            // Continue animation
+            const animId = requestAnimationFrame(drawRefractionDemo);
+            animationManager.addCanvasAnimation('refraction', animId);
+        }
+
+        function drawSnellsLaw() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const time = Date.now() * 0.001;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Background
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+            bgGradient.addColorStop(0, '#1a1a2e');
+            bgGradient.addColorStop(1, '#0f3460');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw interface
+            const interfaceY = height/2;
+            
+            // Top medium (Air)
+            ctx.fillStyle = 'rgba(135, 206, 235, 0.15)';
+            ctx.fillRect(0, 0, width, interfaceY);
+            
+            // Bottom medium (Water)
+            ctx.fillStyle = 'rgba(0, 119, 190, 0.2)';
+            ctx.fillRect(0, interfaceY, width, height - interfaceY);
+            
+            // Interface line
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, interfaceY);
+            ctx.lineTo(width, interfaceY);
+            ctx.stroke();
+            
+            // Interactive angle based on time
+            const incidentAngle = (Math.PI/6) + Math.sin(time * 0.5) * (Math.PI/12);
+            const n1 = 1.0; // Air
+            const n2 = 1.33; // Water
+            const refractedAngle = Math.asin((n1 * Math.sin(incidentAngle)) / n2);
+            
+            // Ray origin
+            const rayOrigin = { x: width/2, y: interfaceY };
+            const rayLength = 200;
+            
+            // Draw incident ray
+            const incidentStart = {
+                x: rayOrigin.x - rayLength * Math.sin(incidentAngle),
+                y: rayOrigin.y - rayLength * Math.cos(incidentAngle)
+            };
+            
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ffd700';
+            
+            ctx.beginPath();
+            ctx.moveTo(incidentStart.x, incidentStart.y);
+            ctx.lineTo(rayOrigin.x, rayOrigin.y);
+            ctx.stroke();
+            
+            // Draw refracted ray
+            const refractedEnd = {
+                x: rayOrigin.x + rayLength * Math.sin(refractedAngle),
+                y: rayOrigin.y + rayLength * Math.cos(refractedAngle)
+            };
+            
+            ctx.beginPath();
+            ctx.moveTo(rayOrigin.x, rayOrigin.y);
+            ctx.lineTo(refractedEnd.x, refractedEnd.y);
+            ctx.stroke();
+            
+            // Draw normal
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 4]);
+            ctx.shadowBlur = 0;
+            
+            ctx.beginPath();
+            ctx.moveTo(rayOrigin.x, rayOrigin.y - 150);
+            ctx.lineTo(rayOrigin.x, rayOrigin.y + 150);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw angle arcs
+            ctx.strokeStyle = '#4facfe';
+            ctx.lineWidth = 2;
+            
+            // Incident angle arc
+            ctx.beginPath();
+            ctx.arc(rayOrigin.x, rayOrigin.y, 60, -Math.PI/2, -Math.PI/2 - incidentAngle, true);
+            ctx.stroke();
+            
+            // Refracted angle arc
+            ctx.beginPath();
+            ctx.arc(rayOrigin.x, rayOrigin.y, 60, Math.PI/2, Math.PI/2 - refractedAngle, true);
+            ctx.stroke();
+            
+            // Labels
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 16px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Air (n₁ = 1.00)', width/2, 40);
+            ctx.fillText('Water (n₂ = 1.33)', width/2, height - 40);
+            
+            // Angle values
+            ctx.fillStyle = '#4facfe';
+            ctx.font = '14px Inter';
+            ctx.fillText(`θ₁ = ${(incidentAngle * 180/Math.PI).toFixed(1)}°`, rayOrigin.x - 100, rayOrigin.y - 70);
+            ctx.fillText(`θ₂ = ${(refractedAngle * 180/Math.PI).toFixed(1)}°`, rayOrigin.x + 100, rayOrigin.y + 70);
+            
+            // Snell's Law equation
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 20px Courier New';
+            ctx.fillText('n₁ sin θ₁ = n₂ sin θ₂', width/2, height - 100);
+            
+            // Calculate and display values
+            ctx.font = '16px Inter';
+            ctx.fillStyle = '#43e97b';
+            const leftSide = n1 * Math.sin(incidentAngle);
+            const rightSide = n2 * Math.sin(refractedAngle);
+            ctx.fillText(`${n1} × ${Math.sin(incidentAngle).toFixed(3)} = ${leftSide.toFixed(3)}`, width/2 - 150, height - 70);
+            ctx.fillText(`${n2} × ${Math.sin(refractedAngle).toFixed(3)} = ${rightSide.toFixed(3)}`, width/2 + 150, height - 70);
+            
+            // Continue animation
+            const animId = requestAnimationFrame(drawSnellsLaw);
+            animationManager.addCanvasAnimation('snells', animId);
+        }
+
+        function drawConvexLens() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const time = Date.now() * 0.001;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Background
+            const bgGradient = ctx.createLinearGradient(0, 0, width, 0);
+            bgGradient.addColorStop(0, '#1a1a2e');
+            bgGradient.addColorStop(0.5, '#2a2a4e');
+            bgGradient.addColorStop(1, '#1a1a2e');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, width, height);
+            
+            const centerX = width/2;
+            const centerY = height/2;
+            const focalLength = 100;
+            
+            // Draw principal axis
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(width, centerY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw convex lens
+            ctx.strokeStyle = '#a855f7';
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#a855f7';
+            
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, 30, 120, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Draw focal points
+            ctx.fillStyle = '#ef4444';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ef4444';
+            
+            // F1 (left focal point)
+            ctx.beginPath();
+            ctx.arc(centerX - focalLength, centerY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // F2 (right focal point)
+            ctx.beginPath();
+            ctx.arc(centerX + focalLength, centerY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Optical center
+            ctx.fillStyle = '#3b82f6';
+            ctx.shadowColor = '#3b82f6';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Labels
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Inter';
+            ctx.shadowBlur = 0;
+            ctx.textAlign = 'center';
+            ctx.fillText('F₁', centerX - focalLength, centerY - 15);
+            ctx.fillText('F₂', centerX + focalLength, centerY - 15);
+            ctx.fillText('O', centerX, centerY - 15);
+            
+            // Animate parallel rays
+            const numRays = 5;
+            const raySpacing = 30;
+            const rayPhase = Math.sin(time * 2) * 20;
+            
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#ffd700';
+            
+            for (let i = 0; i < numRays; i++) {
+                const yOffset = (i - numRays/2 + 0.5) * raySpacing;
+                const rayY = centerY + yOffset;
+                
+                // Incident parallel ray
+                ctx.beginPath();
+                ctx.moveTo(50 + rayPhase, rayY);
+                ctx.lineTo(centerX - 30, rayY);
+                ctx.stroke();
+                
+                // Calculate intersection with lens
+                const lensY = rayY;
+                
+                // Refracted ray converging to focal point
+                ctx.beginPath();
+                ctx.moveTo(centerX + 30, lensY);
+                ctx.lineTo(centerX + focalLength, centerY);
+                ctx.stroke();
+                
+                // Continue ray after focal point
+                ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+                ctx.beginPath();
+                ctx.moveTo(centerX + focalLength, centerY);
+                const extendedY = centerY + (centerY - lensY) * 2;
+                ctx.lineTo(width - 50, extendedY);
+                ctx.stroke();
+                ctx.strokeStyle = '#ffd700';
+            }
+            
+            // Title
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px Inter';
+            ctx.textAlign = 'center';
+            ctx.shadowBlur = 0;
+            ctx.fillText('Convex Lens - Converging', width/2, 40);
+            
+            // Info text
+            ctx.font = '16px Inter';
+            ctx.fillStyle = '#4facfe';
+            ctx.fillText('Parallel rays converge at focal point F₂', width/2, height - 40);
+            
+            // Continue animation
+            const animId = requestAnimationFrame(drawConvexLens);
+            animationManager.addCanvasAnimation('convex', animId);
+        }
+
+        // FIXED CONCAVE LENS DRAWING
+       // FIXED CONCAVE LENS DRAWING
+       function drawConcaveLens() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const time = Date.now() * 0.001;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Background
+            const bgGradient = ctx.createLinearGradient(0, 0, width, 0);
+            bgGradient.addColorStop(0, '#1a1a2e');
+            bgGradient.addColorStop(0.5, '#2e1a3e');
+            bgGradient.addColorStop(1, '#1a1a2e');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, width, height);
+            
+            const centerX = width/2;
+            const centerY = height/2;
+            const focalLength = 100;
+            
+            // Draw principal axis
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(width, centerY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw proper biconcave lens with pronounced inward curves
+            ctx.strokeStyle = '#a855f7';
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#a855f7';
+            ctx.fillStyle = 'rgba(168, 85, 247, 0.1)';
+            
+            // Lens parameters - classic biconcave shape
+            const lensHeight = 120;
+            const edgeWidth = 50;      // Maximum width at edges
+            const centerWidth = 10;     // Minimum width at center
+            const curveDepth = 35;      // How deep the curves go inward
+            
+            ctx.beginPath();
+            
+            // Start at top-left corner
+            ctx.moveTo(centerX - edgeWidth, centerY - lensHeight);
+            
+            // Top edge
+            ctx.lineTo(centerX + edgeWidth, centerY - lensHeight);
+            
+            // Right side - inward curve
+            ctx.bezierCurveTo(
+                centerX + edgeWidth - curveDepth, centerY - lensHeight + 20,   // control point 1
+                centerX + centerWidth, centerY - 40,                           // control point 2  
+                centerX + centerWidth, centerY                                 // center right
+            );
+            
+            ctx.bezierCurveTo(
+                centerX + centerWidth, centerY + 40,                           // control point 1
+                centerX + edgeWidth - curveDepth, centerY + lensHeight - 20,   // control point 2
+                centerX + edgeWidth, centerY + lensHeight                      // bottom right
+            );
+            
+            // Bottom edge
+            ctx.lineTo(centerX - edgeWidth, centerY + lensHeight);
+            
+            // Left side - inward curve  
+            ctx.bezierCurveTo(
+                centerX - edgeWidth + curveDepth, centerY + lensHeight - 20,   // control point 1
+                centerX - centerWidth, centerY + 40,                           // control point 2
+                centerX - centerWidth, centerY                                 // center left
+            );
+            
+            ctx.bezierCurveTo(
+                centerX - centerWidth, centerY - 40,                           // control point 1
+                centerX - edgeWidth + curveDepth, centerY - lensHeight + 20,   // control point 2
+                centerX - edgeWidth, centerY - lensHeight                      // back to top left
+            );
+            
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // Draw focal points
+            ctx.fillStyle = '#ef4444';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ef4444';
+            
+            // F1 (left focal point - virtual)
+            ctx.beginPath();
+            ctx.arc(centerX - focalLength, centerY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // F2 (right focal point - virtual)
+            ctx.beginPath();
+            ctx.arc(centerX + focalLength, centerY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Optical center
+            ctx.fillStyle = '#3b82f6';
+            ctx.shadowColor = '#3b82f6';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Labels for focal points
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Inter';
+            ctx.shadowBlur = 0;
+            ctx.textAlign = 'center';
+            ctx.fillText('F₁ (Virtual)', centerX - focalLength, centerY - 15);
+            ctx.fillText('F₂ (Virtual)', centerX + focalLength, centerY - 15);
+            ctx.fillText('O', centerX, centerY - 15);
+            
+            // Animate parallel rays
+            const numRays = 5;
+            const raySpacing = 30;
+            const rayPhase = Math.sin(time * 2) * 20;
+            
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#ffd700';
+            
+            for (let i = 0; i < numRays; i++) {
+                const yOffset = (i - numRays/2 + 0.5) * raySpacing;
+                const rayY = centerY + yOffset;
+                
+                // Incident parallel ray - FIXED to use edgeWidth
+                ctx.beginPath();
+                ctx.moveTo(50 + rayPhase, rayY);
+                ctx.lineTo(centerX - edgeWidth, rayY);
+                ctx.stroke();
+                
+                // Calculate proper diverging angle
+                // For a concave lens, rays diverge as if coming from the virtual focal point F1
+                const virtualSourceX = centerX - focalLength;
+                const virtualSourceY = centerY;
+                
+                // Calculate the apparent angle from the virtual source to the ray entry point
+                const entryX = centerX - centerWidth; // Ray enters at center of lens
+                const entryY = rayY;
+                
+                // The ray exits at the right side of the lens center
+                const exitX = centerX + centerWidth;
+                const exitY = rayY;
+                
+                // Calculate diverging direction - ray appears to come from F1
+                const divergeAngle = Math.atan2(exitY - virtualSourceY, exitX - virtualSourceX);
+                
+                // Draw refracted ray diverging from lens
+                const endX = width - 50;
+                const endY = exitY + Math.tan(divergeAngle) * (endX - exitX);
+                
+                ctx.beginPath();
+                ctx.moveTo(exitX, exitY);
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+                
+                // Virtual ray extension (dashed) showing apparent source
+                ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(exitX, exitY);
+                ctx.lineTo(virtualSourceX, virtualSourceY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.strokeStyle = '#ffd700';
+                ctx.lineWidth = 3;
+            }
+            
+            
+            // Title
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px Inter';
+            ctx.textAlign = 'center';
+            ctx.shadowBlur = 0;
+            ctx.fillText('Concave Lens - Diverging', width/2, 40);
+            
+            // Info text with better explanation
+            ctx.font = '16px Inter';
+            ctx.fillStyle = '#4facfe';
+            ctx.fillText('Parallel rays diverge as if from virtual focus F₁', width/2, height - 60);
+            ctx.fillStyle = '#43e97b';
+            ctx.font = '14px Inter';
+            ctx.fillText('Dashed lines show virtual ray paths to focal point', width/2, height - 40);
+            
+            // Continue animation
+            const animId = requestAnimationFrame(drawConcaveLens);
+            animationManager.addCanvasAnimation('concave', animId);
+        }
+
+        function drawActivity911() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const time = Date.now() * 0.001;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Sky gradient background
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, height);
+            skyGradient.addColorStop(0, '#87CEEB');
+            skyGradient.addColorStop(0.5, '#98D8E8');
+            skyGradient.addColorStop(1, '#F0E68C');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw sun
+            const sunX = 100;
+            const sunY = 100;
+            const sunRadius = 40;
+            
+            // Sun glow
+            const sunGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunRadius * 2);
+            sunGlow.addColorStop(0, 'rgba(255, 255, 0, 1)');
+            sunGlow.addColorStop(0.5, 'rgba(255, 200, 0, 0.6)');
+            sunGlow.addColorStop(1, 'rgba(255, 200, 0, 0)');
+            ctx.fillStyle = sunGlow;
+            ctx.fillRect(sunX - sunRadius*2, sunY - sunRadius*2, sunRadius*4, sunRadius*4);
+            
+            // Sun body
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, sunRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Sun rays animation
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 3;
+            for (let i = 0; i < 12; i++) {
+                const angle = (i * Math.PI / 6) + time;
+                const innerRadius = sunRadius + 10;
+                const outerRadius = sunRadius + 25 + Math.sin(time * 3 + i) * 5;
+                
+                ctx.beginPath();
+                ctx.moveTo(
+                    sunX + Math.cos(angle) * innerRadius,
+                    sunY + Math.sin(angle) * innerRadius
+                );
+                ctx.lineTo(
+                    sunX + Math.cos(angle) * outerRadius,
+                    sunY + Math.sin(angle) * outerRadius
+                );
+                ctx.stroke();
+            }
+            
+            // Draw convex lens
+            const lensX = width/2;
+            const lensY = height/2 - 50;
+            
+            ctx.save();
+            ctx.translate(lensX, lensY);
+            ctx.rotate(Math.sin(time * 0.5) * 0.1); // Slight rotation animation
+            
+            // Lens body
+            ctx.strokeStyle = '#4169E1';
+            ctx.lineWidth = 5;
+            ctx.fillStyle = 'rgba(173, 216, 230, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 40, 100, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // Lens shine
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(-10, -30, 15, 40, Math.PI/6, 0, Math.PI);
+            ctx.stroke();
+            
+            ctx.restore();
+            
+            // Draw parallel sun rays
+            const numRays = 7;
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#FFD700';
+            
+            for (let i = 0; i < numRays; i++) {
+                const rayY = lensY - 60 + (i * 20);
+                
+                // Ray from sun to lens
+                ctx.beginPath();
+                ctx.moveTo(sunX + sunRadius, sunY + (rayY - sunY) * 0.2);
+                ctx.lineTo(lensX - 40, rayY);
+                ctx.stroke();
+            }
+            
+            // Focal point and converged rays
+            const focalX = lensX + 150;
+            const focalY = lensY;
+            
+            // Draw converging rays
+            for (let i = 0; i < numRays; i++) {
+                const rayY = lensY - 60 + (i * 20);
+                
+                ctx.beginPath();
+                ctx.moveTo(lensX + 40, rayY);
+                ctx.lineTo(focalX, focalY);
+                ctx.stroke();
+            }
+            
+            // Draw paper
+            ctx.save();
+            ctx.translate(focalX - 15, focalY - 10);
+            
+            // Paper shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(5, 5, 120, 80);
+            
+            // Paper
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, 120, 80);
+            
+            // Paper lines
+            ctx.strokeStyle = '#E0E0E0';
+            ctx.lineWidth = 1;
+            for (let i = 1; i < 8; i++) {
+                ctx.beginPath();
+                ctx.moveTo(10, i * 10);
+                ctx.lineTo(110, i * 10);
+                ctx.stroke();
+            }
+            
+            // Burn mark animation
+            const burnIntensity = 0.5 + Math.sin(time * 4) * 0.5;
+            const burnGradient = ctx.createRadialGradient(60, 40, 0, 60, 40, 30);
+            burnGradient.addColorStop(0, `rgba(139, 69, 19, ${burnIntensity})`);
+            burnGradient.addColorStop(0.5, `rgba(160, 82, 45, ${burnIntensity * 0.7})`);
+            burnGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = burnGradient;
+            ctx.fillRect(30, 10, 60, 60);
+            
+            // Smoke effect
+            ctx.fillStyle = `rgba(128, 128, 128, ${0.3 * burnIntensity})`;
+            for (let i = 0; i < 5; i++) {
+                const smokeY = -20 - i * 15 - time * 20 % 100;
+                const smokeX = 60 + Math.sin(time * 2 + i) * 10;
+                const smokeSize = 10 + i * 3;
+                
+                ctx.beginPath();
+                ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            ctx.restore();
+            
+            // Focal point glow
+            ctx.fillStyle = '#FF4500';
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = '#FF4500';
+            ctx.beginPath();
+            ctx.arc(focalX, focalY, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Labels
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 16px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Sun', sunX, sunY + sunRadius + 30);
+            ctx.fillText('Convex Lens', lensX, lensY - 120);
+            ctx.fillText('Focal Point', focalX, focalY - 20);
+            ctx.fillText('Paper', focalX + 50, focalY + 130);
+            
+            // Title
+            ctx.fillStyle = '#FF4500';
+            ctx.font = 'bold 24px Inter';
+            ctx.fillText('Activity 9.11: Focusing Sunlight', width/2, 40);
+            
+            // Warning
+            ctx.fillStyle = '#FF0000';
+            ctx.font = 'bold 14px Inter';
+            ctx.fillText('⚠️ CAUTION: Never look at the Sun through a lens!', width/2, height - 30);
+            
+            // Continue animation
+            const animId = requestAnimationFrame(drawActivity911);
+            animationManager.addCanvasAnimation('activity', animId);
+        }
+
+        // Demo control functions with FIXED immediate animation starts
+        async function showRefraction(keepActiveButton = false) {
+            // Immediate cleanup and animation start
+            animationManager.cleanup();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            isPlaying = true;
+            if (!keepActiveButton) {
+                setActiveButton('refraction');
+            }
+            updateTitle('💡 Light Refraction Through Different Media');
+            hideInfoPanel();
+            
+            // Start animation IMMEDIATELY
+            drawRefractionDemo();
+            
+            updateSubtitle('Chapter 1: Introduction to Refraction');
+            
+            await teacher.speak("Welcome to Chapter 1: Understanding Refraction. Today, we'll explore one of the most fascinating phenomena in physics - how light bends when it travels through different materials. Refraction occurs because light travels at different speeds in different media.");
+            
+            await wait(3000);
+            updateSubtitle('The speed of light changes in different materials');
+            
+            await teacher.speak("Look carefully at our demonstration. Light travels from air into water, where it slows down significantly and bends noticeably toward the normal. This is because water has a much higher refractive index than air. Then when light enters glass from water, there's only minimal additional bending because the refractive indices of water and glass are relatively similar.");
+            
+            await wait(3000);
+            updateSubtitle('Most bending occurs at the air-water interface');
+            
+            await teacher.speak("Notice how the major refraction happens at the air-water boundary where the refractive index changes from 1.0 to 1.33. The water-glass boundary shows much less bending because the change is smaller - from 1.33 to 1.52. This demonstrates that the amount of bending depends on the difference in refractive indices!");
+            
+            await wait(3000);
+            updateSubtitle('Refraction is fundamental to all optical devices');
+            
+            await teacher.speak("Notice how the light ray bends at each interface. The progression from air to water to glass shows increasing refraction. Glass, with n equals 1.52, slows light more than water with n equals 1.33, causing a greater bend. This principle is fundamental to all optical devices.");
+            
+            isPlaying = false;
+        }
+
+        async function showSnellsLaw(keepActiveButton = false) {
+            // Immediate cleanup and animation start
+            animationManager.cleanup();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            isPlaying = true;
+            if (!keepActiveButton) {
+                setActiveButton('snells-law');
+            }
+            updateTitle('📐 Snell\'s Law of Refraction');
+            showInfoPanel();
+            
+            // Start animation IMMEDIATELY
+            drawSnellsLaw();
+            
+            updateInfo(`
+                <div class="formula-display">
+                    <div class="formula-text">n₁ sin θ₁ = n₂ sin θ₂</div>
+                </div>
+                <p><strong>Snell's Law:</strong></p>
+                <p>This fundamental law describes exactly how light bends at interfaces between different materials.</p>
+                <p>The angles are measured from the normal (perpendicular) to the surface.</p>
+            `);
+            
+            updateSubtitle('Chapter 2: The Mathematical Law of Refraction');
+            
+            await teacher.speak("Welcome to Chapter 2: Snell's Law. This fundamental law, discovered by Willebrord Snellius in 1621, gives us the precise mathematical relationship that governs how light bends at the interface between two media.");
+            
+            await wait(3000);
+            updateSubtitle('Angles are always measured from the normal');
+            
+            await teacher.speak("Pay attention to how we measure angles. Both the incident angle theta 1 and the refracted angle theta 2 are measured from the normal - that's the imaginary line perpendicular to the surface. This is crucial for applying Snell's law correctly.");
+            
+            await wait(3000);
+            updateSubtitle('The mathematical relationship never fails');
+            
+            await teacher.speak("Watch the animated ray as it changes angle. No matter what incident angle we choose, the equation n1 sine theta 1 equals n2 sine theta 2 always holds true. This mathematical consistency is what makes optics so predictable and useful in designing lenses, fiber optics, and other optical instruments.");
+            
+            await wait(3000);
+            updateSubtitle('Snell\'s Law enables precise optical engineering');
+            
+            await teacher.speak("This elegant equation allows us to predict exactly how light will bend at any interface. Engineers use Snell's Law to design fiber optic cables that transmit internet data, camera lenses that capture sharp images, and even swimming pool lights that illuminate underwater areas perfectly.");
+            
+            isPlaying = false;
+        }
+
+        async function showConvex(keepActiveButton = false) {
+            // Immediate cleanup and animation start
+            animationManager.cleanup();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            isPlaying = true;
+            if (!keepActiveButton) {
+                setActiveButton('convex');
+            }
+            updateTitle('🔍 Convex Lens - Converging Light');
+            showInfoPanel();
+            
+            // Start animation IMMEDIATELY
+            drawConvexLens();
+            
+            updateInfo(`
+                <div class="formula-display">
+                    <div class="formula-text">1/f = 1/u + 1/v</div>
+                </div>
+                <p><strong>Convex Lens Properties:</strong></p>
+                <ul style="margin-left: 20px;">
+                    <li>Thicker in the middle</li>
+                    <li>Converges parallel rays</li>
+                    <li>Real focal point</li>
+                    <li>Can form real images</li>
+                </ul>
+                <p>Used in magnifying glasses, cameras, and telescopes!</p>
+            `);
+            
+            updateSubtitle('Chapter 3: Convex Lenses and Light Convergence');
+            
+            await teacher.speak("Welcome to Chapter 3: Convex Lenses. These remarkable optical elements are thicker at the center than at the edges. This shape causes parallel light rays to converge, or come together, at a single point called the focal point.");
+            
+            await wait(3000);
+            updateSubtitle('The focal point is where parallel rays meet');
+            
+            await teacher.speak("Notice how all parallel rays, regardless of their height above or below the principal axis, converge at the focal point F2. The distance from the optical center to the focal point is called the focal length, a key parameter that determines the lens's magnifying power.");
+            
+            await wait(3000);
+            updateSubtitle('Convex lenses create real, inverted images');
+            
+            await teacher.speak("Convex lenses are used in cameras, telescopes, and microscopes because they can form real images - images that can be projected on a screen. They're also used in eyeglasses to correct farsightedness, helping focus light properly on the retina.");
+            
+            await wait(3000);
+            updateSubtitle('Focal length determines lens power and magnification');
+            
+            await teacher.speak("The focal length of a convex lens determines its power. Shorter focal lengths mean stronger lenses with greater magnification. These lenses form the basis of microscopes that reveal cellular structures, telescopes that show us distant galaxies, and eyeglasses that correct farsightedness.");
+            
+            isPlaying = false;
+        }
+
+        async function showConcave(keepActiveButton = false) {
+            // Immediate cleanup and animation start
+            animationManager.cleanup();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            isPlaying = true;
+            if (!keepActiveButton) {
+                setActiveButton('concave');
+            }
+            updateTitle('🔍 Concave Lens - Diverging Light');
+            showInfoPanel();
+            
+            // Start animation IMMEDIATELY
+            drawConcaveLens();
+            
+            updateInfo(`
+                <div class="formula-display">
+                    <div class="formula-text">f is negative</div>
+                </div>
+                <p><strong>Concave Lens Properties:</strong></p>
+                <ul style="margin-left: 20px;">
+                    <li>Thinner in the middle</li>
+                    <li>Diverges parallel rays</li>
+                    <li>Virtual focal point</li>
+                    <li>Only virtual images</li>
+                </ul>
+                <p>Used in eyeglasses for nearsightedness and in telescopes!</p>
+            `);
+            
+            updateSubtitle('Chapter 4: Concave Lenses and Light Divergence');
+            
+            await teacher.speak("Welcome to Chapter 4: Concave Lenses. Unlike convex lenses, concave lenses are thinner at the center and thicker at the edges. This unique shape causes parallel light rays to diverge, or spread apart, as if they're coming from a virtual focal point behind the lens.");
+            
+            await wait(3000);
+            updateSubtitle('Virtual focal point - rays appear to originate from F1');
+            
+            await teacher.speak("Watch the dashed lines carefully. When we trace the diverged rays backward, they appear to originate from the virtual focal point F1. This focal point is called 'virtual' because light doesn't actually pass through it - it only appears to come from there.");
+            
+            await wait(3000);
+            updateSubtitle('Concave lenses always form virtual, upright images');
+            
+            await teacher.speak("Concave lenses are essential for correcting nearsightedness, or myopia. They spread out light rays before they enter the eye, allowing them to focus properly on the retina. These lenses always produce virtual images that are upright and smaller than the object.");
+            
+            await wait(3000);
+            updateSubtitle('Concave lenses have diverse optical applications');
+            
+            await teacher.speak("While concave lenses can't project real images, they're invaluable for vision correction. Millions of people with myopia depend on concave lenses to see clearly. These lenses are also used in combination with convex lenses in sophisticated optical instruments like wide-angle camera lenses and Galilean telescopes.");
+            
+            isPlaying = false;
+        }
+
+        async function showActivity(keepActiveButton = false) {
+            // Immediate cleanup and animation start
+            animationManager.cleanup();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            isPlaying = true;
+            if (!keepActiveButton) {
+                setActiveButton('activity');
+            }
+            updateTitle('☀️ Activity 9.11 - Focusing Sunlight');
+            showInfoPanel();
+            
+            // Start animation IMMEDIATELY
+            drawActivity911();
+            
+            updateInfo(`
+                <div class="formula-display">
+                    <div class="formula-text">P = 1/f (Diopters)</div>
+                </div>
+                <p><strong>⚠️ Safety Warning:</strong></p>
+                <p style="color: #ff6b6b;">Never look at the Sun through any lens!</p>
+                <p><strong>Experiment:</strong></p>
+                <p>A convex lens can concentrate sunlight to a tiny spot, generating enough heat to burn paper.</p>
+                <p>This demonstrates the powerful focusing ability of convex lenses!</p>
+            `);
+            
+            updateSubtitle('Chapter 5: Practical Application - Solar Energy Concentration');
+            
+            await teacher.speak("Welcome to Chapter 5: Activity 9.11. This practical demonstration shows the incredible power of convex lenses to concentrate energy. When we point a convex lens at the Sun, it collects parallel rays from across its entire surface and focuses them to a single point.");
+            
+            await wait(3000);
+            updateSubtitle('All the Sun\'s energy concentrates at the focal point');
+            
+            await teacher.speak("The concentrated solar energy at the focal point can reach temperatures of several hundred degrees Celsius! This principle is used in solar concentrators for renewable energy. The same focusing effect happens in our eyes, which is why you must never look at the Sun through any lens or telescope without proper solar filters.");
+            
+            await wait(3000);
+            updateSubtitle('Safety first: Never look at the Sun through a lens!');
+            
+            await teacher.speak("This activity demonstrates an important physics principle: energy conservation. The lens doesn't create energy; it merely concentrates the energy that was already spread over its surface area into a tiny point. This concentration of energy is what causes the paper to burn. Always remember: safety comes first when working with optics and sunlight!");
+            
+            await wait(3000);
+            updateSubtitle('Solar energy concentration has practical applications');
+            
+            await teacher.speak("This principle has practical applications in solar power plants, where massive lens and mirror arrays concentrate sunlight to generate electricity. The same physics that can burn paper also powers homes and businesses with clean, renewable energy.");
+            
+            isPlaying = false;
+        }
+
+        async function showCompleteLesson() {
+            // Immediate cleanup
+            animationManager.cleanup();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            isPlaying = true;
+            setActiveButton('complete');
+            updateTitle('📚 Complete Refraction & Lenses Course');
+            showInfoPanel();
+            
+            updateSubtitle('Welcome to the Complete Physics Course on Refraction and Lenses');
+            
+            await teacher.speak("Welcome students! Today we embark on a comprehensive journey through the fascinating world of refraction and lenses. Over the next five chapters, we'll explore how light behaves as it travels through different materials, understand the mathematical laws governing these phenomena, and see practical applications that impact our daily lives.");
+            
+            // Chapter 1: Basic Refraction
+            await showRefraction(true);
+            
+            // Chapter 2: Snell's Law
+            await showSnellsLaw(true);
+            
+            // Chapter 3: Convex Lenses
+            await showConvex(true);
+            
+            // Chapter 4: Concave Lenses
+            await showConcave(true);
+            
+            // Chapter 5: Activity 9.11
+            await showActivity(true);
+            
+            updateSubtitle('Course Complete: You are now a master of refraction and lenses!');
+            await teacher.speak("Congratulations! You've completed our comprehensive course on refraction and lenses. You now understand how light bends through materials, the mathematical laws governing this behavior, how different lens types manipulate light, and the practical applications of these principles. Remember, physics isn't just equations and theories - it's the foundation of technologies that shape our modern world. Keep exploring, keep questioning, and never stop learning!");
+            
+            isPlaying = false;
+        }
+
+        function resetDemo() {
+            animationManager.cleanup();
+            teacher.stop();
+            isPlaying = false;
+            currentDemo = null;
+            setActiveButton(null);
+            showInfoPanel();
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            updateTitle('Interactive Physics Lessons');
+            updateSubtitle('Ready to explore the physics of light!');
+            updateInfo(`<p>Select a demonstration to begin exploring refraction and lenses!</p>`);
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide loading overlay
+            setTimeout(() => {
+                document.getElementById('loading-overlay').classList.add('hidden');
+            }, 1200);
+            
+            // Initial welcome
+            setTimeout(() => {
+                teacher.speak("Welcome to the Interactive Refraction and Lenses Laboratory! I'm your physics teacher for today. Select any demonstration to begin your journey through the fascinating world of optics. Each lesson has been carefully designed to build your understanding step by step, from basic principles to advanced applications. Whether you choose individual topics or the complete course, you'll gain a deep understanding of how light behaves in our universe.");
+            }, 1500);
+            
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const demo = this.getAttribute('data-demo');
+                    
+                    if (isPlaying) {
+                        teacher.stop();
+                        animationManager.cleanup();
+                        await wait(100); // Reduced wait time
+                    }
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'refraction':
+                            showRefraction();
+                            break;
+                        case 'snells-law':
+                            showSnellsLaw();
+                            break;
+                        case 'convex':
+                            showConvex();
+                            break;
+                        case 'concave':
+                            showConcave();
+                            break;
+                        case 'activity':
+                            showActivity();
+                            break;
+                        case 'reset':
+                            resetDemo();
+                            break;
+                    }
+                });
+            });
+            
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                const isEnabled = teacher.toggle();
+                this.classList.toggle('muted', !isEnabled);
+            });
+        });
+    </script>
+</body>
+</html>

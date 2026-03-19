@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1.5 Evaporation - Interactive Chemistry</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #764ba2 75%, #667eea 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(3px 3px at 20% 30%, rgba(255,255,255,0.8), transparent),
+                radial-gradient(3px 3px at 60% 70%, rgba(255,255,255,0.8), transparent),
+                radial-gradient(2px 2px at 50% 50%, rgba(255,255,255,0.6), transparent);
+            background-size: 200px 200px;
+            opacity: 0.2;
+            animation: drift 40s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes drift {
+            from { transform: translate(0, 0); }
+            to { transform: translate(-200px, -200px); }
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.6);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5, #00d2ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+            animation: wave 3s ease-in-out infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Simulation Stage */
+        .simulation-stage {
+            background: linear-gradient(135deg, 
+                rgba(15, 23, 42, 0.95) 0%,
+                rgba(30, 58, 95, 0.95) 50%,
+                rgba(15, 23, 42, 0.95) 100%);
+            border-radius: 20px;
+            height: 500px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            border: 2px solid rgba(0, 210, 255, 0.3);
+        }
+
+        #evaporationCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: grab;
+        }
+
+        #evaporationCanvas:active {
+            cursor: grabbing;
+        }
+
+        /* Info Panel */
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px 20px;
+            border: 2px solid rgba(0, 210, 255, 0.3);
+            max-width: 350px;
+        }
+
+        .info-panel h3 {
+            font-size: 1.3rem;
+            color: #00d2ff;
+            margin-bottom: 10px;
+        }
+
+        .info-panel p {
+            font-size: 0.95rem;
+            color: #e2e8f0;
+            line-height: 1.5;
+        }
+
+        /* Factors Display */
+        .factors-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            border: 2px solid rgba(0, 210, 255, 0.3);
+            width: 200px;
+        }
+
+        .factor-item {
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+
+        .factor-label {
+            color: #00d2ff;
+            font-weight: 600;
+        }
+
+        .factor-value {
+            color: #fff;
+            font-weight: 400;
+        }
+
+        /* Control Panel */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .demo-btn:hover::before {
+            left: 100%;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+        }
+
+        /* Factor Controls */
+        .factor-controls {
+            background: linear-gradient(135deg, 
+                rgba(0, 0, 0, 0.6),
+                rgba(30, 58, 95, 0.6));
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px solid rgba(0, 210, 255, 0.2);
+        }
+
+        .control-title {
+            font-size: 1.2rem;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .sliders-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .slider-container {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 210, 255, 0.2);
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .slider-name {
+            color: #00d2ff;
+            font-weight: 600;
+        }
+
+        .slider-value {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            outline: none;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 210, 255, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 210, 255, 0.5);
+        }
+
+        /* Examples Section */
+        .examples-section {
+            background: linear-gradient(135deg, 
+                rgba(0, 0, 0, 0.6),
+                rgba(30, 58, 95, 0.6));
+            border-radius: 20px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 2px solid rgba(0, 210, 255, 0.2);
+        }
+
+        .examples-title {
+            font-size: 1.8rem;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .example-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(0, 210, 255, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .example-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(0, 210, 255, 0.4);
+        }
+
+        .example-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .example-title {
+            font-size: 1.1rem;
+            color: #00d2ff;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .example-text {
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            line-height: 1.4;
+        }
+
+        /* Key Points */
+        .key-points {
+            background: linear-gradient(135deg, 
+                rgba(0, 0, 0, 0.7),
+                rgba(30, 58, 95, 0.7));
+            border-radius: 20px;
+            padding: 30px;
+            margin: 35px 0;
+            border: 2px solid rgba(0, 210, 255, 0.2);
+        }
+
+        .key-points-title {
+            font-size: 1.6rem;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .point-item {
+            margin: 15px 0;
+            padding-left: 30px;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .point-item::before {
+            content: '💧';
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 10px 20px;
+            display: none;
+            z-index: 100;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #00d2ff;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            width: 300px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2rem; }
+            .simulation-stage { height: 400px; }
+            .demo-buttons { flex-direction: column; align-items: center; }
+            .sliders-grid { grid-template-columns: 1fr; }
+            .examples-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <!-- Progress Container -->
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-text" id="progressText">Loading...</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>1.5 Evaporation</h1>
+            <p>Explore how liquids transform into vapor below their boiling point and discover the factors that affect this fascinating process</p>
+        </div>
+
+        <!-- Simulation Stage -->
+        <div class="simulation-stage" id="stage">
+            <canvas id="evaporationCanvas"></canvas>
+            
+            <div class="info-panel" id="infoPanel">
+                <h3 id="infoTitle">Evaporation Process</h3>
+                <p id="infoText">Particles with high kinetic energy escape from the liquid surface</p>
+            </div>
+
+            <div class="factors-display">
+                <div class="factor-item">
+                    <span class="factor-label">Temperature:</span>
+                    <span class="factor-value" id="tempDisplay">25°C</span>
+                </div>
+                <div class="factor-item">
+                    <span class="factor-label">Surface Area:</span>
+                    <span class="factor-value" id="areaDisplay">Normal</span>
+                </div>
+                <div class="factor-item">
+                    <span class="factor-label">Wind Speed:</span>
+                    <span class="factor-value" id="windDisplay">Low</span>
+                </div>
+                <div class="factor-item">
+                    <span class="factor-label">Humidity:</span>
+                    <span class="factor-value" id="humidityDisplay">50%</span>
+                </div>
+                <div class="factor-item">
+                    <span class="factor-label">Rate:</span>
+                    <span class="factor-value" id="rateDisplay">Slow</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Factor Controls -->
+        <div class="factor-controls">
+            <div class="control-title">Adjust Factors Affecting Evaporation</div>
+            
+            <div class="sliders-grid">
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span class="slider-name">🌡️ Temperature</span>
+                        <span class="slider-value" id="tempValue">25°C</span>
+                    </div>
+                    <input type="range" id="tempSlider" min="10" max="50" value="25" oninput="updateTemperature(this.value)">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span class="slider-name">📏 Surface Area</span>
+                        <span class="slider-value" id="areaValue">Normal</span>
+                    </div>
+                    <input type="range" id="areaSlider" min="1" max="3" value="2" oninput="updateSurfaceArea(this.value)">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span class="slider-name">💨 Wind Speed</span>
+                        <span class="slider-value" id="windValue">Low</span>
+                    </div>
+                    <input type="range" id="windSlider" min="0" max="10" value="2" oninput="updateWindSpeed(this.value)">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span class="slider-name">💦 Humidity</span>
+                        <span class="slider-value" id="humidityValue">50%</span>
+                    </div>
+                    <input type="range" id="humiditySlider" min="20" max="90" value="50" oninput="updateHumidity(this.value)">
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="controls">
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playCompleteStory()">📖 Complete Story</button>
+                <button class="demo-btn" onclick="showBasicEvaporation()">💧 Basic Process</button>
+                <button class="demo-btn" onclick="showClothDrying()">👔 Clothes Drying</button>
+                <button class="demo-btn" onclick="showCoolingEffect()">❄️ Cooling Effect</button>
+                <button class="demo-btn" onclick="showCondensation()">🥤 Condensation</button>
+                <button class="demo-btn" onclick="resetSimulationClick()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Examples Section -->
+        <div class="examples-section">
+            <div class="examples-title">Real-Life Examples</div>
+            
+            <div class="examples-grid">
+                <div class="example-card" onclick="showExample('wet-clothes')">
+                    <div class="example-icon">👔</div>
+                    <div class="example-title">Wet Clothes</div>
+                    <div class="example-text">Clothes dry faster when spread out on a windy day</div>
+                </div>
+                
+                <div class="example-card" onclick="showExample('acetone')">
+                    <div class="example-icon">💅</div>
+                    <div class="example-title">Nail Polish Remover</div>
+                    <div class="example-text">Acetone evaporates quickly, cooling your skin</div>
+                </div>
+                
+                <div class="example-card" onclick="showExample('sweating')">
+                    <div class="example-icon">🏃</div>
+                    <div class="example-title">Sweating</div>
+                    <div class="example-text">Body cools through perspiration evaporation</div>
+                </div>
+                
+                <div class="example-card" onclick="showExample('water-sprinkle')">
+                    <div class="example-icon">🏠</div>
+                    <div class="example-title">Roof Sprinkling</div>
+                    <div class="example-text">Water on hot surfaces cools through evaporation</div>
+                </div>
+                
+                <div class="example-card" onclick="showExample('cold-glass')">
+                    <div class="example-icon">🥤</div>
+                    <div class="example-title">Cold Glass</div>
+                    <div class="example-text">Water droplets form on cold glass surfaces</div>
+                </div>
+                
+                <div class="example-card" onclick="showExample('cotton-clothes')">
+                    <div class="example-icon">👕</div>
+                    <div class="example-title">Cotton in Summer</div>
+                    <div class="example-text">Cotton absorbs sweat for better cooling</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Points -->
+        <div class="key-points">
+            <div class="key-points-title">Key Concepts</div>
+            
+            <div class="point-item">
+                Evaporation is the change of liquid into vapor at any temperature below its boiling point
+            </div>
+            <div class="point-item">
+                Surface particles with higher kinetic energy break away from attraction forces
+            </div>
+            <div class="point-item">
+                Rate increases with: higher temperature, larger surface area, lower humidity, higher wind speed
+            </div>
+            <div class="point-item">
+                Evaporation causes cooling as particles absorb energy from surroundings
+            </div>
+            <div class="point-item">
+                The cooling effect has many practical applications in daily life
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice Narrator with Proper Cleanup
+        class EvaporationNarrator {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.95, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+        }
+
+        // Global State Management
+        let globalAudioEnabled = true;
+        let currentNarrator = null;
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let currentTaskId = null;
+
+        // Three.js variables
+        let scene, camera, renderer;
+        let waterParticles = [];
+        let vaporParticles = [];
+        let container = null;
+        let animationId;
+        
+        // Simulation parameters
+        let temperature = 25;
+        let surfaceArea = 2;
+        let windSpeed = 2;
+        let humidity = 50;
+        let evaporationRate = 0.02;
+
+        // Stop Current Demo with Complete Cleanup
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentTaskId = null;
+            
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            
+            hideProgress();
+            isPlaying = false;
+        }
+
+        // Check if Demo Should Continue
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        // Create New Narrator
+        function createNewNarrator(taskId = null) {
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentNarrator = new EvaporationNarrator();
+            return currentNarrator;
+        }
+
+        // Initialize Three.js
+        function initThreeJS() {
+            const canvas = document.getElementById('evaporationCanvas');
+            const stageElement = document.getElementById('stage');
+            
+            scene = new THREE.Scene();
+            
+            const width = stageElement.clientWidth;
+            const height = stageElement.clientHeight;
+            camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+            camera.position.set(0, 10, 30);
+            camera.lookAt(0, 0, 0);
+            
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: canvas, 
+                antialias: true,
+                alpha: true 
+            });
+            renderer.setSize(width, height);
+            renderer.setClearColor(0x000000, 0);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+            
+            setupMouseControls();
+            createBasicScene();
+            animate();
+        }
+
+        // Clear the scene
+        function clearScene() {
+            while(scene.children.length > 2) { // Keep lights
+                const child = scene.children[2];
+                scene.remove(child);
+                if(child.geometry) child.geometry.dispose();
+                if(child.material) {
+                    if(Array.isArray(child.material)) {
+                        child.material.forEach(m => m.dispose());
+                    } else {
+                        child.material.dispose();
+                    }
+                }
+            }
+            waterParticles = [];
+            vaporParticles = [];
+            container = null;
+        }
+
+        // Create basic evaporation scene
+        function createBasicScene() {
+            clearScene();
+            
+            // Create container (beaker/dish)
+            const containerGroup = new THREE.Group();
+            
+            // Container walls
+            const wallGeometry = new THREE.CylinderGeometry(8, 8, 6, 32, 1, true);
+            const wallMaterial = new THREE.MeshPhongMaterial({
+                color: 0x4488ff,
+                transparent: true,
+                opacity: 0.2,
+                side: THREE.DoubleSide
+            });
+            const walls = new THREE.Mesh(wallGeometry, wallMaterial);
+            containerGroup.add(walls);
+            
+            // Container bottom
+            const bottomGeometry = new THREE.CircleGeometry(8, 32);
+            const bottomMaterial = new THREE.MeshPhongMaterial({
+                color: 0x4488ff,
+                transparent: true,
+                opacity: 0.3
+            });
+            const bottom = new THREE.Mesh(bottomGeometry, bottomMaterial);
+            bottom.rotation.x = -Math.PI / 2;
+            bottom.position.y = -3;
+            containerGroup.add(bottom);
+            
+            container = containerGroup;
+            scene.add(container);
+            
+            // Create water particles
+            createWaterParticles();
+            
+            // Create initial vapor particles
+            createVaporParticles();
+        }
+
+        // Create water particles
+        function createWaterParticles() {
+            const particleGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+            
+            for (let i = 0; i < 100; i++) {
+                const particleMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x0088ff,
+                    transparent: true,
+                    opacity: 0.8,
+                    emissive: 0x0088ff,
+                    emissiveIntensity: 0.1
+                });
+                const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+                
+                // Random position in container
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 7;
+                particle.position.x = Math.cos(angle) * radius;
+                particle.position.z = Math.sin(angle) * radius;
+                particle.position.y = -2 + Math.random() * 3;
+                
+                particle.userData = {
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.1,
+                        Math.random() * 0.05,
+                        (Math.random() - 0.5) * 0.1
+                    ),
+                    energy: Math.random(),
+                    isWater: true
+                };
+                
+                waterParticles.push(particle);
+                scene.add(particle);
+            }
+        }
+
+        // Create vapor particles
+        function createVaporParticles() {
+            const particleGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+            
+            for (let i = 0; i < 20; i++) {
+                const particleMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x88ddff,
+                    transparent: true,
+                    opacity: 0.4,
+                    emissive: 0x88ddff,
+                    emissiveIntensity: 0.3
+                });
+                const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+                
+                particle.position.set(
+                    (Math.random() - 0.5) * 15,
+                    Math.random() * 10 + 2,
+                    (Math.random() - 0.5) * 15
+                );
+                
+                particle.userData = {
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.05,
+                        Math.random() * 0.1 + 0.05,
+                        (Math.random() - 0.5) * 0.05
+                    ),
+                    isVapor: true
+                };
+                
+                vaporParticles.push(particle);
+                scene.add(particle);
+            }
+        }
+
+        // Complete Story Demo
+        async function playCompleteStory() {
+            const taskId = 'complete-story';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            const narrator = createNewNarrator(taskId);
+            await playCompleteStoryInternal(narrator, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function playCompleteStoryInternal(narrator, taskId) {
+            showProgress();
+            
+            await resetSimulation();
+            if (!shouldContinue(taskId)) return;
+            
+            updateInfo("Complete Evaporation Story", "Journey through the evaporation process");
+            
+            // Step 1: Introduction
+            setProgress(20);
+            await narrator.speak("Welcome to the Evaporation simulation! Let's explore how liquids turn to vapor below their boiling point.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 2: Basic Process
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            setProgress(40);
+            createBasicScene();
+            await narrator.speak("Watch how particles at the liquid surface with high kinetic energy escape and become vapor.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 3: Factors
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            setProgress(60);
+            updateInfo("Factors Affecting Rate", "Temperature, surface area, wind, and humidity");
+            await narrator.speak("Four main factors affect evaporation rate: temperature gives particles more energy, larger surface area allows more escapes, wind removes vapor, and low humidity creates more room for vapor.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 4: Cooling Effect
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            setProgress(80);
+            showCoolingEffectScene();
+            await narrator.speak("Evaporation causes cooling because escaping particles take energy with them. This is why sweating cools us down!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 5: Conclusion
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            setProgress(100);
+            updateInfo("Applications", "Evaporation in daily life");
+            await narrator.speak("Evaporation has many applications: drying clothes, cooling systems, and the water cycle. Try adjusting the factors to see their effects!");
+            
+            hideProgress();
+        }
+
+        // Show different demonstrations
+        async function showBasicEvaporation() {
+            const taskId = 'basic-evaporation';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            const narrator = createNewNarrator(taskId);
+            await showBasicEvaporationInternal(narrator, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showBasicEvaporationInternal(narrator, taskId) {
+            createBasicScene();
+            updateInfo("Basic Evaporation", "Watch particles with high kinetic energy escape from the liquid surface into vapor");
+            await narrator.speak("Observe how particles at the surface with enough energy break away and become vapor.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Only the particles with highest kinetic energy can overcome the attractive forces and escape.");
+        }
+
+        async function showClothDrying() {
+            const taskId = 'cloth-drying';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            const narrator = createNewNarrator(taskId);
+            await showClothDryingInternal(narrator, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showClothDryingInternal(narrator, taskId) {
+            clearScene();
+            
+            // Create clothesline scene
+            const clothGeometry = new THREE.PlaneGeometry(12, 8);
+            const clothMaterial = new THREE.MeshPhongMaterial({
+                color: 0x4444ff,
+                transparent: true,
+                opacity: 0.7,
+                side: THREE.DoubleSide
+            });
+            const cloth = new THREE.Mesh(clothGeometry, clothMaterial);
+            cloth.position.y = 3;
+            scene.add(cloth);
+            
+            // Add water droplets on cloth
+            for (let i = 0; i < 50; i++) {
+                const dropletGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+                const dropletMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x0088ff,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const droplet = new THREE.Mesh(dropletGeometry, dropletMaterial);
+                
+                droplet.position.set(
+                    (Math.random() - 0.5) * 11,
+                    3 + (Math.random() - 0.5) * 7,
+                    (Math.random() - 0.5) * 2
+                );
+                
+                droplet.userData = {
+                    evaporateTime: Math.random() * 3,
+                    isDroplet: true
+                };
+                
+                waterParticles.push(droplet);
+                scene.add(droplet);
+            }
+            
+            updateInfo("Clothes Drying", "Spreading clothes increases surface area, speeding up evaporation");
+            await narrator.speak("When we spread clothes out, we increase the surface area, allowing more water to evaporate faster.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Wind and sunlight further speed up the drying process by providing energy and removing water vapor.");
+        }
+
+        async function showCoolingEffect() {
+            const taskId = 'cooling-effect';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            const narrator = createNewNarrator(taskId);
+            await showCoolingEffectInternal(narrator, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showCoolingEffectInternal(narrator, taskId) {
+            showCoolingEffectScene();
+            await narrator.speak("As water evaporates, it absorbs latent heat from the surroundings, making them cooler. This is why sweating cools us.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("The cooling effect is used in many applications like desert coolers and refrigeration systems.");
+        }
+
+        function showCoolingEffectScene() {
+            createBasicScene();
+            
+            // Add temperature indicator
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Cooling', 128, 64);
+            ctx.fillText('↓', 128, 110);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const labelGeometry = new THREE.PlaneGeometry(8, 4);
+            const labelMaterial = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true
+            });
+            const label = new THREE.Mesh(labelGeometry, labelMaterial);
+            label.position.set(0, 8, 0);
+            scene.add(label);
+            
+            updateInfo("Cooling Effect", "Evaporating particles absorb energy from surroundings, causing cooling");
+        }
+
+        async function showCondensation() {
+            const taskId = 'condensation';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(4);
+            
+            const narrator = createNewNarrator(taskId);
+            await showCondensationInternal(narrator, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showCondensationInternal(narrator, taskId) {
+            clearScene();
+            
+            // Create cold glass
+            const glassGeometry = new THREE.CylinderGeometry(3, 3, 8, 32);
+            const glassMaterial = new THREE.MeshPhongMaterial({
+                color: 0x88ccff,
+                transparent: true,
+                opacity: 0.3
+            });
+            const glass = new THREE.Mesh(glassGeometry, glassMaterial);
+            scene.add(glass);
+            
+            // Add ice cubes
+            const iceGeometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+            const iceMaterial = new THREE.MeshPhongMaterial({
+                color: 0xeeffff,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            for (let i = 0; i < 3; i++) {
+                const ice = new THREE.Mesh(iceGeometry, iceMaterial);
+                ice.position.set(
+                    (Math.random() - 0.5) * 2,
+                    -2 + i * 1.5,
+                    (Math.random() - 0.5) * 2
+                );
+                ice.rotation.set(
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI
+                );
+                scene.add(ice);
+            }
+            
+            // Add water droplets on glass surface
+            for (let i = 0; i < 30; i++) {
+                const dropletGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                const dropletMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x0088ff,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const droplet = new THREE.Mesh(dropletGeometry, dropletMaterial);
+                
+                const angle = Math.random() * Math.PI * 2;
+                const height = (Math.random() - 0.5) * 7;
+                droplet.position.set(
+                    Math.cos(angle) * 3.1,
+                    height,
+                    Math.sin(angle) * 3.1
+                );
+                
+                waterParticles.push(droplet);
+                scene.add(droplet);
+            }
+            
+            updateInfo("Condensation", "Water vapor condenses on cold surfaces, forming droplets");
+            await narrator.speak("When water vapor contacts a cold surface, it loses energy and condenses back into liquid droplets.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("This is the opposite of evaporation and completes the water cycle in nature.");
+        }
+
+        // Update factor controls
+        function updateTemperature(value) {
+            temperature = value;
+            document.getElementById('tempValue').textContent = value + '°C';
+            document.getElementById('tempDisplay').textContent = value + '°C';
+            updateEvaporationRate();
+        }
+
+        function updateSurfaceArea(value) {
+            surfaceArea = value;
+            const labels = ['Small', 'Normal', 'Large'];
+            document.getElementById('areaValue').textContent = labels[value - 1];
+            document.getElementById('areaDisplay').textContent = labels[value - 1];
+            updateEvaporationRate();
+        }
+
+        function updateWindSpeed(value) {
+            windSpeed = value;
+            const labels = ['None', 'Low', 'Medium', 'High'];
+            const label = value === 0 ? labels[0] : value <= 3 ? labels[1] : value <= 6 ? labels[2] : labels[3];
+            document.getElementById('windValue').textContent = label;
+            document.getElementById('windDisplay').textContent = label;
+            updateEvaporationRate();
+        }
+
+        function updateHumidity(value) {
+            humidity = value;
+            document.getElementById('humidityValue').textContent = value + '%';
+            document.getElementById('humidityDisplay').textContent = value + '%';
+            updateEvaporationRate();
+        }
+
+        function updateEvaporationRate() {
+            // Calculate rate based on factors
+            const tempFactor = temperature / 25;
+            const areaFactor = surfaceArea / 2;
+            const windFactor = 1 + windSpeed / 10;
+            const humidityFactor = (100 - humidity) / 50;
+            
+            evaporationRate = 0.02 * tempFactor * areaFactor * windFactor * humidityFactor;
+            
+            // Update display
+            const rateLabels = ['Very Slow', 'Slow', 'Moderate', 'Fast', 'Very Fast'];
+            const rateIndex = Math.min(Math.floor(evaporationRate * 50), 4);
+            document.getElementById('rateDisplay').textContent = rateLabels[rateIndex];
+        }
+
+        // Show examples
+        function showExample(example) {
+            stopCurrentDemo();
+            
+            switch(example) {
+                case 'wet-clothes':
+                    showClothDrying();
+                    break;
+                case 'acetone':
+                    showCoolingEffect();
+                    updateInfo("Acetone Evaporation", "Acetone evaporates very quickly, absorbing heat from your skin");
+                    break;
+                case 'sweating':
+                    showCoolingEffect();
+                    updateInfo("Sweating", "Body cools as sweat evaporates, absorbing latent heat");
+                    break;
+                case 'water-sprinkle':
+                    showBasicEvaporation();
+                    updateInfo("Roof Sprinkling", "Water on hot surfaces evaporates, cooling them down");
+                    break;
+                case 'cold-glass':
+                    showCondensation();
+                    break;
+                case 'cotton-clothes':
+                    showClothDrying();
+                    updateInfo("Cotton Clothes", "Cotton absorbs sweat and allows it to evaporate easily");
+                    break;
+            }
+        }
+
+        // Reset simulation
+        async function resetSimulation() {
+            if (currentNarrator) {
+                currentNarrator.stop();
+            }
+            
+            temperature = 25;
+            surfaceArea = 2;
+            windSpeed = 2;
+            humidity = 50;
+            
+            document.getElementById('tempSlider').value = 25;
+            document.getElementById('areaSlider').value = 2;
+            document.getElementById('windSlider').value = 2;
+            document.getElementById('humiditySlider').value = 50;
+            
+            updateTemperature(25);
+            updateSurfaceArea(2);
+            updateWindSpeed(2);
+            updateHumidity(50);
+            
+            createBasicScene();
+            updateInfo("Evaporation Process", "Particles with high kinetic energy escape from the liquid surface");
+            
+            await wait(300);
+        }
+
+        async function resetSimulationClick() {
+            stopCurrentDemo();
+            isPlaying = false;
+            await resetSimulation();
+            
+            const narrator = createNewNarrator('reset');
+            await narrator.speak("Simulation reset. Adjust the factors to see how they affect evaporation rate.");
+        }
+
+        // Update info panel
+        function updateInfo(title, text) {
+            document.getElementById('infoTitle').textContent = title;
+            document.getElementById('infoText').textContent = text;
+        }
+
+        // Helper functions
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function showProgress() {
+            document.getElementById('progressContainer').style.display = 'block';
+        }
+
+        function hideProgress() {
+            document.getElementById('progressContainer').style.display = 'none';
+        }
+
+        function setProgress(percentage) {
+            document.getElementById('progressFill').style.width = percentage + '%';
+            document.getElementById('progressText').textContent = `Step ${Math.ceil(percentage / 20)} of 5`;
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Mouse controls
+        function setupMouseControls() {
+            const canvas = renderer.domElement;
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            canvas.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+                
+                scene.rotation.y += deltaX * 0.01;
+                camera.position.y += deltaY * 0.05;
+                camera.position.y = Math.max(5, Math.min(20, camera.position.y));
+                
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                camera.position.z += e.deltaY * 0.01;
+                camera.position.z = Math.max(20, Math.min(50, camera.position.z));
+            });
+        }
+
+        // Animation loop
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            
+            // Animate water particles
+            waterParticles.forEach((particle, index) => {
+                if (particle.userData.isWater) {
+                    // Brownian motion
+                    particle.position.add(particle.userData.velocity);
+                    
+                    // Boundary check
+                    const dist = Math.sqrt(particle.position.x ** 2 + particle.position.z ** 2);
+                    if (dist > 7) {
+                        particle.userData.velocity.multiplyScalar(-1);
+                    }
+                    
+                    // Evaporation probability based on energy and position
+                    if (particle.position.y > 0 && Math.random() < evaporationRate) {
+                        // Convert to vapor
+                        particle.userData.isWater = false;
+                        particle.userData.isVapor = true;
+                        particle.material.color.setHex(0x88ddff);
+                        particle.material.opacity = 0.4;
+                        particle.userData.velocity.y = 0.1;
+                        vaporParticles.push(particle);
+                        waterParticles.splice(index, 1);
+                    }
+                } else if (particle.userData.isDroplet) {
+                    // Evaporate droplets over time
+                    particle.userData.evaporateTime -= 0.01;
+                    if (particle.userData.evaporateTime <= 0) {
+                        particle.material.opacity -= 0.01;
+                        if (particle.material.opacity <= 0) {
+                            scene.remove(particle);
+                            waterParticles.splice(index, 1);
+                        }
+                    }
+                }
+            });
+            
+            // Animate vapor particles
+            vaporParticles.forEach(particle => {
+                if (particle.userData.isVapor) {
+                    particle.position.add(particle.userData.velocity);
+                    
+                    // Add wind effect
+                    particle.position.x += windSpeed * 0.001;
+                    
+                    // Reset if too far
+                    if (particle.position.y > 15 || Math.abs(particle.position.x) > 20) {
+                        particle.position.set(
+                            (Math.random() - 0.5) * 10,
+                            2,
+                            (Math.random() - 0.5) * 10
+                        );
+                    }
+                }
+            });
+            
+            // Rotate scene slowly when not playing demos
+            if (container && !isPlaying) {
+                container.rotation.y += 0.002;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // Audio control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+            
+            if (!globalAudioEnabled && currentNarrator) {
+                currentNarrator.stop();
+            }
+            
+            if (currentNarrator) {
+                currentNarrator.isEnabled = globalAudioEnabled;
+            }
+        });
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            initThreeJS();
+            updateEvaporationRate();
+            const narrator = createNewNarrator('initialization');
+            narrator.speak("Welcome to the Evaporation simulation! Explore how liquids turn to vapor and the factors that affect this process.");
+        });
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            const stageElement = document.getElementById('stage');
+            camera.aspect = stageElement.clientWidth / stageElement.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(stageElement.clientWidth, stageElement.clientHeight);
+        });
+    </script>
+</body>
+</html>

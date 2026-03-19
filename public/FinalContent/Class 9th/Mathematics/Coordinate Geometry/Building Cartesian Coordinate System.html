@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Building the Cartesian Coordinate System - Interactive Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --equation-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            --solution-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 10px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: var(--equation-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 3px;
+        }
+
+        .header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            padding: 5px 10px;
+            gap: 10px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .demo-stage {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 10px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 700px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+            overflow: hidden;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 12px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 10px 20px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--equation-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--equation-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .math-title {
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .math-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 10px auto;
+            line-height: 1.5;
+            padding: 5px;
+        }
+
+        .formula-box {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 12px;
+            margin: 8px 0;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .content-card {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 10px 0;
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        .content-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(79, 172, 254, 0.3);
+        }
+
+        .value-display {
+            font-size: 1.6rem;
+            font-weight: 700;
+            text-align: center;
+            background: var(--success-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 10px 0;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 98%;
+            height: 500px;
+            margin: 10px auto;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .key-point {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin: 8px 0;
+            background: var(--glass-bg);
+            border-left: 4px solid;
+            border-image: var(--success-gradient) 1;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .example-box {
+            background: var(--solution-gradient);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 10px 0;
+            color: #1a1a2e;
+            font-weight: 600;
+        }
+
+        .flex-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+            flex-wrap: nowrap;
+        }
+
+        .flex-left {
+            flex: 2.5;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        .flex-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        .step-indicator {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: var(--accent-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin-right: 10px;
+        }
+
+        .number-line {
+            position: relative;
+            height: 2px;
+            background: var(--accent-gradient);
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .tick {
+            position: absolute;
+            width: 2px;
+            height: 15px;
+            background: white;
+            top: -6px;
+        }
+
+        .tick-label {
+            position: absolute;
+            top: 12px;
+            font-size: 0.8rem;
+            transform: translateX(-50%);
+            color: var(--text-accent);
+        }
+
+        .axis {
+            position: absolute;
+            background: var(--primary-gradient);
+        }
+
+        .axis-horizontal {
+            height: 3px;
+            width: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .axis-vertical {
+            width: 3px;
+            height: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .axis-label {
+            position: absolute;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-accent);
+        }
+
+        .quadrant {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            transition: var(--transition);
+            cursor: pointer;
+            border-radius: 10px;
+        }
+
+        .quadrant:hover {
+            transform: scale(1.05);
+        }
+
+        .quadrant-1 {
+            top: 0;
+            right: 0;
+            width: 48%;
+            height: 48%;
+            background: rgba(67, 233, 123, 0.2);
+        }
+
+        .quadrant-2 {
+            top: 0;
+            left: 0;
+            width: 48%;
+            height: 48%;
+            background: rgba(79, 172, 254, 0.2);
+        }
+
+        .quadrant-3 {
+            bottom: 0;
+            left: 0;
+            width: 48%;
+            height: 48%;
+            background: rgba(245, 87, 108, 0.2);
+        }
+
+        .quadrant-4 {
+            bottom: 0;
+            right: 0;
+            width: 48%;
+            height: 48%;
+            background: rgba(250, 112, 154, 0.2);
+        }
+
+        .flashcard {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 8px 0;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .flashcard:hover {
+            transform: scale(1.02);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .flashcard-front {
+            font-size: 1.1rem;
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        .flashcard-back {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            display: none;
+        }
+
+        .flashcard.flipped .flashcard-back {
+            display: block;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 0.85rem;
+        }
+
+        .data-table th {
+            background: var(--primary-gradient);
+            padding: 10px;
+            border: 1px solid var(--glass-border);
+            font-weight: 600;
+        }
+
+        .data-table td {
+            background: var(--glass-bg);
+            padding: 10px;
+            border: 1px solid var(--glass-border);
+            text-align: center;
+        }
+
+        .quiz-option {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(10px);
+        }
+
+        .quiz-option.correct {
+            background: var(--success-gradient);
+            border-color: transparent;
+            animation: pulse 0.5s;
+        }
+
+        .quiz-option.incorrect {
+            background: var(--secondary-gradient);
+            border-color: transparent;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--glass-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-gradient);
+            transition: width 0.5s ease;
+        }
+
+        .glow-effect {
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(67, 233, 123, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(67, 233, 123, 0.8); }
+        }
+
+        @media (max-width: 768px) {
+            .demo-stage {
+                height: 550px;
+            }
+            
+            .header h1 {
+                font-size: 1.4rem;
+            }
+            
+            .math-title {
+                font-size: 1rem;
+            }
+            
+            .demo-btn {
+                font-size: 0.75rem;
+                padding: 8px 14px;
+            }
+            
+            .flex-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .flex-left, .flex-right {
+                width: 100%;
+            }
+            
+            .canvas-container {
+                height: 220px;
+            }
+            
+            .data-table {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Building the Cartesian Coordinate System</h1>
+        <p>Interactive Learning with Step-by-Step Construction</p>
+    </div>
+
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage">
+            <div id="stage-content" class="stage-content active">
+                <!-- Dynamic content will be inserted here -->
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">📚 Complete Lesson</button>
+            <button class="demo-btn" data-demo="number-line">📏 Number Line</button>
+            <button class="demo-btn" data-demo="two-lines">➕ Two Number Lines</button>
+            <button class="demo-btn" data-demo="axes">📐 Coordinate Axes</button>
+            <button class="demo-btn" data-demo="quadrants">🔲 Four Quadrants</button>
+            <button class="demo-btn" data-demo="terminology">📖 Terminology</button>
+            <button class="demo-btn" data-demo="interactive">🎮 Interactive Demo</button>
+            <button class="demo-btn" data-demo="quiz">🏆 Quiz</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+    </div>
+
+    <script>
+        // Teacher class for text-to-speech
+        class Teacher {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.isEnabled = true;
+                this.currentUtterance = null;
+            }
+
+            speak(text) {
+                if (!this.isEnabled) return;
+                
+                this.stop();
+                
+                this.currentUtterance = new SpeechSynthesisUtterance(text);
+                this.currentUtterance.rate = 0.9;
+                this.currentUtterance.pitch = 1;
+                this.currentUtterance.volume = 1;
+                
+                this.synth.speak(this.currentUtterance);
+            }
+
+            stop() {
+                if (this.synth.speaking) {
+                    this.synth.cancel();
+                }
+            }
+        }
+
+        // Global variables
+        let currentTeacher = new Teacher();
+        let globalAudioEnabled = true;
+        let currentDemo = null;
+        let quizScore = 0;
+        let currentQuizQuestion = 0;
+        let currentAnimations = [];
+        let activeTimeouts = []; // Track all active timeouts
+
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            currentTeacher = new Teacher();
+            currentTeacher.isEnabled = globalAudioEnabled;
+            return currentTeacher;
+        }
+
+        function stopCurrentDemo() {
+            currentAnimations.forEach(anim => {
+                if (anim && anim.kill) anim.kill();
+            });
+            currentAnimations = [];
+            
+            // Clear all active timeouts
+            activeTimeouts.forEach(timeout => clearTimeout(timeout));
+            activeTimeouts = [];
+            
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+        }
+
+        function transitionToNextStep(contentHTML) {
+            const stageContent = document.getElementById('stage-content');
+            
+            gsap.to(stageContent, {
+                opacity: 0,
+                scale: 0.95,
+                duration: 0.3,
+                onComplete: () => {
+                    stageContent.innerHTML = contentHTML;
+                    gsap.to(stageContent, {
+                        opacity: 1,
+                        scale: 1,
+                        duration: 0.3
+                    });
+                }
+            });
+        }
+
+        // Complete Lesson
+        function showCompleteLesson() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+            
+            let step = 0;
+            const lessons = [
+                { func: showNumberLine, duration: 25000 },
+                { func: showTwoNumberLines, duration: 30000 },
+                { func: showCoordinateAxes, duration: 35000 },
+                { func: showQuadrants, duration: 35000 },
+                { func: showTerminology, duration: 30000 }
+            ];
+
+            function nextLesson() {
+                if (step < lessons.length) {
+                    lessons[step].func();
+                    const duration = lessons[step].duration;
+                    step++;
+                    const timeoutId = setTimeout(nextLesson, duration);
+                    activeTimeouts.push(timeoutId);
+                }
+            }
+
+            nextLesson();
+        }
+
+        // Step 1: Number Line Review
+        function showNumberLine() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="margin-bottom: 10px;">📏 Step 1: The Number Line Review</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="canvas-container" style="height: 500px; background: white; margin: 0;">
+                            <div id="number-line-container" style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                                <div style="position: relative; width: 90%; height: 3px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                                    <!-- Ticks will be added by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div class="content-card" style="padding: 15px; margin: 0;">
+                            <div class="key-point" style="padding: 10px; margin: 5px 0;">
+                                <span style="font-size: 1.5rem; margin-right: 10px;">⭕</span>
+                                <div style="font-size: 0.9rem;">
+                                    <strong style="color: #fbbf24;">Origin (0):</strong><br>
+                                    <span style="font-size: 0.85rem;">Fixed point at the center</span>
+                                </div>
+                            </div>
+                            <div class="key-point" style="padding: 10px; margin: 5px 0;">
+                                <span style="font-size: 1.5rem; margin-right: 10px;">➡️</span>
+                                <div style="font-size: 0.9rem;">
+                                    <strong style="color: #43e97b;">Positive numbers:</strong><br>
+                                    <span style="font-size: 0.85rem;">Move to the right →</span>
+                                </div>
+                            </div>
+                            <div class="key-point" style="padding: 10px; margin: 5px 0;">
+                                <span style="font-size: 1.5rem; margin-right: 10px;">⬅️</span>
+                                <div style="font-size: 0.9rem;">
+                                    <strong style="color: #f5576c;">Negative numbers:</strong><br>
+                                    <span style="font-size: 0.85rem;">Move to the left ←</span>
+                                </div>
+                            </div>
+                            <div class="formula-box" style="margin-top: 10px; padding: 10px;">
+                                <p style="font-size: 0.85rem; color: #43e97b;">
+                                    Equal spacing = Equal values
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            setTimeout(() => {
+                const container = document.getElementById('number-line-container');
+                if (!container) return;
+                
+                const line = container.querySelector('div');
+                const positions = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
+                
+                positions.forEach((num, idx) => {
+                    const percent = ((idx) / (positions.length - 1)) * 100;
+                    
+                    // Create tick
+                    const tick = document.createElement('div');
+                    tick.style.cssText = `
+                        position: absolute;
+                        left: ${percent}%;
+                        top: -8px;
+                        width: 2px;
+                        height: 20px;
+                        background: #1a1a2e;
+                        transform: translateX(-50%);
+                    `;
+                    line.appendChild(tick);
+                    
+                    // Create label
+                    const label = document.createElement('div');
+                    label.textContent = num;
+                    label.style.cssText = `
+                        position: absolute;
+                        left: ${percent}%;
+                        top: 15px;
+                        transform: translateX(-50%);
+                        font-size: 0.8rem;
+                        font-weight: 600;
+                        color: ${num === 0 ? '#fa709a' : '#1a1a2e'};
+                    `;
+                    line.appendChild(label);
+                });
+            }, 500);
+
+            teacher.speak("Let's start by reviewing the number line. A number line has a fixed point called the origin at zero. Positive numbers move to the right direction, while negative numbers move to the left direction. Equal spacing represents equal values. This is the foundation for building our coordinate system.");
+        }
+
+        // Step 2: Two Number Lines
+        function showTwoNumberLines() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="margin-bottom: 10px;">➕ Step 2: Creating Two Number Lines</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="canvas-container" style="height: 500px; background: white; margin: 0; position: relative;">
+                            <div id="horizontal-line" style="position: absolute; left: 5%; right: 5%; top: 50%; height: 3px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); transform: translateY(-50%); display: none;"></div>
+                            <div id="vertical-line" style="position: absolute; top: 5%; bottom: 5%; left: 50%; width: 3px; background: linear-gradient(180deg, #43e97b 0%, #38f9d7 100%); transform: translateX(-50%); display: none;"></div>
+                            <div id="x-label" style="position: absolute; right: 8%; top: 52%; font-weight: 700; color: #4facfe; display: none;">X</div>
+                            <div id="x-prime-label" style="position: absolute; left: 8%; top: 52%; font-weight: 700; color: #4facfe; display: none;">X'</div>
+                            <div id="y-label" style="position: absolute; top: 8%; left: 52%; font-weight: 700; color: #43e97b; display: none;">Y</div>
+                            <div id="y-prime-label" style="position: absolute; bottom: 8%; left: 52%; font-weight: 700; color: #43e97b; display: none;">Y'</div>
+                            <div id="origin-label" style="position: absolute; left: 48%; top: 48%; font-weight: 700; color: #fa709a; font-size: 1.2rem; display: none;">O</div>
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div class="content-card" style="padding: 15px; margin: 0;">
+                            <h3 style="color: #fbbf24; font-size: 1rem; margin-bottom: 10px;">🔧 Construction Steps:</h3>
+                            <div style="font-size: 0.9rem; line-height: 1.8;">
+                                <p style="margin: 8px 0;">
+                                    <strong style="color: #4facfe;">1. Horizontal Line (X'X):</strong><br>
+                                    <span style="font-size: 0.85rem; color: #e2e8f0;">Take a number line and place it horizontally</span>
+                                </p>
+                                <p style="margin: 8px 0;">
+                                    <strong style="color: #43e97b;">2. Vertical Line (Y'Y):</strong><br>
+                                    <span style="font-size: 0.85rem; color: #e2e8f0;">Take another number line and place it vertically</span>
+                                </p>
+                                <p style="margin: 8px 0;">
+                                    <strong style="color: #fa709a;">3. Combine at Origin:</strong><br>
+                                    <span style="font-size: 0.85rem; color: #e2e8f0;">Make them cross at their zeros (origins)</span>
+                                </p>
+                            </div>
+                            <div class="formula-box" style="margin-top: 10px; padding: 10px;">
+                                <p style="font-size: 0.85rem; color: #43e97b;">
+                                    Two perpendicular number lines<br>
+                                    intersecting at their origins
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            setTimeout(() => {
+                const hLine = document.getElementById('horizontal-line');
+                const vLine = document.getElementById('vertical-line');
+                const xLabel = document.getElementById('x-label');
+                const xPrimeLabel = document.getElementById('x-prime-label');
+                const yLabel = document.getElementById('y-label');
+                const yPrimeLabel = document.getElementById('y-prime-label');
+                const originLabel = document.getElementById('origin-label');
+
+                // Show horizontal line
+                setTimeout(() => {
+                    if (hLine) {
+                        hLine.style.display = 'block';
+                        xLabel.style.display = 'block';
+                        xPrimeLabel.style.display = 'block';
+                        gsap.from(hLine, { scaleX: 0, duration: 1, transformOrigin: 'center' });
+                        gsap.from([xLabel, xPrimeLabel], { opacity: 0, duration: 0.5, delay: 1 });
+                    }
+                }, 500);
+
+                // Show vertical line
+                setTimeout(() => {
+                    if (vLine) {
+                        vLine.style.display = 'block';
+                        yLabel.style.display = 'block';
+                        yPrimeLabel.style.display = 'block';
+                        gsap.from(vLine, { scaleY: 0, duration: 1, transformOrigin: 'center' });
+                        gsap.from([yLabel, yPrimeLabel], { opacity: 0, duration: 0.5, delay: 1 });
+                    }
+                }, 2000);
+
+                // Show origin
+                setTimeout(() => {
+                    if (originLabel) {
+                        originLabel.style.display = 'block';
+                        gsap.from(originLabel, { scale: 0, duration: 0.8, ease: "elastic.out(1, 0.5)" });
+                    }
+                }, 3500);
+            }, 500);
+
+            teacher.speak("Now let's create two number lines. First, take a horizontal number line and call it X prime X. Then, take a vertical number line and call it Y prime Y. Finally, combine them so they cross at their zeros, at the origins. This creates two perpendicular number lines intersecting at a single point.");
+        }
+
+        // Step 3: Coordinate Axes
+        function showCoordinateAxes() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="margin-bottom: 10px;">📐 Step 3: The Coordinate Axes</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="canvas-container" style="height: 500px; background: white; margin: 0; position: relative;">
+                            <div style="position: absolute; left: 5%; right: 5%; top: 50%; height: 3px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); transform: translateY(-50%);"></div>
+                            <div style="position: absolute; top: 5%; bottom: 5%; left: 50%; width: 3px; background: linear-gradient(180deg, #43e97b 0%, #38f9d7 100%); transform: translateX(-50%);"></div>
+                            
+                            <!-- Arrows -->
+                            <div style="position: absolute; right: 5%; top: 50%; width: 0; height: 0; border-left: 10px solid #00f2fe; border-top: 6px solid transparent; border-bottom: 6px solid transparent; transform: translateY(-50%);"></div>
+                            <div style="position: absolute; top: 5%; left: 50%; width: 0; height: 0; border-bottom: 10px solid #38f9d7; border-left: 6px solid transparent; border-right: 6px solid transparent; transform: translateX(-50%);"></div>
+                            
+                            <!-- Labels -->
+                            <div style="position: absolute; right: 8%; top: 42%; font-weight: 700; color: #4facfe; font-size: 1rem;">X (OX)</div>
+                            <div style="position: absolute; left: 8%; top: 42%; font-weight: 700; color: #4facfe; font-size: 1rem;">X' (OX')</div>
+                            <div style="position: absolute; top: 8%; left: 52%; font-weight: 700; color: #43e97b; font-size: 1rem;">Y (OY)</div>
+                            <div style="position: absolute; bottom: 8%; left: 52%; font-weight: 700; color: #43e97b; font-size: 1rem;">Y' (OY')</div>
+                            <div style="position: absolute; left: 46%; top: 52%; font-weight: 700; color: #fa709a; font-size: 1.2rem;">O</div>
+                            
+                            <!-- Direction labels -->
+                            <div style="position: absolute; right: 12%; top: 55%; font-size: 0.75rem; color: #43e97b;">(+)</div>
+                            <div style="position: absolute; left: 12%; top: 55%; font-size: 0.75rem; color: #f5576c;">(−)</div>
+                            <div style="position: absolute; top: 12%; left: 54%; font-size: 0.75rem; color: #43e97b;">(+)</div>
+                            <div style="position: absolute; bottom: 12%; left: 54%; font-size: 0.75rem; color: #f5576c;">(−)</div>
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div class="content-card" style="padding: 15px; margin: 0;">
+                            <h3 style="color: #fbbf24; font-size: 1rem; margin-bottom: 10px;">📋 Definitions:</h3>
+                            <div style="font-size: 0.9rem; line-height: 1.6;">
+                                <p style="margin: 6px 0;">
+                                    <strong style="color: #4facfe;">X-axis (X'X):</strong><br>
+                                    <span style="font-size: 0.85rem;">The horizontal line</span>
+                                </p>
+                                <p style="margin: 6px 0;">
+                                    <strong style="color: #43e97b;">Y-axis (Y'Y):</strong><br>
+                                    <span style="font-size: 0.85rem;">The vertical line</span>
+                                </p>
+                                <p style="margin: 6px 0;">
+                                    <strong style="color: #fa709a;">Origin (O):</strong><br>
+                                    <span style="font-size: 0.85rem;">Where the two axes meet (the zero point)</span>
+                                </p>
+                            </div>
+                            <div class="formula-box" style="margin-top: 10px; padding: 10px;">
+                                <p style="font-size: 0.8rem; color: #e2e8f0;">
+                                    <strong style="color: #43e97b;">OX:</strong> Positive x-direction (right) →<br>
+                                    <strong style="color: #f5576c;">OX':</strong> Negative x-direction (left) ←<br>
+                                    <strong style="color: #43e97b;">OY:</strong> Positive y-direction (up) ↑<br>
+                                    <strong style="color: #f5576c;">OY':</strong> Negative y-direction (down) ↓
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            teacher.speak("Now we have the coordinate axes! The horizontal line is called the X-axis, or X prime X. The vertical line is called the Y-axis, or Y prime Y. The point where the two axes meet is called the Origin, marked as O, which is the zero point. We have four directions: O X is the positive x-direction going right, O X prime is the negative x-direction going left, O Y is the positive y-direction going up, and O Y prime is the negative y-direction going down.");
+        }
+
+        // Step 4: Four Quadrants
+        function showQuadrants() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="margin-bottom: 8px;">🔲 The Four Quadrants</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="canvas-container" style="height: 500px; background: white; margin: 0; position: relative;">
+                            <div class="axis-horizontal" style="position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: #1a1a2e;"></div>
+                            <div class="axis-vertical" style="position: absolute; top: 0; bottom: 0; left: 50%; width: 3px; background: #1a1a2e;"></div>
+                            
+                            <div class="quadrant quadrant-1" style="top: 2%; right: 2%; width: 46%; height: 46%; background: rgba(67, 233, 123, 0.3); border-radius: 10px;">
+                                <div style="text-align: center; color: #1a1a2e;">
+                                    <div style="font-size: 1.3rem; font-weight: 700;">I</div>
+                                    <div style="font-size: 0.75rem; margin-top: 5px;">(+, +)</div>
+                                </div>
+                            </div>
+                            
+                            <div class="quadrant quadrant-2" style="top: 2%; left: 2%; width: 46%; height: 46%; background: rgba(79, 172, 254, 0.3); border-radius: 10px;">
+                                <div style="text-align: center; color: #1a1a2e;">
+                                    <div style="font-size: 1.3rem; font-weight: 700;">II</div>
+                                    <div style="font-size: 0.75rem; margin-top: 5px;">(−, +)</div>
+                                </div>
+                            </div>
+                            
+                            <div class="quadrant quadrant-3" style="bottom: 2%; left: 2%; width: 46%; height: 46%; background: rgba(245, 87, 108, 0.3); border-radius: 10px;">
+                                <div style="text-align: center; color: #1a1a2e;">
+                                    <div style="font-size: 1.3rem; font-weight: 700;">III</div>
+                                    <div style="font-size: 0.75rem; margin-top: 5px;">(−, −)</div>
+                                </div>
+                            </div>
+                            
+                            <div class="quadrant quadrant-4" style="bottom: 2%; right: 2%; width: 46%; height: 46%; background: rgba(250, 112, 154, 0.3); border-radius: 10px;">
+                                <div style="text-align: center; color: #1a1a2e;">
+                                    <div style="font-size: 1.3rem; font-weight: 700;">IV</div>
+                                    <div style="font-size: 0.75rem; margin-top: 5px;">(+, −)</div>
+                                </div>
+                            </div>
+                            
+                            <div style="position: absolute; left: 48%; top: 48%; font-weight: 700; color: #1a1a2e; font-size: 1rem;">O</div>
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div class="content-card" style="padding: 12px; margin: 0; max-height: 320px; overflow-y: auto;">
+                            <h3 style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 8px;">📊 Quadrant Table:</h3>
+                            <table class="data-table" style="font-size: 0.75rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Quadrant</th>
+                                        <th>Position</th>
+                                        <th>Sign</th>
+                                        <th>Example</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>I</strong></td>
+                                        <td>Top-right</td>
+                                        <td>(+, +)</td>
+                                        <td>(3, 2)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>II</strong></td>
+                                        <td>Top-left</td>
+                                        <td>(−, +)</td>
+                                        <td>(−2, 3)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>III</strong></td>
+                                        <td>Bottom-left</td>
+                                        <td>(−, −)</td>
+                                        <td>(−4, −3)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>IV</strong></td>
+                                        <td>Bottom-right</td>
+                                        <td>(+, −)</td>
+                                        <td>(4, −2)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div class="formula-box" style="margin-top: 8px; padding: 8px;">
+                                <p style="font-size: 0.8rem; color: #43e97b;">
+                                    ↺ Numbered anticlockwise from positive x-axis
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            teacher.speak("The axes divide the plane into four regions called quadrants. Quadrant one is at the top-right where both coordinates are positive. Quadrant two is at the top-left where x is negative and y is positive. Quadrant three is at the bottom-left where both coordinates are negative. Quadrant four is at the bottom-right where x is positive and y is negative. The quadrants are numbered one, two, three, four, moving anticlockwise from the positive x-axis.");
+        }
+
+        // Terminology
+        function showTerminology() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="margin-bottom: 10px;">📖 Important Terminology</h2>
+                <div style="width: 100%; max-width: 900px; display: flex; gap: 15px;">
+                    <div style="flex: 1;">
+                        <div class="flashcard" onclick="flipCard(this)">
+                            <div class="flashcard-front">🗺️ Cartesian Plane</div>
+                            <div class="flashcard-back">The entire plane with coordinate axes. Also called Coordinate Plane or XY-Plane.</div>
+                        </div>
+                        
+                        <div class="flashcard" onclick="flipCard(this)">
+                            <div class="flashcard-front">📐 Coordinate Axes</div>
+                            <div class="flashcard-back">The x-axis and y-axis together form the coordinate axes.</div>
+                        </div>
+                        
+                        <div class="flashcard" onclick="flipCard(this)">
+                            <div class="flashcard-front">↔️ Abscissa</div>
+                            <div class="flashcard-back">The x-coordinate of a point. It measures horizontal distance from the y-axis.</div>
+                        </div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div class="flashcard" onclick="flipCard(this)">
+                            <div class="flashcard-front">↕️ Ordinate</div>
+                            <div class="flashcard-back">The y-coordinate of a point. It measures vertical distance from the x-axis.</div>
+                        </div>
+                        
+                        <div class="flashcard" onclick="flipCard(this)">
+                            <div class="flashcard-front">⭕ Origin</div>
+                            <div class="flashcard-back">The point (0, 0) where the x-axis and y-axis intersect.</div>
+                        </div>
+                        
+                        <div class="content-card glow-effect" style="padding: 15px; margin-top: 10px;">
+                            <h3 style="color: #43e97b; font-size: 1rem; text-align: center; margin-bottom: 8px;">🎯 Key Concept</h3>
+                            <p style="font-size: 0.9rem; text-align: center; line-height: 1.6;">
+                                <strong>Cartesian Plane</strong> =<br>
+                                Axes + Four Quadrants
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; text-align: center; color: #e2e8f0; font-size: 0.85rem;">
+                    💡 Click on any flashcard to reveal its definition!
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            teacher.speak("Let's learn important terminology. The Cartesian Plane, also called Coordinate Plane or X Y Plane, is the entire plane with coordinate axes. The Coordinate Axes are the x-axis and y-axis together. The Abscissa is the x-coordinate, measuring horizontal distance. The Ordinate is the y-coordinate, measuring vertical distance. The Origin is the point zero, zero, where the axes intersect. Remember: The Cartesian plane equals Axes plus Four Quadrants. Click on any flashcard to see its definition!");
+        }
+
+        window.flipCard = function(card) {
+            card.classList.toggle('flipped');
+        };
+
+        // Interactive Demo
+        function showInteractiveDemo() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="margin-bottom: 10px;">🎮 Interactive: Plot Points!</h2>
+                <div class="flex-container">
+                    <div class="flex-left">
+                        <div class="canvas-container" style="height: 340px; background: white; margin: 0; position: relative; cursor: crosshair;" id="plot-canvas">
+                            <div style="position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: #1a1a2e;"></div>
+                            <div style="position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: #1a1a2e;"></div>
+                            
+                            <!-- Quadrant backgrounds -->
+                            <div style="position: absolute; top: 0; right: 0; width: 50%; height: 50%; background: rgba(67, 233, 123, 0.1);"></div>
+                            <div style="position: absolute; top: 0; left: 0; width: 50%; height: 50%; background: rgba(79, 172, 254, 0.1);"></div>
+                            <div style="position: absolute; bottom: 0; left: 0; width: 50%; height: 50%; background: rgba(245, 87, 108, 0.1);"></div>
+                            <div style="position: absolute; bottom: 0; right: 0; width: 50%; height: 50%; background: rgba(250, 112, 154, 0.1);"></div>
+                            
+                            <!-- Quadrant labels -->
+                            <div style="position: absolute; top: 10%; right: 10%; color: #1a1a2e; font-weight: 700;">I</div>
+                            <div style="position: absolute; top: 10%; left: 10%; color: #1a1a2e; font-weight: 700;">II</div>
+                            <div style="position: absolute; bottom: 10%; left: 10%; color: #1a1a2e; font-weight: 700;">III</div>
+                            <div style="position: absolute; bottom: 10%; right: 10%; color: #1a1a2e; font-weight: 700;">IV</div>
+                            
+                            <div style="position: absolute; left: 48%; top: 48%; font-weight: 700; color: #fa709a;">O</div>
+                        </div>
+                    </div>
+                    <div class="flex-right">
+                        <div id="point-info" class="value-display" style="font-size: 1.2rem; margin-bottom: 12px;">
+                            Click to plot a point!
+                        </div>
+                        <div class="content-card" style="padding: 15px; margin: 0;">
+                            <h3 style="color: #fbbf24; font-size: 1rem; margin-bottom: 10px;">📍 Point Information:</h3>
+                            <div id="point-details" style="font-size: 0.9rem; line-height: 1.8; color: #e2e8f0;">
+                                <p>• Click anywhere in the plane</p>
+                                <p>• See the coordinates</p>
+                                <p>• Identify the quadrant</p>
+                                <p>• Learn abscissa & ordinate</p>
+                            </div>
+                            <div class="formula-box" style="margin-top: 12px; padding: 10px;">
+                                <p style="font-size: 0.85rem; color: #43e97b;">
+                                    Coordinate = (x, y)<br>
+                                    x = Abscissa (horizontal)<br>
+                                    y = Ordinate (vertical)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            setTimeout(() => {
+                const canvas = document.getElementById('plot-canvas');
+                if (!canvas) return;
+
+                canvas.addEventListener('click', function(e) {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    // Calculate coordinates
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const coordX = Math.round((x - centerX) / 25);
+                    const coordY = Math.round((centerY - y) / 25);
+                    
+                    // Determine quadrant
+                    let quadrant;
+                    if (coordX > 0 && coordY > 0) quadrant = "I (Top-right)";
+                    else if (coordX < 0 && coordY > 0) quadrant = "II (Top-left)";
+                    else if (coordX < 0 && coordY < 0) quadrant = "III (Bottom-left)";
+                    else if (coordX > 0 && coordY < 0) quadrant = "IV (Bottom-right)";
+                    else if (coordX === 0 && coordY !== 0) quadrant = "On Y-axis";
+                    else if (coordY === 0 && coordX !== 0) quadrant = "On X-axis";
+                    else quadrant = "Origin";
+                    
+                    // Remove previous points
+                    const oldPoints = canvas.querySelectorAll('.plot-point');
+                    oldPoints.forEach(p => p.remove());
+                    
+                    // Create point
+                    const point = document.createElement('div');
+                    point.className = 'plot-point';
+                    point.style.cssText = `
+                        position: absolute;
+                        left: ${x - 8}px;
+                        top: ${y - 8}px;
+                        width: 16px;
+                        height: 16px;
+                        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+                        border-radius: 50%;
+                        box-shadow: 0 0 15px rgba(250, 112, 154, 0.8);
+                    `;
+                    canvas.appendChild(point);
+                    
+                    // Update info
+                    const info = document.getElementById('point-info');
+                    const details = document.getElementById('point-details');
+                    
+                    if (info) {
+                        info.innerHTML = `Point (${coordX}, ${coordY})`;
+                    }
+                    
+                    if (details) {
+                        details.innerHTML = `
+                            <p><strong style="color: #fbbf24;">Coordinates:</strong> (${coordX}, ${coordY})</p>
+                            <p><strong style="color: #4facfe;">Abscissa (x):</strong> ${coordX}</p>
+                            <p><strong style="color: #43e97b;">Ordinate (y):</strong> ${coordY}</p>
+                            <p><strong style="color: #fa709a;">Quadrant:</strong> ${quadrant}</p>
+                        `;
+                    }
+                    
+                    // Animate point
+                    gsap.from(point, {
+                        scale: 0,
+                        duration: 0.5,
+                        ease: "elastic.out(1, 0.5)"
+                    });
+                    
+                    if (currentTeacher) {
+                        currentTeacher.speak(`Point plotted at coordinates ${coordX}, ${coordY} in quadrant ${quadrant}`);
+                    }
+                });
+            }, 500);
+
+            teacher.speak("Try the interactive demo! Click anywhere in the coordinate plane to plot a point. You'll see the coordinates, identify which quadrant it's in, and learn about abscissa and ordinate. The abscissa is the x-coordinate showing horizontal position, and the ordinate is the y-coordinate showing vertical position.");
+        }
+
+        // Quiz
+        function showQuiz() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+            currentQuizQuestion = 0;
+            quizScore = 0;
+
+            const questions = [
+                {
+                    question: "What is the point where the x-axis and y-axis intersect called?",
+                    options: [
+                        "Abscissa",
+                        "Ordinate",
+                        "Origin",
+                        "Quadrant"
+                    ],
+                    correct: 2,
+                    explanation: "The Origin is the point (0, 0) where the x-axis and y-axis meet."
+                },
+                {
+                    question: "Which quadrant has both coordinates positive?",
+                    options: [
+                        "Quadrant I",
+                        "Quadrant II",
+                        "Quadrant III",
+                        "Quadrant IV"
+                    ],
+                    correct: 0,
+                    explanation: "Quadrant I (top-right) has the sign pattern (+, +), meaning both x and y coordinates are positive."
+                },
+                {
+                    question: "What is the x-coordinate of a point called?",
+                    options: [
+                        "Ordinate",
+                        "Abscissa",
+                        "Origin",
+                        "Axis"
+                    ],
+                    correct: 1,
+                    explanation: "The Abscissa is the x-coordinate, which measures the horizontal distance from the y-axis."
+                },
+                {
+                    question: "In which quadrant would the point (-3, -5) be located?",
+                    options: [
+                        "Quadrant I",
+                        "Quadrant II",
+                        "Quadrant III",
+                        "Quadrant IV"
+                    ],
+                    correct: 2,
+                    explanation: "Point (-3, -5) has both negative coordinates, so it's in Quadrant III (bottom-left) with sign pattern (−, −)."
+                },
+                {
+                    question: "The quadrants are numbered moving in which direction from the positive x-axis?",
+                    options: [
+                        "Clockwise",
+                        "Anticlockwise",
+                        "Left to right",
+                        "Top to bottom"
+                    ],
+                    correct: 1,
+                    explanation: "Quadrants are numbered I, II, III, IV moving anticlockwise (counterclockwise) from the positive x-axis."
+                }
+            ];
+
+            function showQuestion() {
+                const q = questions[currentQuizQuestion];
+                const content = `
+                    <h2 class="math-title" style="font-size: 1.2rem; margin-bottom: 8px;">Quiz Time! 🏆</h2>
+                    <div style="width: 100%; max-width: 700px; padding: 0 10px;">
+                        <div class="progress-bar" style="margin: 8px 0;">
+                            <div class="progress-fill" style="width: ${(currentQuizQuestion / questions.length) * 100}%"></div>
+                        </div>
+                        <div class="content-card" style="padding: 12px;">
+                            <p style="font-size: 0.85rem; color: #e2e8f0; margin-bottom: 6px;">
+                                Question ${currentQuizQuestion + 1} of ${questions.length}
+                            </p>
+                            <h3 style="color: #fbbf24; font-size: 1rem; margin: 10px 0;">
+                                ${q.question}
+                            </h3>
+                            <div id="quiz-options">
+                                ${q.options.map((opt, idx) => `
+                                    <div class="quiz-option" onclick="checkAnswer(${idx})" style="font-size: 0.9rem; padding: 12px; margin: 6px 0;">
+                                        ${opt}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="value-display" style="font-size: 1.4rem; margin-top: 10px;">
+                            Score: ${quizScore} / ${questions.length}
+                        </div>
+                    </div>
+                `;
+                transitionToNextStep(content);
+            }
+
+            window.checkAnswer = function(selectedIdx) {
+                const q = questions[currentQuizQuestion];
+                const options = document.querySelectorAll('.quiz-option');
+                
+                options.forEach(opt => opt.style.pointerEvents = 'none');
+                
+                if (selectedIdx === q.correct) {
+                    options[selectedIdx].classList.add('correct');
+                    quizScore++;
+                    if (currentTeacher) {
+                        currentTeacher.speak("Correct! " + q.explanation);
+                    }
+                } else {
+                    options[selectedIdx].classList.add('incorrect');
+                    options[q.correct].classList.add('correct');
+                    if (currentTeacher) {
+                        currentTeacher.speak("Incorrect. " + q.explanation);
+                    }
+                }
+
+                const timeoutId = setTimeout(() => {
+                    currentQuizQuestion++;
+                    if (currentQuizQuestion < questions.length) {
+                        showQuestion();
+                    } else {
+                        showQuizResults();
+                    }
+                }, 4000);
+                activeTimeouts.push(timeoutId);
+            };
+
+            function showQuizResults() {
+                const percentage = (quizScore / questions.length) * 100;
+                const content = `
+                    <h2 class="math-title">Quiz Complete! 🎉</h2>
+                    <div style="width: 100%; max-width: 700px; padding: 0 10px;">
+                        <div class="value-display" style="font-size: 2rem;">${quizScore} / ${questions.length}</div>
+                        <div class="content-card glow-effect" style="padding: 18px;">
+                            <p style="font-size: 1.3rem; color: ${percentage >= 80 ? '#43e97b' : '#f5576c'};">
+                                ${percentage}% Correct
+                            </p>
+                            <p style="font-size: 0.95rem; color: #e2e8f0; margin-top: 10px;">
+                                ${percentage >= 80 ? '🌟 Excellent! You understand the Cartesian coordinate system!' : 
+                                  percentage >= 60 ? '👍 Good effort! Review the concepts and try again!' :
+                                  '📚 Keep practicing! Go through the lessons once more!'}
+                            </p>
+                        </div>
+                        <div class="formula-box" style="margin-top: 12px; padding: 10px;">
+                            <p style="font-size: 0.95rem; color: #43e97b;">
+                                Remember: Cartesian Plane = Axes + Four Quadrants
+                            </p>
+                        </div>
+                    </div>
+                `;
+                transitionToNextStep(content);
+                
+                if (currentTeacher) {
+                    currentTeacher.speak(`Quiz complete! You scored ${quizScore} out of ${questions.length}. That's ${percentage} percent. ${percentage >= 80 ? 'Excellent work!' : 'Keep practicing!'}`);
+                }
+            }
+
+            showQuestion();
+            teacher.speak("Let's test your knowledge about the Cartesian coordinate system!");
+        }
+
+        // Reset
+        function resetApplication() {
+            stopCurrentDemo();
+            quizScore = 0;
+            currentQuizQuestion = 0;
+
+            const content = `
+                <h2 class="math-title">Welcome! ✨</h2>
+                <div class="value-display" style="font-size: 1.8rem;">Building the Cartesian Coordinate System</div>
+                <div class="math-description">
+                    Learn how to construct the coordinate plane step by step!<br>
+                    Master axes, origin, quadrants, and important terminology!
+                </div>
+                <div class="formula-box" style="padding: 12px;">
+                    <p style="font-size: 1rem; color: #43e97b;">
+                        📏 Number Line | ➕ Two Lines | 📐 Axes<br>
+                        🔲 Quadrants | 📖 Terminology | 🎮 Interactive
+                    </p>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            currentDemo = null;
+
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome! Let's learn how to build the Cartesian coordinate system step by step!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+
+            const initialContent = `
+                <h2 class="math-title">Welcome! ✨</h2>
+                <div class="value-display" style="font-size: 1.8rem;">Building the Cartesian Coordinate System</div>
+                <div class="math-description">
+                    Experience mathematics like never before!<br>
+                    Construct the coordinate plane step by step with stunning animations!
+                </div>
+                <div class="formula-box" style="padding: 12px;">
+                    <p style="font-size: 1rem; color: #43e97b;">
+                        📏 Number Line Review | ➕ Two Number Lines<br>
+                        📐 Coordinate Axes | 🔲 Four Quadrants<br>
+                        📖 Important Terminology | 🎮 Interactive Plotting
+                    </p>
+                </div>
+            `;
+
+            transitionToNextStep(initialContent);
+
+            setTimeout(() => {
+                teacher.speak("Welcome to Building the Cartesian Coordinate System! Learn how to construct the coordinate plane with amazing step-by-step animations!");
+            }, 500);
+
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'number-line':
+                            showNumberLine();
+                            break;
+                        case 'two-lines':
+                            showTwoNumberLines();
+                            break;
+                        case 'axes':
+                            showCoordinateAxes();
+                            break;
+                        case 'quadrants':
+                            showQuadrants();
+                            break;
+                        case 'terminology':
+                            showTerminology();
+                            break;
+                        case 'interactive':
+                            showInteractiveDemo();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

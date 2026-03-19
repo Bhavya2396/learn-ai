@@ -1,0 +1,2474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thrust and Pressure - Physics in Motion</title>
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/MotionPathPlugin.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/TextPlugin.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(59, 130, 246, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(59, 130, 246, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6, #f59e0b);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Demo Stage */
+        .demo-stage {
+            background: linear-gradient(to bottom, #1e293b, #334155, #475569);
+            border-radius: 25px;
+            min-height: 500px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            border: 3px solid rgba(59, 130, 246, 0.4);
+            padding: 40px;
+        }
+
+        /* Drawing Pin Demo */
+        .pin-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 400px;
+        }
+
+        .pin-demo.active {
+            display: block;
+        }
+
+        .bulletin-board {
+            position: absolute;
+            width: 600px;
+            height: 80px;
+            background: linear-gradient(to bottom, #8b4513, #654321);
+            border-top: 5px solid #654321;
+            border-radius: 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .poster {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            width: 120px;
+            height: 60px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: #92400e;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .board-label {
+            position: absolute;
+            bottom: 5px;
+            right: 10px;
+            font-size: 0.8rem;
+            color: #f8fafc;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .drawing-pin {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            z-index: 10;
+            filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+            transform-origin: center top;
+        }
+
+        .pin-head {
+            width: 20px;
+            height: 8px;
+            background: radial-gradient(circle at 30% 30%, #ff6b6b, #ef4444, #dc2626);
+            border-radius: 20% 20% 50% 50%;
+            position: absolute;
+            top: 0;
+            left: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .pin-tip {
+            width: 2px;
+            height: 22px;
+            background: linear-gradient(to bottom, #d1d5db, #9ca3af, #6b7280);
+            position: absolute;
+            top: 8px;
+            left: 14px;
+            border-radius: 0 0 50% 50%;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .pressure-waves {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(239, 68, 68, 0.6);
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .thumb {
+            position: absolute;
+            left: 50%;
+            top: 10%;
+            font-size: 80px;
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+
+        .force-arrow-pin {
+            position: absolute;
+            width: 60px;
+            height: 4px;
+            background: #ef4444;
+            opacity: 0;
+            transform-origin: left center;
+        }
+
+        .force-arrow-pin::after {
+            content: '';
+            position: absolute;
+            right: -10px;
+            top: -5px;
+            width: 0;
+            height: 0;
+            border-left: 12px solid #ef4444;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+        }
+
+        /* Sand Demo */
+        .sand-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 400px;
+        }
+
+        .sand-demo.active {
+            display: block;
+        }
+
+        .sand-surface {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: linear-gradient(to bottom, #fbbf24, #f59e0b, #d97706);
+            border-top: 3px solid #92400e;
+            z-index: 1;
+            overflow: visible;
+        }
+        
+        .sand-top-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: #fbbf24;
+            z-index: 2;
+        }
+        
+        .sand-displacement {
+            position: absolute;
+            background: radial-gradient(circle, rgba(215, 119, 6, 0.7), transparent);
+            border-radius: 50%;
+            opacity: 0;
+            z-index: 2;
+        }
+        
+        .standing-displacement {
+            width: 40px;
+            height: 40px;
+            bottom: 60%;
+            left: calc(30% + 52px);
+        }
+        
+        .lying-displacement {
+            width: 160px;
+            height: 20px;
+            bottom: 60%;
+            right: 26%;
+        }
+
+        .sand-surface::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: repeating-linear-gradient(
+                90deg,
+                #fbbf24 0px,
+                #fbbf24 2px,
+                #f59e0b 2px,
+                #f59e0b 4px
+            );
+            opacity: 0.8;
+        }
+
+        .sand-particles {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #d97706;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .pressure-indicator {
+            position: absolute;
+            background: rgba(239, 68, 68, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .person-standing {
+            position: absolute;
+            bottom: 95px;
+            left: 30%;
+            font-size: 120px;
+            opacity: 0;
+            transform: translateY(20px);
+            z-index: 10;
+        }
+
+        .person-lying {
+            position: absolute;
+            bottom: 50px;
+            right: 25%;
+            font-size: 100px;
+            opacity: 0;
+            transform: rotate(90deg) translateY(20px);
+            z-index: 10;
+        }
+
+        .footprints {
+            position: absolute;
+            bottom: 62%;
+            left: calc(30% + 45px);
+            opacity: 0;
+            z-index: 3;
+        }
+
+        .footprint {
+            width: 30px;
+            height: 30px;
+            background: rgba(139, 69, 19, 0.8);
+            border-radius: 100% 40% 60% 60%;
+            margin: 0px;
+            display: inline-block;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+            transform: translateY(-5px);
+        }
+
+        .body-impression {
+            position: absolute;
+            bottom: 79%;
+            right: 26%;
+            width: 160px;
+            height: 15px;
+            background: rgba(139, 69, 19, 0.7);
+            border-radius: 25px;
+            opacity: 0;
+            z-index: 3;
+            box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.6);
+            transform: translateY(-8px);
+        }
+
+        /* Pressure Calculation Demo */
+        .pressure-demo {
+            display: none;
+            padding: 30px;
+        }
+
+        .pressure-demo.active {
+            display: block;
+        }
+
+        .wooden-block {
+            position: relative;
+            margin: 40px auto;
+            text-align: center;
+        }
+
+        .block-3d {
+            width: 200px;
+            height: 100px;
+            background: linear-gradient(135deg, #8b4513, #a0522d);
+            border: 3px solid #654321;
+            border-radius: 10px;
+            margin: 0 auto 20px;
+            position: relative;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+        
+        .block-content {
+            position: absolute;
+            backface-visibility: hidden;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .block-content.front {
+            transform: rotateY(0deg);
+        }
+        
+        .block-content.back {
+            transform: rotateY(180deg);
+            opacity: 0;
+        }
+
+        .block-3d.rotated {
+            width: 300px; /* Larger to represent the 40×20 cm side */
+            height: 120px; /* Slightly taller to maintain proportions */
+        }
+        
+        .block-3d.rotated .block-content.front {
+            opacity: 0;
+        }
+        
+        .block-3d.rotated .block-content.back {
+            opacity: 1;
+        }
+
+        .pressure-info {
+            background: rgba(59, 130, 246, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .calculation-step {
+            background: rgba(15, 23, 42, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            opacity: 0;
+            transform: translateY(20px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .calculation-step.show {
+            opacity: 1;
+            transform: translateY(0);
+            transition: all 0.6s ease;
+        }
+
+        .formula {
+            font-family: 'Courier New', monospace;
+            font-size: 1.3rem;
+            color: #fbbf24;
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(251, 191, 36, 0.1);
+            border-radius: 8px;
+        }
+
+        /* Buoyancy Demo */
+        .buoyancy-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 400px;
+        }
+
+        .buoyancy-demo.active {
+            display: block;
+        }
+
+        .water-container {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 250px;
+            background: linear-gradient(to bottom, transparent 0%, rgba(59, 130, 246, 0.3) 30%, rgba(59, 130, 246, 0.6) 100%);
+            border: 4px solid #3b82f6;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .water-level {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70%;
+            background: linear-gradient(to bottom, rgba(59, 130, 246, 0.4), rgba(59, 130, 246, 0.8));
+            animation: waterRipple 2s ease-in-out infinite;
+        }
+        
+        /* Water surface indicator */
+        .water-surface {
+            position: absolute;
+            top: 30%; /* At the top of water level (100% - water height of 70%) */
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(173, 216, 230, 0.6);
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        @keyframes waterRipple {
+            0%, 100% { 
+                transform: scaleY(1) scaleX(1); 
+                filter: hue-rotate(0deg);
+            }
+            25% { 
+                transform: scaleY(1.01) scaleX(1.005); 
+                filter: hue-rotate(5deg);
+            }
+            50% { 
+                transform: scaleY(1.02) scaleX(1.01); 
+                filter: hue-rotate(10deg);
+            }
+            75% { 
+                transform: scaleY(1.01) scaleX(1.005); 
+                filter: hue-rotate(5deg);
+            }
+        }
+
+        .water-bubbles {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .splash-effect {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.8), transparent);
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .plastic-bottle {
+            position: absolute;
+            width: 50px;
+            height: 100px;
+            background: linear-gradient(to bottom, rgba(240, 240, 255, 0.9), rgba(220, 220, 255, 0.7));
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            border-radius: 10px 10px 20px 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 19px;
+            transition: all 1s ease;
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.8), 0 0 5px rgba(0, 0, 0, 0.2);
+            overflow: visible;
+        }
+
+        .bottle-cap {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 25px;
+            height: 15px;
+            background: #ef4444;
+            border-radius: 5px 5px 0 0;
+            border: 1px solid #dc2626;
+            z-index: 1;
+        }
+
+        .bottle-label {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 30px;
+            background: rgba(59, 130, 246, 0.5);
+            border-radius: 5px;
+            font-size: 8px;
+            color: white;
+            text-align: center;
+            padding-top: 8px;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Force vectors */
+        .force-vector {
+            position: absolute;
+            opacity: 0;
+            z-index: 10;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .force-vector-line {
+            position: absolute;
+            background-color: currentColor;
+            width: 4px;
+            transform-origin: center top;
+        }
+
+        .force-vector-head {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            transform: translateX(-4px);
+        }
+
+        .force-vector-label {
+            position: absolute;
+            font-size: 12px;
+            font-weight: bold;
+            transform: translateX(-50%);
+            text-align: center;
+            width: 80px;
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Buoyancy vector (upward) */
+        .buoyant-force {
+            color: #10b981;
+            left: 15%; /* Far left position */
+            bottom: 50%;
+            z-index: 20; /* Ensure it's above everything */
+        }
+
+        .buoyant-force .force-vector-line {
+            height: 60px;
+            bottom: 0;
+            left: 0;
+        }
+
+        .buoyant-force .force-vector-head {
+            bottom: 60px;
+            border-bottom: 10px solid #10b981;
+            left: 0;
+        }
+
+        .buoyant-force .force-vector-label {
+            bottom: 95px; /* Increased gap between text and arrow */
+            left: 0;
+            color: #10b981;
+            font-size: 14px; /* Larger font */
+            text-shadow: 0 0 4px rgba(0, 0, 0, 0.8); /* Better visibility */
+        }
+
+        /* Gravity vector (downward) */
+        .gravity-force {
+            color: #ef4444;
+            left: 25%; /* Left position */
+            bottom: 50%;
+            z-index: 20; /* Ensure it's above everything */
+        }
+
+        .gravity-force .force-vector-line {
+            height: 50px;
+            top: 0;
+            left: 0;
+        }
+
+        .gravity-force .force-vector-head {
+            top: 50px;
+            border-top: 10px solid #ef4444;
+            left: 0;
+        }
+
+        .gravity-force .force-vector-label {
+            top: 65px;
+            left: 0;
+            color: #ef4444;
+            font-size: 14px; /* Larger font */
+            text-shadow: 0 0 4px rgba(0, 0, 0, 0.8); /* Better visibility */
+        }
+
+        /* Applied force vector (downward) */
+        .applied-force {
+            color: #f59e0b;
+            right: 15%; /* Far right position */
+            left: auto; /* Override left */
+            bottom: 50%;
+            opacity: 0;
+            z-index: 20; /* Ensure it's above everything */
+        }
+
+        .applied-force .force-vector-line {
+            height: 70px;
+            top: 0;
+            left: 0;
+        }
+
+        .applied-force .force-vector-head {
+            top: 70px;
+            border-top: 10px solid #f59e0b;
+            left: 0;
+        }
+
+        .applied-force .force-vector-label {
+            top: 85px;
+            left: 0;
+            color: #f59e0b;
+            font-size: 14px; /* Larger font */
+            text-shadow: 0 0 4px rgba(0, 0, 0, 0.8); /* Better visibility */
+        }
+
+        /* Net force vector */
+        .net-force {
+            color: #8b5cf6;
+            right: 25%; /* Right position */
+            left: auto; /* Override left */
+            bottom: 50%;
+            z-index: 20; /* Ensure it's above everything */
+        }
+
+        .net-force .force-vector-line {
+            height: 40px;
+            bottom: 0;
+            left: 0;
+        }
+
+        .net-force .force-vector-head {
+            bottom: 40px;
+            border-bottom: 10px solid #8b5cf6;
+            left: 0;
+        }
+
+        .net-force .force-vector-label {
+            bottom: 55px;
+            left: 0;
+            color: #8b5cf6;
+            font-size: 14px; /* Larger font */
+            text-shadow: 0 0 4px rgba(0, 0, 0, 0.8); /* Better visibility */
+        }
+
+        /* Float Sink Demo */
+        .float-sink-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 400px;
+        }
+
+        .float-sink-demo.active {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .experiment-container {
+            text-align: center;
+            position: relative;
+        }
+
+        .beaker {
+            width: 150px;
+            height: 200px;
+            background: linear-gradient(to bottom, transparent 0%, rgba(59, 130, 246, 0.3) 25%, rgba(59, 130, 246, 0.6) 100%);
+            border: 3px solid #3b82f6;
+            border-radius: 0 0 20px 20px;
+            position: relative;
+            margin: 0 auto 20px;
+        }
+
+        .water-in-beaker {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 75%;
+            background: linear-gradient(to bottom, rgba(59, 130, 246, 0.4), rgba(59, 130, 246, 0.8));
+            border-radius: 0 0 17px 17px;
+        }
+
+        .iron-nail {
+            position: absolute;
+            width: 4px;
+            height: 40px;
+            background: linear-gradient(to bottom, #6b7280, #374151);
+            left: 50%;
+            transform: translateX(-50%);
+            top: 20px;
+            border-radius: 2px;
+            transition: all 2s ease;
+        }
+
+        .iron-nail.sinking {
+            top: 140px;
+        }
+
+        .cork {
+            position: absolute;
+            width: 30px;
+            height: 20px;
+            background: linear-gradient(135deg, #92400e, #78350f);
+            left: 50%;
+            transform: translateX(-50%);
+            top: 20px;
+            border-radius: 15px;
+            transition: all 2s ease;
+        }
+
+        .cork.floating {
+            top: 43px;
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+            min-width: 150px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(59, 130, 246, 0.4);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Theory Section */
+        .theory-section {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(59, 130, 246, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .key-formula {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(251, 191, 36, 0.2));
+            padding: 25px;
+            border-radius: 20px;
+            margin: 20px 0;
+            text-align: center;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .main-equation {
+            font-size: 2.5rem;
+            color: #fbbf24;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+        }
+
+        .equation-description {
+            line-height: 1.8;
+            color: #e2e8f0;
+            opacity: 0.95;
+            margin-top: 15px;
+            font-size: 1.1rem;
+        }
+
+        .activity-card {
+            background: rgba(59, 130, 246, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .activity-title {
+            color: #3b82f6;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .activity-content {
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        .activity-steps {
+            list-style: none;
+            padding: 0;
+        }
+
+        .activity-steps li {
+            padding: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .activity-steps li:before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #3b82f6;
+            font-size: 1.2rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2.2rem; }
+            .demo-stage { padding: 30px 20px; min-height: 400px; }
+            .demo-buttons { flex-direction: column; align-items: center; }
+            .float-sink-demo { flex-direction: column; gap: 20px; }
+            .main-equation { font-size: 1.8rem; }
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 20px 15px; }
+            .header h1 { font-size: 1.8rem; }
+            .demo-stage { padding: 20px 15px; }
+            .theory-section { padding: 20px; }
+            .main-equation { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Thrust and Pressure</h1>
+            <p>Discover why camels can run in deserts, why tanks have tracks, and why ships float while iron sinks!</p>
+        </div>
+
+        <!-- Demo Stage -->
+        <div class="demo-stage" id="stage">
+            <!-- Drawing Pin Demo -->
+            <div class="pin-demo" id="pin-demo">
+                <div class="drawing-pin" id="drawing-pin" style="left: 50%; top: 20%;">
+                    <div class="pin-head"></div>
+                    <div class="pin-tip"></div>
+                </div>
+                <div class="force-arrow-pin" id="pin-force-arrow" style="left: 50%; top: 10%; transform: rotate(90deg);"></div>
+                <div class="thumb" id="thumb">👇</div>
+                <div class="pressure-waves" id="pressure-wave1" style="left: 50%; top: 70%;"></div>
+                <div class="pressure-waves" id="pressure-wave2" style="left: 50%; top: 70%;"></div>
+                <div class="pressure-waves" id="pressure-wave3" style="left: 50%; top: 70%;"></div>
+                <div class="bulletin-board" style="left: 50%; bottom: 0; transform: translateX(-50%);">
+                    <div class="poster">PHYSICS POSTER</div>
+                    <div class="board-label">BULLETIN BOARD</div>
+                </div>
+            </div>
+
+            <!-- Sand Demo -->
+            <div class="sand-demo" id="sand-demo">
+                <div class="sand-surface">
+                    <!-- Impressions are inside the sand surface -->
+                    <div class="footprints" id="footprints">
+                        <div class="footprint"></div>
+                        <div class="footprint"></div>
+                    </div>
+                    <div class="body-impression" id="body-impression"></div>
+                    <div class="sand-displacement standing-displacement" id="standing-displacement"></div>
+                    <div class="sand-displacement lying-displacement" id="lying-displacement"></div>
+                </div>
+                <div class="person-standing" id="person-standing">🧍</div>
+                <div class="person-lying" id="person-lying">🧍</div>
+                <div class="pressure-indicator" id="pressure-high" style="left: 35%; bottom: 225px;">HIGH PRESSURE</div>
+                <div class="pressure-indicator" id="pressure-low" style="right: 18%; bottom: 190px;">LOW PRESSURE</div>
+                <!-- Sand particles for animation -->
+                <div class="sand-particles" id="particle1" style="left: 32%; bottom: 120px;"></div>
+                <div class="sand-particles" id="particle2" style="left: 34%; bottom: 125px;"></div>
+                <div class="sand-particles" id="particle3" style="left: 36%; bottom: 118px;"></div>
+                <div class="sand-particles" id="particle4" style="left: 38%; bottom: 122px;"></div>
+                <div class="sand-particles" id="particle5" style="right: 27%; bottom: 110px;"></div>
+                <div class="sand-particles" id="particle6" style="right: 25%; bottom: 115px;"></div>
+            </div>
+
+            <!-- Pressure Calculation Demo -->
+            <div class="pressure-demo" id="pressure-demo">
+                <div class="wooden-block">
+                    <div class="block-3d" id="wooden-block">
+                        <div class="block-content front">
+                            5 kg Block<br>40×20×10 cm<br>
+                            <span style="font-size: 0.8em; opacity: 0.8;">(Standing on 20×10 cm side)</span>
+                        </div>
+                        <div class="block-content back">
+                            5 kg Block<br>40×20×10 cm<br>
+                            <span style="font-size: 0.8em; opacity: 0.8;">(Lying on 40×20 cm side)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="calculation-step" id="calc-step1">
+                    <h3 style="color: #3b82f6;">Given Data:</h3>
+                    <p>Mass = 5 kg<br>
+                    Dimensions = 40 cm × 20 cm × 10 cm<br>
+                    Weight (Thrust) = mg = 5 × 9.8 = 49 N</p>
+                </div>
+
+                <div class="calculation-step" id="calc-step2">
+                    <h3 style="color: #3b82f6;">Case 1: Block on 20×10 cm side</h3>
+                    <div class="formula">Area = 20 × 10 = 200 cm² = 0.02 m²</div>
+                    <div class="formula">Pressure = 49 N ÷ 0.02 m² = 2450 N/m²</div>
+                </div>
+
+                <div class="calculation-step" id="calc-step3">
+                    <h3 style="color: #3b82f6;">Case 2: Block on 40×20 cm side</h3>
+                    <div class="formula">Area = 40 × 20 = 800 cm² = 0.08 m²</div>
+                    <div class="formula">Pressure = 49 N ÷ 0.08 m² = 612.5 N/m²</div>
+                </div>
+
+                <div class="calculation-step" id="calc-step4">
+                    <h3 style="color: #10b981;">Conclusion:</h3>
+                    <p>Same force on smaller area = Higher pressure<br>
+                    Same force on larger area = Lower pressure</p>
+                </div>
+            </div>
+
+            <!-- Buoyancy Demo -->
+            <div class="buoyancy-demo" id="buoyancy-demo">
+                <!-- Force vectors - moved outside the water container -->
+                <div class="force-vector buoyant-force" id="buoyant-force">
+                    <div class="force-vector-line"></div>
+                    <div class="force-vector-head"></div>
+                    <div class="force-vector-label">Buoyant Force</div>
+                </div>
+                <div class="force-vector gravity-force" id="gravity-force">
+                    <div class="force-vector-line"></div>
+                    <div class="force-vector-head"></div>
+                    <div class="force-vector-label">Weight</div>
+                </div>
+                <div class="force-vector applied-force" id="applied-force">
+                    <div class="force-vector-line"></div>
+                    <div class="force-vector-head"></div>
+                    <div class="force-vector-label">Applied Force</div>
+                </div>
+                <div class="force-vector net-force" id="net-force">
+                    <div class="force-vector-line"></div>
+                    <div class="force-vector-head"></div>
+                    <div class="force-vector-label">Net Force</div>
+                </div>
+                
+                <div class="water-container">
+                    <div class="water-level"></div>
+                    <div class="water-surface"></div>
+                    <div class="plastic-bottle" id="plastic-bottle">
+                        <div class="bottle-cap"></div>
+                        <div class="bottle-label">WATER</div>
+                    </div>
+                    
+                    <!-- Water bubbles for realistic effect -->
+                    <div class="water-bubbles" id="bubble1" style="left: 40%; bottom: 30%;"></div>
+                    <div class="water-bubbles" id="bubble2" style="left: 60%; bottom: 25%;"></div>
+                    <div class="water-bubbles" id="bubble3" style="left: 45%; bottom: 35%;"></div>
+                    <div class="water-bubbles" id="bubble4" style="left: 55%; bottom: 40%;"></div>
+                    <!-- Splash effects -->
+                    <div class="splash-effect" id="splash1" style="left: 48%; top: 120px;"></div>
+                    <div class="splash-effect" id="splash2" style="left: 52%; top: 125px;"></div>
+                </div>
+            </div>
+
+            <!-- Float Sink Demo -->
+            <div class="float-sink-demo" id="float-sink-demo">
+                <div class="experiment-container">
+                    <h3 style="color: #ef4444; margin-bottom: 15px;">Iron Nail (Dense)</h3>
+                    <div class="beaker">
+                        <div class="water-in-beaker"></div>
+                        <div class="iron-nail" id="iron-nail"></div>
+                    </div>
+                    <p style="color: #ef4444;">Density > Water → Sinks</p>
+                </div>
+
+                <div class="experiment-container">
+                    <h3 style="color: #10b981; margin-bottom: 15px;">Cork (Light)</h3>
+                    <div class="beaker">
+                        <div class="water-in-beaker"></div>
+                        <div class="cork" id="cork"></div>
+                    </div>
+                    <p style="color: #10b981;">Density < Water → Floats</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="demo-title">Explore Thrust and Pressure</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playCompleteLesson()">📚 Complete Lesson</button>
+                <button class="demo-btn" onclick="showPinDemo()">📌 Drawing Pin</button>
+                <button class="demo-btn" onclick="showSandDemo()">🏖️ Sand Pressure</button>
+                <button class="demo-btn" onclick="showPressureDemo()">📊 Calculate Pressure</button>
+                <button class="demo-btn" onclick="showBuoyancyDemo()">🛟 Buoyancy</button>
+                <button class="demo-btn" onclick="showFloatSinkDemo()">⚖️ Float vs Sink</button>
+                <button class="demo-btn" onclick="resetAllClick()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Theory Section -->
+        <div class="theory-section">
+            <div class="key-formula">
+                <div class="main-equation">Pressure = Thrust ÷ Area</div>
+                <div class="equation-description">
+                    <strong>Thrust:</strong> Force acting perpendicular to a surface<br>
+                    <strong>Pressure:</strong> Thrust per unit area<br>
+                    <strong>SI Unit:</strong> Pascal (Pa) = N/m²<br>
+                    <strong>Key Point:</strong> Same force on smaller area creates higher pressure
+                </div>
+            </div>
+
+            <div class="activity-card">
+                <div class="activity-title">Activity 9.4: Buoyancy Experiment</div>
+                <div class="activity-content">
+                    <ul class="activity-steps">
+                        <li>Take an empty plastic bottle with airtight stopper</li>
+                        <li>Put it in a bucket filled with water - it floats</li>
+                        <li>Push the bottle into water - feel the upward push</li>
+                        <li>Try to push deeper - becomes more difficult</li>
+                        <li>Release the bottle - it bounces back to surface</li>
+                        <li>This upward force is called buoyant force or upthrust</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="activity-card">
+                <div class="activity-title">Activity 9.5 & 9.6: Float or Sink?</div>
+                <div class="activity-content">
+                    <ul class="activity-steps">
+                        <li>Take a beaker filled with water</li>
+                        <li>Place an iron nail on water surface - it sinks</li>
+                        <li>Take a piece of cork and iron nail of equal mass</li>
+                        <li>Place both on water surface</li>
+                        <li>Cork floats (density < water), nail sinks (density > water)</li>
+                        <li>Objects float when their density is less than the fluid</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="key-formula" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
+                <div class="main-equation" style="color: #10b981;">Why These Phenomena Occur?</div>
+                <div class="equation-description">
+                    <strong>🐪 Camel in desert:</strong> Large feet spread weight over bigger area → Less pressure on sand<br>
+                    <strong>🚛 Tank tracks:</strong> Distribute weight over large area → Less ground pressure<br>
+                    <strong>🚚 Wide tires:</strong> Larger contact area → Reduced pressure on road<br>
+                    <strong>🔪 Sharp tools:</strong> Small contact area → High pressure for cutting<br>
+                    <strong>🚢 Ships float:</strong> Large volume displaces water → Buoyant force > weight
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice Teacher System
+        class PhysicsTeacher {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.9, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+        }
+
+        // Global state management
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let isPlaying = false;
+        let animationTimeline = null;
+        let currentDemoAborted = false;
+        let activeAnimations = [];
+        let currentRunId = 0;
+
+        // State management functions
+        function createNewTimeline() {
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            gsap.killTweensOf("*");
+            
+            const newTimeline = gsap.timeline();
+            animationTimeline = newTimeline;
+            return newTimeline;
+        }
+
+        function trackAnimation(animation) {
+            if (animation) {
+                activeAnimations.push(animation);
+            }
+            return animation;
+        }
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            
+            // Stop teacher
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            // Kill all animations
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            
+            gsap.killTweensOf("*");
+            
+            // Hide all demos
+            document.querySelectorAll('.pin-demo, .sand-demo, .pressure-demo, .buoyancy-demo, .float-sink-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            isPlaying = false;
+        }
+
+        function shouldContinue() {
+            return !currentDemoAborted;
+        }
+
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTeacher = new PhysicsTeacher();
+            return currentTeacher;
+        }
+
+        // Initialize GSAP plugins
+        gsap.registerPlugin(MotionPathPlugin, TextPlugin);
+
+        // Initialize
+        window.addEventListener('load', () => {
+            const teacher = createNewTeacher();
+            teacher.speak("Welcome to Thrust and Pressure! Let's explore why camels can run in deserts and why ships float on water!");
+        });
+
+        // Complete Lesson
+        async function playCompleteLesson() {
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            const teacher = createNewTeacher();
+            const thisRunId = currentRunId; // Store the current run ID
+            
+            await resetAll();
+            await wait(100);
+            if (!shouldContinue() || thisRunId !== currentRunId) return;
+            
+            updateTitle("📚 Complete NCERT Lesson: Thrust and Pressure");
+            
+            await teacher.speak("Let's begin our complete lesson on Thrust and Pressure from NCERT Chapter 9. We'll understand why pressure depends on both force and area.");
+            if (!shouldContinue() || thisRunId !== currentRunId) return;
+            
+            // Drawing pin demo
+            await showPinDemoInternal(teacher, thisRunId);
+            if (!shouldContinue() || thisRunId !== currentRunId) return;
+            await wait(2000);
+            
+            // Sand demo
+            await teacher.speak("Now let's see how the same force creates different effects on different areas.");
+            if (!shouldContinue() || thisRunId !== currentRunId) return;
+            await showSandDemoInternal(teacher, thisRunId);
+            if (!shouldContinue() || thisRunId !== currentRunId) return;
+            await wait(2000);
+            
+            // Pressure calculation
+            await teacher.speak("Let's calculate pressure mathematically with a real example.");
+            if (!shouldContinue() || thisRunId !== currentRunId) return;
+            await showPressureDemoInternal(teacher, thisRunId);
+            if (!shouldContinue() || thisRunId !== currentRunId) return;
+            await wait(2000);
+            
+            // Buoyancy
+            await teacher.speak("Now let's explore buoyancy - why objects feel lighter in water.");
+            if (!shouldContinue() || thisRunId !== currentRunId) return;
+            await showBuoyancyDemoInternal(teacher, thisRunId);
+            if (!shouldContinue() || thisRunId !== currentRunId) return;
+            await wait(2000);
+            
+            // Float vs sink
+            await teacher.speak("Finally, let's understand why some objects float while others sink.");
+            if (!shouldContinue() || thisRunId !== currentRunId) return;
+            await showFloatSinkDemoInternal(teacher, thisRunId);
+            if (!shouldContinue() || thisRunId !== currentRunId) return;
+            
+            await teacher.speak("Excellent! Now you understand that pressure depends on both force and area, and buoyancy explains why objects float or sink!");
+            
+            isPlaying = false;
+        }
+
+        // Drawing Pin Demo
+        async function showPinDemo() {
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            const teacher = createNewTeacher();
+            const thisRunId = currentRunId; // Store the current run ID
+            await showPinDemoInternal(teacher, thisRunId);
+            
+            isPlaying = false;
+        }
+
+        async function showPinDemoInternal(teacher, runId = currentRunId) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            updateTitle("📌 Drawing Pin - Force and Area");
+            
+            document.getElementById('pin-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("When you press a drawing pin, you apply force on the large head area.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Enhanced thumb pressing with realistic movement - now vertical
+            const thumbTl = gsap.timeline();
+            trackAnimation(thumbTl
+                .to('#thumb', {
+                    duration: 0.8,
+                    opacity: 1,
+                    y: 10,
+                    ease: "power2.out"
+                })
+                .to('#thumb', {
+                    duration: 0.5,
+                    y: 30,
+                    ease: "power2.in"
+                })
+            );
+            
+            await wait(1500);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Enhanced force arrow with pulsing effect
+            trackAnimation(gsap.to('#pin-force-arrow', {
+                duration: 0.8,
+                opacity: 1,
+                scaleX: 1,
+                ease: "elastic.out(1, 0.5)"
+            }));
+            
+            // Add pressure waves animation
+            const waveTl = gsap.timeline({ repeat: 3 });
+            trackAnimation(waveTl
+                .to(['#pressure-wave1', '#pressure-wave2', '#pressure-wave3'], {
+                    duration: 0.6,
+                    opacity: 0.8,
+                    scale: 2,
+                    ease: "power2.out",
+                    stagger: 0.2
+                })
+                .to(['#pressure-wave1', '#pressure-wave2', '#pressure-wave3'], {
+                    duration: 0.4,
+                    opacity: 0,
+                    scale: 3,
+                    ease: "power2.in",
+                    stagger: 0.2
+                }, "-=0.3")
+            );
+            
+            await teacher.speak("This same force acts on the tiny tip area, creating enormous pressure that penetrates the board.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Enhanced pin penetration with realistic physics - now vertical with red head on top
+            const pinTl = gsap.timeline();
+            trackAnimation(pinTl
+                .to('#drawing-pin', {
+                    duration: 0.3,
+                    y: 10,
+                    ease: "power2.out"
+                })
+                .to('#drawing-pin', {
+                    duration: 0.8,
+                    y: 265, // Adjusted to make red head align with board top
+                    rotation: -2,
+                    ease: "power3.in"
+                })
+                .to('#drawing-pin', {
+                    duration: 0.2,
+                    rotation: 0,
+                    ease: "bounce.out",
+                    onComplete: function() {
+                        // Hide the pin tip, leaving only the red head visible
+                        gsap.set('.pin-tip', { opacity: 0 });
+                    }
+                })
+            );
+            
+            // Add board shake effect - now vertical
+            trackAnimation(gsap.to('.bulletin-board', {
+                duration: 0.1,
+                y: 2,
+                yoyo: true,
+                repeat: 5,
+                ease: "power2.inOut",
+                delay: 1.1
+            }));
+            
+            await wait(2000);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("The pin works because the same force concentrated on a small area creates much higher pressure!");
+        }
+
+        // Sand Demo
+        async function showSandDemo() {
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            const teacher = createNewTeacher();
+            const thisRunId = currentRunId; // Store the current run ID
+            await showSandDemoInternal(teacher, thisRunId);
+            
+            isPlaying = false;
+        }
+
+        async function showSandDemoInternal(teacher, runId = currentRunId) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            updateTitle("🏖️ Pressure on Sand - Same Force, Different Areas");
+            
+            document.getElementById('sand-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("Let's see what happens when you stand versus lie on sand.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Enhanced person standing with realistic landing and sand displacement
+            const standingTl = gsap.timeline();
+            trackAnimation(standingTl
+                .fromTo('#person-standing', {
+                    y: -50,
+                    opacity: 0,
+                    scale: 0.8
+                }, {
+                    duration: 0.8,
+                    opacity: 1,
+                    y: 0,
+                    scale: 1,
+                    ease: "power2.out",
+                    onComplete: function() {
+                        // Create initial impact wave
+                        const sandSurface = document.querySelector('.sand-surface');
+                        const impactWave = document.createElement('div');
+                        impactWave.style.position = 'absolute';
+                        impactWave.style.width = '80px';
+                        impactWave.style.height = '80px';
+                        impactWave.style.background = 'radial-gradient(circle, rgba(215, 119, 6, 0.6) 0%, transparent 70%)';
+                        impactWave.style.borderRadius = '50%';
+                        impactWave.style.left = 'calc(30% + 20px)';
+                        impactWave.style.top = '-40px';
+                        impactWave.style.zIndex = '2';
+                        sandSurface.appendChild(impactWave);
+                        
+                        // Animate the impact wave
+                        gsap.to(impactWave, {
+                            scale: 1.5,
+                            opacity: 0,
+                            duration: 0.7
+                        });
+                        
+                        // Create additional sand particles
+                        for (let i = 0; i < 8; i++) {
+                            const sandParticle = document.createElement('div');
+                            sandParticle.style.position = 'absolute';
+                            sandParticle.style.width = (2 + Math.random() * 4) + 'px';
+                            sandParticle.style.height = (2 + Math.random() * 4) + 'px';
+                            sandParticle.style.background = '#d97706';
+                            sandParticle.style.borderRadius = '50%';
+                            sandParticle.style.left = 'calc(30% + ' + (Math.random() * 80 - 20) + 'px)';
+                            sandParticle.style.top = '-5px';
+                            sandParticle.style.zIndex = '3';
+                            sandSurface.appendChild(sandParticle);
+                            
+                            // Animate each particle with different trajectory
+                            gsap.to(sandParticle, {
+                                y: -30 - Math.random() * 40,
+                                x: Math.random() * 60 - 30,
+                                opacity: 0,
+                                duration: 0.8 + Math.random() * 0.6,
+                                ease: "power2.out"
+                            });
+                        }
+                    }
+                })
+                .to('#person-standing', {
+                    duration: 0.3,
+                    y: 15, // Sink deeper into sand
+                    ease: "power2.in"
+                })
+                .to('#person-standing', {
+                    duration: 0.4,
+                    y: 10, // Stay partially sunk
+                    ease: "bounce.out"
+                })
+            );
+            
+            await wait(800);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Animated sand particles flying up, displacement and footprints appearing
+            const sandTl = gsap.timeline();
+            trackAnimation(sandTl
+                .to('#standing-displacement', {
+                    duration: 0.4,
+                    opacity: 0.8,
+                    scale: 1.2,
+                    ease: "power2.out"
+                }, 0)
+                .to(['#particle1', '#particle2', '#particle3', '#particle4'], {
+                    duration: 0.5,
+                    opacity: 1,
+                    y: -20,
+                    x: "random(-10, 10)",
+                    ease: "power2.out",
+                    stagger: 0.1
+                }, 0)
+                .to(['#particle1', '#particle2', '#particle3', '#particle4'], {
+                    duration: 0.8,
+                    opacity: 0,
+                    y: -40,
+                    ease: "power2.in"
+                }, "-=0.3")
+                .to('#footprints', {
+                    duration: 0.8,
+                    opacity: 1,
+                    ease: "power2.out",
+                    onStart: function() {
+                        // Create sand displacement effect around footprints
+                        const footprintArea = document.getElementById('footprints');
+                        const sandRipples = document.createElement('div');
+                        sandRipples.style.position = 'absolute';
+                        sandRipples.style.width = '60px';
+                        sandRipples.style.height = '30px';
+                        sandRipples.style.background = 'radial-gradient(ellipse, #f59e0b 10%, transparent 70%)';
+                        sandRipples.style.borderRadius = '50%';
+                        sandRipples.style.opacity = '0.6';
+                        sandRipples.style.transform = 'translateY(5px)';
+                        sandRipples.style.zIndex = '1';
+                        footprintArea.appendChild(sandRipples);
+                    }
+                }, "-=0.5")
+            );
+            
+            // Show high pressure indicator
+            trackAnimation(gsap.to('#pressure-high', {
+                duration: 0.6,
+                opacity: 1,
+                scale: 1,
+                ease: "back.out(1.7)",
+                delay: 1.2
+            }));
+            
+            await teacher.speak("When standing, your weight acts on the small area of your feet, creating high pressure and deep impressions.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await wait(2000);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Enhanced person lying with smooth transition and minimal sinking
+            const lyingTl = gsap.timeline();
+            trackAnimation(lyingTl
+                .fromTo('#person-lying', {
+                    y: -30,
+                    opacity: 0,
+                    rotation: 45,
+                    scale: 0.8
+                }, {
+                    duration: 1.2,
+                    opacity: 1,
+                    y: 0,
+                    rotation: 90,
+                    scale: 1,
+                    ease: "power2.out",
+                    onComplete: function() {
+                        // Create impact ripple when lying down
+                        const sandSurface = document.querySelector('.sand-surface');
+                        const impactRipple = document.createElement('div');
+                        impactRipple.style.position = 'absolute';
+                        impactRipple.style.width = '180px';
+                        impactRipple.style.height = '30px';
+                        impactRipple.style.background = 'radial-gradient(ellipse, rgba(215, 119, 6, 0.5) 0%, transparent 70%)';
+                        impactRipple.style.borderRadius = '50%';
+                        impactRipple.style.right = '22%';
+                        impactRipple.style.top = '-15px';
+                        impactRipple.style.zIndex = '2';
+                        sandSurface.appendChild(impactRipple);
+                        
+                        // Animate the impact ripple
+                        gsap.to(impactRipple, {
+                            scaleX: 1.3,
+                            scaleY: 1.1,
+                            opacity: 0,
+                            duration: 0.9
+                        });
+                        
+                        // Create sand displacement effect - multiple particles in a line
+                        for (let i = 0; i < 12; i++) {
+                            const sandParticle = document.createElement('div');
+                            sandParticle.style.position = 'absolute';
+                            sandParticle.style.width = (2 + Math.random() * 3) + 'px';
+                            sandParticle.style.height = (2 + Math.random() * 3) + 'px';
+                            sandParticle.style.background = '#d97706';
+                            sandParticle.style.borderRadius = '50%';
+                            sandParticle.style.right = (22 + Math.random() * 160 - 80) + '%';
+                            sandParticle.style.top = '-5px';
+                            sandParticle.style.zIndex = '3';
+                            sandSurface.appendChild(sandParticle);
+                            
+                            // Animate each particle with different trajectory but less height
+                            gsap.to(sandParticle, {
+                                y: -15 - Math.random() * 20,
+                                x: Math.random() * 30 - 15,
+                                opacity: 0,
+                                duration: 0.6 + Math.random() * 0.4,
+                                ease: "power2.out",
+                                delay: Math.random() * 0.2
+                            });
+                        }
+                    }
+                })
+                .to('#person-lying', {
+                    duration: 0.2,
+                    y: 5, // Sink just a little
+                    ease: "power2.in"
+                })
+                .to('#person-lying', {
+                    duration: 0.3,
+                    y: 3, // Stay minimally sunk
+                    ease: "bounce.out"
+                })
+            );
+            
+            await wait(800);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Gentle sand displacement and body impression with enhanced visual effects
+            const impressionTl = gsap.timeline();
+            trackAnimation(impressionTl
+                .to('#lying-displacement', {
+                    duration: 0.4,
+                    opacity: 0.6, // Less opacity than standing
+                    scale: 1.1, // Less scale than standing
+                    ease: "power2.out"
+                }, 0)
+                .to(['#particle5', '#particle6'], {
+                    duration: 0.4,
+                    opacity: 1,
+                    y: -10,
+                    x: "random(-5, 5)",
+                    ease: "power2.out",
+                    stagger: 0.1
+                }, 0)
+                .to(['#particle5', '#particle6'], {
+                    duration: 0.6,
+                    opacity: 0,
+                    y: -20,
+                    ease: "power2.in"
+                }, "-=0.2")
+                .to('#body-impression', {
+                    duration: 0.8,
+                    opacity: 1,
+                    ease: "power2.out",
+                    onStart: function() {
+                        // Create sand displacement ripple effect around body impression
+                        const bodyArea = document.getElementById('body-impression');
+                        
+                        // Create multiple ripples for more realistic effect
+                        for (let i = 0; i < 3; i++) {
+                            const sandRipple = document.createElement('div');
+                            sandRipple.style.position = 'absolute';
+                            sandRipple.style.width = (180 + i*20) + 'px';
+                            sandRipple.style.height = (40 + i*5) + 'px';
+                            sandRipple.style.background = `radial-gradient(ellipse, #d97706 ${10-i*3}%, transparent ${70-i*10}%)`;
+                            sandRipple.style.borderRadius = '30px';
+                            sandRipple.style.opacity = (0.7 - i*0.15).toString();
+                            sandRipple.style.transform = `translateY(${i*3}px)`;
+                            sandRipple.style.zIndex = (3-i).toString();
+                            sandRipple.style.left = `-${i*5}px`;
+                            sandRipple.style.top = `-${i*2}px`;
+                            
+                            // Add small delay between ripples
+                            setTimeout(() => {
+                                bodyArea.appendChild(sandRipple);
+                            }, i * 100);
+                        }
+                        
+                        // Add some random sand particles for more realism
+                        for (let i = 0; i < 5; i++) {
+                            const sandParticle = document.createElement('div');
+                            sandParticle.style.position = 'absolute';
+                            sandParticle.style.width = (3 + Math.random() * 3) + 'px';
+                            sandParticle.style.height = (3 + Math.random() * 3) + 'px';
+                            sandParticle.style.background = '#d97706';
+                            sandParticle.style.borderRadius = '50%';
+                            sandParticle.style.left = (Math.random() * 160) + 'px';
+                            sandParticle.style.top = (Math.random() * 10 - 20) + 'px';
+                            
+                            bodyArea.appendChild(sandParticle);
+                            
+                            // Animate the particles
+                            gsap.to(sandParticle, {
+                                y: -30 - Math.random() * 20,
+                                x: Math.random() * 40 - 20,
+                                opacity: 0,
+                                duration: 1 + Math.random(),
+                                delay: Math.random() * 0.3
+                            });
+                        }
+                    }
+                }, "-=0.4")
+            );
+            
+            // Show low pressure indicator
+            trackAnimation(gsap.to('#pressure-low', {
+                duration: 0.6,
+                opacity: 1,
+                scale: 1,
+                ease: "back.out(1.7)",
+                delay: 1.5
+            }));
+            
+            await teacher.speak("When lying down, the same weight spreads over your whole body area, creating lower pressure and shallow impressions.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await wait(1500);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("This is why camels have large feet for desert sand, and why tanks use tracks instead of wheels!");
+        }
+
+        // Pressure Calculation Demo
+        async function showPressureDemo() {
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            const teacher = createNewTeacher();
+            const thisRunId = currentRunId; // Store the current run ID
+            await showPressureDemoInternal(teacher, thisRunId);
+            
+            isPlaying = false;
+        }
+
+        async function showPressureDemoInternal(teacher, runId = currentRunId) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            updateTitle("📊 NCERT Example 9.6 - Pressure Calculation");
+            
+            document.getElementById('pressure-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("Let's solve NCERT Example 9.6 about pressure exerted by a wooden block.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Show given data
+            document.getElementById('calc-step1').classList.add('show');
+            await wait(1500);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            await teacher.speak("We have a 5 kilogram wooden block with dimensions 40 by 20 by 10 centimeters.");
+            
+            await wait(2000);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Show case 1
+            document.getElementById('calc-step2').classList.add('show');
+            await wait(1500);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            await teacher.speak("Case 1: Block resting on its 20 by 10 centimeter side. Area is 200 square centimeters, pressure is 2450 Pascals.");
+            
+            await wait(2500);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Rotate block and show case 2
+            const blockTl = gsap.timeline();
+            trackAnimation(blockTl
+                .to('#wooden-block', {
+                    duration: 1.2,
+                    rotationY: 180,
+                    ease: "power2.inOut",
+                    onStart: () => {
+                        // Prepare for rotation
+                        gsap.to('.block-content.front', {
+                            opacity: 0,
+                            duration: 0.4
+                        });
+                        
+                        setTimeout(() => {
+                            gsap.to('.block-content.back', {
+                                opacity: 1,
+                                duration: 0.4
+                            });
+                        }, 600); // Show back content halfway through the rotation
+                    },
+                    onComplete: () => {
+                        // Add a small delay before changing dimensions to make transition smoother
+                        setTimeout(() => {
+                            document.getElementById('wooden-block').classList.add('rotated');
+                        }, 100);
+                    }
+                })
+            );
+            
+            document.getElementById('calc-step3').classList.add('show');
+            await wait(1500);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            await teacher.speak("Case 2: Block on its 40 by 20 centimeter side. Larger area means lower pressure - only 612.5 Pascals.");
+            
+            await wait(2500);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Show conclusion
+            document.getElementById('calc-step4').classList.add('show');
+            await wait(1500);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            await teacher.speak("This proves that the same force on a smaller area creates higher pressure. That's why nails are pointed and knives are sharp!");
+        }
+
+        // Buoyancy Demo
+        async function showBuoyancyDemo() {
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(4);
+            
+            const teacher = createNewTeacher();
+            const thisRunId = currentRunId; // Store the current run ID
+            await showBuoyancyDemoInternal(teacher, thisRunId);
+            
+            isPlaying = false;
+        }
+
+        async function showBuoyancyDemoInternal(teacher, runId = currentRunId) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            updateTitle("🛟 Buoyancy - Upward Force in Fluids");
+            
+            document.getElementById('buoyancy-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("Let's explore buoyancy using Activity 9.4 from NCERT. We'll understand why objects feel an upward force in water.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Initial gentle bobbing of the bottle above water
+            trackAnimation(gsap.to('#plastic-bottle', {
+                duration: 1,
+                rotation: -5,
+                y: 5,
+                ease: "sine.inOut",
+                yoyo: true,
+                repeat: 2
+            }));
+            
+            await wait(1000);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("When you place an empty plastic bottle in water, it floats because of buoyancy.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Enhanced bottle floating with realistic water physics - starting from top, going to surface
+            const floatTl = gsap.timeline();
+            trackAnimation(floatTl
+                .fromTo('#plastic-bottle', {
+                    top: '19px', // Start from the top
+                    rotation: -10,
+                    scale: 0.95
+                }, {
+                    duration: 1.2,
+                    // Position the bottle exactly at the water surface (30% from top)
+                    top: '75px', // Bottle bottom just touching the water surface at 30% (75px)
+                    rotation: 2,
+                    scale: 1,
+                    ease: "power2.out"
+                })
+                .to('#plastic-bottle', {
+                    duration: 0.3,
+                    top: '76px', // Tiny movement for realistic effect
+                    rotation: -1,
+                    ease: "power2.in"
+                })
+                .to('#plastic-bottle', {
+                    duration: 0.5,
+                    top: '75px', // Return to exact surface position
+                    rotation: 0,
+                    ease: "elastic.out(1, 0.3)"
+                })
+            );
+            
+            // Add water splash effects
+            trackAnimation(gsap.to(['#splash1', '#splash2'], {
+                duration: 0.4,
+                opacity: 0.8,
+                scale: 2,
+                ease: "power2.out",
+                stagger: 0.1,
+                delay: 1.2
+            }));
+            
+            trackAnimation(gsap.to(['#splash1', '#splash2'], {
+                duration: 0.6,
+                opacity: 0,
+                scale: 3,
+                ease: "power2.in",
+                delay: 1.6
+            }));
+            
+            await wait(2500);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Show gravity vector first
+            await teacher.speak("The bottle has weight - a downward force due to gravity.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Show gravity vector
+            trackAnimation(gsap.to('#gravity-force', {
+                duration: 0.8,
+                opacity: 1,
+                ease: "power2.out"
+            }));
+            
+            // Add a very slight downward movement to show gravity effect
+            trackAnimation(gsap.to('#plastic-bottle', {
+                duration: 0.5,
+                top: '23px', // Just a tiny bit lower than the 75px surface position
+                ease: "power2.out"
+            }));
+            
+            await wait(2000);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Show buoyant force while keeping bottle at the surface
+            await teacher.speak("But water exerts an upward force called buoyancy on the bottle.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Show buoyancy vector
+            trackAnimation(gsap.to('#buoyant-force', {
+                duration: 0.8,
+                opacity: 1,
+                ease: "power2.out"
+            }));
+            
+            // Move bottle back up to show buoyancy effect
+            trackAnimation(gsap.to('#plastic-bottle', {
+                duration: 0.5,
+                top: '20px', // Back to the original surface position
+                ease: "power2.out"
+            }));
+            
+            // Continuous gentle bobbing while staying at the surface
+            trackAnimation(gsap.to('#plastic-bottle', {
+                duration: 2,
+                y: "+=3", // Smaller movement to ensure it stays near surface
+                rotation: "+=1.5",
+                ease: "sine.inOut",
+                yoyo: true,
+                repeat: 3,
+                delay: 0.6 // Delay to let the upward movement finish first
+            }));
+            
+            await wait(2000);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Show net force
+            await teacher.speak("When buoyant force is greater than weight, the bottle floats. This is the net upward force.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Show net force vector
+            trackAnimation(gsap.to('#net-force', {
+                duration: 0.8,
+                opacity: 1,
+                ease: "power2.out"
+            }));
+            
+            await wait(2500);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Experiment with temporarily pushing the bottle beneath the surface
+            await teacher.speak("Let's temporarily push the bottle beneath the surface to see how the forces change. Normally, it would float at the surface!");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Show applied force vector when pushing down
+            trackAnimation(gsap.to('#applied-force', {
+                duration: 0.5,
+                opacity: 1,
+                ease: "power2.out"
+            }));
+            
+            // Update net force to show it's now pointing downward
+            trackAnimation(gsap.to('#net-force', {
+                duration: 0.3,
+                opacity: 0 // Hide first, then will show with new direction
+            }));
+            
+            // Enhanced pushing with resistance effect - push from top to the middle of the container
+            const pushTl = gsap.timeline();
+            trackAnimation(pushTl
+                // First move bottle back to top position
+                .to('#plastic-bottle', {
+                    duration: 0.8,
+                    top: '19px', // Move to top first
+                    rotation: 0,
+                    ease: "power2.inOut"
+                })
+                // Then push down to middle
+                .to('#plastic-bottle', {
+                    duration: 0.8,
+                    top: '130px', // Push to middle area
+                    rotation: -3,
+                    ease: "power2.out",
+                    delay: 0.5 // Short pause at the top
+                })
+                // Push even deeper
+                .to('#plastic-bottle', {
+                    duration: 0.6,
+                    top: '100px', // Push deeper
+                    rotation: -5,
+                    ease: "power3.out"
+                })
+            );
+            
+            // We'll keep the buoyant force vector constant - removing the height increase
+            // The force is still there, but we don't need to visually increase it
+            
+            // Add bubbles animation
+            const bubbleTl = gsap.timeline({ repeat: 2 });
+            trackAnimation(bubbleTl
+                .to(['#bubble1', '#bubble2', '#bubble3', '#bubble4'], {
+                    duration: 0.8,
+                    opacity: 0.8,
+                    y: -30,
+                    scale: 1.5,
+                    ease: "power2.out",
+                    stagger: 0.2
+                })
+                .to(['#bubble1', '#bubble2', '#bubble3', '#bubble4'], {
+                    duration: 0.6,
+                    opacity: 0,
+                    y: -50,
+                    scale: 0.5,
+                    ease: "power2.in",
+                    stagger: 0.1
+                }, "-=0.4")
+            );
+            
+            await wait(2000);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("The deeper you push, the stronger the upward buoyant force becomes. This is Archimedes' principle.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Show increased net force with upward direction (buoyancy now stronger than applied force + weight)
+            trackAnimation(gsap.to('#net-force', {
+                duration: 0.5,
+                opacity: 1
+            }));
+            
+            trackAnimation(gsap.to('#net-force .force-vector-line', {
+                duration: 0.5,
+                height: 40, // Net force is smaller but upward
+                ease: "power2.out"
+            }));
+            
+            await wait(2000);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("Now watch what happens when we release the bottle!");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Remove the applied force when releasing
+            trackAnimation(gsap.to('#applied-force', {
+                duration: 0.3,
+                opacity: 0,
+                ease: "power2.out"
+            }));
+            
+            // Make net force larger upward as applied force is removed
+            trackAnimation(gsap.to('#net-force .force-vector-line', {
+                duration: 0.5,
+                height: 60, // Net force increases when applied force is removed
+                ease: "power2.out"
+            }));
+            
+            // Enhanced release with realistic physics - bottle returns to top
+            const releaseTl = gsap.timeline();
+            trackAnimation(releaseTl
+                // Fast initial rise due to strong buoyancy
+                .to('#plastic-bottle', {
+                    duration: 0.5,
+                    top: '100px', // Move quickly toward surface
+                    rotation: 2,
+                    ease: "power2.out"
+                })
+                // Overshoot the equilibrium position
+                .to('#plastic-bottle', {
+                    duration: 0.4,
+                    top: '70px', // Slightly past equilibrium (above water surface)
+                    rotation: -2,
+                    ease: "power2.out"
+                })
+                // Settle back to floating position
+                .to('#plastic-bottle', {
+                    duration: 0.3,
+                    top: '76px', // Slight dip into the water
+                    rotation: 1,
+                    ease: "power2.in"
+                })
+                // Final stable floating position - exactly at water surface
+                .to('#plastic-bottle', {
+                    duration: 0.5,
+                    top: '75px', // Return to original floating position at water surface
+                    rotation: 0,
+                    ease: "elastic.out(1, 0.3)"
+                })
+                // Then move back to top position
+                .to('#plastic-bottle', {
+                    duration: 1.2,
+                    top: '19px', // Return to top position
+                    rotation: 0,
+                    delay: 1.5, // Wait a bit before returning to top
+                    ease: "power3.inOut"
+                })
+            );
+            
+            // Restore buoyant force to normal
+            trackAnimation(gsap.to('#buoyant-force .force-vector-line', {
+                duration: 0.8,
+                height: 60,
+                delay: 0.4,
+                ease: "power2.inOut"
+            }));
+            
+            // Restore net force to balance point - small upward net force to keep it floating
+            trackAnimation(gsap.to('#net-force .force-vector-line', {
+                duration: 0.8,
+                height: 15, // Very small net force upward at equilibrium
+                delay: 1.2,
+                ease: "power2.inOut"
+            }));
+            
+            await wait(2000);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("The bottle quickly returns to its equilibrium position at the surface. The buoyant force is slightly larger than the weight, creating a small net upward force that keeps it floating!");
+            
+            // Add gentle bobbing at the water surface to show stable floating
+            trackAnimation(gsap.to('#plastic-bottle', {
+                duration: 2,
+                y: "+=3",
+                rotation: "+=1",
+                ease: "sine.inOut",
+                yoyo: true,
+                repeat: 3
+            }));
+        }
+
+        // Float Sink Demo
+        async function showFloatSinkDemo() {
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(5);
+            
+            const teacher = createNewTeacher();
+            const thisRunId = currentRunId; // Store the current run ID
+            await showFloatSinkDemoInternal(teacher, thisRunId);
+            
+            isPlaying = false;
+        }
+
+        async function showFloatSinkDemoInternal(teacher, runId = currentRunId) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            updateTitle("⚖️ Float vs Sink - Density Matters");
+            
+            document.getElementById('float-sink-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("Let's perform Activities 9.5 and 9.6 to understand why objects float or sink.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await wait(1000);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("First, let's drop an iron nail in water.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Iron nail sinks
+            trackAnimation(gsap.to('#iron-nail', {
+                duration: 2,
+                top: '140px',
+                ease: "power2.in"
+            }));
+            
+            await wait(2500);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("The iron nail sinks because its density is greater than water. The downward gravitational force is stronger than the upward buoyant force.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await wait(2000);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("Now let's try a piece of cork.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            // Cork floats
+            trackAnimation(gsap.to('#cork', {
+                duration: 1.5,
+                top: '42px',
+                ease: "bounce.out"
+            }));
+            
+            await wait(2000);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("The cork floats because its density is less than water. The upward buoyant force is greater than its weight.");
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await wait(2000);
+            if (!shouldContinue() || runId !== currentRunId) return;
+            
+            await teacher.speak("This principle explains why ships made of steel can float - they displace enough water to create sufficient buoyant force!");
+        }
+
+        // Helper Functions
+        async function resetAll() {
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            gsap.killTweensOf("*");
+            
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            
+            // Hide all demos
+            document.querySelectorAll('.pin-demo, .sand-demo, .pressure-demo, .buoyancy-demo, .float-sink-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            // Clean up any dynamically created elements
+            cleanupDynamicElements();
+            
+            updateTitle("Explore Thrust and Pressure");
+            
+            // Reset pin demo elements
+            gsap.set('#thumb', { opacity: 0, x: 0, y: 0, rotation: 0 });
+            gsap.set('#pin-force-arrow', { opacity: 0, scaleX: 0 });
+            gsap.set('#drawing-pin', { y: 0, rotation: 0, left: "50%", top: "20%" });
+            gsap.set('.pin-tip', { opacity: 1 }); // Make sure pin tip is visible again
+            gsap.set(['#pressure-wave1', '#pressure-wave2', '#pressure-wave3'], { opacity: 0, scale: 1 });
+            gsap.set('.bulletin-board', { y: 0 });
+            
+            // Reset sand demo elements
+            gsap.set('#person-standing', { opacity: 0, y: 20, scale: 1 });
+            gsap.set('#person-lying', { opacity: 0, y: 20, rotation: 90, scale: 1 });
+            gsap.set('#footprints', { opacity: 0 });
+            gsap.set('#body-impression', { opacity: 0 });
+            gsap.set(['#standing-displacement', '#lying-displacement'], { opacity: 0, scale: 1 });
+            gsap.set(['#pressure-high', '#pressure-low'], { opacity: 0, scale: 0.8 });
+            gsap.set(['#particle1', '#particle2', '#particle3', '#particle4', '#particle5', '#particle6'], { 
+                opacity: 0, y: 0, x: 0 
+            });
+            
+            // Reset pressure demo elements
+            gsap.set('#wooden-block', { rotationY: 0 });
+            document.getElementById('wooden-block').classList.remove('rotated');
+            gsap.set('.block-content.front', { opacity: 1 });
+            gsap.set('.block-content.back', { opacity: 0 });
+            document.querySelectorAll('.calculation-step').forEach(step => {
+                step.classList.remove('show');
+            });
+            
+            // Reset buoyancy demo elements
+            gsap.set('#plastic-bottle', { top: '19px', rotation: 0, scale: 1, y: 0 });
+            gsap.set(['#bubble1', '#bubble2', '#bubble3', '#bubble4'], { opacity: 0, y: 0, scale: 1 });
+            gsap.set(['#splash1', '#splash2'], { opacity: 0, scale: 1 });
+            
+            // Reset force vectors
+            gsap.set(['.force-vector', '#buoyant-force', '#gravity-force', '#applied-force', '#net-force'], { opacity: 0 });
+            gsap.set('#buoyant-force .force-vector-line', { height: 60 });
+            gsap.set('#gravity-force .force-vector-line', { height: 50 });
+            gsap.set('#applied-force .force-vector-line', { height: 70 });
+            gsap.set('#net-force .force-vector-line', { height: 15 });
+            
+            // Reset float-sink demo elements
+            gsap.set('#iron-nail', { top: '20px' });
+            gsap.set('#cork', { top: '20px' });
+            
+            await wait(300);
+        }
+        
+        function cleanupDynamicElements() {
+            // Clean up sand particles and effects
+            const sandSurface = document.querySelector('.sand-surface');
+            if (sandSurface) {
+                // Remove all dynamically created elements that aren't part of the original HTML
+                const originalElements = ['#standing-displacement', '#lying-displacement', '#footprints', '#body-impression', 
+                                         '#particle1', '#particle2', '#particle3', '#particle4', '#particle5', '#particle6'];
+                
+                // Get all direct children of sand-surface
+                const children = Array.from(sandSurface.children);
+                
+                children.forEach(child => {
+                    // Check if this is a dynamically added element (not in the original HTML)
+                    let isOriginal = false;
+                    for (let selector of originalElements) {
+                        if (child.matches(selector) || child.id && originalElements.includes('#' + child.id)) {
+                            isOriginal = true;
+                            break;
+                        }
+                    }
+                    
+                    // If not an original element, remove it
+                    if (!isOriginal && !child.classList.contains('sand-top-layer')) {
+                        sandSurface.removeChild(child);
+                    }
+                });
+            }
+            
+            // Clean up any elements added to footprints
+            const footprints = document.getElementById('footprints');
+            if (footprints) {
+                while (footprints.childElementCount > 2) { // Keep the original 2 footprint divs
+                    footprints.removeChild(footprints.lastChild);
+                }
+            }
+            
+            // Clean up any elements added to body impression
+            const bodyImpression = document.getElementById('body-impression');
+            if (bodyImpression) {
+                while (bodyImpression.childElementCount > 0) {
+                    bodyImpression.removeChild(bodyImpression.lastChild);
+                }
+            }
+        }
+
+        function updateTitle(title) {
+            document.getElementById('demo-title').textContent = title;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Reset Button Handler
+        async function resetAllClick() {
+            stopCurrentDemo();
+            isPlaying = false;
+            await resetAll();
+        }
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+            
+            if (!globalAudioEnabled && currentTeacher) {
+                currentTeacher.stop();
+            }
+        });
+    </script>
+</body>
+</html>

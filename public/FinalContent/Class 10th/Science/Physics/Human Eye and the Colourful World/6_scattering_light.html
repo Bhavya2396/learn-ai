@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scattering of Light - Interactive Learning Experience</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --sky-gradient: linear-gradient(180deg, #87CEEB 0%, #1E90FF 50%, #4169E1 100%);
+            --sunset-gradient: linear-gradient(135deg, #FF6B6B 0%, #FFD93D 50%, #6BCB77 100%);
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --ocean-gradient: linear-gradient(180deg, #006994 0%, #003f5c 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #00bfff;
+            --shadow-primary: 0 20px 40px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 25px 50px rgba(0, 0, 0, 0.4);
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-particles {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            margin: 0 auto 30px;
+        }
+
+        .particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: scatter 3s ease-in-out infinite;
+        }
+
+        .particle:nth-child(1) { background: #87CEEB; left: 100px; top: 100px; animation-delay: 0s; }
+        .particle:nth-child(2) { background: #4169E1; left: 100px; top: 100px; animation-delay: 0.3s; }
+        .particle:nth-child(3) { background: #1E90FF; left: 100px; top: 100px; animation-delay: 0.6s; }
+        .particle:nth-child(4) { background: #00BFFF; left: 100px; top: 100px; animation-delay: 0.9s; }
+        .particle:nth-child(5) { background: #87CEEB; left: 100px; top: 100px; animation-delay: 1.2s; }
+
+        @keyframes scatter {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(calc(var(--x) * 50px), calc(var(--y) * 50px)) scale(1.5);
+                opacity: 0.7;
+            }
+            100% {
+                transform: translate(calc(var(--x) * 100px), calc(var(--y) * 100px)) scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        .particle:nth-child(1) { --x: 1; --y: -1; }
+        .particle:nth-child(2) { --x: -1; --y: -1; }
+        .particle:nth-child(3) { --x: -1; --y: 1; }
+        .particle:nth-child(4) { --x: 1; --y: 1; }
+        .particle:nth-child(5) { --x: 0; --y: -1.5; }
+
+        .loading-text {
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            font-weight: 600;
+            background: var(--sky-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 2s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 50px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            backdrop-filter: blur(20px);
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: var(--sky-gradient);
+            opacity: 0.3;
+            z-index: -1;
+            border-radius: 30px;
+            animation: skyPulse 5s ease-in-out infinite;
+        }
+
+        @keyframes skyPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.5; }
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: var(--sky-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: 800;
+            animation: titleFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes titleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .main-display {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .demo-container {
+            height: 500px;
+            overflow: hidden;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .content-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+            max-height: 600px;
+        }
+
+        .content-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .content-container::-webkit-scrollbar-thumb {
+            background: var(--sky-gradient);
+            border-radius: 4px;
+        }
+
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            min-width: 180px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .control-btn.active {
+            background: var(--sky-gradient);
+            transform: translateY(-2px);
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            margin-top: 20px;
+        }
+
+        .display-section {
+            display: none;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .display-section.active {
+            display: block;
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .demo-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            border: 2px solid var(--glass-border);
+            overflow: hidden;
+        }
+
+        .demo-stage canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .info-panel {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            border-radius: 20px;
+            margin: 20px 0;
+            border-left: 4px solid var(--text-accent);
+            box-shadow: 0 8px 25px rgba(0, 191, 255, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .info-title {
+            color: var(--text-accent);
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .phenomenon-box {
+            background: linear-gradient(135deg, rgba(135, 206, 235, 0.1), rgba(30, 144, 255, 0.1));
+            border-left: 4px solid #87CEEB;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(135, 206, 235, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .phenomenon-box h3 {
+            color: #87CEEB;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+
+        .data-table {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .data-table th {
+            background: var(--sky-gradient);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .interactive-controls {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .slider-container {
+            margin: 15px 0;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--sky-gradient);
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--sky-gradient);
+            cursor: pointer;
+        }
+
+        .chart-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            height: 400px;
+            position: relative;
+        }
+
+        .lesson-progress {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--sky-gradient);
+            transition: width 0.5s ease;
+            border-radius: 5px;
+        }
+
+        #audio-toggle {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--sky-gradient);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+        }
+
+        #audio-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .example-card {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 15px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .example-card:hover {
+            transform: translateX(5px);
+        }
+
+        .wavelength-indicator {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin: 0 5px;
+            font-weight: 600;
+        }
+
+        .blue-light {
+            background: linear-gradient(135deg, #4169E1, #87CEEB);
+            color: white;
+        }
+
+        .red-light {
+            background: linear-gradient(135deg, #DC143C, #FF6347);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .control-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-particles">
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+            </div>
+            <div class="loading-text">Preparing Scattering Lab...</div>
+        </div>
+    </div>
+
+    <!-- Audio Control -->
+    <button id="audio-toggle" title="Toggle Audio Narration">🔊</button>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>☁️ Scattering of Light</h1>
+            <p>Discover why the sky is blue, sunsets are red, and how light creates spectacular phenomena in nature</p>
+        </div>
+
+        <!-- Main Display Area -->
+        <div class="main-display">
+            <!-- Demo Container -->
+            <div class="demo-container">
+                <!-- Complete Lesson Section -->
+                <div class="display-section active" id="lesson-section">
+                    <div class="demo-stage">
+                        <div id="lessonContent">
+                            <!-- Dynamic content -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tyndall Effect Section -->
+                <div class="display-section" id="tyndall-section">
+                    <div class="demo-stage">
+                        <canvas id="tyndallCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Blue Sky Section -->
+                <div class="display-section" id="sky-section">
+                    <div class="demo-stage">
+                        <canvas id="skyCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Sunset Section -->
+                <div class="display-section" id="sunset-section">
+                    <div class="demo-stage">
+                        <canvas id="sunsetCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Applications Section -->
+                <div class="display-section" id="applications-section">
+                    <div class="demo-stage">
+                        <canvas id="applicationsCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Data Section -->
+                <div class="display-section" id="data-section">
+                    <div class="demo-stage">
+                        <div class="chart-container">
+                            <canvas id="scatteringChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Container -->
+            <div class="content-container">
+                <!-- Tyndall Effect Content -->
+                <div class="display-section" id="tyndall-content">
+                    <div class="info-panel">
+                        <div class="info-title">🔦 Tyndall Effect</div>
+                        <p>The scattering of light by colloidal particles making the path of light visible</p>
+                    </div>
+                    
+                    <div class="phenomenon-box">
+                        <h3>What is Tyndall Effect?</h3>
+                        <p>The Tyndall effect is the scattering of light by particles in a colloid or fine suspension. Named after physicist John Tyndall, this phenomenon makes the path of light visible through otherwise transparent mediums.</p>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Examples in Daily Life</h3>
+                        <div class="example-card">
+                            <h4>🏠 Sunbeam in a Dusty Room</h4>
+                            <p>When sunlight enters through a small window in a dusty room, you can see the path of light as dust particles scatter the light.</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>🌲 Light Through Forest Canopy</h4>
+                            <p>Sunlight filtering through trees becomes visible due to tiny water droplets and particles in the mist.</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>🚗 Car Headlights in Fog</h4>
+                            <p>The beam of headlights becomes visible in foggy conditions due to water droplets scattering the light.</p>
+                        </div>
+                    </div>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Medium</th>
+                                <th>Particle Size</th>
+                                <th>Tyndall Effect</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>True Solution</td>
+                                <td>&lt; 1 nm</td>
+                                <td>Not Visible</td>
+                                <td>Salt water</td>
+                            </tr>
+                            <tr>
+                                <td>Colloidal Solution</td>
+                                <td>1 nm - 1000 nm</td>
+                                <td>Visible</td>
+                                <td>Milk, fog</td>
+                            </tr>
+                            <tr>
+                                <td>Suspension</td>
+                                <td>&gt; 1000 nm</td>
+                                <td>Very Visible</td>
+                                <td>Muddy water</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Blue Sky Content -->
+                <div class="display-section" id="sky-content">
+                    <div class="info-panel">
+                        <div class="info-title">☁️ Why is the Sky Blue?</div>
+                        <p>Understanding Rayleigh scattering and atmospheric optics</p>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>The Science Behind Blue Sky</h3>
+                        <p>The blue color of the sky is due to <strong>Rayleigh scattering</strong>. Air molecules and tiny particles in the atmosphere scatter short-wavelength light (blue and violet) more than long-wavelength light (red and orange).</p>
+                        
+                        <div style="margin: 20px 0; padding: 20px; background: rgba(135, 206, 235, 0.1); border-radius: 10px;">
+                            <h4>Key Facts:</h4>
+                            <ul style="margin-left: 20px; line-height: 2;">
+                                <li><span class="wavelength-indicator blue-light">Blue light</span> has wavelength ≈ 450 nm</li>
+                                <li><span class="wavelength-indicator red-light">Red light</span> has wavelength ≈ 700 nm (1.8× longer)</li>
+                                <li>Scattering intensity ∝ 1/λ⁴ (inversely proportional to wavelength⁴)</li>
+                                <li>Blue light is scattered ~5 times more than red light</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Why Not Violet?</h3>
+                        <p>Although violet light scatters even more than blue, we see the sky as blue because:</p>
+                        <ul style="margin-left: 20px; line-height: 2;">
+                            <li>Our eyes are more sensitive to blue light than violet</li>
+                            <li>The sun emits more blue light than violet</li>
+                            <li>Some violet light is absorbed by the upper atmosphere</li>
+                        </ul>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Sky Without Atmosphere</h3>
+                        <p>If Earth had no atmosphere:</p>
+                        <ul style="margin-left: 20px; line-height: 2;">
+                            <li>The sky would appear <strong>black</strong> even during daytime</li>
+                            <li>Stars would be visible during the day</li>
+                            <li>No scattering would occur</li>
+                            <li>This is what astronauts see in space!</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Sunset Content -->
+                <div class="display-section" id="sunset-content">
+                    <div class="info-panel">
+                        <div class="info-title">🌅 Sunsets and Sunrises</div>
+                        <p>Why the sun appears red at horizon</p>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>The Red Sun Phenomenon</h3>
+                        <p>During sunrise and sunset, the sun appears reddish because sunlight travels through more atmosphere:</p>
+                        <ol style="margin-left: 20px; line-height: 2;">
+                            <li>Light travels through thicker layer of atmosphere</li>
+                            <li>Most blue light gets scattered away</li>
+                            <li>Only red and orange light reaches our eyes</li>
+                            <li>The sun appears 2 minutes before actual sunrise (advance sunrise)</li>
+                            <li>The sun remains visible 2 minutes after actual sunset (delayed sunset)</li>
+                        </ol>
+                    </div>
+
+                    <div class="interactive-controls">
+                        <div class="slider-container">
+                            <label>Sun Position: <span id="sunPosition">Noon</span></label>
+                            <input type="range" class="slider" id="sunSlider" min="0" max="180" value="90">
+                        </div>
+                        <p style="margin-top: 10px; color: var(--text-secondary);">Move the slider to see how the sun's color changes throughout the day</p>
+                    </div>
+                </div>
+
+                <!-- Applications Content -->
+                <div class="display-section" id="applications-content">
+                    <div class="info-panel">
+                        <div class="info-title">🚦 Practical Applications</div>
+                        <p>How we use knowledge of light scattering in everyday life</p>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>🔴 Why Red for Danger Signals?</h3>
+                        <p>Red light is used for danger signals because:</p>
+                        <ul style="margin-left: 20px; line-height: 2;">
+                            <li>Red light has the longest wavelength in visible spectrum</li>
+                            <li>It scatters the least through fog, smoke, and dust</li>
+                            <li>Can be seen clearly from far distances</li>
+                            <li>Maintains its color even in poor visibility</li>
+                        </ul>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Other Applications</h3>
+                        <div class="example-card">
+                            <h4>✈️ Aviation Lights</h4>
+                            <p>Aircraft use red lights on left wing, green on right for visibility and orientation</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>🌊 Ocean Color</h4>
+                            <p>Deep ocean appears blue because water molecules scatter blue light while absorbing red</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>📸 Photography</h4>
+                            <p>Golden hour photography utilizes warm colors during sunrise/sunset for dramatic effects</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Analysis Content -->
+                <div class="display-section" id="data-content">
+                    <div class="info-panel">
+                        <div class="info-title">📊 Scattering Analysis</div>
+                        <p>Quantitative relationship between wavelength and scattering intensity</p>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Rayleigh Scattering Formula</h3>
+                        <p style="text-align: center; font-size: 1.2rem; margin: 20px 0;">
+                            I ∝ 1/λ⁴
+                        </p>
+                        <p>Where I is the intensity of scattered light and λ is the wavelength</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button class="control-btn active" data-mode="lesson">🎯 Complete Lesson</button>
+            <button class="control-btn" data-mode="tyndall">🔦 Tyndall Effect</button>
+            <button class="control-btn" data-mode="sky">☁️ Blue Sky</button>
+            <button class="control-btn" data-mode="sunset">🌅 Sunset</button>
+            <button class="control-btn" data-mode="applications">🚦 Applications</button>
+            <button class="control-btn" data-mode="data">📊 Data Analysis</button>
+        </div>
+        
+        <!-- Reset Button -->
+        <div style="text-align: center;">
+            <button class="control-btn reset-btn" id="resetBtn">🔄 Reset Everything</button>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let audioEnabled = true;
+        let currentMode = 'lesson';
+        let lessonSequence = null;
+        let charts = {};
+        let animationFrames = {};
+        let lessonStarted = false;
+        let particles = [];
+
+        // Audio System
+        class AudioNarrator {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.enabled = true;
+                this.speaking = false;
+            }
+
+            speak(text, priority = false) {
+                if (!this.enabled) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    if (priority) {
+                        this.stop();
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.9;
+                    
+                    utterance.onend = () => {
+                        this.speaking = false;
+                        resolve();
+                    };
+                    
+                    this.synth.speak(utterance);
+                    this.speaking = true;
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.speaking = false;
+            }
+
+            toggle() {
+                this.enabled = !this.enabled;
+                if (!this.enabled) this.stop();
+                return this.enabled;
+            }
+        }
+
+        const narrator = new AudioNarrator();
+
+        // Particle class for scattering animations
+        class ScatteringParticle {
+            constructor(x, y, size, color) {
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.color = color;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.life = 1.0;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= 0.02;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Animation Functions
+        function animateTyndall() {
+            const canvas = document.getElementById('tyndallCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let time = 0;
+            particles = [];
+            
+            function draw() {
+                // Dark room background
+                ctx.fillStyle = 'rgba(10, 10, 10, 0.3)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Window
+                ctx.fillStyle = '#87CEEB';
+                ctx.fillRect(50, 150, 80, 120);
+                
+                // Light beam
+                ctx.save();
+                const gradient = ctx.createLinearGradient(130, 210, 1000, 250);
+                gradient.addColorStop(0, 'rgba(255, 255, 200, 0.8)');
+                gradient.addColorStop(1, 'rgba(255, 255, 200, 0.1)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.moveTo(130, 190);
+                ctx.lineTo(1000, 150);
+                ctx.lineTo(1000, 350);
+                ctx.lineTo(130, 230);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+                
+                // Add dust particles
+                if (Math.random() > 0.7) {
+                    const x = 130 + Math.random() * 800;
+                    const y = 190 + (x - 130) * 0.2 + (Math.random() - 0.5) * 50;
+                    particles.push(new ScatteringParticle(x, y, Math.random() * 2 + 1, '#FFE4B5'));
+                }
+                
+                // Update and draw particles
+                particles = particles.filter(p => p.life > 0);
+                particles.forEach(p => {
+                    p.update();
+                    p.draw(ctx);
+                });
+                
+                // Labels
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = '16px Arial';
+                ctx.fillText('Sunlight', 40, 130);
+                ctx.fillText('Dust Particles', 600, 100);
+                ctx.fillText('Tyndall Effect - Light Path Visible', 500, 450);
+                
+                time++;
+                animationFrames.tyndall = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+
+        function animateSky() {
+            const canvas = document.getElementById('skyCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let time = 0;
+            
+            function draw() {
+                // Sky gradient
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, '#001a33');
+                gradient.addColorStop(0.3, '#003d6b');
+                gradient.addColorStop(0.6, '#0066b3');
+                gradient.addColorStop(1, '#87CEEB');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Sun
+                ctx.fillStyle = '#FFD700';
+                ctx.shadowColor = '#FFD700';
+                ctx.shadowBlur = 30;
+                ctx.beginPath();
+                ctx.arc(1000, 100, 40, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                // Atmosphere representation
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, canvas.height + 200, 400, Math.PI, 0);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Light rays
+                for (let i = 0; i < 5; i++) {
+                    const startX = 1000 - i * 30;
+                    const startY = 100 + i * 10;
+                    
+                    // White light ray
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(startX - 300, startY + 100);
+                    ctx.stroke();
+                    
+                    // Scattered blue light
+                    const scatterX = startX - 200;
+                    const scatterY = startY + 75;
+                    
+                    ctx.strokeStyle = 'rgba(135, 206, 235, 0.7)';
+                    ctx.lineWidth = 2;
+                    for (let j = 0; j < 3; j++) {
+                        const angle = (j - 1) * 30;
+                        const endX = scatterX + 50 * Math.cos(angle * Math.PI / 180);
+                        const endY = scatterY + 50 * Math.sin(angle * Math.PI / 180);
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(scatterX, scatterY);
+                        ctx.lineTo(endX, endY);
+                        ctx.stroke();
+                    }
+                }
+                
+                // Air molecules (animated)
+                for (let i = 0; i < 20; i++) {
+                    const x = Math.random() * canvas.width;
+                    const y = Math.random() * canvas.height;
+                    const size = Math.random() * 3 + 1;
+                    const opacity = 0.3 + 0.3 * Math.sin(time * 0.05 + i);
+                    
+                    ctx.fillStyle = `rgba(135, 206, 235, ${opacity})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // Labels
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 18px Arial';
+                ctx.fillText('Rayleigh Scattering', 500, 50);
+                ctx.font = '14px Arial';
+                ctx.fillText('Blue light scattered by air molecules', 450, 75);
+                ctx.fillText('Sunlight', 950, 160);
+                ctx.fillText('Atmosphere', 200, 300);
+                
+                time++;
+                animationFrames.sky = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+
+       // Enhanced sunset animation with particles and graphs
+       function animateSunset() {
+            const canvas = document.getElementById('sunsetCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let sunAngle = 90;
+            let time = 0;
+            const slider = document.getElementById('sunSlider');
+            
+            // Particle arrays for different effects
+            let atmosphereParticles = [];
+            let sunRays = [];
+            let clouds = [];
+            let scatteringData = [];
+            
+            // Initialize particles
+            function initParticles() {
+                // Atmosphere particles
+                for (let i = 0; i < 100; i++) {
+                    atmosphereParticles.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        size: Math.random() * 2 + 0.5,
+                        speed: Math.random() * 0.5 + 0.2,
+                        angle: Math.random() * Math.PI * 2,
+                        opacity: Math.random() * 0.5 + 0.2
+                    });
+                }
+                
+                // Cloud particles
+                for (let i = 0; i < 5; i++) {
+                    clouds.push({
+                        x: Math.random() * canvas.width,
+                        y: 50 + Math.random() * 150,
+                        width: 80 + Math.random() * 40,
+                        height: 30 + Math.random() * 20,
+                        speed: Math.random() * 0.3 + 0.1,
+                        opacity: 0.3 + Math.random() * 0.3
+                    });
+                }
+            }
+            
+            initParticles();
+            
+            function draw() {
+                // Calculate sun position
+                sunAngle = slider ? parseFloat(slider.value) : 90;
+                const rad = sunAngle * Math.PI / 180;
+                const sunX = 400 + 300 * Math.cos(rad);
+                const sunY = 350 - 200 * Math.sin(rad);
+                
+                // Complex sky gradient based on sun position
+                let skyGradient;
+                if (sunAngle > 150 || sunAngle < 30) {
+                    // Sunrise/sunset - dramatic colors
+                    skyGradient = ctx.createRadialGradient(sunX, sunY, 50, sunX, sunY, 400);
+                    skyGradient.addColorStop(0, '#FF6B6B');
+                    skyGradient.addColorStop(0.3, '#FFA500');
+                    skyGradient.addColorStop(0.5, '#FFD93D');
+                    skyGradient.addColorStop(0.7, '#FF8C69');
+                    skyGradient.addColorStop(1, '#4B0082');
+                } else if (sunAngle > 60 && sunAngle < 120) {
+                    // Noon - clear blue
+                    skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                    skyGradient.addColorStop(0, '#001a33');
+                    skyGradient.addColorStop(0.5, '#0066b3');
+                    skyGradient.addColorStop(1, '#87CEEB');
+                } else {
+                    // Morning/evening - transitional
+                    skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                    skyGradient.addColorStop(0, '#4A90E2');
+                    skyGradient.addColorStop(0.5, '#87CEEB');
+                    skyGradient.addColorStop(1, '#F5A623');
+                }
+                
+                ctx.fillStyle = skyGradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw clouds with dynamic coloring
+                clouds.forEach(cloud => {
+                    ctx.save();
+                    ctx.globalAlpha = cloud.opacity;
+                    
+                    // Cloud color based on sun position
+                    let cloudColor;
+                    if (sunAngle > 150 || sunAngle < 30) {
+                        cloudColor = 'rgba(255, 140, 90, 0.6)'; // Sunset clouds
+                    } else {
+                        cloudColor = 'rgba(255, 255, 255, 0.7)'; // Normal clouds
+                    }
+                    
+                    ctx.fillStyle = cloudColor;
+                    ctx.beginPath();
+                    ctx.ellipse(cloud.x, cloud.y, cloud.width, cloud.height, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Add cloud detail
+                    ctx.beginPath();
+                    ctx.ellipse(cloud.x - 20, cloud.y + 5, cloud.width * 0.7, cloud.height * 0.8, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.restore();
+                    
+                    // Move clouds
+                    cloud.x += cloud.speed;
+                    if (cloud.x > canvas.width + cloud.width) {
+                        cloud.x = -cloud.width;
+                    }
+                });
+                
+                // Draw atmospheric particles that scatter light
+                const scatterIntensity = sunAngle > 150 || sunAngle < 30 ? 1.5 : 0.5;
+                atmosphereParticles.forEach(particle => {
+                    // Particle color based on scattering
+                    let particleColor;
+                    const distToSun = Math.hypot(particle.x - sunX, particle.y - sunY);
+                    
+                    if (distToSun < 150) {
+                        // Close to sun - show scattering effect
+                        if (sunAngle > 150 || sunAngle < 30) {
+                            particleColor = `rgba(255, ${100 + Math.random() * 100}, 100, ${particle.opacity * scatterIntensity})`;
+                        } else {
+                            particleColor = `rgba(135, 206, 235, ${particle.opacity})`;
+                        }
+                        
+                        ctx.fillStyle = particleColor;
+                        ctx.beginPath();
+                        ctx.arc(particle.x, particle.y, particle.size * 1.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        // Regular atmospheric particle
+                        ctx.fillStyle = `rgba(255, 255, 255, ${particle.opacity * 0.3})`;
+                        ctx.beginPath();
+                        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    // Animate particles
+                    particle.x += Math.cos(particle.angle) * particle.speed;
+                    particle.y += Math.sin(particle.angle) * particle.speed * 0.5;
+                    particle.angle += 0.01;
+                    
+                    // Wrap around
+                    if (particle.x > canvas.width) particle.x = 0;
+                    if (particle.x < 0) particle.x = canvas.width;
+                    if (particle.y > canvas.height) particle.y = 0;
+                    if (particle.y < 0) particle.y = canvas.height;
+                });
+                
+                // Ground/horizon with gradient
+                const groundGradient = ctx.createLinearGradient(0, 350, 0, canvas.height);
+                groundGradient.addColorStop(0, 'rgba(0, 0, 0, 0.3)');
+                groundGradient.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+                ctx.fillStyle = groundGradient;
+                ctx.fillRect(0, 350, canvas.width, canvas.height - 350);
+                
+                // Sun with corona effect
+                let sunColor, coronaColor;
+                if (sunAngle > 150 || sunAngle < 30) {
+                    sunColor = '#FF4500';
+                    coronaColor = '#FF6347';
+                } else if (sunAngle > 120 || sunAngle < 60) {
+                    sunColor = '#FFA500';
+                    coronaColor = '#FFD700';
+                } else {
+                    sunColor = '#FFD700';
+                    coronaColor = '#FFFFE0';
+                }
+                
+                // Draw sun corona
+                for (let i = 5; i > 0; i--) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.1 * (6 - i) / 6;
+                    ctx.fillStyle = coronaColor;
+                    ctx.beginPath();
+                    ctx.arc(sunX, sunY, 30 + i * 15, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+                
+                // Main sun
+                ctx.fillStyle = sunColor;
+                ctx.shadowColor = sunColor;
+                ctx.shadowBlur = 30;
+                ctx.beginPath();
+                ctx.arc(sunX, sunY, 25, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                // Draw sun rays
+                ctx.save();
+                ctx.globalAlpha = 0.3;
+                ctx.strokeStyle = sunColor;
+                ctx.lineWidth = 2;
+                
+                for (let i = 0; i < 12; i++) {
+                    const rayAngle = (i * 30 + time) * Math.PI / 180;
+                    const rayLength = 50 + Math.sin(time * 0.05 + i) * 10;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(sunX + Math.cos(rayAngle) * 35, sunY + Math.sin(rayAngle) * 35);
+                    ctx.lineTo(sunX + Math.cos(rayAngle) * rayLength, sunY + Math.sin(rayAngle) * rayLength);
+                    ctx.stroke();
+                }
+                ctx.restore();
+                
+                // Light path visualization
+                if (sunAngle > 140 || sunAngle < 40) {
+                    // Draw light path through atmosphere
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(255, 255, 100, 0.4)';
+                    ctx.lineWidth = 20;
+                    ctx.setLineDash([10, 5]);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(sunX, sunY);
+                    ctx.lineTo(150, 250);
+                    ctx.stroke();
+                    
+                    // Scattered blue light particles along the path
+                    for (let i = 0; i < 10; i++) {
+                        const t = i / 10;
+                        const px = sunX + (150 - sunX) * t;
+                        const py = sunY + (250 - sunY) * t;
+                        
+                        // Blue light scattering away
+                        ctx.fillStyle = 'rgba(135, 206, 235, 0.6)';
+                        ctx.beginPath();
+                        ctx.arc(px + Math.sin(time * 0.1 + i) * 20, py + Math.cos(time * 0.1 + i) * 20, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    ctx.restore();
+                }
+                
+                // Right side panel with real-time graph
+                ctx.save();
+                
+                // Panel background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.fillRect(900, 50, 280, 400);
+                
+                // Panel border
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(900, 50, 280, 400);
+                
+                // Title
+                ctx.fillStyle = '#87CEEB';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText('Light Scattering Analysis', 920, 80);
+                
+                // Calculate scattering values based on sun angle
+                const atmosphereThickness = sunAngle > 150 || sunAngle < 30 ? 40 : 
+                                          sunAngle > 120 || sunAngle < 60 ? 20 : 5;
+                
+                const blueScatter = Math.min(100, atmosphereThickness * 2.5);
+                const greenScatter = Math.min(100, atmosphereThickness * 1.5);
+                const redScatter = Math.min(100, atmosphereThickness * 0.5);
+                
+                // Draw bar graph
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = '12px Arial';
+                ctx.fillText('Wavelength Scattering (%)', 920, 110);
+                
+                // Blue bar
+                ctx.fillStyle = '#4169E1';
+                ctx.fillRect(920, 130, blueScatter * 2, 30);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(`Blue: ${blueScatter.toFixed(0)}%`, 930, 150);
+                
+                // Green bar
+                ctx.fillStyle = '#00FF00';
+                ctx.fillRect(920, 170, greenScatter * 2, 30);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(`Green: ${greenScatter.toFixed(0)}%`, 930, 190);
+                
+                // Red bar
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(920, 210, redScatter * 2, 30);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(`Red: ${redScatter.toFixed(0)}%`, 930, 230);
+                
+                // Atmosphere thickness indicator
+                ctx.fillStyle = '#FFD700';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('Atmosphere Thickness', 920, 270);
+                
+                // Draw thickness visualization
+                ctx.strokeStyle = '#87CEEB';
+                ctx.lineWidth = atmosphereThickness / 2;
+                ctx.beginPath();
+                ctx.moveTo(920, 290);
+                ctx.lineTo(1160, 290);
+                ctx.stroke();
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = '12px Arial';
+                ctx.fillText(`${atmosphereThickness}x Normal`, 920, 310);
+                
+                // Color temperature indicator
+                const colorTemp = sunAngle > 150 || sunAngle < 30 ? '2000K (Warm)' :
+                                 sunAngle > 120 || sunAngle < 60 ? '4000K (Neutral)' :
+                                 '6500K (Cool)';
+                
+                ctx.fillStyle = '#FFA500';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('Color Temperature', 920, 340);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = '12px Arial';
+                ctx.fillText(colorTemp, 920, 360);
+                
+                // Sun elevation angle
+                ctx.fillStyle = '#87CEEB';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('Sun Elevation', 920, 390);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = '12px Arial';
+                ctx.fillText(`${(90 - Math.abs(sunAngle - 90)).toFixed(0)}° above horizon`, 920, 410);
+                
+                // Time of day
+                let timeText = 'Noon';
+                if (sunAngle < 30) timeText = 'Sunrise (6 AM)';
+                else if (sunAngle < 60) timeText = 'Morning (9 AM)';
+                else if (sunAngle < 120) timeText = 'Noon (12 PM)';
+                else if (sunAngle < 150) timeText = 'Evening (3 PM)';
+                else timeText = 'Sunset (6 PM)';
+                
+                ctx.fillStyle = '#FFD700';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText(timeText, 920, 435);
+                
+                ctx.restore();
+                
+                // Update time display
+                if (slider) {
+                    document.getElementById('sunPosition').textContent = timeText.split(' ')[0];
+                }
+                
+                time++;
+                animationFrames.sunset = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+        function animateApplications() {
+            const canvas = document.getElementById('applicationsCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let time = 0;
+            
+            function draw() {
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Traffic light
+                ctx.fillStyle = '#333';
+                ctx.fillRect(100, 100, 80, 200);
+                
+                // Red light (animated glow)
+                const glowIntensity = 0.5 + 0.5 * Math.sin(time * 0.05);
+                ctx.shadowColor = '#FF0000';
+                ctx.shadowBlur = 20 * glowIntensity;
+                ctx.fillStyle = '#FF0000';
+                ctx.beginPath();
+                ctx.arc(140, 140, 25, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                // Yellow light (dim)
+                ctx.fillStyle = '#444400';
+                ctx.beginPath();
+                ctx.arc(140, 200, 25, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Green light (dim)
+                ctx.fillStyle = '#004400';
+                ctx.beginPath();
+                ctx.arc(140, 260, 25, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Fog effect
+                ctx.fillStyle = 'rgba(200, 200, 200, 0.3)';
+                for (let i = 0; i < 5; i++) {
+                    const x = 250 + i * 100 + Math.sin(time * 0.02 + i) * 20;
+                    const y = 200 + Math.cos(time * 0.03 + i) * 30;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 40 + i * 10, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // Red light beam through fog
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.6)';
+                ctx.lineWidth = 30;
+                ctx.beginPath();
+                ctx.moveTo(180, 140);
+                ctx.lineTo(1000, 140);
+                ctx.stroke();
+                
+                // Labels
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 18px Arial';
+                ctx.fillText('Red Light: Least Scattered', 500, 50);
+                ctx.font = '14px Arial';
+                ctx.fillText('Visible through fog and smoke', 500, 75);
+                ctx.fillText('Perfect for danger signals', 500, 100);
+                
+                // Wavelength comparison
+                ctx.font = '12px Arial';
+                ctx.fillText('Red: λ = 700nm', 200, 350);
+                ctx.fillText('Blue: λ = 450nm', 200, 370);
+                ctx.fillText('Scattering ∝ 1/λ⁴', 200, 390);
+                
+                time++;
+                animationFrames.applications = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+
+        // Chart Setup
+        function setupCharts() {
+            const ctx1 = document.getElementById('scatteringChart');
+            if (ctx1) {
+                charts.scattering = new Chart(ctx1.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['Violet (400nm)', 'Blue (450nm)', 'Green (500nm)', 'Yellow (570nm)', 'Orange (620nm)', 'Red (700nm)'],
+                        datasets: [{
+                            label: 'Scattering Intensity (Relative)',
+                            data: [100, 65, 41, 25, 17, 10],
+                            borderColor: '#87CEEB',
+                            backgroundColor: 'rgba(135, 206, 235, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4
+                        }, {
+                            label: 'Transmission Through Atmosphere (%)',
+                            data: [20, 35, 50, 65, 75, 85],
+                            borderColor: '#FF6347',
+                            backgroundColor: 'rgba(255, 99, 71, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Light Scattering vs Wavelength',
+                                color: '#ffffff',
+                                font: { size: 16 }
+                            },
+                            legend: {
+                                labels: { color: '#ffffff' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: { 
+                                    display: true, 
+                                    text: 'Intensity / Transmission', 
+                                    color: '#ffffff' 
+                                },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            x: {
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Complete Lesson Sequence
+        class LessonSequence {
+            constructor() {
+                this.sections = [
+                    { id: 'tyndall', name: 'Tyndall Effect', duration: 5000 },
+                    { id: 'sky', name: 'Blue Sky Phenomenon', duration: 5000 },
+                    { id: 'sunset', name: 'Sunset Colors', duration: 5000 },
+                    { id: 'applications', name: 'Practical Applications', duration: 5000 },
+                    { id: 'data', name: 'Data Analysis', duration: 5000 }
+                ];
+                this.currentSection = 0;
+                this.running = false;
+            }
+
+            async start() {
+                this.stop();
+                this.running = true;
+                this.currentSection = 0;
+                
+                this.showProgressBar();
+                
+                await narrator.speak("Welcome to the comprehensive lesson on scattering of light!");
+                
+                await this.runNextSection();
+            }
+
+            showProgressBar() {
+                const html = `
+                    <div class="lesson-progress">
+                        <div class="section-indicator" style="color: #87CEEB;">
+                            Current Section: <span id="currentSectionName">Starting...</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                        </div>
+                        <p style="color: #e2e8f0; margin-top: 10px;">
+                            Section <span id="currentNum">1</span> of ${this.sections.length}
+                        </p>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            updateProgress() {
+                const progress = ((this.currentSection + 1) / this.sections.length) * 100;
+                const progressFill = document.getElementById('progressFill');
+                const currentSectionName = document.getElementById('currentSectionName');
+                const currentNum = document.getElementById('currentNum');
+                
+                if (progressFill) progressFill.style.width = `${progress}%`;
+                if (currentSectionName && this.sections[this.currentSection]) {
+                    currentSectionName.textContent = this.sections[this.currentSection].name;
+                }
+                if (currentNum) currentNum.textContent = this.currentSection + 1;
+            }
+
+            async runNextSection() {
+                if (!this.running || this.currentSection >= this.sections.length) {
+                if (this.running) {
+                    await narrator.speak("Lesson complete!");
+                    this.showCompletionMessage();
+                }
+                    return;
+                }
+
+                const section = this.sections[this.currentSection];
+                this.updateProgress();
+                
+                // Clear all animations
+                this.clearAnimations();
+                
+                // Clear all sections
+                document.querySelectorAll('.demo-container .display-section').forEach(s => {
+                    s.classList.remove('active');
+                });
+                
+                document.querySelectorAll('.content-container .display-section').forEach(s => {
+                    s.classList.remove('active');
+                });
+                
+                // Activate current sections
+                document.getElementById(`${section.id}-section`).classList.add('active');
+                document.getElementById(`${section.id}-content`).classList.add('active');
+                
+                // Start animations and narration
+                switch(section.id) {
+                    case 'tyndall':
+                        animateTyndall();
+                        await narrator.speak("The Tyndall effect is the scattering of light by colloidal particles, making the light path visible. Named after physicist John Tyndall, this phenomenon occurs when light passes through a medium containing particles larger than the wavelength of light. You can see this effect when sunlight enters a dusty room, when car headlights shine through fog, or when light filters through forest mist. The particles scatter the light in all directions, making the beam visible to our eyes.");
+                        break;
+                        
+                    case 'sky':
+                        animateSky();
+                        await narrator.speak("The sky appears blue due to Rayleigh scattering, where air molecules and tiny particles scatter short-wavelength light more than long-wavelength light. Blue light has a wavelength of about 450 nanometers, while red light has about 700 nanometers. According to Rayleigh's law, scattering intensity is inversely proportional to the fourth power of wavelength, meaning blue light scatters about 5 times more than red light. Although violet light scatters even more than blue, we see the sky as blue because our eyes are more sensitive to blue light, the sun emits more blue than violet, and some violet light is absorbed by the upper atmosphere.");
+                        break;
+                        
+                    case 'sunset':
+                        animateSunset();
+                        await narrator.speak("During sunrise and sunset, the sun appears reddish because sunlight travels through a much thicker layer of atmosphere. At these times, the sun is low on the horizon, so light must pass through more air molecules and particles. Most of the blue and green light gets scattered away by this longer path, leaving only the red and orange wavelengths to reach our eyes. This is why sunsets and sunrises display such beautiful warm colors. The sun actually appears about 2 minutes before actual sunrise and remains visible about 2 minutes after actual sunset due to atmospheric refraction.");
+                        break;
+                        
+                    case 'applications':
+                        animateApplications();
+                        await narrator.speak("Red light is used for danger signals and stop signs because it has the longest wavelength in the visible spectrum and scatters the least through fog, smoke, and dust. This makes red lights visible from far distances even in poor weather conditions. Aircraft use red lights on the left wing and green on the right for visibility and orientation. The deep ocean appears blue because water molecules scatter blue light while absorbing red light. Photographers take advantage of the golden hour during sunrise and sunset when warm colors create dramatic effects. These applications all rely on understanding how different wavelengths of light scatter differently through various mediums.");
+                        break;
+                        
+                    case 'data':
+                        setupCharts();
+                        await narrator.speak("The data analysis shows the quantitative relationship between wavelength and scattering intensity. According to Rayleigh's scattering formula, scattering intensity is inversely proportional to the fourth power of wavelength. This means violet light at 400 nanometers scatters about 10 times more than red light at 700 nanometers. The chart demonstrates how shorter wavelengths like blue and violet are scattered much more intensely than longer wavelengths like red and orange. This mathematical relationship explains why we see blue skies during the day and red sunsets in the evening, and why red light is preferred for signals that need to travel through fog or smoke.");
+                        break;
+                }
+                
+                await this.wait(section.duration);
+                
+                if (this.running) {
+                    this.currentSection++;
+                    await this.runNextSection();
+                }
+            }
+
+            showCompletionMessage() {
+                const html = `
+                    <div style="text-align: center; padding: 40px;">
+                        <h2 style="color: #87CEEB; margin-bottom: 20px;">
+                            🎉 Lesson Complete!
+                        </h2>
+                        <p style="font-size: 1.2rem;">You've mastered the concepts of light scattering:</p>
+                        <ul style="margin: 20px auto; max-width: 400px; text-align: left; list-style: none;">
+                            ${this.sections.map(s => `
+                                <li style="margin: 10px 0; color: #87CEEB;">
+                                    ✓ ${s.name}
+                                </li>
+                            `).join('')}
+                        </ul>
+                        <p style="margin-top: 30px;">
+                            Explore individual sections or reset to start over.
+                        </p>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            wait(ms) {
+                return new Promise(resolve => {
+                    this.timeout = setTimeout(resolve, ms);
+                });
+            }
+
+            stop() {
+                this.running = false;
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                    this.timeout = null;
+                }
+                narrator.stop();
+                this.clearAnimations();
+            }
+
+            clearAnimations() {
+                Object.values(animationFrames).forEach(frame => {
+                    if (typeof frame === 'number') {
+                        cancelAnimationFrame(frame);
+                    }
+                });
+                animationFrames = {};
+            }
+        }
+
+        // Reset Function
+        function resetEverything() {
+            lessonStarted = false;
+            
+            if (lessonSequence) {
+                lessonSequence.stop();
+            }
+            narrator.stop();
+            
+            Object.values(animationFrames).forEach(frame => {
+                if (typeof frame === 'number') {
+                    cancelAnimationFrame(frame);
+                }
+            });
+            animationFrames = {};
+            
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            charts = {};
+            
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('[data-mode="lesson"]').classList.add('active');
+            
+            document.querySelectorAll('.display-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            document.getElementById('lesson-section').classList.add('active');
+            document.getElementById('lessonContent').innerHTML = '';
+            
+            currentMode = 'lesson';
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }, 1500);
+
+            lessonSequence = new LessonSequence();
+
+            // Control buttons
+            document.querySelectorAll('.control-btn:not(.reset-btn)').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const mode = this.getAttribute('data-mode');
+                    
+                    // Stop any running sequences
+                    if (lessonSequence) lessonSequence.stop();
+                    narrator.stop();
+                    
+                    // Clear animations
+                    Object.values(animationFrames).forEach(frame => {
+                        if (typeof frame === 'number') {
+                            cancelAnimationFrame(frame);
+                        }
+                    });
+                    animationFrames = {};
+                    
+                    // Update active states
+                    document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Clear all sections
+                    document.querySelectorAll('.display-section').forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    
+                    currentMode = mode;
+                    
+                    // Activate appropriate sections
+                    switch(mode) {
+                        case 'lesson':
+                            document.getElementById('lesson-section').classList.add('active');
+                            if (!lessonStarted) {
+                                lessonStarted = true;
+                                lessonSequence.start();
+                            }
+                            break;
+                            
+                        case 'tyndall':
+                            document.getElementById('tyndall-section').classList.add('active');
+                            document.getElementById('tyndall-content').classList.add('active');
+                            animateTyndall();
+                            narrator.speak("The Tyndall effect is the scattering of light by colloidal particles, making the light path visible. Named after physicist John Tyndall, this phenomenon occurs when light passes through a medium containing particles larger than the wavelength of light. You can see this effect when sunlight enters a dusty room, when car headlights shine through fog, or when light filters through forest mist. The particles scatter the light in all directions, making the beam visible to our eyes.", true);
+                            break;
+                            
+                        case 'sky':
+                            document.getElementById('sky-section').classList.add('active');
+                            document.getElementById('sky-content').classList.add('active');
+                            animateSky();
+                            narrator.speak("The sky appears blue due to Rayleigh scattering, where air molecules and tiny particles scatter short-wavelength light more than long-wavelength light. Blue light has a wavelength of about 450 nanometers, while red light has about 700 nanometers. According to Rayleigh's law, scattering intensity is inversely proportional to the fourth power of wavelength, meaning blue light scatters about 5 times more than red light. Although violet light scatters even more than blue, we see the sky as blue because our eyes are more sensitive to blue light, the sun emits more blue than violet, and some violet light is absorbed by the upper atmosphere.", true);
+                            break;
+                            
+                        case 'sunset':
+                            document.getElementById('sunset-section').classList.add('active');
+                            document.getElementById('sunset-content').classList.add('active');
+                            animateSunset();
+                            narrator.speak("During sunrise and sunset, the sun appears reddish because sunlight travels through a much thicker layer of atmosphere. At these times, the sun is low on the horizon, so light must pass through more air molecules and particles. Most of the blue and green light gets scattered away by this longer path, leaving only the red and orange wavelengths to reach our eyes. This is why sunsets and sunrises display such beautiful warm colors. The sun actually appears about 2 minutes before actual sunrise and remains visible about 2 minutes after actual sunset due to atmospheric refraction.", true);
+                            break;
+                            
+                        case 'applications':
+                            document.getElementById('applications-section').classList.add('active');
+                            document.getElementById('applications-content').classList.add('active');
+                            animateApplications();
+                            narrator.speak("Red light is used for danger signals and stop signs because it has the longest wavelength in the visible spectrum and scatters the least through fog, smoke, and dust. This makes red lights visible from far distances even in poor weather conditions. Aircraft use red lights on the left wing and green on the right for visibility and orientation. The deep ocean appears blue because water molecules scatter blue light while absorbing red light. Photographers take advantage of the golden hour during sunrise and sunset when warm colors create dramatic effects. These applications all rely on understanding how different wavelengths of light scatter differently through various mediums.", true);
+                            break;
+                            
+                        case 'data':
+                            document.getElementById('data-section').classList.add('active');
+                            document.getElementById('data-content').classList.add('active');
+                            setupCharts();
+                            narrator.speak("The data analysis shows the quantitative relationship between wavelength and scattering intensity. According to Rayleigh's scattering formula, scattering intensity is inversely proportional to the fourth power of wavelength. This means violet light at 400 nanometers scatters about 10 times more than red light at 700 nanometers. The chart demonstrates how shorter wavelengths like blue and violet are scattered much more intensely than longer wavelengths like red and orange. This mathematical relationship explains why we see blue skies during the day and red sunsets in the evening, and why red light is preferred for signals that need to travel through fog or smoke.", true);
+                            break;
+                    }
+                });
+            });
+
+            // Reset button
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                narrator.speak("Resetting lesson.", true);
+                resetEverything();
+            });
+
+            // Audio toggle
+            document.getElementById('audio-toggle').addEventListener('click', function() {
+                audioEnabled = narrator.toggle();
+                this.textContent = audioEnabled ? '🔊' : '🔇';
+            });
+
+            // Sun position slider
+            const slider = document.getElementById('sunSlider');
+            if (slider) {
+                slider.addEventListener('input', function() {
+                    // The animation will update based on slider value
+                });
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            narrator.stop();
+            if (lessonSequence) lessonSequence.stop();
+        });
+    </script>
+</body>
+</html>

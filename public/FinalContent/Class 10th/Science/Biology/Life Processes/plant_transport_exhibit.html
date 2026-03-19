@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Transport Systems - Interactive Journey</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 25%, #27ae60 50%, #2ecc71 75%, #f39c12 100%);
+            color: white;
+            overflow: hidden;
+            position: relative;
+            height: 100vh;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            opacity: 0.08;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.3" d="M0,96L48,112C96,128,192,160,288,186.7C384,213,480,235,576,213.3C672,192,768,128,864,128C960,128,1056,192,1152,197.3C1248,203,1344,149,1392,122.7L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') repeat-x;
+            animation: wave 18s linear infinite;
+        }
+
+        @keyframes wave {
+            0% { background-position-x: 0; }
+            100% { background-position-x: 1440px; }
+        }
+
+        /* Museum Interface */
+        .museum-header {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            text-align: left;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 10px 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .museum-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            background: linear-gradient(45deg, #27ae60, #f39c12);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.4); }
+        }
+
+        .exhibit-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .transport-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #27ae60;
+            border-radius: 50%;
+            animation: transport 2.5s ease-in-out infinite;
+        }
+
+        @keyframes transport {
+            0%, 100% { transform: scale(1) translateY(0); opacity: 1; }
+            25% { transform: scale(1.2) translateY(-2px); opacity: 0.8; }
+            50% { transform: scale(1.4) translateY(-4px); opacity: 0.6; }
+            75% { transform: scale(1.2) translateY(-2px); opacity: 0.8; }
+        }
+
+        /* Journey Navigation */
+        .journey-navigation {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 360px;
+        }
+
+        .journey-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #27ae60;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .journey-steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .journey-btn {
+            background: rgba(39, 174, 96, 0.2);
+            border: 1px solid rgba(39, 174, 96, 0.4);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .journey-btn:hover {
+            background: rgba(39, 174, 96, 0.3);
+            border-color: #27ae60;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+        }
+
+        .journey-btn.active {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            border-color: #27ae60;
+            box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .journey-btn.completed {
+            background: rgba(243, 156, 18, 0.3);
+            border-color: #f39c12;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* 3D Model Container */
+        .model-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+            overflow: hidden;
+            border: none;
+            z-index: 100;
+        }
+
+        .sketchfab-embed-wrapper {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 25%, #27ae60 50%, #2ecc71 75%, #f39c12 100%);
+        }
+
+        .sketchfab-embed-wrapper iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 0;
+        }
+
+        /* Information Panel */
+        .info-panel {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            width: 460px;
+            max-height: calc(100vh - 140px);
+            z-index: 800;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .info-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-icon {
+            font-size: 28px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .info-title {
+            flex: 1;
+        }
+
+        .info-title h2 {
+            font-size: 18px;
+            color: #27ae60;
+            margin-bottom: 4px;
+        }
+
+        .info-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .info-content {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Progress Tracker */
+        .progress-tracker {
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(243, 156, 18, 0.1));
+            border: 1px solid rgba(39, 174, 96, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .progress-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: #27ae60;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .progress-percentage {
+            font-size: 18px;
+            color: #f39c12;
+            font-weight: 700;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #f39c12);
+            border-radius: 4px;
+            transition: width 0.8s ease;
+            box-shadow: 0 0 10px rgba(39, 174, 96, 0.5);
+        }
+
+        .progress-steps-mini {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.6);
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+
+        .step-mini {
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 45px;
+        }
+
+        .step-mini.active {
+            color: #27ae60;
+            font-weight: 600;
+        }
+
+        .step-mini.completed {
+            color: #f39c12;
+        }
+
+        /* Information Cards */
+        .info-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .info-card-title {
+            color: #27ae60;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-card-content {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .info-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-list li {
+            padding: 6px 0;
+            padding-left: 20px;
+            position: relative;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .info-list li:before {
+            content: "🌱";
+            position: absolute;
+            left: 0;
+            font-size: 10px;
+        }
+
+        /* Activity Box */
+        .activity-box {
+            background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(39, 174, 96, 0.1));
+            border: 1px solid rgba(155, 89, 182, 0.3);
+            border-radius: 12px;
+            padding: 14px;
+            margin: 16px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .activity-box:before {
+            content: "🔬";
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            font-size: 60px;
+            opacity: 0.1;
+        }
+
+        .activity-title {
+            color: #9b59b6;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .activity-text {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 12px;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Fun Fact Box */
+        .fun-fact {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(243, 156, 18, 0.1));
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            border-radius: 12px;
+            padding: 14px;
+            margin: 16px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fun-fact:before {
+            content: "🌿";
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            font-size: 60px;
+            opacity: 0.1;
+        }
+
+        .fun-fact-title {
+            color: #2ecc71;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .fun-fact-text {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 12px;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Voice Controls */
+        .voice-controls {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            position: relative;
+        }
+
+        .control-btn:hover {
+            background: rgba(39, 174, 96, 0.3);
+            border-color: #27ae60;
+            transform: scale(1.1);
+        }
+
+        .control-btn.active {
+            background: rgba(39, 174, 96, 0.4);
+            border-color: #27ae60;
+            box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
+        }
+
+        .control-tooltip {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .control-btn:hover .control-tooltip {
+            opacity: 1;
+        }
+
+        /* Loading Screen */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 25%, #27ae60 50%, #2ecc71 75%, #f39c12 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: opacity 1s ease;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-icon {
+            font-size: 60px;
+            animation: transport 1.5s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .loading-progress {
+            width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #f39c12);
+            animation: loading 2s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 100%; }
+            100% { width: 0%; }
+        }
+
+        /* Voice Indicator */
+        .voice-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(39, 174, 96, 0.5);
+            border-radius: 30px;
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .voice-indicator.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-10px);
+        }
+
+        .voice-waves {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .voice-wave {
+            width: 3px;
+            height: 20px;
+            background: linear-gradient(180deg, #27ae60, #f39c12);
+            border-radius: 2px;
+            animation: voice-wave 1s ease-in-out infinite;
+        }
+
+        .voice-wave:nth-child(2) { animation-delay: 0.1s; }
+        .voice-wave:nth-child(3) { animation-delay: 0.2s; }
+        .voice-wave:nth-child(4) { animation-delay: 0.3s; }
+        .voice-wave:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes voice-wave {
+            0%, 100% { transform: scaleY(0.3); }
+            50% { transform: scaleY(1); }
+        }
+
+        .narration-text {
+            color: white;
+            font-size: 13px;
+            max-width: 300px;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .action-btn {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .action-btn:hover {
+            background: rgba(39, 174, 96, 0.3);
+            border-color: #27ae60;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+        }
+
+        /* Custom Scrollbar */
+        .info-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .info-panel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .info-panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #27ae60, #f39c12);
+            border-radius: 3px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .info-panel {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                top: auto;
+                width: 100%;
+                max-height: 50vh;
+                border-radius: 20px 20px 0 0;
+            }
+            
+            .journey-navigation {
+                bottom: 52vh;
+                max-width: calc(100% - 40px);
+            }
+            
+            .voice-controls {
+                top: auto;
+                bottom: 55vh;
+                right: 10px;
+            }
+            
+            .quick-actions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-icon">🌱</div>
+            <div class="loading-text">Preparing Plant Journey...</div>
+            <div class="loading-progress">
+                <div class="loading-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Museum Header -->
+    <div class="museum-header">
+        <div class="museum-title">Plant Transport Systems</div>
+        <div class="exhibit-subtitle">
+            <span class="transport-indicator"></span>
+            Nature's Plumbing Network
+        </div>
+    </div>
+
+    <!-- Journey Navigation -->
+    <div class="journey-navigation">
+        <div class="journey-title">
+            <span>🌿</span>
+            <span>Plant Transport Journey</span>
+        </div>
+        <div class="journey-steps">
+            <button class="journey-btn active" onclick="loadJourneyStep('roots')">
+                <span>🌱</span> Root Systems
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('vascular')">
+                <span>🚰</span> Xylem & Phloem
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('stomata')">
+                <span>🍃</span> Stomata
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('watertransport')">
+                <span>💧</span> Water Transport
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('transpiration')">
+                <span>🌬️</span> Transpiration
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('rootpressure')">
+                <span>⬆️</span> Root Pressure
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('overview')">
+                <span>🌳</span> Transport Overview
+            </button>
+        </div>
+    </div>
+
+    <!-- 3D Model Container -->
+    <div class="model-container">
+        <div class="sketchfab-embed-wrapper">
+            <iframe id="api-frame"
+                    title="Plant Transport Model" 
+                    frameborder="0" 
+                    allowfullscreen 
+                    mozallowfullscreen="true" 
+                    webkitallowfullscreen="true" 
+                    allow="autoplay; fullscreen; xr-spatial-tracking"
+                    xr-spatial-tracking 
+                    execution-while-out-of-viewport 
+                    execution-while-not-rendered 
+                    web-share 
+                    src="https://sketchfab.com/3d-models/carrot-f585346917914ac1b33e71b67ebda406/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0">
+            </iframe>
+        </div>
+    </div>
+
+    <!-- Information Panel -->
+    <div class="info-panel" id="infoPanel">
+        <div class="info-header">
+            <div class="info-icon" id="stepIcon">🌱</div>
+            <div class="info-title">
+                <h2 id="stepTitle">Root Systems - Plant Foundations</h2>
+                <div class="info-subtitle" id="stepSubtitle">The underground water collectors</div>
+            </div>
+        </div>
+
+        <!-- Progress Tracker -->
+        <div class="progress-tracker">
+            <div class="progress-header">
+                <span>Transport Knowledge Progress</span>
+                <span class="progress-percentage" id="progressPercent">14%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 14%"></div>
+            </div>
+            <div class="progress-steps-mini">
+                <span class="step-mini active" onclick="loadJourneyStep('roots')">Roots</span>
+                <span class="step-mini" onclick="loadJourneyStep('vascular')">Vessels</span>
+                <span class="step-mini" onclick="loadJourneyStep('stomata')">Stomata</span>
+                <span class="step-mini" onclick="loadJourneyStep('watertransport')">Water</span>
+                <span class="step-mini" onclick="loadJourneyStep('transpiration')">Trans</span>
+                <span class="step-mini" onclick="loadJourneyStep('rootpressure')">Press</span>
+                <span class="step-mini" onclick="loadJourneyStep('overview')">Over</span>
+            </div>
+        </div>
+
+        <div class="info-content" id="mainDescription">
+            Root systems are the plant's foundation for water and nutrient absorption. Tap roots like this carrot have a main central root that penetrates deep into soil, while fibrous root systems spread horizontally near the surface. Both designs optimize water uptake for different environments.
+        </div>
+
+        <div class="info-card">
+            <div class="info-card-title">
+                <span>🌿</span> Root System Types
+            </div>
+            <div class="info-card-content">
+                <ul class="info-list" id="keyConcepts">
+                    <li>Tap root: single main root, deep penetration (carrots, oak trees)</li>
+                    <li>Fibrous root: many similar-sized roots, shallow spread (grasses, rice)</li>
+                    <li>Root hairs: increase surface area for water absorption</li>
+                    <li>Root cap: protects growing tip as it pushes through soil</li>
+                    <li>Cortex: storage tissue and pathway for water movement</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="fun-fact">
+            <div class="fun-fact-title">Root Facts!</div>
+            <div class="fun-fact-text" id="funFact">
+                A single rye grass plant can have over 14 billion root hairs with a combined surface area larger than a football field!
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-card-title">
+                <span>🎯</span> Learning Objectives
+            </div>
+            <div class="info-card-content" id="learningObjectives">
+                Compare tap root and fibrous root systems, understand how root structure relates to function, and learn about root specializations for water absorption.
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Controls -->
+    <div class="voice-controls">
+        <button class="control-btn active" id="voiceToggle" onclick="toggleVoice()">
+            🔊
+            <span class="control-tooltip">Voice Narration</span>
+        </button>
+        <button class="control-btn" onclick="toggleAutoPlay()">
+            ▶️
+            <span class="control-tooltip">Auto Journey</span>
+        </button>
+        <button class="control-btn" onclick="toggleInfo()">
+            ℹ️
+            <span class="control-tooltip">Toggle Info</span>
+        </button>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <button class="action-btn" onclick="startGuidedTour()">
+            <span>🚀</span> Guided Tour
+        </button>
+        <button class="action-btn" onclick="showQuiz()">
+            <span>🎯</span> Test Knowledge
+        </button>
+    </div>
+
+    <!-- Voice Indicator -->
+    <div class="voice-indicator" id="voiceIndicator">
+        <div class="voice-waves">
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+        </div>
+        <div class="narration-text" id="narrationText">Narrating...</div>
+    </div>
+
+    <script>
+        // Journey Step Data for Plant Transport Systems
+        const JOURNEY_DATA = {
+            roots: {
+                title: "Root Systems - Plant Foundations",
+                subtitle: "The underground water collectors",
+                icon: "🌱",
+                modelUrl: "https://sketchfab.com/3d-models/carrot-f585346917914ac1b33e71b67ebda406/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Root systems are the plant's foundation for water and nutrient absorption. Tap roots like this carrot have a main central root that penetrates deep into soil, while fibrous root systems spread horizontally near the surface. Both designs optimize water uptake for different environments.",
+                concepts: [
+                    "Tap root: single main root, deep penetration (carrots, oak trees)",
+                    "Fibrous root: many similar-sized roots, shallow spread (grasses, rice)",
+                    "Root hairs: increase surface area for water absorption",
+                    "Root cap: protects growing tip as it pushes through soil",
+                    "Cortex: storage tissue and pathway for water movement"
+                ],
+                funFact: "A single rye grass plant can have over 14 billion root hairs with a combined surface area larger than a football field!",
+                objectives: "Compare tap root and fibrous root systems, understand how root structure relates to function, and learn about root specializations for water absorption.",
+                narration: "Welcome to the hidden world of plant roots! You're looking at a carrot, which demonstrates a classic tap root system. Notice the single, dominant main root that tapers as it extends downward. This design allows the plant to anchor firmly and reach deep water sources during drought. The orange color comes from stored carbohydrates that the plant accumulates in this specialized storage root. Covering the entire root surface are microscopic root hairs - tiny extensions that dramatically increase the surface area for water and nutrient absorption. The root tip is protected by a root cap that acts like a helmet, pushing through soil particles as the root grows. This tap root system contrasts with fibrous root systems like grass, where many thin roots spread horizontally near the soil surface to capture rainfall efficiently."
+            },
+            vascular: {
+                title: "Xylem and Phloem - Plant Highways",
+                subtitle: "The transportation tubes of plants",
+                icon: "🚰",
+                modelUrl: "https://sketchfab.com/models/a8e93a28252c4717b50ff068a79f7c87/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Xylem and phloem form the plant's vascular system, analogous to blood vessels in animals. Xylem transports water and minerals upward from roots to leaves, while phloem carries sugars and organic compounds throughout the plant in all directions.",
+                concepts: [
+                    "Xylem: dead cells, lignin-reinforced walls, water transport upward",
+                    "Phloem: living cells, sieve tubes, sugar transport bidirectional",
+                    "Tracheids: narrow xylem cells with pits for water movement",
+                    "Vessel elements: wider xylem tubes for efficient transport",
+                    "Sieve elements: phloem cells with perforated walls"
+                ],
+                funFact: "Water can travel up to 400 feet from roots to leaves in tall trees, powered entirely by transpiration and cohesion forces!",
+                objectives: "Distinguish between xylem and phloem structure and function, understand how different cell types facilitate transport, and appreciate vascular tissue organization.",
+                narration: "Explore the plant's incredible highway system - the vascular tissues! This cross-section reveals two distinct transport systems working side by side. The xylem consists of dead, hollow cells with thick, lignin-reinforced walls that form continuous tubes from roots to leaves. These cells sacrifice their living contents to become efficient water pipes. You can see two types: narrow tracheids with small pits that allow water to move between cells, and wider vessel elements that form more efficient highways for bulk water transport. The phloem is completely different - living cells called sieve elements that form tubes for transporting sugars made during photosynthesis. These cells have perforated end walls called sieve plates that allow nutrients to flow through. Companion cells support the sieve elements by providing energy and maintaining their function. Together, xylem and phloem create a two-way transportation network that keeps the entire plant supplied with water, minerals, and food!"
+            },
+            stomata: {
+                title: "Stomata - Nature's Breathing Pores",
+                subtitle: "Gateway for gas exchange and water loss",
+                icon: "🍃",
+                modelUrl: "https://sketchfab.com/models/00ffda2fc813426a9852abe6350332ca/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Stomata are microscopic pores in leaves surrounded by guard cells that can open and close to regulate gas exchange and water loss. These tiny structures control the plant's 'breathing' and play a crucial role in transpiration and photosynthesis.",
+                concepts: [
+                    "Guard cells: kidney-shaped cells that control pore opening",
+                    "Turgor pressure: water pressure controls guard cell shape",
+                    "Open stomata: allows CO₂ in for photosynthesis, water out",
+                    "Closed stomata: conserves water, reduces gas exchange",
+                    "Density: typically 100-1000 stomata per square millimeter"
+                ],
+                funFact: "A single large tree can have over 10 million stomata on its leaves, and each one can open and close independently!",
+                objectives: "Understand stomatal structure and function, learn how guard cells control opening/closing, and appreciate the balance between gas exchange and water conservation.",
+                narration: "Welcome to the microscopic world of stomata - nature's smart breathing pores! These remarkable structures are found on leaf surfaces, typically on the underside to reduce water loss. Each stoma consists of two guard cells that surround a pore. When the plant needs to take in carbon dioxide for photosynthesis, the guard cells absorb water, become turgid, and their unique shape causes them to bow outward, opening the pore. This allows CO₂ to enter the leaf, but it also allows water vapor to escape - a process called transpiration. When water is scarce, the guard cells lose water, become flaccid, and close the pore to conserve water. This creates a constant balancing act: the plant needs to open stomata to get CO₂ for photosynthesis and food production, but this causes water loss. Plants have evolved sophisticated mechanisms to optimize this balance, including closing stomata during hot days and opening them when conditions are favorable."
+            },
+            watertransport: {
+                title: "Water Transport Mechanisms",
+                subtitle: "How water moves from roots to leaves",
+                icon: "💧",
+                modelUrl: "https://sketchfab.com/models/a8e93a28252c4717b50ff068a79f7c87/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Water transport in plants involves multiple mechanisms working together: root pressure pushes water up from below, transpiration creates suction from above, and cohesion-tension helps water molecules stick together in continuous columns through xylem vessels.",
+                concepts: [
+                    "Transpiration-cohesion-tension theory: main mechanism",
+                    "Cohesion: water molecules stick together via hydrogen bonds",
+                    "Adhesion: water molecules stick to xylem walls",
+                    "Root pressure: active transport creates upward push",
+                    "Transpiration pull: water loss creates suction force"
+                ],
+                funFact: "The cohesive strength of water is so strong that a water column in xylem can support tensions equivalent to 30 atmospheres of pressure!",
+                objectives: "Understand the physical forces that move water through plants, learn about the cohesion-tension theory, and appreciate how multiple mechanisms work together.",
+                narration: "Let's explore the amazing physics of water transport in plants! Water movement from roots to leaves relies on several interconnected mechanisms. The primary driving force is transpiration - as water evaporates from leaf surfaces through stomata, it creates a suction force that pulls water up through the xylem vessels. But how can this pull lift water hundreds of feet in tall trees? The secret lies in the cohesive properties of water. Water molecules form hydrogen bonds with each other, creating a continuous, unbroken chain from roots to leaves. This cohesion, combined with adhesion to xylem walls, allows water to be pulled up in continuous columns without breaking. Think of it like pulling a rope - the water column stays intact due to molecular attraction. Root pressure also contributes by actively pumping water into xylem vessels, especially at night when transpiration is low. Together, these mechanisms create an efficient water transport system that works entirely on physical forces - no pumps required!"
+            },
+            transpiration: {
+                title: "Activity 5.8 - Transpiration Demonstration",
+                subtitle: "Observing water loss from plants",
+                icon: "🌬️",
+                modelUrl: "https://sketchfab.com/models/00ffda2fc813426a9852abe6350332ca/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "This activity demonstrates transpiration by measuring water loss from plants under different conditions. Using plastic bags, weighing, or measuring water uptake, students can observe how environmental factors affect transpiration rates.",
+                concepts: [
+                    "Transpiration rate measurement: weight loss or water uptake",
+                    "Environmental factors: light, humidity, temperature, air movement",
+                    "Leaf surface area: more leaves = more transpiration",
+                    "Stomatal control: affected by light and water availability",
+                    "Transpiration stream: continuous water flow through plant"
+                ],
+                funFact: "A corn plant can transpire 200 liters of water during its growing season - that's enough to fill a bathtub!",
+                objectives: "Measure transpiration rates under different conditions, understand factors affecting water loss, and connect transpiration to overall plant water transport.",
+                narration: "Let's conduct a fascinating investigation into plant transpiration! In this activity, we can measure how much water plants lose through their leaves. One method involves placing plastic bags over leaves and observing water vapor condensation. Another approach measures how much water a cut plant stem absorbs from a graduated cylinder over time. We can test different conditions: plants in bright light versus shade, high humidity versus dry air, still air versus windy conditions. You'll discover that light dramatically increases transpiration because stomata open for photosynthesis. Humidity affects the rate because water evaporates faster into dry air. Air movement speeds transpiration by carrying away water vapor. Temperature also matters - warmer conditions increase evaporation rates. This activity reveals that transpiration isn't just water loss - it's the driving force that pulls water and nutrients up from roots, cools the plant, and enables the transport of materials throughout the plant body. It's essentially the plant's circulatory system in action!",
+                activity: "Set up transpiration measurement using plastic bags or water uptake methods. Test plants under different light, humidity, and air movement conditions to observe how environmental factors affect transpiration rates."
+            },
+            rootpressure: {
+                title: "Root Pressure Demonstration",
+                subtitle: "The push from below",
+                icon: "⬆️",
+                modelUrl: "https://sketchfab.com/3d-models/rice-seed-92113aa95c5c4575996e4393d6362959/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Root pressure is the upward force generated by roots through active transport of minerals into xylem vessels. This pressure can be demonstrated by cutting a plant stem and observing xylem sap being pushed out, especially during high humidity conditions.",
+                concepts: [
+                    "Active transport: roots pump minerals into xylem vessels",
+                    "Osmotic pressure: water follows minerals into xylem",
+                    "Guttation: water droplets forced out of leaf tips",
+                    "Night-time activity: strongest when transpiration is minimal",
+                    "Pressure measurement: can reach 0.1-0.5 MPa"
+                ],
+                funFact: "Root pressure can push water up to 10 meters high and is responsible for the water droplets you see on grass tips in the early morning!",
+                objectives: "Understand how root pressure is generated, observe its effects through demonstrations, and learn about its role in overall water transport.",
+                narration: "Discover the active role that roots play in water transport through root pressure! Unlike the passive pull of transpiration, root pressure represents active work by the plant. Root cells use energy to actively transport minerals and ions from the soil into the xylem vessels. This creates a concentration gradient that draws water into the xylem through osmosis, generating pressure that pushes water upward. You can demonstrate root pressure by cutting a plant stem near the soil level and watching xylem sap emerge from the cut surface - the plant is literally pushing water out! This pressure is strongest at night and in high humidity when transpiration is minimal. Root pressure is responsible for guttation - those water droplets you see on grass tips in early morning. While root pressure alone can't account for water reaching the tops of tall trees, it plays important roles: it helps restart the transpiration stream when air bubbles form in xylem vessels, provides initial pressure for water movement, and maintains xylem water content during low transpiration periods."
+            },
+            overview: {
+                title: "Plant Transport Systems Overview",
+                subtitle: "Integrating all transport mechanisms",
+                icon: "🌳",
+                modelUrl: "https://sketchfab.com/models/a8e93a28252c4717b50ff068a79f7c87/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Plant transport systems integrate multiple components and mechanisms to move water, nutrients, and organic compounds throughout the plant body. This sophisticated network enables plants to survive and thrive in diverse environments.",
+                concepts: [
+                    "Integrated system: roots, stems, leaves working together",
+                    "Two-way transport: xylem up, phloem multidirectional",
+                    "Environmental responses: stomatal control, root growth",
+                    "Efficiency adaptations: vessel sizes, tissue arrangement",
+                    "Support functions: structural support, nutrient storage"
+                ],
+                funFact: "The tallest trees can move water over 100 meters vertically using only the physical forces of transpiration and cohesion - no mechanical pumps needed!",
+                objectives: "Synthesize understanding of plant transport components, appreciate system integration, and understand adaptations for different environments.",
+                narration: "Let's bring together our understanding of plant transport systems and appreciate how all components work as an integrated network! Plants have evolved a sophisticated two-way transportation system: xylem moves water and minerals upward from roots to shoots, while phloem transports sugars and organic compounds in all directions to wherever they're needed. The system begins with roots absorbing water and minerals from soil, creating root pressure that gives an initial push. This water enters xylem vessels and moves upward through stem and into leaves, driven primarily by transpiration pull as water evaporates through stomata. The loss of water creates suction that pulls the entire water column upward through cohesion forces. Simultaneously, phloem transports the sugars produced by photosynthesis from leaves to growing tissues, storage organs, and root systems. Environmental conditions constantly influence this system: light affects stomatal opening and transpiration rates, humidity influences water loss, and soil moisture determines root water uptake. Plants have evolved remarkable adaptations: desert plants minimize water loss with thick cuticles and reduced stomata, while aquatic plants have specialized air spaces for gas exchange. This integrated transport system enables plants to colonize virtually every environment on Earth!"
+            }
+        };
+
+        // Global Variables
+        let currentStep = 'roots';
+        let voiceEnabled = true;
+        let autoPlayEnabled = false;
+        let currentSpeech = null;
+        let selectedVoice = null;
+        let journeyProgress = 0;
+        let guidedTourActive = false;
+
+        // Initialize Voice System
+        function initVoiceSystem() {
+            if (!('speechSynthesis' in window)) {
+                console.warn('Speech synthesis not supported');
+                voiceEnabled = false;
+                document.getElementById('voiceToggle').style.display = 'none';
+                return;
+            }
+
+            function loadVoices() {
+                const voices = speechSynthesis.getVoices();
+                if (voices.length === 0) return;
+
+                const preferredVoices = [
+                    'Google UK English Female',
+                    'Microsoft Sonia',
+                    'Microsoft Hazel',
+                    'Samantha',
+                    'Victoria'
+                ];
+
+                for (const name of preferredVoices) {
+                    selectedVoice = voices.find(v => v.name.includes(name));
+                    if (selectedVoice) break;
+                }
+
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(v => v.lang.startsWith('en'));
+                }
+            }
+
+            loadVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        }
+
+        // Load Journey Step
+        function loadJourneyStep(stepId) {
+            const stepData = JOURNEY_DATA[stepId];
+            if (!stepData) return;
+
+            currentStep = stepId;
+            
+            // Update model
+            document.getElementById('api-frame').src = stepData.modelUrl;
+            
+            // Update info panel
+            document.getElementById('stepIcon').textContent = stepData.icon;
+            document.getElementById('stepTitle').textContent = stepData.title;
+            document.getElementById('stepSubtitle').textContent = stepData.subtitle;
+            document.getElementById('mainDescription').textContent = stepData.description;
+            
+            // Update key concepts
+            const conceptsList = document.getElementById('keyConcepts');
+            conceptsList.innerHTML = stepData.concepts.map(c => `<li>${c}</li>`).join('');
+            
+            // Update fun fact
+            document.getElementById('funFact').textContent = stepData.funFact;
+            
+            // Update learning objectives
+            document.getElementById('learningObjectives').textContent = stepData.objectives;
+            
+            // Add activity box if present
+            const existingActivity = document.querySelector('.activity-box');
+            if (existingActivity) existingActivity.remove();
+            
+            if (stepData.activity) {
+                const activityBox = document.createElement('div');
+                activityBox.className = 'activity-box';
+                activityBox.innerHTML = `
+                    <div class="activity-title">Activity 5.8 - Laboratory Investigation</div>
+                    <div class="activity-text">${stepData.activity}</div>
+                `;
+                document.querySelector('.fun-fact').parentNode.insertBefore(activityBox, document.querySelector('.fun-fact').nextSibling);
+            }
+            
+            // Update navigation buttons
+            updateNavigationButtons(stepId);
+            
+            // Update progress
+            updateProgress();
+            
+            // Play narration if enabled
+            if (voiceEnabled) {
+                speakText(stepData.narration);
+            }
+        }
+
+        // Update Navigation Buttons
+        function updateNavigationButtons(activeStep) {
+            const buttons = document.querySelectorAll('.journey-btn');
+            const steps = ['roots', 'vascular', 'stomata', 'watertransport', 'transpiration', 'rootpressure', 'overview'];
+            const activeIndex = steps.indexOf(activeStep);
+            
+            buttons.forEach((btn, index) => {
+                btn.classList.remove('active', 'completed');
+                if (index < activeIndex) {
+                    btn.classList.add('completed');
+                } else if (index === activeIndex) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Update mini steps
+            const miniSteps = document.querySelectorAll('.step-mini');
+            miniSteps.forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index < activeIndex) {
+                    step.classList.add('completed');
+                } else if (index === activeIndex) {
+                    step.classList.add('active');
+                }
+            });
+        }
+
+        // Update Progress
+        function updateProgress() {
+            const steps = ['roots', 'vascular', 'stomata', 'watertransport', 'transpiration', 'rootpressure', 'overview'];
+            const currentIndex = steps.indexOf(currentStep);
+            const progress = ((currentIndex + 1) / steps.length) * 100;
+            
+            document.getElementById('progressPercent').textContent = Math.round(progress) + '%';
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        // Speech Functions
+        function speakText(text) {
+            if (!voiceEnabled || !text) return;
+            
+            stopSpeech();
+            
+            currentSpeech = new SpeechSynthesisUtterance(text);
+            if (selectedVoice) {
+                currentSpeech.voice = selectedVoice;
+            }
+            currentSpeech.rate = 0.9;
+            currentSpeech.pitch = 1.0;
+            currentSpeech.volume = 0.9;
+            
+            currentSpeech.onstart = () => {
+                document.getElementById('voiceIndicator').classList.add('visible');
+                document.getElementById('narrationText').textContent = 
+                    text.substring(0, 50) + (text.length > 50 ? '...' : '');
+            };
+            
+            currentSpeech.onend = () => {
+                document.getElementById('voiceIndicator').classList.remove('visible');
+                currentSpeech = null;
+                
+                if (guidedTourActive) {
+                    setTimeout(nextStep, 2000);
+                }
+            };
+            
+            speechSynthesis.speak(currentSpeech);
+        }
+
+        function stopSpeech() {
+            if (currentSpeech) {
+                speechSynthesis.cancel();
+                currentSpeech = null;
+                document.getElementById('voiceIndicator').classList.remove('visible');
+            }
+        }
+
+        // Control Functions
+        function toggleVoice() {
+            voiceEnabled = !voiceEnabled;
+            const btn = document.getElementById('voiceToggle');
+            btn.textContent = voiceEnabled ? '🔊' : '🔇';
+            btn.classList.toggle('active', voiceEnabled);
+            
+            if (!voiceEnabled) {
+                stopSpeech();
+            }
+        }
+
+        function toggleAutoPlay() {
+            autoPlayEnabled = !autoPlayEnabled;
+            if (autoPlayEnabled) {
+                startGuidedTour();
+            } else {
+                guidedTourActive = false;
+            }
+        }
+
+        function toggleInfo() {
+            const panel = document.getElementById('infoPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Guided Tour
+        function startGuidedTour() {
+            guidedTourActive = true;
+            const steps = ['roots', 'vascular', 'stomata', 'watertransport', 'transpiration', 'rootpressure', 'overview'];
+            let stepIndex = 0;
+            
+            function tourStep() {
+                if (stepIndex < steps.length && guidedTourActive) {
+                    loadJourneyStep(steps[stepIndex]);
+                    stepIndex++;
+                } else {
+                    guidedTourActive = false;
+                    if (voiceEnabled) {
+                        speakText("Congratulations! You've completed your journey through plant transport systems. You now understand nature's amazing plumbing network that keeps plants alive and growing!");
+                    }
+                }
+            }
+            
+            tourStep();
+            window.nextStep = tourStep;
+        }
+
+        // Quiz Function
+        function showQuiz() {
+            const questions = [
+                "What's the difference between tap and fibrous root systems?",
+                "How do xylem and phloem differ in structure and function?",
+                "What forces drive water transport in plants?",
+                "How do stomata control water loss?",
+                "What is root pressure and how is it generated?"
+            ];
+            
+            const randomQ = questions[Math.floor(Math.random() * questions.length)];
+            
+            if (voiceEnabled) {
+                speakText(`Here's a question to test your knowledge: ${randomQ} Think about what you've learned about plant transport!`);
+            }
+        }
+
+        // Initialize
+        function init() {
+            initVoiceSystem();
+            
+            // Hide loading screen
+            setTimeout(() => {
+                const loading = document.getElementById('loadingOverlay');
+                loading.style.opacity = '0';
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                    
+                    // Welcome message
+                    if (voiceEnabled) {
+                        speakText("Welcome to your journey through plant transport systems! We'll explore how plants move water and nutrients from roots to leaves using nature's ingenious plumbing network. Let's start underground with root systems!");
+                    }
+                }, 1000);
+            }, 3000);
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                switch(e.key) {
+                    case 'v': toggleVoice(); break;
+                    case 'i': toggleInfo(); break;
+                    case 'g': startGuidedTour(); break;
+                    case 'Escape': stopSpeech(); guidedTourActive = false; break;
+                    case 'ArrowRight': nextStep && nextStep(); break;
+                }
+            });
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>

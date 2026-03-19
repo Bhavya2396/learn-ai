@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number of Tangents from Different Point Positions</title>
+    <style>
+        :root {
+            --primary-blue: #3b82f6;
+            --secondary-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --accent-green: #10b981;
+            --accent-yellow: #fbbf24;
+            --accent-orange: #f97316;
+            --accent-red: #ef4444;
+            --text-light: #f8fafc;
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.8);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: var(--text-light);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-purple), var(--accent-pink));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .main-stage {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        #mainCanvas {
+            width: 100%;
+            height: 600px;
+            border-radius: 15px;
+            background: radial-gradient(circle at center, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
+            display: block;
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 1.5rem;
+            border-radius: 15px;
+            backdrop-filter: blur(15px);
+            border: 2px solid var(--accent-green);
+            max-width: 300px;
+            z-index: 10;
+        }
+
+        .info-item {
+            margin: 0.8rem 0;
+            font-size: 0.95rem;
+        }
+
+        .info-label {
+            color: var(--accent-green);
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+
+        .info-value {
+            color: var(--primary-blue);
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-purple));
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+            min-width: 180px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(59, 130, 246, 0.4);
+        }
+
+        .control-btn.active {
+            background: linear-gradient(135deg, var(--accent-pink), #f43f5e);
+            box-shadow: 0 8px 25px rgba(236, 72, 153, 0.4);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-blue), var(--accent-pink));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        .narration-text {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin: 1rem 0;
+            border-left: 4px solid var(--accent-pink);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+        }
+
+        .cases-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .case-card {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 15px;
+            border: 2px solid var(--secondary-purple);
+            transition: all 0.3s ease;
+        }
+
+        .case-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-pink);
+            box-shadow: 0 15px 30px rgba(236, 72, 153, 0.2);
+        }
+
+        .case-title {
+            color: var(--accent-pink);
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .case-result {
+            color: var(--accent-green);
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .terminology-section {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(59, 130, 246, 0.1));
+            border: 2px solid var(--accent-yellow);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .section-title {
+            color: var(--accent-yellow);
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .audio-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .audio-btn {
+            background: rgba(59, 130, 246, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .audio-btn1 {
+            background: rgba(59, 130, 246, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .audio-btn:hover {
+            transform: scale(1.1);
+            background: var(--primary-blue);
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pointMove {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes lineGrow {
+            from { stroke-dasharray: 0, 1000; }
+            to { stroke-dasharray: 1000, 0; }
+        }
+
+        .pulsing {
+            animation: pointMove 1.5s ease-in-out infinite;
+        }
+
+        @media (max-width: 1024px) {
+            .info-panel {
+                position: relative;
+                max-width: 100%;
+                margin-bottom: 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .controls { flex-direction: column; align-items: center; }
+            .control-btn { width: 100%; max-width: 300px; }
+            .cases-summary { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="audio-controls">
+        <button class="audio-btn1" id="playPauseBtn" title="Play/Pause Audio">▶</button>
+        <button class="audio-btn" id="muteBtn" title="Mute/Unmute">🔊</button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Number of Tangents from Different Point Positions</h1>
+            <p class="subtitle">Explore how the position of a point relative to a circle determines the number of possible tangent lines</p>
+        </div>
+
+        <div class="main-stage">
+            <canvas id="mainCanvas"></canvas>
+            <div class="info-panel">
+                <div class="info-item">
+                    <span class="info-label">Current Case:</span>
+                    <span class="info-value" id="currentCase">Welcome</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Point Position:</span>
+                    <span class="info-value" id="pointPosition">Ready</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Distance to Center:</span>
+                    <span class="info-value" id="distanceToCenter">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Number of Tangents:</span>
+                    <span class="info-value" id="tangentCount">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Tangent Length:</span>
+                    <span class="info-value" id="tangentLength">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="narration-text" id="narrationText">
+            Welcome! Let's explore how the position of a point determines the number of tangent lines to a circle.
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" onclick="startCompleteJourney()">🎬 Complete Journey</button>
+            <button class="control-btn" onclick="showInsideCase()">⭕ Point Inside</button>
+            <button class="control-btn" onclick="showOnCircleCase()">🎯 Point On Circle</button>
+            <button class="control-btn" onclick="showOutsideCase()">📐 Point Outside</button>
+            <button class="control-btn" onclick="resetDemo()">🔄 Reset</button>
+        </div>
+
+        <div class="cases-summary">
+            <div class="case-card">
+                <div class="case-title">Case 1: Point Inside Circle</div>
+                <div class="case-result">Result: No tangents possible</div>
+                <p>When a point lies inside a circle, every line through that point will intersect the circle at two points, making all lines secants rather than tangents.</p>
+            </div>
+            
+            <div class="case-card">
+                <div class="case-title">Case 2: Point On Circle</div>
+                <div class="case-result">Result: Exactly one tangent</div>
+                <p>When a point lies on the circle, there is exactly one tangent line at that point, perpendicular to the radius through that point.</p>
+            </div>
+            
+            <div class="case-card">
+                <div class="case-title">Case 3: Point Outside Circle</div>
+                <div class="case-result">Result: Exactly two tangents</div>
+                <p>From any external point, exactly two tangent lines can be drawn to the circle, touching at two distinct points of contact.</p>
+            </div>
+        </div>
+
+        <div class="terminology-section">
+            <div class="section-title">Key Terminology</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                <div>
+                    <h4 style="color: var(--accent-yellow); margin-bottom: 0.5rem;">Length of Tangent</h4>
+                    <p>The distance from an external point to the point where the tangent touches the circle.</p>
+                </div>
+                <div>
+                    <h4 style="color: var(--accent-yellow); margin-bottom: 0.5rem;">Point of Contact</h4>
+                    <p>The specific point where a tangent line touches the circle.</p>
+                </div>
+                <div>
+                    <h4 style="color: var(--accent-yellow); margin-bottom: 0.5rem;">External Point</h4>
+                    <p>A point that lies outside the circle, from which two tangents can be drawn.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas and animation setup
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        let animationId = null;
+        let currentDemo = 'none';
+        let isMuted = false;
+        let currentUtterance = null;
+
+        // Animation state
+        const circle = { radius: 120 };
+        let centerO = { x: 0, y: 0 };
+        let currentPoint = { x: 0, y: 0 };
+        let animationStep = 0;
+        let lines = [];
+
+        function initCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            
+            centerO = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 };
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+            drawGrid();
+        }
+
+        function drawGrid() {
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            const gridSize = 25;
+            
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.08)';
+            ctx.lineWidth = 1;
+            
+            for (let x = 0; x <= width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            
+            for (let y = 0; y <= height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawCircle(x, y, radius, strokeColor = '#3b82f6', fillColor = 'rgba(59, 130, 246, 0.1)') {
+            ctx.fillStyle = fillColor;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 3;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            ctx.fillStyle = '#f8fafc';
+            ctx.font = 'bold 16px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText('O', x + 20, y - 10);
+        }
+
+        function drawPoint(x, y, color, label, size = 8) {
+            ctx.fillStyle = color;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            
+            if (label) {
+                ctx.fillStyle = '#f8fafc';
+                ctx.font = 'bold 16px Segoe UI';
+                ctx.textAlign = 'center';
+                ctx.fillText(label, x + 15, y - 12);
+            }
+        }
+
+        function drawLine(x1, y1, x2, y2, color = '#ec4899', width = 3, dash = [], animated = false) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.setLineDash(dash);
+            
+            if (animated) {
+                ctx.lineCap = 'round';
+            }
+            
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function animatedLineGrow(startX, startY, endX, endY, color, duration = 1000) {
+            return new Promise(resolve => {
+                const startTime = Date.now();
+                
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    const currentEndX = startX + (endX - startX) * progress;
+                    const currentEndY = startY + (endY - startY) * progress;
+                    
+                    // Redraw everything
+                    clearCanvas();
+                    drawCircle(centerO.x, centerO.y, circle.radius);
+                    drawPoint(currentPoint.x, currentPoint.y, '#ec4899', 'P', 10);
+                    
+                    // Draw the growing line
+                    drawLine(startX, startY, currentEndX, currentEndY, color, 3);
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        resolve();
+                    }
+                };
+                
+                animate();
+            });
+        }
+
+        function findCircleLineIntersections(centerX, centerY, radius, x1, y1, x2, y2) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const fx = x1 - centerX;
+            const fy = y1 - centerY;
+            
+            const a = dx * dx + dy * dy;
+            const b = 2 * (fx * dx + fy * dy);
+            const c = (fx * fx + fy * fy) - radius * radius;
+            
+            const discriminant = b * b - 4 * a * c;
+            
+            if (discriminant < 0) return [];
+            if (discriminant === 0) {
+                const t = -b / (2 * a);
+                return [{ x: x1 + t * dx, y: y1 + t * dy }];
+            }
+            
+            const t1 = (-b + Math.sqrt(discriminant)) / (2 * a);
+            const t2 = (-b - Math.sqrt(discriminant)) / (2 * a);
+            return [
+                { x: x1 + t1 * dx, y: y1 + t1 * dy },
+                { x: x1 + t2 * dx, y: y1 + t2 * dy }
+            ];
+        }
+
+        function constructTangentsFromExternalPoint(pointX, pointY, centerX, centerY, radius) {
+            const d = Math.sqrt((pointX - centerX) ** 2 + (pointY - centerY) ** 2);
+            if (d <= radius) return [];
+            
+            const a = Math.sqrt(d * d - radius * radius);
+            const h = a * radius / d;
+            
+            const p2x = centerX + radius * radius * (pointX - centerX) / (d * d);
+            const p2y = centerY + radius * radius * (pointY - centerY) / (d * d);
+            
+            const x3 = p2x + h * (pointY - centerY) / d;
+            const y3 = p2y - h * (pointX - centerX) / d;
+            const x4 = p2x - h * (pointY - centerY) / d;
+            const y4 = p2y + h * (pointX - centerX) / d;
+            
+            return [
+                { x: x3, y: y3 },
+                { x: x4, y: y4 }
+            ];
+        }
+
+        function updateInfo(caseName, position, distance, tangentCount, tangentLength = null) {
+            document.getElementById('currentCase').textContent = caseName;
+            document.getElementById('pointPosition').textContent = position;
+            document.getElementById('distanceToCenter').textContent = distance;
+            document.getElementById('tangentCount').textContent = tangentCount;
+            document.getElementById('tangentLength').textContent = tangentLength || '--';
+        }
+
+        function speak(text, delay = 0) {
+            if (isMuted || !text) return Promise.resolve();
+            
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    if (currentUtterance) {
+                        speechSynthesis.cancel();
+                    }
+                    
+                    currentUtterance = new SpeechSynthesisUtterance(text);
+                    currentUtterance.rate = 0.9;
+                    currentUtterance.pitch = 1.1;
+                    currentUtterance.volume = 0.8;
+                    
+                    currentUtterance.onend = resolve;
+                    currentUtterance.onerror = resolve;
+                    
+                    speechSynthesis.speak(currentUtterance);
+                    document.getElementById('narrationText').textContent = text;
+                }, delay);
+            });
+        }
+
+        function updateProgress(progress) {
+            document.getElementById('progressFill').style.width = `${progress}%`;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.control-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        async function startCompleteJourney() {
+            stopAllAnimations();
+            setActiveButton(0);
+            currentDemo = 'complete';
+            
+            clearCanvas();
+            drawCircle(centerO.x, centerO.y, circle.radius);
+            
+            await speak("Let's explore how the position of a point determines the number of tangent lines possible. We'll examine three fundamental cases.", 500);
+            updateProgress(10);
+            
+            // Case 1: Point inside circle
+            currentPoint = { x: centerO.x + 50, y: centerO.y };
+            drawPoint(currentPoint.x, currentPoint.y, '#ec4899', 'P', 10);
+            
+            const distance1 = Math.sqrt((currentPoint.x - centerO.x) ** 2 + (currentPoint.y - centerO.y) ** 2);
+            updateInfo('Case 1', 'Inside Circle', `${Math.round(distance1)}px < ${circle.radius}px`, '0');
+            
+            await speak("Case 1: When a point is inside the circle, let's see what happens when we try to draw lines through it.", 2000);
+            updateProgress(25);
+            
+            // Animate multiple lines from inside point
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI) / 3;
+                
+                // Extend line in both directions through the circle
+                const lineLength = 250;
+                const startX = currentPoint.x - lineLength * Math.cos(angle);
+                const startY = currentPoint.y - lineLength * Math.sin(angle);
+                const endX = currentPoint.x + lineLength * Math.cos(angle);
+                const endY = currentPoint.y + lineLength * Math.sin(angle);
+                
+                // Find intersection points first
+                const intersections = findCircleLineIntersections(centerO.x, centerO.y, circle.radius, 
+                    startX, startY, endX, endY);
+                
+                if (intersections.length === 2) {
+                    // Draw complete line through both intersection points
+                    await animatedLineGrow(intersections[0].x, intersections[0].y, intersections[1].x, intersections[1].y, '#f43f5e', 400);
+                    
+                    // Highlight both intersection points
+                    drawPoint(intersections[0].x, intersections[0].y, '#f43f5e', '', 6);
+                    drawPoint(intersections[1].x, intersections[1].y, '#f43f5e', '', 6);
+                    
+                    // Show that this is a secant by highlighting the chord
+                    drawLine(intersections[0].x, intersections[0].y, intersections[1].x, intersections[1].y, '#f43f5e', 5);
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            
+            await speak("Every line through an interior point intersects the circle at two points, making them all secants. No tangents are possible.", 3000);
+            updateProgress(40);
+            
+            // Case 2: Point on circle
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            clearCanvas();
+            drawCircle(centerO.x, centerO.y, circle.radius);
+            
+            currentPoint = { x: centerO.x, y: centerO.y - circle.radius };
+            drawPoint(currentPoint.x, currentPoint.y, '#10b981', 'P', 10);
+            
+            const distance2 = Math.sqrt((currentPoint.x - centerO.x) ** 2 + (currentPoint.y - centerO.y) ** 2);
+            updateInfo('Case 2', 'On Circle', `${Math.round(distance2)}px = ${circle.radius}px`, '1');
+            
+            await speak("Case 2: When a point lies exactly on the circle, there is exactly one tangent line possible.", 2000);
+            updateProgress(55);
+            
+            // Draw radius
+            drawLine(centerO.x, centerO.y, currentPoint.x, currentPoint.y, '#fbbf24', 2, [5, 5]);
+            
+            // Draw tangent line
+            await animatedLineGrow(currentPoint.x - 150, currentPoint.y, currentPoint.x + 150, currentPoint.y, '#10b981', 800);
+            
+            // Draw right angle
+            const size = 20;
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(currentPoint.x - size, currentPoint.y);
+            ctx.lineTo(currentPoint.x - size, currentPoint.y - size);
+            ctx.lineTo(currentPoint.x, currentPoint.y - size);
+            ctx.stroke();
+            
+            await speak("This tangent is perpendicular to the radius at the point of contact, as we proved in the previous theorem.", 2500);
+            updateProgress(70);
+            
+            // Case 3: Point outside circle
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            clearCanvas();
+            drawCircle(centerO.x, centerO.y, circle.radius);
+            
+            currentPoint = { x: centerO.x + 200, y: centerO.y };
+            drawPoint(currentPoint.x, currentPoint.y, '#8b5cf6', 'P', 10);
+            
+            const distance3 = Math.sqrt((currentPoint.x - centerO.x) ** 2 + (currentPoint.y - centerO.y) ** 2);
+            updateInfo('Case 3', 'Outside Circle', `${Math.round(distance3)}px > ${circle.radius}px`, '2');
+            
+            await speak("Case 3: From a point outside the circle, exactly two tangent lines can be constructed.", 2000);
+            updateProgress(85);
+            
+            // Construct tangent points
+            const tangentPoints = constructTangentsFromExternalPoint(
+                currentPoint.x, currentPoint.y, centerO.x, centerO.y, circle.radius
+            );
+            
+            if (tangentPoints.length === 2) {
+                // Animate first tangent
+                await animatedLineGrow(currentPoint.x, currentPoint.y, tangentPoints[0].x, tangentPoints[0].y, '#8b5cf6', 800);
+                drawPoint(tangentPoints[0].x, tangentPoints[0].y, '#8b5cf6', 'T₁', 8);
+                
+                // Keep everything on canvas and add second tangent
+                clearCanvas();
+                drawCircle(centerO.x, centerO.y, circle.radius);
+                drawPoint(currentPoint.x, currentPoint.y, '#8b5cf6', 'P', 10);
+                
+                // Redraw first tangent
+                drawLine(currentPoint.x, currentPoint.y, tangentPoints[0].x, tangentPoints[0].y, '#8b5cf6', 3);
+                drawPoint(tangentPoints[0].x, tangentPoints[0].y, '#8b5cf6', 'T₁', 8);
+                
+                // Animate second tangent while keeping first visible
+                await animatedLineGrow(currentPoint.x, currentPoint.y, tangentPoints[1].x, tangentPoints[1].y, '#8b5cf6', 800);
+                drawPoint(tangentPoints[1].x, tangentPoints[1].y, '#8b5cf6', 'T₂', 8);
+                
+                // Redraw first tangent to ensure it's still visible
+                drawLine(currentPoint.x, currentPoint.y, tangentPoints[0].x, tangentPoints[0].y, '#8b5cf6', 3);
+                drawPoint(tangentPoints[0].x, tangentPoints[0].y, '#8b5cf6', 'T₁', 8);
+                
+                // Calculate tangent lengths
+                const length1 = Math.sqrt((currentPoint.x - tangentPoints[0].x) ** 2 + (currentPoint.y - tangentPoints[0].y) ** 2);
+                const length2 = Math.sqrt((currentPoint.x - tangentPoints[1].x) ** 2 + (currentPoint.y - tangentPoints[1].y) ** 2);
+                
+                updateInfo('Case 3', 'Outside Circle', `${Math.round(distance3)}px > ${circle.radius}px`, '2', 
+                    `PT₁ = PT₂ = ${Math.round(length1)}px`);
+                
+                await speak("Notice that both tangent lengths from the external point are equal. This is a fundamental property we'll explore further.", 3000);
+            }
+            
+            updateProgress(100);
+            await speak("These three cases cover all possibilities for the number of tangents from any point to a circle.", 2000);
+        }
+
+        function stopAllAnimations() {
+            // Cancel any ongoing animations
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            
+            // Stop speech
+            if (currentUtterance) {
+                speechSynthesis.cancel();
+                currentUtterance = null;
+            }
+            
+            // Reset animation state
+            animationStep = 0;
+            lines = [];
+            
+            // Clear any timeouts that might be running
+            for (let i = 1; i < 99999; i++) {
+                window.clearTimeout(i);
+            }
+        }
+
+        async function showInsideCase() {
+            // Clean up any previous animations
+            stopAllAnimations();
+            
+            setActiveButton(1);
+            currentDemo = 'inside';
+            
+            clearCanvas();
+            drawCircle(centerO.x, centerO.y, circle.radius);
+            
+            currentPoint = { x: centerO.x + 60, y: centerO.y - 30 };
+            drawPoint(currentPoint.x, currentPoint.y, '#ec4899', 'P', 10);
+            
+            const distance = Math.sqrt((currentPoint.x - centerO.x) ** 2 + (currentPoint.y - centerO.y) ** 2);
+            updateInfo('Point Inside', 'Interior', `${Math.round(distance)}px < ${circle.radius}px`, '0');
+            
+            await speak("When a point is inside the circle, every line through it becomes a secant, intersecting the circle at two points.", 1000);
+            
+            // Only continue if we're still in this demo
+            if (currentDemo !== 'inside') return;
+            
+            // Animate several complete secant lines
+            for (let i = 0; i < 8; i++) {
+                // Check if demo changed during animation
+                if (currentDemo !== 'inside') return;
+                
+                const angle = (i * Math.PI) / 4;
+                
+                // Create a line passing through the interior point
+                const lineLength = 200;
+                const startX = currentPoint.x - lineLength * Math.cos(angle);
+                const startY = currentPoint.y - lineLength * Math.sin(angle);
+                const endX = currentPoint.x + lineLength * Math.cos(angle);
+                const endY = currentPoint.y + lineLength * Math.sin(angle);
+                
+                const intersections = findCircleLineIntersections(centerO.x, centerO.y, circle.radius, 
+                    startX, startY, endX, endY);
+                
+                if (intersections.length === 2 && currentDemo === 'inside') {
+                    // Draw complete secant line between intersection points
+                    await animatedLineGrow(intersections[0].x, intersections[0].y, intersections[1].x, intersections[1].y, '#f43f5e', 300);
+                    
+                    if (currentDemo !== 'inside') return;
+                    
+                    // Highlight both intersection points
+                    drawPoint(intersections[0].x, intersections[0].y, '#f43f5e', '', 4);
+                    drawPoint(intersections[1].x, intersections[1].y, '#f43f5e', '', 4);
+                    
+                    // Redraw the interior point to keep it visible
+                    drawPoint(currentPoint.x, currentPoint.y, '#ec4899', 'P', 10);
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+        }
+
+        async function showOnCircleCase() {
+            // Clean up any previous animations
+            stopAllAnimations();
+            
+            setActiveButton(2);
+            currentDemo = 'on';
+            
+            clearCanvas();
+            drawCircle(centerO.x, centerO.y, circle.radius);
+            
+            currentPoint = { x: centerO.x + circle.radius * Math.cos(Math.PI/4), 
+                           y: centerO.y + circle.radius * Math.sin(Math.PI/4) };
+            drawPoint(currentPoint.x, currentPoint.y, '#10b981', 'P', 10);
+            
+            updateInfo('Point On Circle', 'On Circumference', `${circle.radius}px = ${circle.radius}px`, '1');
+            
+            await speak("When a point lies on the circle, there is exactly one tangent line at that point.", 1000);
+            
+            // Only continue if we're still in this demo
+            if (currentDemo !== 'on') return;
+            
+            // Draw radius
+            drawLine(centerO.x, centerO.y, currentPoint.x, currentPoint.y, '#fbbf24', 2, [5, 5]);
+            
+            // Calculate perpendicular tangent direction
+            const dx = currentPoint.x - centerO.x;
+            const dy = currentPoint.y - centerO.y;
+            const tangentDx = -dy;
+            const tangentDy = dx;
+            const length = Math.sqrt(tangentDx * tangentDx + tangentDy * tangentDy);
+            const unitTangentDx = tangentDx / length;
+            const unitTangentDy = tangentDy / length;
+            
+            const tangentLength = 120;
+            const tangentEndX1 = currentPoint.x + unitTangentDx * tangentLength;
+            const tangentEndY1 = currentPoint.y + unitTangentDy * tangentLength;
+            const tangentEndX2 = currentPoint.x - unitTangentDx * tangentLength;
+            const tangentEndY2 = currentPoint.y - unitTangentDy * tangentLength;
+            
+            if (currentDemo === 'on') {
+                await animatedLineGrow(tangentEndX2, tangentEndY2, tangentEndX1, tangentEndY1, '#10b981', 1000);
+            }
+        }
+
+        async function showOutsideCase() {
+            // Clean up any previous animations
+            stopAllAnimations();
+            
+            setActiveButton(3);
+            currentDemo = 'outside';
+            
+            clearCanvas();
+            drawCircle(centerO.x, centerO.y, circle.radius);
+            
+            currentPoint = { x: centerO.x + 180, y: centerO.y - 60 };
+            drawPoint(currentPoint.x, currentPoint.y, '#8b5cf6', 'P', 10);
+            
+            const distance = Math.sqrt((currentPoint.x - centerO.x) ** 2 + (currentPoint.y - centerO.y) ** 2);
+            updateInfo('Point Outside', 'External', `${Math.round(distance)}px > ${circle.radius}px`, '2');
+            
+            await speak("From an external point, exactly two tangent lines can be constructed to the circle.", 1000);
+            
+            // Only continue if we're still in this demo
+            if (currentDemo !== 'outside') return;
+            
+            const tangentPoints = constructTangentsFromExternalPoint(
+                currentPoint.x, currentPoint.y, centerO.x, centerO.y, circle.radius
+            );
+            
+            if (tangentPoints.length === 2 && currentDemo === 'outside') {
+                // Draw first tangent with animation
+                await animatedLineGrow(currentPoint.x, currentPoint.y, tangentPoints[0].x, tangentPoints[0].y, '#8b5cf6', 800);
+                
+                if (currentDemo !== 'outside') return;
+                
+                drawPoint(tangentPoints[0].x, tangentPoints[0].y, '#8b5cf6', 'T₁', 8);
+                
+                // Now animate second tangent while keeping everything else visible
+                let startTime = Date.now();
+                const duration = 800;
+                
+                const animateSecondTangent = () => {
+                    if (currentDemo !== 'outside') return;
+                    
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    const currentEndX = currentPoint.x + (tangentPoints[1].x - currentPoint.x) * progress;
+                    const currentEndY = currentPoint.y + (tangentPoints[1].y - currentPoint.y) * progress;
+                    
+                    // Redraw everything
+                    clearCanvas();
+                    drawCircle(centerO.x, centerO.y, circle.radius);
+                    drawPoint(currentPoint.x, currentPoint.y, '#8b5cf6', 'P', 10);
+                    
+                    // Keep first tangent visible
+                    drawLine(currentPoint.x, currentPoint.y, tangentPoints[0].x, tangentPoints[0].y, '#8b5cf6', 3);
+                    drawPoint(tangentPoints[0].x, tangentPoints[0].y, '#8b5cf6', 'T₁', 8);
+                    
+                    // Draw growing second tangent
+                    drawLine(currentPoint.x, currentPoint.y, currentEndX, currentEndY, '#8b5cf6', 3);
+                    
+                    if (progress < 1 && currentDemo === 'outside') {
+                        requestAnimationFrame(animateSecondTangent);
+                    } else if (currentDemo === 'outside') {
+                        // Final state with both tangents
+                        drawPoint(tangentPoints[1].x, tangentPoints[1].y, '#8b5cf6', 'T₂', 8);
+                        
+                        const length1 = Math.sqrt((currentPoint.x - tangentPoints[0].x) ** 2 + (currentPoint.y - tangentPoints[0].y) ** 2);
+                        updateInfo('Point Outside', 'External', `${Math.round(distance)}px > ${circle.radius}px`, '2', 
+                            `${Math.round(length1)}px`);
+                    }
+                };
+                
+                animateSecondTangent();
+            }
+        }
+
+        function resetDemo() {
+            setActiveButton(4);
+            currentDemo = 'none';
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            
+            if (currentUtterance) {
+                speechSynthesis.cancel();
+            }
+            
+            clearCanvas();
+            drawCircle(centerO.x, centerO.y, circle.radius);
+            
+            updateInfo('Ready', '--', '--', '--');
+            document.getElementById('narrationText').textContent = 'Choose a demonstration to explore the number of tangents from different point positions.';
+            updateProgress(0);
+            
+            setTimeout(() => {
+                document.querySelectorAll('.control-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+            }, 100);
+        }
+
+        // Audio controls
+        document.getElementById('playPauseBtn').addEventListener('click', () => {
+            if (speechSynthesis.speaking) {
+                speechSynthesis.pause();
+                document.getElementById('playPauseBtn').textContent = '▶';
+            } else {
+                speechSynthesis.resume();
+                document.getElementById('playPauseBtn').textContent = '⏸';
+            }
+        });
+
+        document.getElementById('muteBtn').addEventListener('click', () => {
+            isMuted = !isMuted;
+            document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊';
+            if (isMuted && currentUtterance) {
+                speechSynthesis.cancel();
+            }
+        });
+
+        // Initialize
+        window.addEventListener('load', () => {
+            initCanvas();
+            clearCanvas();
+            drawCircle(centerO.x, centerO.y, circle.radius);
+            
+            speak("Welcome to exploring tangent possibilities! The number of tangents depends on where the point is positioned relative to the circle.", 1000);
+        });
+
+        window.addEventListener('resize', () => {
+            initCanvas();
+            if (currentDemo === 'none') {
+                clearCanvas();
+                drawCircle(centerO.x, centerO.y, circle.radius);
+            }
+        });
+    </script>
+</body>
+</html>

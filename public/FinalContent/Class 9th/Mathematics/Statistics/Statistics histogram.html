@@ -1,0 +1,2194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histograms - Master Continuous Data</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header - Compact */
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Layout */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Demo Stage - Takes most space */
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+        }
+
+        /* Stage Content */
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Controls - Below Demo */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--accent-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Chart Containers */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-height: 350px;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Data Table */
+        .data-table {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .data-table th {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        /* Interactive Elements */
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .input-group label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .input-group input,
+        .input-group select {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: var(--text-accent);
+            box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.2);
+        }
+
+        /* Value Display */
+        .value-display {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-accent);
+            text-align: center;
+            margin: 20px 0;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        /* Quiz Elements */
+        .quiz-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .quiz-question {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .quiz-question h3 {
+            color: var(--text-accent);
+            margin-bottom: 15px;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .quiz-option {
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--text-accent);
+        }
+
+        .quiz-option.correct {
+            border-color: #43e97b;
+            background: rgba(67, 233, 123, 0.2);
+        }
+
+        .quiz-option.incorrect {
+            border-color: #f5576c;
+            background: rgba(245, 87, 108, 0.2);
+        }
+
+        /* Histogram specific styles */
+        .histogram-bar {
+            fill: rgba(79, 172, 254, 0.7);
+            stroke: rgba(79, 172, 254, 1);
+            stroke-width: 2;
+            transition: all 0.3s ease;
+        }
+
+        .histogram-bar:hover {
+            fill: rgba(79, 172, 254, 0.9);
+            transform: scale(1.02);
+            transform-origin: bottom;
+        }
+
+        .axis-label {
+            font-size: 0.9rem;
+            fill: var(--text-secondary);
+        }
+
+        .axis-line {
+            stroke: var(--text-secondary);
+            stroke-width: 2;
+        }
+
+        /* Comparison table */
+        .comparison-table {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .comparison-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .comparison-table th {
+            background: var(--primary-gradient);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .comparison-table tr:hover td {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Highlight box */
+        .highlight-box {
+            background: var(--warning-gradient);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            color: #000;
+            font-weight: 600;
+            box-shadow: var(--shadow-primary);
+        }
+
+        /* Custom canvas styles */
+        .custom-canvas {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        /* Theory Cards */
+        .theory-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .theory-title {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        .theory-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .theory-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 25px;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .theory-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .theory-card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .theory-card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--text-accent);
+            text-align: center;
+        }
+
+        .theory-card-content {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .theory-card-content ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .theory-card-content li {
+            margin: 8px 0;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .controls {
+                padding: 15px;
+            }
+            
+            .demo-btn {
+                padding: 10px 20px;
+                font-size: 0.85rem;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .theory-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .theory-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Histogram Mastery</h1>
+        <p>Master the Art of Visualizing Continuous Data</p>
+    </header>
+
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="mute-icon">🔇</span>
+            <span class="unmute-icon">🔊</span>
+        </button>
+    </div>
+
+    <main class="main-container">
+        <div class="demo-stage" id="demo-stage">
+            <div class="stage-content active">
+                <h2 class="chart-title">Welcome to Histogram Mastery!</h2>
+                <div class="value-display">Let's Explore Continuous Data!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Histograms are powerful tools for visualizing continuous data distributions. 
+                    Unlike bar graphs, they show how data is distributed across continuous intervals!
+                </p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">
+                <span>📚 Complete Lesson</span>
+            </button>
+            <button class="demo-btn" data-demo="introduction">
+                <span>👋 Introduction</span>
+            </button>
+            <button class="demo-btn" data-demo="basic">
+                <span>📊 Basic Example</span>
+            </button>
+            <button class="demo-btn" data-demo="construction">
+                <span>🔨 Build Step-by-Step</span>
+            </button>
+            <button class="demo-btn" data-demo="varying-width">
+                <span>📏 Varying Widths</span>
+            </button>
+            <button class="demo-btn" data-demo="comparison">
+                <span>⚖️ Compare with Bar Graph</span>
+            </button>
+            <button class="demo-btn" data-demo="quiz">
+                <span>🎯 Interactive Quiz</span>
+            </button>
+            <button class="demo-btn" data-demo="reset">
+                <span>🔄 Reset</span>
+            </button>
+        </div>
+
+        <!-- Theory Section -->
+        <div class="theory-section">
+            <h2 class="theory-title">📖 Theory & Key Concepts</h2>
+            <div class="theory-cards">
+                <div class="theory-card">
+                    <div class="theory-card-icon">📊</div>
+                    <h3 class="theory-card-title">What is a Histogram?</h3>
+                    <div class="theory-card-content">
+                        A histogram is a graphical representation of the distribution of continuous numerical data. Unlike bar graphs, histograms show how data is distributed across continuous intervals or ranges.
+                        <ul>
+                            <li>Bars touch each other (no gaps)</li>
+                            <li>X-axis represents continuous ranges</li>
+                            <li>Y-axis shows frequency or count</li>
+                            <li>Used for continuous data only</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-card-icon">🔢</div>
+                    <h3 class="theory-card-title">Frequency Density</h3>
+                    <div class="theory-card-content">
+                        When class intervals have different widths, we use frequency density instead of raw frequency to ensure fair representation.
+                        <ul>
+                            <li>Formula: Frequency Density = Frequency ÷ Class Width</li>
+                            <li>Ensures area of bar represents frequency</li>
+                            <li>Prevents misleading visual comparisons</li>
+                            <li>Essential for varying class widths</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-card-icon">⚖️</div>
+                    <h3 class="theory-card-title">Histogram vs Bar Graph</h3>
+                    <div class="theory-card-content">
+                        Understanding the key differences helps you choose the right visualization for your data.
+                        <ul>
+                            <li><strong>Data Type:</strong> Continuous vs Categorical</li>
+                            <li><strong>Bars:</strong> Touching vs Separated</li>
+                            <li><strong>Purpose:</strong> Distribution vs Comparison</li>
+                            <li><strong>X-axis:</strong> Ranges vs Categories</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-card-icon">🎯</div>
+                    <h3 class="theory-card-title">Construction Steps</h3>
+                    <div class="theory-card-content">
+                        Follow these steps to create accurate and meaningful histograms:
+                        <ul>
+                            <li>1. Draw horizontal and vertical axes</li>
+                            <li>2. Choose appropriate scales</li>
+                            <li>3. Draw bars with equal widths</li>
+                            <li>4. Ensure bars touch each other</li>
+                            <li>5. Add title and labels</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global State Management
+        let currentTeacher = null;
+        let currentDemo = null;
+        let isPlaying = false;
+        let globalAudioEnabled = true;
+        let runCounter = 0;
+        let currentRunId = null;
+        let activeCharts = new Map();
+        let animationFrames = [];
+        let currentDemoAborted = false;
+        let currentTaskId = null;
+
+        // Utility Functions
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            // Clear all charts
+            activeCharts.forEach(chart => {
+                if (chart && typeof chart.destroy === 'function') {
+                    chart.destroy();
+                }
+            });
+            activeCharts.clear();
+            
+            // Cancel animations
+            animationFrames.forEach(frame => cancelAnimationFrame(frame));
+            animationFrames = [];
+            
+            // Clear stage
+            const stage = document.getElementById('demo-stage');
+            stage.innerHTML = '';
+            
+            isPlaying = false;
+        }
+
+        function createStageContent() {
+            const stage = document.getElementById('demo-stage');
+            
+            // Clear existing content first
+            stage.innerHTML = '';
+            
+            const content = document.createElement('div');
+            content.className = 'stage-content active';
+            stage.appendChild(content);
+            
+            return content;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        // Teacher Voice System
+        class TeacherVoice {
+            constructor(taskId) {
+                this.synth = window.speechSynthesis;
+                this.voice = null;
+                this.rate = 0.8;
+                this.pitch = 1.0;
+                this.volume = 0.9;
+                this.isEnabled = true;
+                this.currentUtterance = null;
+                this.isDestroyed = false;
+                this.taskId = taskId;
+                this.setupVoice();
+            }
+
+            setupVoice() {
+                const loadVoices = () => {
+                    const voices = this.synth.getVoices();
+                    this.voice = voices.find(v => v.lang.includes('en')) || voices[0];
+                };
+                loadVoices();
+                this.synth.onvoiceschanged = loadVoices;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !globalAudioEnabled || !text || this.isDestroyed) return;
+                
+                // Check if this teacher instance is still valid
+                if (this.taskId && !shouldContinue(this.taskId)) {
+                    return Promise.resolve();
+                }
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.voice = this.voice;
+                        utterance.rate = this.rate;
+                        utterance.pitch = this.pitch;
+                        utterance.volume = this.volume;
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        this.synth.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+            }
+        }
+
+        function createNewTeacher(taskId) {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentTeacher = new TeacherVoice(taskId);
+            currentTeacher.isEnabled = globalAudioEnabled;
+            return currentTeacher;
+        }
+
+        // Chart Creation Functions
+        function createHistogram(containerId, data, options = {}) {
+            const container = document.getElementById(containerId);
+            if (!container) return null;
+            
+            // Clear existing content
+            container.innerHTML = '';
+            
+            const canvas = document.createElement('canvas');
+            canvas.className = 'custom-canvas';
+            container.appendChild(canvas);
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Create histogram using Chart.js
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeOutQuart'
+                    },
+                    // Make histogram bars touch each other (no gaps)
+                    categoryPercentage: 1.0,
+                    barPercentage: 1.0,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: !!options.title,
+                            text: options.title,
+                            color: '#fbbf24',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: options.xLabel || 'Class Intervals',
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: options.yLabel || 'Frequency',
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Store chart reference
+            activeCharts.set(containerId, chart);
+            
+            return chart;
+        }
+
+        // Demo Functions
+        async function showIntroduction() {
+            const taskId = 'introduction';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            // Introduction slide
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">What is a Histogram?</h2>
+                <div class="value-display">Visualizing Continuous Data</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    A histogram is a special type of graph used to show the distribution of continuous data!
+                </p>
+            `;
+            
+            await teacher.speak("Welcome! Today we'll learn about histograms - a powerful way to visualize continuous data.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show comparison with bar graph
+            content.innerHTML = `
+                <h2 class="chart-title">Histogram vs Bar Graph</h2>
+                <div class="comparison-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Bar Graph</th>
+                                <th>Histogram</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Data Type</td>
+                                <td>Categorical (discrete)</td>
+                                <td>Continuous (numerical)</td>
+                            </tr>
+                            <tr>
+                                <td>Bars</td>
+                                <td>Separated with gaps</td>
+                                <td>Touching (no gaps)</td>
+                            </tr>
+                            <tr>
+                                <td>X-axis</td>
+                                <td>Categories</td>
+                                <td>Number ranges</td>
+                            </tr>
+                            <tr>
+                                <td>Purpose</td>
+                                <td>Compare different categories</td>
+                                <td>Show data distribution</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            await teacher.speak("While bar graphs compare different categories, histograms show how continuous data is distributed across ranges. Notice how histogram bars touch each other!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show visual example
+            content.innerHTML = `
+                <h2 class="chart-title">Visual Comparison</h2>
+                <div class="charts-grid">
+                    <div class="chart-container" id="barGraphExample">
+                        <h3 class="chart-title">Bar Graph Example</h3>
+                    </div>
+                    <div class="chart-container" id="histogramExample">
+                        <h3 class="chart-title">Histogram Example</h3>
+                    </div>
+                </div>
+            `;
+            
+            // Create bar graph
+            createHistogram('barGraphExample', {
+                labels: ['Math', 'Science', 'English', 'History'],
+                datasets: [{
+                    data: [85, 92, 78, 88],
+                    backgroundColor: 'rgba(245, 87, 108, 0.7)',
+                    borderColor: 'rgba(245, 87, 108, 1)',
+                    borderWidth: 2,
+                    barPercentage: 0.8
+                }]
+            }, {
+                title: 'Subject Scores',
+                xLabel: 'Subjects',
+                yLabel: 'Score'
+            });
+            
+            // Create histogram
+            createHistogram('histogramExample', {
+                labels: ['0-10', '10-20', '20-30', '30-40', '40-50'],
+                datasets: [{
+                    data: [5, 12, 18, 10, 8],
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2
+                }]
+            }, {
+                title: 'Test Score Distribution',
+                xLabel: 'Score Range',
+                yLabel: 'Number of Students'
+            });
+            
+            await teacher.speak("Look at the difference! The bar graph has gaps and shows subjects, while the histogram's bars touch and show score ranges.");
+            
+            isPlaying = false;
+        }
+
+        async function showBasicExample() {
+            const taskId = 'basic';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            // Show the weight data table
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Student Weight Distribution</h2>
+                <div class="data-table">
+                    <p>Let's analyze the weights of 36 students:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Weight Range (kg)</th>
+                                <th>Number of Students</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>30.5 - 35.5</td><td>9</td></tr>
+                            <tr><td>35.5 - 40.5</td><td>6</td></tr>
+                            <tr><td>40.5 - 45.5</td><td>15</td></tr>
+                            <tr><td>45.5 - 50.5</td><td>3</td></tr>
+                            <tr><td>50.5 - 55.5</td><td>1</td></tr>
+                            <tr><td>55.5 - 60.5</td><td>2</td></tr>
+                            <tr style="background: rgba(255,255,255,0.1)">
+                                <td><strong>Total</strong></td>
+                                <td><strong>36</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            await teacher.speak("Here's data showing the weights of 36 students. Notice how the data is grouped into continuous ranges - each range flows into the next with no gaps.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Animate table rows
+            const rows = content.querySelectorAll('tbody tr');
+            rows.forEach((row, index) => {
+                if (index < rows.length - 1) {
+                    setTimeout(() => {
+                        if (shouldContinue(taskId)) {
+                            row.style.background = 'rgba(79, 172, 254, 0.2)';
+                            setTimeout(() => {
+                                row.style.background = '';
+                            }, 1000);
+                        }
+                    }, index * 500);
+                }
+            });
+            
+            await teacher.speak("Most students weigh between 40.5 and 45.5 kilograms. Let's see this data as a histogram!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show histogram
+            content.innerHTML = `
+                <h2 class="chart-title">Weight Distribution Histogram</h2>
+                <div class="chart-container" id="weightHistogram" style="width: 100%; height: 400px;">
+                </div>
+                <div class="highlight-box">
+                    Notice: All bars touch each other - this shows continuous data!
+                </div>
+            `;
+            
+            createHistogram('weightHistogram', {
+                labels: ['30.5-35.5', '35.5-40.5', '40.5-45.5', '45.5-50.5', '50.5-55.5', '55.5-60.5'],
+                datasets: [{
+                    data: [9, 6, 15, 3, 1, 2],
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2
+                }]
+            }, {
+                title: 'Student Weight Distribution',
+                xLabel: 'Weight Range (kg)',
+                yLabel: 'Number of Students'
+            });
+            
+            await teacher.speak("Perfect! The histogram clearly shows that most students are in the middle weight range. The bars touch because weight is continuous - a student weighing 35.5 kg belongs to both ranges!");
+            
+            isPlaying = false;
+        }
+
+        async function showConstruction() {
+            const taskId = 'construction';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            // Step 1: Axes
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Building a Histogram Step-by-Step</h2>
+                <div class="value-display">Step 1: Draw the Axes</div>
+                <div class="chart-container" id="constructionChart" style="width: 100%; height: 400px;">
+                </div>
+            `;
+            
+            await teacher.speak("Let's build a histogram step by step! First, we draw the horizontal and vertical axes.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Create empty chart with just axes
+            const chart = createHistogram('constructionChart', {
+                labels: ['30.5-35.5', '35.5-40.5', '40.5-45.5', '45.5-50.5', '50.5-55.5', '55.5-60.5'],
+                datasets: [{
+                    data: [0, 0, 0, 0, 0, 0],
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2
+                }]
+            }, {
+                xLabel: 'Weight Range (kg)',
+                yLabel: 'Number of Students'
+            });
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 2: Scale
+            content.querySelector('.value-display').textContent = 'Step 2: Choose the Scale';
+            content.querySelector('.value-display').style.animation = 'pulse 2s infinite';
+            
+            await teacher.speak("Next, we choose our scale. For the x-axis, we use 1 centimeter equals 5 kilograms. For the y-axis, we need to fit up to 15 students.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 3: First bar
+            content.querySelector('.value-display').textContent = 'Step 3: Draw First Bar';
+            
+            await teacher.speak("Now let's draw our first bar. For the range 30.5 to 35.5 kilograms, we have 9 students.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Animate first bar
+            chart.data.datasets[0].data = [9, 0, 0, 0, 0, 0];
+            chart.update('active');
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 4: All bars
+            content.querySelector('.value-display').textContent = 'Step 4: Complete All Bars';
+            
+            await teacher.speak("Let's add all the remaining bars. Remember - in a histogram, all bars must touch!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Animate remaining bars one by one
+            const finalData = [9, 6, 15, 3, 1, 2];
+            for (let i = 1; i < finalData.length; i++) {
+                if (!shouldContinue(taskId)) return;
+                chart.data.datasets[0].data[i] = finalData[i];
+                chart.update('active');
+                await wait(500);
+            }
+            
+            // Step 5: Add title
+            content.querySelector('.value-display').textContent = 'Step 5: Add Title';
+            
+            await teacher.speak("Finally, let's add a title to tell everyone what our histogram shows. Our title is 'Student Weight Distribution'. Perfect!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Add title exactly when narration starts
+            chart.options.plugins.title = {
+                display: true,
+                text: 'Student Weight Distribution',
+                font: { size: 16 },
+                color: 'white'
+            };
+            chart.update();
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Final highlight
+            content.innerHTML += `
+                <div class="highlight-box" style="margin-top: 20px;">
+                    Key Points: Equal width bars • No gaps between bars • Height shows frequency
+                </div>
+            `;
+            
+            await teacher.speak("Perfect! We've built a complete histogram. Notice how the bars touch and the height of each bar represents the number of students in that weight range.");
+            
+            isPlaying = false;
+        }
+
+        async function showVaryingWidth() {
+            const taskId = 'varying-width';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            // Show the problem
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Histograms with Varying Class Widths</h2>
+                <div class="data-table">
+                    <p>Math test scores with different interval sizes:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Score Range</th>
+                                <th>Class Width</th>
+                                <th>Frequency</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>0 - 20</td><td>20</td><td>7</td></tr>
+                            <tr><td>20 - 30</td><td>10</td><td>10</td></tr>
+                            <tr><td>30 - 40</td><td>10</td><td>10</td></tr>
+                            <tr><td>40 - 50</td><td>10</td><td>20</td></tr>
+                            <tr><td>50 - 60</td><td>10</td><td>20</td></tr>
+                            <tr><td>60 - 70</td><td>10</td><td>15</td></tr>
+                            <tr><td>70 - 100</td><td>30</td><td>8</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            await teacher.speak("Sometimes we have histograms with different class widths. Look at this math test data - some intervals are 10 marks wide, others are 20 or even 30!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show incorrect histogram
+            content.innerHTML = `
+                <h2 class="chart-title">❌ Incorrect Histogram (Using Frequencies)</h2>
+                <div class="chart-container" id="incorrectHistogram" style="width: 100%; height: 400px;">
+                </div>
+                <p style="text-align: center; color: #f5576c; margin-top: 20px;">
+                    This is misleading! The 70-100 range looks less important than it really is.
+                </p>
+            `;
+            
+            createHistogram('incorrectHistogram', {
+                labels: ['0-20', '20-30', '30-40', '40-50', '50-60', '60-70', '70-100'],
+                datasets: [{
+                    data: [7, 10, 10, 20, 20, 15, 8],
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 2
+                }]
+            }, {
+                title: 'Math Test Scores (Incorrect)',
+                xLabel: 'Score Range',
+                yLabel: 'Frequency'
+            });
+            
+            await teacher.speak("If we just plot frequencies, we get a misleading picture. The 70 to 100 range has a low bar, but it covers 30 marks, not 10!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show calculation table
+            content.innerHTML = `
+                <h2 class="chart-title">Calculating Frequency Density</h2>
+                <div class="data-table">
+                    <p>To fix this, we calculate frequency per unit width:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Range</th>
+                                <th>Frequency</th>
+                                <th>Width</th>
+                                <th>Calculation</th>
+                                <th>Frequency Density</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>0-20</td><td>7</td><td>20</td><td>7 ÷ 20 × 10</td><td>3.5</td></tr>
+                            <tr><td>20-30</td><td>10</td><td>10</td><td>10 ÷ 10 × 10</td><td>10</td></tr>
+                            <tr><td>30-40</td><td>10</td><td>10</td><td>10 ÷ 10 × 10</td><td>10</td></tr>
+                            <tr><td>40-50</td><td>20</td><td>10</td><td>20 ÷ 10 × 10</td><td>20</td></tr>
+                            <tr><td>50-60</td><td>20</td><td>10</td><td>20 ÷ 10 × 10</td><td>20</td></tr>
+                            <tr><td>60-70</td><td>15</td><td>10</td><td>15 ÷ 10 × 10</td><td>15</td></tr>
+                            <tr><td>70-100</td><td>8</td><td>30</td><td>8 ÷ 30 × 10</td><td>2.67</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            // Animate calculations
+            const rows = content.querySelectorAll('tbody tr');
+            for (let i = 0; i < rows.length; i++) {
+                if (!shouldContinue(taskId)) return;
+                setTimeout(() => {
+                    if (shouldContinue(taskId)) {
+                        rows[i].style.background = 'rgba(67, 233, 123, 0.2)';
+                    }
+                }, i * 500);
+            }
+            
+            await teacher.speak("We calculate frequency density by dividing frequency by width, then multiplying by the smallest width. This gives us frequency per 10 marks for all intervals!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(4000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show correct histogram
+            content.innerHTML = `
+                <h2 class="chart-title">✅ Correct Histogram (Using Frequency Density)</h2>
+                <div class="chart-container" id="correctHistogram" style="width: 100%; height: 400px;">
+                </div>
+                <div class="highlight-box">
+                    Now the area of each bar correctly represents the frequency!
+                </div>
+            `;
+            
+            createHistogram('correctHistogram', {
+                labels: ['0-20', '20-30', '30-40', '40-50', '50-60', '60-70', '70-100'],
+                datasets: [{
+                    data: [3.5, 10, 10, 20, 20, 15, 2.67],
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2
+                }]
+            }, {
+                title: 'Math Test Scores (Correct)',
+                xLabel: 'Score Range',
+                yLabel: 'Frequency Density (per 10 marks)'
+            });
+            
+            await teacher.speak("Perfect! Now our histogram accurately shows the distribution. Most students scored between 40 and 60, and very few scored below 20 or above 70.");
+            
+            isPlaying = false;
+        }
+
+        async function showComparison() {
+            const taskId = 'comparison';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            // Show detailed comparison
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Bar Graph vs Histogram: Detailed Comparison</h2>
+                <div class="charts-grid">
+                    <div class="chart-container" id="compBarGraph">
+                        <h3 class="chart-title">Bar Graph: Favorite Sports</h3>
+                    </div>
+                    <div class="chart-container" id="compHistogram">
+                        <h3 class="chart-title">Histogram: Student Heights</h3>
+                    </div>
+                </div>
+            `;
+            
+            // Create comparison charts
+            createHistogram('compBarGraph', {
+                labels: ['Soccer', 'Basketball', 'Tennis', 'Swimming'],
+                datasets: [{
+                    data: [45, 30, 25, 35],
+                    backgroundColor: [
+                        'rgba(245, 87, 108, 0.7)',
+                        'rgba(79, 172, 254, 0.7)',
+                        'rgba(67, 233, 123, 0.7)',
+                        'rgba(251, 191, 36, 0.7)'
+                    ],
+                    barPercentage: 0.8
+                }]
+            }, {
+                xLabel: 'Sports',
+                yLabel: 'Number of Students'
+            });
+            
+            createHistogram('compHistogram', {
+                labels: ['140-150', '150-160', '160-170', '170-180', '180-190'],
+                datasets: [{
+                    data: [8, 22, 35, 18, 7],
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2
+                }]
+            }, {
+                xLabel: 'Height (cm)',
+                yLabel: 'Number of Students'
+            });
+            
+            await teacher.speak("Here's a side-by-side comparison. The bar graph shows categories of sports with gaps between bars. The histogram shows continuous height ranges with no gaps.");
+            
+            isPlaying = false;
+        }
+
+        async function showQuiz() {
+            const taskId = 'quiz';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            let score = 0;
+            const questions = [
+                {
+                    question: "What type of data do histograms display?",
+                    options: [
+                        "Categorical data",
+                        "Continuous data",
+                        "Text data",
+                        "Boolean data"
+                    ],
+                    correct: 1,
+                    explanation: "Histograms display continuous numerical data!"
+                },
+                {
+                    question: "In a histogram, the bars are:",
+                    options: [
+                        "Separated with gaps",
+                        "Touching each other",
+                        "Overlapping",
+                        "3D shaped"
+                    ],
+                    correct: 1,
+                    explanation: "Histogram bars touch because the data is continuous!"
+                },
+                {
+                    question: "When class widths vary, what should we plot?",
+                    options: [
+                        "Frequency",
+                        "Frequency density",
+                        "Class width",
+                        "Total count"
+                    ],
+                    correct: 1,
+                    explanation: "Frequency density ensures fair representation when widths differ!"
+                }
+            ];
+            
+            let currentQuestion = 0;
+            
+            async function showQuestion(index) {
+                if (!shouldContinue(taskId)) return;
+                
+                const q = questions[index];
+                const content = createStageContent();
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="chart-title">Quiz Time! Question ${index + 1} of ${questions.length}</h2>
+                        <div class="quiz-question">
+                            <h3>${q.question}</h3>
+                            <div class="quiz-options">
+                                ${q.options.map((opt, i) => `
+                                    <div class="quiz-option" data-index="${i}">${opt}</div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="value-display">Score: ${score}/${questions.length}</div>
+                    </div>
+                `;
+                
+                await teacher.speak(q.question);
+                if (!shouldContinue(taskId)) return;
+                
+                // Add click handlers
+                const options = content.querySelectorAll('.quiz-option');
+                options.forEach((option, i) => {
+                    option.addEventListener('click', async () => {
+                        if (!shouldContinue(taskId)) return;
+                        
+                        options.forEach(opt => opt.style.pointerEvents = 'none');
+                        
+                        if (i === q.correct) {
+                            option.classList.add('correct');
+                            score++;
+                            content.querySelector('.value-display').textContent = `Score: ${score}/${questions.length}`;
+                            await teacher.speak("Correct! " + q.explanation);
+                        } else {
+                            option.classList.add('incorrect');
+                            options[q.correct].classList.add('correct');
+                            await teacher.speak("Not quite. " + q.explanation);
+                        }
+                        
+                        if (!shouldContinue(taskId)) return;
+                        
+                        await wait(3000);
+                        if (!shouldContinue(taskId)) return;
+                        
+                        currentQuestion++;
+                        if (currentQuestion < questions.length) {
+                            showQuestion(currentQuestion);
+                        } else {
+                            showResults();
+                        }
+                    });
+                });
+            }
+            
+            async function showResults() {
+                if (!shouldContinue(taskId)) return;
+                
+                const content = createStageContent();
+                const percentage = Math.round((score / questions.length) * 100);
+                const emoji = percentage >= 80 ? '🎉' : percentage >= 60 ? '👍' : '💪';
+                
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="chart-title">Quiz Complete!</h2>
+                        <div class="value-display" style="font-size: 3rem;">${emoji}</div>
+                        <div class="value-display">Final Score: ${score}/${questions.length}</div>
+                        <p style="text-align: center; font-size: 1.5rem; margin-top: 20px;">
+                            ${percentage}% Correct!
+                        </p>
+                        <p style="text-align: center; margin-top: 20px;">
+                            ${percentage >= 80 ? 'Excellent work! You really understand histograms!' :
+                              percentage >= 60 ? 'Good job! Keep practicing!' :
+                              'Keep learning! Try the lessons again!'}
+                        </p>
+                    </div>
+                `;
+                
+                await teacher.speak(`Quiz complete! You scored ${score} out of ${questions.length}. ${percentage >= 80 ? 'Excellent work!' : 'Keep practicing!'}`);
+                
+                isPlaying = false;
+            }
+            
+            showQuestion(0);
+        }
+
+
+        // Content functions for complete lesson (don't call stopCurrentDemo)
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            
+            // Introduction slide
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">What is a Histogram?</h2>
+                <div class="value-display">Visualizing Continuous Data</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    A histogram is a special type of graph used to show the distribution of continuous data!
+                </p>
+            `;
+            
+            await teacher.speak("Welcome! Today we'll learn about histograms - a powerful way to visualize continuous data.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show comparison with bar graph
+            content.innerHTML = `
+                <h2 class="chart-title">Histogram vs Bar Graph</h2>
+                <div class="comparison-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Bar Graph</th>
+                                <th>Histogram</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Data Type</td>
+                                <td>Categorical (discrete)</td>
+                                <td>Continuous (numerical)</td>
+                            </tr>
+                            <tr>
+                                <td>Bars</td>
+                                <td>Separated with gaps</td>
+                                <td>Touching (no gaps)</td>
+                            </tr>
+                            <tr>
+                                <td>X-axis</td>
+                                <td>Categories</td>
+                                <td>Number ranges</td>
+                            </tr>
+                            <tr>
+                                <td>Purpose</td>
+                                <td>Compare different categories</td>
+                                <td>Show data distribution</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            await teacher.speak("While bar graphs compare different categories, histograms show how continuous data is distributed across ranges. Notice how histogram bars touch each other!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show visual example
+            content.innerHTML = `
+                <h2 class="chart-title">Visual Comparison</h2>
+                <div class="charts-grid">
+                    <div class="chart-container" id="barGraphExample">
+                        <h3 class="chart-title">Bar Graph Example</h3>
+                    </div>
+                    <div class="chart-container" id="histogramExample">
+                        <h3 class="chart-title">Histogram Example</h3>
+                    </div>
+                </div>
+            `;
+            
+            // Create bar graph
+            createHistogram('barGraphExample', {
+                labels: ['Math', 'Science', 'English', 'History'],
+                datasets: [{
+                    data: [85, 92, 78, 88],
+                    backgroundColor: 'rgba(245, 87, 108, 0.7)',
+                    borderColor: 'rgba(245, 87, 108, 1)',
+                    borderWidth: 2,
+                    barPercentage: 0.8
+                }]
+            }, {
+                title: 'Subject Scores',
+                xLabel: 'Subjects',
+                yLabel: 'Score'
+            });
+            
+            // Create histogram
+            createHistogram('histogramExample', {
+                labels: ['0-10', '10-20', '20-30', '30-40', '40-50'],
+                datasets: [{
+                    data: [5, 12, 18, 10, 8],
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2
+                }]
+            }, {
+                title: 'Test Score Distribution',
+                xLabel: 'Score Range',
+                yLabel: 'Number of Students'
+            });
+            
+            await teacher.speak("Look at the difference! The bar graph has gaps and shows subjects, while the histogram's bars touch and show score ranges.");
+        }
+
+        async function showBasicExampleContent(taskId) {
+            const teacher = currentTeacher;
+            
+            // Show the weight data table
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Student Weight Distribution</h2>
+                <div class="data-table">
+                    <p>Let's analyze the weights of 36 students:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Weight Range (kg)</th>
+                                <th>Number of Students</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>30.5 - 35.5</td><td>9</td></tr>
+                            <tr><td>35.5 - 40.5</td><td>6</td></tr>
+                            <tr><td>40.5 - 45.5</td><td>15</td></tr>
+                            <tr><td>45.5 - 50.5</td><td>3</td></tr>
+                            <tr><td>50.5 - 55.5</td><td>1</td></tr>
+                            <tr><td>55.5 - 60.5</td><td>2</td></tr>
+                            <tr style="background: rgba(255,255,255,0.1)">
+                                <td><strong>Total</strong></td>
+                                <td><strong>36</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            await teacher.speak("Here's data showing the weights of 36 students. Notice how the data is grouped into continuous ranges - each range flows into the next with no gaps.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Animate table rows
+            const rows = content.querySelectorAll('tbody tr');
+            rows.forEach((row, index) => {
+                if (index < rows.length - 1) {
+                    setTimeout(() => {
+                        if (shouldContinue(taskId)) {
+                            row.style.background = 'rgba(79, 172, 254, 0.2)';
+                            setTimeout(() => {
+                                row.style.background = '';
+                            }, 1000);
+                        }
+                    }, index * 500);
+                }
+            });
+            
+            await teacher.speak("Most students weigh between 40.5 and 45.5 kilograms. Let's see this data as a histogram!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show histogram
+            content.innerHTML = `
+                <h2 class="chart-title">Weight Distribution Histogram</h2>
+                <div class="chart-container" id="weightHistogram" style="width: 100%; height: 400px;">
+                </div>
+                <div class="highlight-box">
+                    Notice: All bars touch each other - this shows continuous data!
+                </div>
+            `;
+            
+            createHistogram('weightHistogram', {
+                labels: ['30.5-35.5', '35.5-40.5', '40.5-45.5', '45.5-50.5', '50.5-55.5', '55.5-60.5'],
+                datasets: [{
+                    data: [9, 6, 15, 3, 1, 2],
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2
+                }]
+            }, {
+                title: 'Student Weight Distribution',
+                xLabel: 'Weight Range (kg)',
+                yLabel: 'Number of Students'
+            });
+            
+            await teacher.speak("Perfect! The histogram clearly shows that most students are in the middle weight range. The bars touch because weight is continuous - a student weighing 35.5 kg belongs to both ranges!");
+        }
+
+        async function showConstructionContent(taskId) {
+            const teacher = currentTeacher;
+            
+            // Step 1: Axes
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Building a Histogram Step-by-Step</h2>
+                <div class="value-display">Step 1: Draw the Axes</div>
+                <div class="chart-container" id="constructionChart" style="width: 100%; height: 400px;">
+                </div>
+            `;
+            
+            await teacher.speak("Let's build a histogram step by step! First, we draw the horizontal and vertical axes.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Create empty chart with just axes
+            const chart = createHistogram('constructionChart', {
+                labels: ['30.5-35.5', '35.5-40.5', '40.5-45.5', '45.5-50.5', '50.5-55.5', '55.5-60.5'],
+                datasets: [{
+                    data: [0, 0, 0, 0, 0, 0],
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2
+                }]
+            }, {
+                xLabel: 'Weight Range (kg)',
+                yLabel: 'Number of Students'
+            });
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 2: Scale
+            content.querySelector('.value-display').textContent = 'Step 2: Choose the Scale';
+            content.querySelector('.value-display').style.animation = 'pulse 2s infinite';
+            
+            await teacher.speak("Next, we choose our scale. For the x-axis, we use 1 centimeter equals 5 kilograms. For the y-axis, we need to fit up to 15 students.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 3: First bar
+            content.querySelector('.value-display').textContent = 'Step 3: Draw First Bar';
+            
+            await teacher.speak("Now let's draw our first bar. For the range 30.5 to 35.5 kilograms, we have 9 students.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Animate first bar
+            chart.data.datasets[0].data = [9, 0, 0, 0, 0, 0];
+            chart.update('active');
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Step 4: All bars
+            content.querySelector('.value-display').textContent = 'Step 4: Complete All Bars';
+            
+            await teacher.speak("Let's add all the remaining bars. Remember - in a histogram, all bars must touch!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Animate remaining bars one by one
+            const finalData = [9, 6, 15, 3, 1, 2];
+            for (let i = 1; i < finalData.length; i++) {
+                if (!shouldContinue(taskId)) return;
+                chart.data.datasets[0].data[i] = finalData[i];
+                chart.update('active');
+                await wait(500);
+            }
+            
+            // Step 5: Add title
+            content.querySelector('.value-display').textContent = 'Step 5: Add Title';
+            
+            await teacher.speak("Finally, let's add a title to tell everyone what our histogram shows. Our title is 'Student Weight Distribution'. Perfect!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Add title exactly when narration starts
+            chart.options.plugins.title = {
+                display: true,
+                text: 'Student Weight Distribution',
+                font: { size: 16 },
+                color: 'white'
+            };
+            chart.update();
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Final highlight
+            content.innerHTML += `
+                <div class="highlight-box" style="margin-top: 20px;">
+                    Key Points: Equal width bars • No gaps between bars • Height shows frequency
+                </div>
+            `;
+            
+            await teacher.speak("Perfect! We've built a complete histogram. Notice how the bars touch and the height of each bar represents the number of students in that weight range.");
+        }
+
+        async function showVaryingWidthContent(taskId) {
+            const teacher = currentTeacher;
+            
+            // Show the problem
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Histograms with Varying Class Widths</h2>
+                <div class="data-table">
+                    <p>Math test scores with different interval sizes:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Score Range</th>
+                                <th>Class Width</th>
+                                <th>Frequency</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>0 - 20</td><td>20</td><td>7</td></tr>
+                            <tr><td>20 - 30</td><td>10</td><td>10</td></tr>
+                            <tr><td>30 - 40</td><td>10</td><td>10</td></tr>
+                            <tr><td>40 - 50</td><td>10</td><td>20</td></tr>
+                            <tr><td>50 - 60</td><td>10</td><td>20</td></tr>
+                            <tr><td>60 - 70</td><td>10</td><td>15</td></tr>
+                            <tr><td>70 - 100</td><td>30</td><td>8</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            await teacher.speak("Sometimes we have histograms with different class widths. Look at this math test data - some intervals are 10 marks wide, others are 20 or even 30!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show incorrect histogram
+            content.innerHTML = `
+                <h2 class="chart-title">❌ Incorrect Histogram (Using Frequencies)</h2>
+                <div class="chart-container" id="incorrectHistogram" style="width: 100%; height: 400px;">
+                </div>
+                <p style="text-align: center; color: #f5576c; margin-top: 20px;">
+                    This is misleading! The 70-100 range looks less important than it really is.
+                </p>
+            `;
+            
+            createHistogram('incorrectHistogram', {
+                labels: ['0-20', '20-30', '30-40', '40-50', '50-60', '60-70', '70-100'],
+                datasets: [{
+                    data: [7, 10, 10, 20, 20, 15, 8],
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 2
+                }]
+            }, {
+                title: 'Math Test Scores (Incorrect)',
+                xLabel: 'Score Range',
+                yLabel: 'Frequency'
+            });
+            
+            await teacher.speak("If we just plot frequencies, we get a misleading picture. The 70 to 100 range has a low bar, but it covers 30 marks, not 10!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show calculation table
+            content.innerHTML = `
+                <h2 class="chart-title">Calculating Frequency Density</h2>
+                <div class="data-table">
+                    <p>To fix this, we calculate frequency per unit width:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Range</th>
+                                <th>Frequency</th>
+                                <th>Width</th>
+                                <th>Calculation</th>
+                                <th>Frequency Density</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>0-20</td><td>7</td><td>20</td><td>7 ÷ 20 × 10</td><td>3.5</td></tr>
+                            <tr><td>20-30</td><td>10</td><td>10</td><td>10 ÷ 10 × 10</td><td>10</td></tr>
+                            <tr><td>30-40</td><td>10</td><td>10</td><td>10 ÷ 10 × 10</td><td>10</td></tr>
+                            <tr><td>40-50</td><td>20</td><td>10</td><td>20 ÷ 10 × 10</td><td>20</td></tr>
+                            <tr><td>50-60</td><td>20</td><td>10</td><td>20 ÷ 10 × 10</td><td>20</td></tr>
+                            <tr><td>60-70</td><td>15</td><td>10</td><td>15 ÷ 10 × 10</td><td>15</td></tr>
+                            <tr><td>70-100</td><td>8</td><td>30</td><td>8 ÷ 30 × 10</td><td>2.67</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            // Animate calculations
+            const rows = content.querySelectorAll('tbody tr');
+            for (let i = 0; i < rows.length; i++) {
+                if (!shouldContinue(taskId)) return;
+                setTimeout(() => {
+                    if (shouldContinue(taskId)) {
+                        rows[i].style.background = 'rgba(67, 233, 123, 0.2)';
+                    }
+                }, i * 500);
+            }
+            
+            await teacher.speak("We calculate frequency density by dividing frequency by width, then multiplying by the smallest width. This gives us frequency per 10 marks for all intervals!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(4000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show correct histogram
+            content.innerHTML = `
+                <h2 class="chart-title">✅ Correct Histogram (Using Frequency Density)</h2>
+                <div class="chart-container" id="correctHistogram" style="width: 100%; height: 400px;">
+                </div>
+                <div class="highlight-box">
+                    Now the area of each bar correctly represents the frequency!
+                </div>
+            `;
+            
+            createHistogram('correctHistogram', {
+                labels: ['0-20', '20-30', '30-40', '40-50', '50-60', '60-70', '70-100'],
+                datasets: [{
+                    data: [3.5, 10, 10, 20, 20, 15, 2.67],
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2
+                }]
+            }, {
+                title: 'Math Test Scores (Correct)',
+                xLabel: 'Score Range',
+                yLabel: 'Frequency Density (per 10 marks)'
+            });
+            
+            await teacher.speak("Perfect! Now our histogram accurately shows the distribution. Most students scored between 40 and 60, and very few scored below 20 or above 70.");
+        }
+
+        async function showComparisonContent(taskId) {
+            const teacher = currentTeacher;
+            
+            // Show detailed comparison
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Bar Graph vs Histogram: Detailed Comparison</h2>
+                <div class="charts-grid">
+                    <div class="chart-container" id="compBarGraph">
+                        <h3 class="chart-title">Bar Graph: Favorite Sports</h3>
+                    </div>
+                    <div class="chart-container" id="compHistogram">
+                        <h3 class="chart-title">Histogram: Student Heights</h3>
+                    </div>
+                </div>
+            `;
+            
+            // Create comparison charts
+            createHistogram('compBarGraph', {
+                labels: ['Soccer', 'Basketball', 'Tennis', 'Swimming'],
+                datasets: [{
+                    data: [45, 30, 25, 35],
+                    backgroundColor: [
+                        'rgba(245, 87, 108, 0.7)',
+                        'rgba(79, 172, 254, 0.7)',
+                        'rgba(67, 233, 123, 0.7)',
+                        'rgba(251, 191, 36, 0.7)'
+                    ],
+                    barPercentage: 0.8
+                }]
+            }, {
+                xLabel: 'Sports',
+                yLabel: 'Number of Students'
+            });
+            
+            createHistogram('compHistogram', {
+                labels: ['140-150', '150-160', '160-170', '170-180', '180-190'],
+                datasets: [{
+                    data: [8, 22, 35, 18, 7],
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2
+                }]
+            }, {
+                xLabel: 'Height (cm)',
+                yLabel: 'Number of Students'
+            });
+            
+            await teacher.speak("Here's a side-by-side comparison. The bar graph shows categories of sports with gaps between bars. The histogram shows continuous height ranges with no gaps.");
+        }
+
+        async function showCompleteLesson() {
+            const taskId = `complete-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            // Welcome
+            const welcomeContent = createStageContent();
+            welcomeContent.innerHTML = `
+                <h2 class="chart-title">Complete Histogram Lesson</h2>
+                <div class="value-display">Let's Master Histograms!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    We'll cover everything about histograms step by step!
+                </p>
+            `;
+            
+            await teacher.speak("Welcome to the complete histogram lesson! We'll learn everything about visualizing continuous data.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Introduction
+            await showIntroductionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Basic Example
+            await teacher.speak("Now let's see a real example with student weight data.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showBasicExampleContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Construction
+            await teacher.speak("Let me show you how to build a histogram from scratch.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showConstructionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Varying Width
+            await teacher.speak("Now for something more advanced - histograms with different class widths!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showVaryingWidthContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Comparison
+            await teacher.speak("Let's compare histograms with bar graphs to really understand the differences.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showComparisonContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Final message
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Congratulations!</h2>
+                <div class="value-display">🎉 You're a Histogram Expert! 🎉</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    You've learned about continuous data, construction, frequency density, varying widths, and comparisons with bar graphs!
+                    Try the quiz to test your knowledge!
+                </p>
+            `;
+            
+            await teacher.speak("Congratulations! You've mastered histograms! You know what they are, how to build them, how to handle varying class widths, and how they differ from bar graphs. Excellent work!");
+            
+            isPlaying = false;
+        }
+
+        function resetApplication() {
+            stopCurrentDemo();
+            
+            // Clear stage and show welcome
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Welcome to Histogram Mastery!</h2>
+                <div class="value-display">Let's Explore Continuous Data!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Histograms are powerful tools for visualizing continuous data distributions. 
+                    Choose a lesson below to start your journey!
+                </p>
+            `;
+            
+            // Clear active button states
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Reset current demo
+            currentDemo = null;
+            
+            // Create new teacher and welcome message
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to continue learning about histograms!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize teacher
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome to Histogram Mastery! Choose any lesson to begin exploring continuous data visualization!");
+            }, 500);
+            
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Clear active states
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'basic':
+                            showBasicExample();
+                            break;
+                        case 'construction':
+                            showConstruction();
+                            break;
+                        case 'varying-width':
+                            showVaryingWidth();
+                            break;
+                        case 'comparison':
+                            showComparison();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+            
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

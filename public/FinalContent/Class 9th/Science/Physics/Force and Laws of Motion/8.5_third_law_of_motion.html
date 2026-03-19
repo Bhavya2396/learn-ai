@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newton's Third Law of Motion - Physics in Motion</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(139, 92, 246, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(139, 92, 246, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(45deg, #f093fb, #f5576c, #4facfe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Demo Stage */
+        .demo-stage {
+            background: linear-gradient(to bottom, #1a1a3e, #2d2d5f, #3d3d7a);
+            border-radius: 25px;
+            min-height: 450px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            border: 4px solid rgba(139, 92, 246, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        /* Spring Balance Demo - Vertical Setup */
+        .spring-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 350px;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        .spring-demo.active {
+            display: flex;
+        }
+
+        .wall {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 20px;
+            background: linear-gradient(to bottom, #4a5568, #2d3748);
+            border-bottom: 3px solid #1a202c;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .spring-balance {
+            position: absolute;
+            width: 60px;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .spring-balance-a {
+            top: 23px;
+            z-index: 2;
+        }
+
+        .spring-balance-b {
+            top: 163px;
+            z-index: 1;
+        }
+
+        .spring {
+            width: 40px;
+            height: 100px;
+            background-image: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 3px,
+                #fbbf24 3px,
+                #fbbf24 6px
+            );
+            border: 2px solid #f59e0b;
+            border-radius: 5px;
+            transition: all 0.5s ease;
+            position: relative;
+        }
+
+        .spring-balance-a .spring {
+            transform-origin: top center;
+        }
+
+        .spring-balance-b .spring {
+            transform-origin: top center;
+        }
+
+        .spring.stretched-a {
+            transform: scaleY(1.3);
+        }
+
+        .spring.stretched-b {
+            transform: scaleY(1.3);
+        }
+
+        .connecting-string {
+            position: absolute;
+            top: 123px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 40px;
+            background: #6b7280;
+            z-index: 3;
+        }
+
+        .scale-display {
+            position: absolute;
+            left: 70px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            color: #fbbf24;
+            font-size: 1.1rem;
+            border: 2px solid #f59e0b;
+            width: 60px;
+            text-align: center;
+            top: 40px;
+        }
+
+        .spring-balance-b .scale-display {
+            left: -100px;
+        }
+
+        .force-arrow {
+            position: absolute;
+            font-size: 40px;
+            color: #ef4444;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            left: 50%;
+            z-index: 10;
+        }
+
+        .force-arrow.show {
+            opacity: 1;
+        }
+
+        .force-up {
+            top: 130px;
+            transform: translateX(-50%);
+        }
+
+        .force-down {
+            top: 250px;
+            transform: translateX(-50%);
+        }
+
+        .hand-pull {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 50px;
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+
+        .hand-pull.show {
+            opacity: 1;
+            animation: pullAnimationVertical 2s ease-in-out infinite;
+        }
+
+        @keyframes pullAnimationVertical {
+            0%, 100% { bottom: 30px; }
+            50% { bottom: 10px; }
+        }
+
+        /* Football Collision Demo */
+        .collision-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .collision-demo.active {
+            display: flex;
+        }
+
+        .player {
+            position: absolute;
+            font-size: 80px;
+            transition: all 0.5s ease;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .player1 {
+            left: 10%;
+            transform: translateY(-50%) scaleX(-1);
+        }
+
+        .player2 {
+            right: 10%;
+            transform: translateY(-50%);
+        }
+
+        .player.moving-right {
+            animation: moveRight 1.5s ease-in-out forwards;
+        }
+
+        .player.moving-left {
+            animation: moveLeft 1.5s ease-in-out forwards;
+        }
+
+        @keyframes moveRight {
+            0% { left: 10%; transform: translateY(-50%) scaleX(-1); }
+            50% { left: calc(50% - 60px); transform: translateY(-50%) scaleX(-1); }
+            60% { left: calc(50% - 60px); transform: translateY(-50%) scaleX(-1) scale(1.1); }
+            100% { left: calc(50% - 120px); transform: translateY(-50%) scaleX(-1); }
+        }
+
+        @keyframes moveLeft {
+            0% { right: 10%; transform: translateY(-50%); }
+            50% { right: calc(50% - 60px); transform: translateY(-50%); }
+            60% { right: calc(50% - 60px); transform: translateY(-50%) scale(1.1); }
+            100% { right: calc(50% - 120px); transform: translateY(-50%); }
+        }
+
+        .football {
+            position: absolute;
+            font-size: 40px;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .impact-star {
+            position: absolute;
+            font-size: 60px;
+            color: #fbbf24;
+            opacity: 0;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .impact-star.show {
+            animation: impactBurst 1s ease forwards;
+        }
+
+        @keyframes impactBurst {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
+        }
+
+        /* Walking Demo */
+        .walking-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .walking-demo.active {
+            display: flex;
+        }
+
+        .road {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 80%;
+            height: 80px;
+            background: linear-gradient(to bottom, #4a5568, #2d3748);
+            border-top: 3px solid #fbbf24;
+            border-bottom: 3px solid #fbbf24;
+            left: 10%;
+            right: 10%;
+        }
+
+        .road::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: repeating-linear-gradient(
+                to right,
+                #fff 0px,
+                #fff 30px,
+                transparent 30px,
+                transparent 60px
+            );
+            transform: translateY(-50%);
+        }
+
+        .walker {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-120px);
+            left: 70%;
+            font-size: 80px;
+            transition: all 1s ease;
+        }
+
+        .walker.walking {
+            animation: walkLeft 3s ease-in-out forwards;
+        }
+
+        @keyframes walkLeft {
+            0% { left: 70%; }
+            100% { left: 20%; }
+        }
+
+        .push-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-30px);
+            left: 68%;
+            font-size: 40px;
+            color: #ef4444;
+            opacity: 0;
+        }
+
+        .push-arrow.show {
+            animation: pushShowLeft 3s ease-in-out;
+        }
+
+        @keyframes pushShowLeft {
+            0% { opacity: 0; left: 68%; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; left: 18%; }
+        }
+
+        .push-label {
+            position: absolute;
+            top: 50%;
+            transform: translateY(10px);
+            left: 68%;
+            font-size: 12px;
+            color: #ef4444;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 2px 6px;
+            border-radius: 4px;
+            opacity: 0;
+            white-space: nowrap;
+        }
+
+        .push-label.show {
+            animation: pushLabelShowLeft 3s ease-in-out;
+        }
+
+        @keyframes pushLabelShowLeft {
+            0% { opacity: 0; left: 68%; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; left: 18%; }
+        }
+
+        .reaction-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-100px);
+            left: 70%;
+            font-size: 40px;
+            color: #10b981;
+            opacity: 0;
+        }
+
+        .reaction-arrow.show {
+            animation: reactionShowLeft 3s ease-in-out;
+        }
+
+        @keyframes reactionShowLeft {
+            0% { opacity: 0; left: 70%; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; left: 20%; }
+        }
+
+        .reaction-label {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-140px);
+            left: 70%;
+            font-size: 12px;
+            color: #10b981;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 2px 6px;
+            border-radius: 4px;
+            opacity: 0;
+            white-space: nowrap;
+        }
+
+        .reaction-label.show {
+            animation: reactionLabelShowLeft 3s ease-in-out;
+        }
+
+        @keyframes reactionLabelShowLeft {
+            0% { opacity: 0; left: 70%; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; left: 20%; }
+        }
+
+        /* Gun Recoil Demo */
+        .recoil-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .recoil-demo.active {
+            display: flex;
+        }
+
+        .gun {
+            position: absolute;
+            left: 200px;
+            font-size: 80px;
+            transform: scaleX(-1);
+            transition: all 0.5s ease;
+        }
+
+        .gun.recoil {
+            animation: gunRecoil 0.5s ease;
+        }
+
+        @keyframes gunRecoil {
+            0% { left: 200px; }
+            50% { left: 150px; }
+            100% { left: 200px; }
+        }
+
+        .bullet {
+            position: absolute;
+            left: 280px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 10px;
+            background: linear-gradient(to right, #fbbf24, #f59e0b);
+            border-radius: 50% 10px 10px 50%;
+            opacity: 0;
+        }
+
+        .bullet.fire {
+            animation: bulletFire 1s ease-out forwards;
+        }
+
+        @keyframes bulletFire {
+            0% { left: 280px; opacity: 1; }
+            100% { left: calc(100% - 50px); opacity: 1; }
+        }
+
+        .muzzle-flash {
+            position: absolute;
+            left: 270px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 50px;
+            color: #fbbf24;
+            opacity: 0;
+        }
+
+        .muzzle-flash.show {
+            animation: flash 0.3s ease;
+        }
+
+        @keyframes flash {
+            0% { opacity: 0; transform: translateY(-50%) scale(0); }
+            50% { opacity: 1; transform: translateY(-50%) scale(1.5); }
+            100% { opacity: 0; transform: translateY(-50%) scale(1); }
+        }
+
+        /* Cart Activity Demo */
+        .cart-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: space-around;
+        }
+
+        .cart-demo.active {
+            display: flex;
+        }
+
+        .cart {
+            position: relative;
+            width: 120px;
+            height: 80px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.8s ease;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            z-index: 5;
+        }
+
+        .cart::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 10px;
+            right: 10px;
+            height: 10px;
+            background: #1e293b;
+            border-radius: 50%;
+        }
+
+        .cart-person {
+            font-size: 40px;
+        }
+
+        .cart.push-left {
+            transform: translateX(-80px);
+        }
+
+        .cart.push-right {
+            transform: translateX(80px);
+        }
+
+        .sandbag {
+            position: absolute;
+            width: 40px;
+            height: 30px;
+            background: linear-gradient(135deg, #d4a574, #b8956a);
+            border-radius: 5px;
+            left: 25%;
+            top: 45%;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            z-index: 10;
+        }
+
+        .sandbag.throw {
+            animation: bagThrow 1s ease-out forwards;
+        }
+
+        @keyframes bagThrow {
+            0% { 
+                left: 25%; 
+                opacity: 1; 
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+            100% { 
+                left: 75%; 
+                opacity: 1; 
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            color: #8b5cf6;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            border: none;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+            min-width: 150px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(139, 92, 246, 0.4);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+            box-shadow: 0 8px 20px rgba(236, 72, 153, 0.4);
+        }
+
+        /* Theory Section */
+        .theory-section {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(139, 92, 246, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .law-statement {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.15));
+            border-radius: 20px;
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid #8b5cf6;
+        }
+
+        .law-title {
+            font-size: 1.4rem;
+            color: #ec4899;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .law-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #e2e8f0;
+        }
+
+        .key-points {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .point-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .point-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .point-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .point-title {
+            font-size: 1.2rem;
+            color: #ec4899;
+            margin-bottom: 10px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .point-text {
+            font-size: 1rem;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        .force-pairs {
+            background: rgba(16, 185, 129, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #10b981;
+        }
+
+        .pair-title {
+            color: #10b981;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .pair-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .pair-arrow {
+            font-size: 30px;
+            color: #fbbf24;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .demo-stage {
+                min-height: 400px;
+                padding: 30px 20px;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .key-points {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Newton's Third Law of Motion</h1>
+            <p>For every action, there is an equal and opposite reaction. Explore how forces always come in pairs and act on different objects.</p>
+        </div>
+
+        <div class="demo-stage" id="stage">
+            <div class="spring-demo" id="spring-demo">
+                <div class="wall"></div>
+                <div class="spring-balance spring-balance-a">
+                    <div class="spring" id="spring-a"></div>
+                    <div class="scale-display" id="scale-a">0 N</div>
+                </div>
+                <div class="connecting-string"></div>
+                <div class="spring-balance spring-balance-b">
+                    <div class="spring" id="spring-b"></div>
+                    <div class="scale-display" id="scale-b">0 N</div>
+                </div>
+                <div class="hand-pull" id="hand">👋</div>
+                <div class="force-arrow force-up" id="force-up">↑</div>
+                <div class="force-arrow force-down" id="force-down">↓</div>
+            </div>
+
+            <div class="collision-demo" id="collision-demo">
+                <div class="player player1" id="player1">🏃‍♂️</div>
+                <div class="player player2" id="player2">🏃‍♂️</div>
+                <div class="football">⚽</div>
+                <div class="impact-star" id="impact">💥</div>
+            </div>
+
+            <div class="walking-demo" id="walking-demo">
+                <div class="road"></div>
+                <div class="walker" id="walker">🚶</div>
+                <div class="push-arrow" id="push-arrow">→</div>
+                <div class="push-label" id="push-label">Foot pushes road</div>
+                <div class="reaction-arrow" id="reaction-arrow">←</div>
+                <div class="reaction-label" id="reaction-label">Road pushes foot</div>
+            </div>
+
+            <div class="recoil-demo" id="recoil-demo">
+                <div class="gun" id="gun">🔫</div>
+                <div class="bullet" id="bullet"></div>
+                <div class="muzzle-flash" id="flash">💥</div>
+            </div>
+
+            <div class="cart-demo" id="cart-demo">
+                <div class="cart" id="cart1">
+                    <div class="cart-person">🧑</div>
+                </div>
+                <div class="sandbag" id="sandbag"></div>
+                <div class="cart" id="cart2">
+                    <div class="cart-person">👧</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="controls-title" id="demo-title">Explore Action-Reaction Pairs</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playFullLesson()">📚 Complete Lesson</button>
+                <button class="demo-btn" onclick="showSpringDemo()">⚖️ Spring Balance</button>
+                <button class="demo-btn" onclick="showCollisionDemo()">💥 Collision</button>
+                <button class="demo-btn" onclick="showWalkingDemo()">🚶 Walking</button>
+                <button class="demo-btn" onclick="showRecoilDemo()">🔫 Gun Recoil</button>
+                <button class="demo-btn" onclick="showCartDemo()">🛒 Cart Activity</button>
+                <button class="demo-btn" onclick="resetAllClick()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <div class="theory-section">
+            <div class="law-statement">
+                <div class="law-title">Newton's Third Law of Motion</div>
+                <div class="law-content">
+                    When one object exerts a force on another object, the second object instantaneously 
+                    exerts a force back on the first. These two forces are always equal in magnitude 
+                    but opposite in direction. These forces act on different objects and never on the 
+                    same object.
+                </div>
+            </div>
+
+            <div class="key-points">
+                <div class="point-card">
+                    <div class="point-icon">⚖️</div>
+                    <div class="point-title">Equal & Opposite</div>
+                    <div class="point-text">
+                        Action and reaction forces are always equal in magnitude but opposite in direction. 
+                        If you push with 10 N, you get pushed back with 10 N.
+                    </div>
+                </div>
+                <div class="point-card">
+                    <div class="point-icon">💥</div>
+                    <div class="point-title">Different Objects</div>
+                    <div class="point-text">
+                        Action and reaction forces always act on different objects. They never cancel out 
+                        because they don't act on the same body.
+                    </div>
+                </div>
+                <div class="point-card">
+                    <div class="point-icon">⚡</div>
+                    <div class="point-title">Simultaneous</div>
+                    <div class="point-text">
+                        Action and reaction occur simultaneously. There's no time delay - the moment 
+                        you push, you get pushed back instantly.
+                    </div>
+                </div>
+                <div class="point-card">
+                    <div class="point-icon">📊</div>
+                    <div class="point-title">Different Accelerations</div>
+                    <div class="point-text">
+                        Equal forces can produce different accelerations if masses are different. 
+                        F = ma, so smaller mass means larger acceleration.
+                    </div>
+                </div>
+            </div>
+
+            <div class="force-pairs">
+                <div class="pair-title">🎯 Common Action-Reaction Pairs</div>
+                <div class="pair-item">
+                    <span>Walking: Foot pushes road backward</span>
+                    <span class="pair-arrow">⇄</span>
+                    <span>Road pushes foot forward</span>
+                </div>
+                <div class="pair-item">
+                    <span>Gun: Gun pushes bullet forward</span>
+                    <span class="pair-arrow">⇄</span>
+                    <span>Bullet pushes gun backward (recoil)</span>
+                </div>
+                <div class="pair-item">
+                    <span>Jumping: Sailor pushes boat backward</span>
+                    <span class="pair-arrow">⇄</span>
+                    <span>Boat pushes sailor forward</span>
+                </div>
+                <div class="pair-item">
+                    <span>Collision: Player A pushes Player B</span>
+                    <span class="pair-arrow">⇄</span>
+                    <span>Player B pushes Player A equally</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice System
+        class PhysicsTeacher {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.9, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+        }
+
+        // Global state management
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let currentRunId = 0;
+        let currentTaskId = null; // Track current task ID
+
+        // Function to stop current demo
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++; // invalidate any pending operations from previous demos
+            
+            // Clear current task context
+            currentTaskId = null;
+            
+            // Stop teacher
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            // Stop all animations immediately
+            const allAnimatedElements = document.querySelectorAll('*');
+            allAnimatedElements.forEach(el => {
+                el.style.animation = 'none';
+                el.style.animationPlayState = 'paused';
+            });
+            
+            // Hide all demos immediately
+            document.querySelectorAll('.spring-demo, .collision-demo, .walking-demo, .recoil-demo, .cart-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            isPlaying = false;
+        }
+
+        // Function to check if demo should continue
+        function shouldContinue(taskId = null) {
+            // If a specific task ID is provided, check if it matches current task
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        // Function to create new teacher
+        function createNewTeacher(taskId = null) {
+            // Destroy previous teacher if exists
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            // Reset abort flag
+            currentDemoAborted = false;
+            // Set current task ID
+            currentTaskId = taskId;
+            // Create new teacher instance
+            currentTeacher = new PhysicsTeacher();
+            return currentTeacher;
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            const teacher = createNewTeacher('initialization');
+            teacher.speak("Welcome to Newton's Third Law! Let's explore how forces always come in pairs - for every action, there's an equal and opposite reaction.");
+        });
+        
+        // Complete Lesson Function
+        async function playFullLesson() {
+            const taskId = 'full-lesson';
+            // Stop any current demo
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            // Create new teacher for this demo
+            const teacher = createNewTeacher(taskId);
+            
+            // Full reset first
+            await resetAll();
+            
+            // Wait to ensure everything is cleared
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📚 Complete Third Law Lesson");
+            
+            await teacher.speak("Newton's Third Law states that forces always come in pairs. Let me show you through various examples!");
+            
+            // Spring Demo
+            if (!shouldContinue(taskId)) return;
+            await showSpringDemoInternal(teacher, taskId);
+            await wait(3000);
+            
+            // Collision Demo  
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("Now let's see what happens in a collision.");
+            await showCollisionDemoInternal(teacher, taskId);
+            await wait(3000);
+            
+            // Walking Demo
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("Even walking demonstrates the third law!");
+            await showWalkingDemoInternal(teacher, taskId);
+            await wait(3000);
+            
+            // Recoil Demo
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("Gun recoil is a classic example.");
+            await showRecoilDemoInternal(teacher, taskId);
+            await wait(2000);
+
+            // Cart Activity Demo
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("Finally, in our cart activity, watch how both throwing and catching create a push.");
+            await showCartDemoInternal(teacher, taskId);
+
+            await wait(2000);
+            
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("Remember: action and reaction forces are equal, opposite, and act on different objects!");
+            
+            isPlaying = false;
+        }
+
+        // Spring Balance Demo
+        async function showSpringDemo() {
+            const taskId = 'spring-demo';
+            // Stop any current demo
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            // Create new teacher for this demo
+            const teacher = createNewTeacher(taskId);
+            await showSpringDemoInternal(teacher, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showSpringDemoInternal(teacher, taskId) {
+            // Full reset first
+            await resetAll();
+            
+            // Wait to ensure everything is cleared
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("⚖️ Spring Balance Experiment");
+            
+            document.getElementById('spring-demo').classList.add('active');
+            
+            await teacher.speak("Two spring balances connected vertically with a string. Watch what happens when we pull downward!");
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            document.getElementById('hand').classList.add('show');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            document.getElementById('spring-a').classList.add('stretched-a');
+            document.getElementById('spring-b').classList.add('stretched-b');
+            document.getElementById('scale-a').textContent = '5 N';
+            document.getElementById('scale-b').textContent = '5 N';
+            
+            document.getElementById('force-up').classList.add('show');
+            document.getElementById('force-down').classList.add('show');
+            
+            await teacher.speak("Both springs show the same reading! The top spring pulls up on the bottom spring with 5 Newtons, and the bottom spring pulls down on the top spring with exactly 5 Newtons!");
+        }
+
+        // Collision Demo
+        async function showCollisionDemo() {
+            const taskId = 'collision-demo';
+            // Stop any current demo
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            // Create new teacher for this demo
+            const teacher = createNewTeacher(taskId);
+            await showCollisionDemoInternal(teacher, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showCollisionDemoInternal(teacher, taskId) {
+            await resetAll();
+            
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("💥 Football Collision");
+            
+            document.getElementById('collision-demo').classList.add('active');
+            
+            await teacher.speak("Two players collide while going for the ball. Watch the equal and opposite forces!");
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            document.getElementById('player1').classList.add('moving-right');
+            document.getElementById('player2').classList.add('moving-left');
+            
+            setTimeout(() => {
+                if (shouldContinue(taskId)) {
+                    document.getElementById('impact').classList.add('show');
+                }
+            }, 750);
+            
+            await teacher.speak("Both players feel the same force but in opposite directions. That's why both get hurt equally!");
+        }
+
+        // Walking Demo
+        async function showWalkingDemo() {
+            const taskId = 'walking-demo';
+            // Stop any current demo
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            // Create new teacher for this demo
+            const teacher = createNewTeacher(taskId);
+            await showWalkingDemoInternal(teacher, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showWalkingDemoInternal(teacher, taskId) {
+            await resetAll();
+            
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🚶 Walking Mechanics");
+            
+            document.getElementById('walking-demo').classList.add('active');
+            
+            await teacher.speak("To walk forward, you actually push the road backward!");
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            document.getElementById('walker').classList.add('walking');
+            document.getElementById('push-arrow').classList.add('show');
+            document.getElementById('push-label').classList.add('show');
+            document.getElementById('reaction-arrow').classList.add('show');
+            document.getElementById('reaction-label').classList.add('show');
+            
+            await teacher.speak("Your foot pushes the road backward to the right, and the road pushes you forward to the left with equal force. That's how you move!");
+        }
+
+        // Gun Recoil Demo
+        async function showRecoilDemo() {
+            const taskId = 'recoil-demo';
+            // Stop any current demo
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(4);
+            
+            // Create new teacher for this demo
+            const teacher = createNewTeacher(taskId);
+            await showRecoilDemoInternal(teacher, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showRecoilDemoInternal(teacher, taskId) {
+            await resetAll();
+            
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🔫 Gun Recoil");
+            
+            document.getElementById('recoil-demo').classList.add('active');
+            
+            await teacher.speak("When a gun fires, it pushes the bullet forward. Watch the recoil!");
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            document.getElementById('flash').classList.add('show');
+            document.getElementById('bullet').classList.add('fire');
+            document.getElementById('gun').classList.add('recoil');
+            
+            await teacher.speak("The gun pushes the bullet forward, and the bullet pushes the gun backward. The bullet accelerates more because it has less mass!");
+        }
+
+        // Cart Activity Demo
+        async function showCartDemo() {
+            const taskId = 'cart-demo';
+            // Stop any current demo
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(5);
+            
+            // Create new teacher for this demo
+            const teacher = createNewTeacher(taskId);
+            await showCartDemoInternal(teacher, taskId);
+            
+            isPlaying = false;
+        }
+        
+        async function showCartDemoInternal(teacher, taskId) {
+            await resetAll();
+            
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🛒 Cart Activity");
+            
+            document.getElementById('cart-demo').classList.add('active');
+            
+            await teacher.speak("Two children on carts throw a sandbag. Watch how both carts move!");
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            document.getElementById('sandbag').classList.add('throw');
+            document.getElementById('cart1').classList.add('push-left');
+            
+            setTimeout(() => {
+                if (shouldContinue(taskId)) {
+                    document.getElementById('cart2').classList.add('push-right');
+                }
+            }, 900);
+            
+            // Wait for the animation to play out and then explain it
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            await teacher.speak("The thrower is pushed backward as a reaction to pushing the bag forward. The catcher is also pushed backward by the force from the bag as they stop its motion.");
+        }
+
+        // Helper Functions
+        async function resetAll() {
+            // Stop all animations
+            const allAnimatedElements = document.querySelectorAll('*');
+            allAnimatedElements.forEach(el => {
+                el.style.animation = '';
+                el.style.animationPlayState = '';
+            });
+            
+            // Hide all demos
+            document.querySelectorAll('.spring-demo, .collision-demo, .walking-demo, .recoil-demo, .cart-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            // Reset spring demo
+            document.getElementById('hand').classList.remove('show');
+            document.getElementById('spring-a').classList.remove('stretched-a');
+            document.getElementById('spring-b').classList.remove('stretched-b');
+            document.getElementById('scale-a').textContent = '0 N';
+            document.getElementById('scale-b').textContent = '0 N';
+            document.getElementById('force-up').classList.remove('show');
+            document.getElementById('force-down').classList.remove('show');
+            
+            // Reset collision demo
+            document.getElementById('player1').classList.remove('moving-right');
+            document.getElementById('player2').classList.remove('moving-left');
+            document.getElementById('impact').classList.remove('show');
+
+            // Reset walking demo
+            document.getElementById('walker').classList.remove('walking');
+            document.getElementById('push-arrow').classList.remove('show');
+            document.getElementById('push-label').classList.remove('show');
+            document.getElementById('reaction-arrow').classList.remove('show');
+            document.getElementById('reaction-label').classList.remove('show');
+
+            // Reset recoil demo
+            document.getElementById('gun').classList.remove('recoil');
+            document.getElementById('bullet').classList.remove('fire');
+            document.getElementById('flash').classList.remove('show');
+
+            // Reset cart demo
+            document.getElementById('cart1').classList.remove('push-left');
+            document.getElementById('cart2').classList.remove('push-right');
+            document.getElementById('sandbag').classList.remove('throw');
+            
+            updateTitle("Explore Action-Reaction Pairs");
+            
+            await wait(300);
+        }
+
+        // Reset Button Handler
+        async function resetAllClick() {
+            // Stop any running demo
+            stopCurrentDemo();
+            isPlaying = false;
+            // Perform full reset
+            await resetAll();
+        }
+
+        function updateTitle(title) {
+            document.getElementById('demo-title').textContent = title;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+            
+            // If audio is disabled, stop current speech
+            if (!globalAudioEnabled && currentTeacher) {
+                currentTeacher.stop();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,2596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magnetic Field Due to Current-Carrying Conductor - Interactive Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --magnetic-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --electric-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --field-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --copper-gradient: linear-gradient(135deg, #b87333 0%, #cd7f32 100%);
+            --iron-gradient: linear-gradient(135deg, #8b4513 0%, #a0522d 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #00f2fe;
+            --shadow-primary: 0 20px 40px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 25px 50px rgba(0, 0, 0, 0.4);
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-magnetic {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            margin: 0 auto 30px;
+        }
+
+        .magnetic-particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: magneticOrbit 3s linear infinite;
+        }
+
+        .magnetic-particle:nth-child(1) { 
+            background: #ff6b6b; 
+            animation-delay: 0s;
+            --orbit-radius: 80px;
+        }
+        .magnetic-particle:nth-child(2) { 
+            background: #4facfe; 
+            animation-delay: 0.5s;
+            --orbit-radius: 60px;
+        }
+        .magnetic-particle:nth-child(3) { 
+            background: #f093fb; 
+            animation-delay: 1s;
+            --orbit-radius: 40px;
+        }
+        .magnetic-particle:nth-child(4) { 
+            background: #00f2fe; 
+            animation-delay: 1.5s;
+            --orbit-radius: 70px;
+        }
+
+        @keyframes magneticOrbit {
+            0% {
+                transform: translate(100px, 100px) rotate(0deg) translateX(var(--orbit-radius)) rotate(0deg);
+            }
+            100% {
+                transform: translate(100px, 100px) rotate(360deg) translateX(var(--orbit-radius)) rotate(-360deg);
+            }
+        }
+
+        .loading-text {
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            font-weight: 600;
+            background: var(--magnetic-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 2s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 50px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            backdrop-filter: blur(20px);
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: var(--magnetic-gradient);
+            opacity: 0.3;
+            z-index: -1;
+            border-radius: 30px;
+            animation: magneticPulse 5s ease-in-out infinite;
+        }
+
+        @keyframes magneticPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.5; }
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: var(--magnetic-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: 800;
+            animation: titleFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes titleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .main-display {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .demo-container {
+            height: 500px;
+            overflow: hidden;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .content-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+            max-height: 600px;
+        }
+
+        .content-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .content-container::-webkit-scrollbar-thumb {
+            background: var(--magnetic-gradient);
+            border-radius: 4px;
+        }
+
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: var(--magnetic-gradient);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            min-width: 180px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .control-btn.active {
+            background: var(--field-gradient);
+            transform: translateY(-2px);
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            margin-top: 20px;
+        }
+
+        .display-section {
+            display: none;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .display-section.active {
+            display: block;
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .demo-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            border: 2px solid var(--glass-border);
+            overflow: hidden;
+        }
+
+        .demo-stage canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .info-panel {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            border-radius: 20px;
+            margin: 20px 0;
+            border-left: 4px solid var(--text-accent);
+            box-shadow: 0 8px 25px rgba(0, 242, 254, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .info-title {
+            color: var(--text-accent);
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .phenomenon-box {
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.1), rgba(0, 242, 254, 0.1));
+            border-left: 4px solid #4facfe;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .phenomenon-box h3 {
+            color: #4facfe;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+
+        .data-table {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .data-table th {
+            background: var(--magnetic-gradient);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .interactive-controls {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .slider-container {
+            margin: 15px 0;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--magnetic-gradient);
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--magnetic-gradient);
+            cursor: pointer;
+        }
+
+        .chart-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            height: 400px;
+            position: relative;
+        }
+
+        .lesson-progress {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--magnetic-gradient);
+            transition: width 0.5s ease;
+            border-radius: 5px;
+        }
+
+        #audio-toggle {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--magnetic-gradient);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+        }
+
+        #audio-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .example-card {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 15px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .example-card:hover {
+            transform: translateX(5px);
+        }
+
+        .field-indicator {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin: 0 5px;
+            font-weight: 600;
+        }
+
+        .north-pole {
+            background: linear-gradient(135deg, #ff6b6b, #ff8787);
+            color: white;
+        }
+
+        .south-pole {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+        }
+
+        .activity-box {
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.1), rgba(245, 87, 108, 0.1));
+            border-left: 4px solid #f093fb;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(240, 147, 251, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .activity-box h3 {
+            color: #f093fb;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .control-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-magnetic">
+                <div class="magnetic-particle"></div>
+                <div class="magnetic-particle"></div>
+                <div class="magnetic-particle"></div>
+                <div class="magnetic-particle"></div>
+            </div>
+            <div class="loading-text">Initializing Magnetic Field Laboratory...</div>
+        </div>
+    </div>
+
+    <!-- Audio Control -->
+    <button id="audio-toggle" title="Toggle Audio Narration">🔊</button>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>⚡ Magnetic Field Due to Current-Carrying Conductor</h1>
+            <p>Discover how electric current creates magnetic fields and explore the fundamental principles behind electromagnets</p>
+        </div>
+
+        <!-- Main Display Area -->
+        <div class="main-display">
+            <!-- Demo Container -->
+            <div class="demo-container">
+                <!-- Complete Lesson Section -->
+                <div class="display-section active" id="lesson-section">
+                    <div class="demo-stage">
+                        <div id="lessonContent">
+                            <!-- Dynamic content -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Straight Wire Section -->
+                <div class="display-section" id="straight-wire-section">
+                    <div class="demo-stage">
+                        <canvas id="straightWireCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Right Hand Rule Section -->
+                <div class="display-section" id="right-hand-section">
+                    <div class="demo-stage">
+                        <canvas id="rightHandCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Circular Loop Section -->
+                <div class="display-section" id="circular-loop-section">
+                    <div class="demo-stage">
+                        <canvas id="circularLoopCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Solenoid Section -->
+                <div class="display-section" id="solenoid-section">
+                    <div class="demo-stage">
+                        <canvas id="solenoidCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Data Section -->
+                <div class="display-section" id="data-section">
+                    <div class="demo-stage">
+                        <div class="chart-container">
+                            <canvas id="magneticChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Container -->
+            <div class="content-container">
+                <!-- Straight Wire Content -->
+                <div class="display-section" id="straight-wire-content">
+                    <div class="info-panel">
+                        <div class="info-title">🔌 Magnetic Field Around Straight Wire</div>
+                        <p>When electric current flows through a straight conductor, it produces concentric circular magnetic field lines around the wire</p>
+                    </div>
+                    
+                    <div class="activity-box">
+                        <h3>Activity 12.4: Compass and Straight Wire</h3>
+                        <p>Place a compass needle parallel to a current-carrying copper wire. When current flows, the compass needle deflects, proving the presence of a magnetic field.</p>
+                        <ul style="margin-left: 20px; line-height: 2;">
+                            <li>Current from north to south → needle moves east</li>
+                            <li>Current from south to north → needle moves west</li>
+                            <li>Field direction reverses with current direction</li>
+                        </ul>
+                    </div>
+
+                    <div class="activity-box">
+                        <h3>Activity 12.5: Iron Filings Pattern</h3>
+                        <p>Sprinkle iron filings around a vertical current-carrying wire to visualize the magnetic field pattern:</p>
+                        <ul style="margin-left: 20px; line-height: 2;">
+                            <li>Iron filings form concentric circles</li>
+                            <li>Circles represent magnetic field lines</li>
+                            <li>Field strength decreases with distance</li>
+                            <li>Higher current creates stronger field</li>
+                        </ul>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Key Observations</h3>
+                        <div class="example-card">
+                            <h4>🧭 Direction Dependence</h4>
+                            <p>The magnetic field direction depends on the current direction through the conductor.</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>📏 Distance Effect</h4>
+                            <p>Magnetic field strength decreases as distance from the conductor increases.</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>⚡ Current Magnitude</h4>
+                            <p>Stronger current produces a stronger magnetic field at any given point.</p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Right Hand Rule Content -->
+                <div class="display-section" id="right-hand-content">
+                    <div class="info-panel">
+                        <div class="info-title">👍 Right-Hand Thumb Rule</div>
+                        <p>A convenient method to determine the direction of magnetic field around a current-carrying conductor</p>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>How to Apply the Rule</h3>
+                        <p>Imagine holding a current-carrying straight conductor in your right hand:</p>
+                        <ol style="margin-left: 20px; line-height: 2;">
+                            <li><strong>Thumb Direction:</strong> Point thumb in direction of current flow</li>
+                            <li><strong>Finger Direction:</strong> Your fingers curl in direction of magnetic field lines</li>
+                            <li><strong>Field Pattern:</strong> Concentric circles around the conductor</li>
+                        </ol>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Maxwell's Corkscrew Rule</h3>
+                        <p>Alternative method: If you drive a corkscrew in the direction of current, the direction of rotation gives the magnetic field direction.</p>
+                    </div>
+
+                    <div class="example-card">
+                        <h4>📚 Example 12.1 Solution</h4>
+                        <p><strong>Problem:</strong> Current flows east to west through horizontal power line.</p>
+                        <p><strong>Solution:</strong> Using right-hand thumb rule:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Field turns clockwise when viewed from east</li>
+                            <li>Field turns anti-clockwise when viewed from west</li>
+                            <li>Point below wire: field points south</li>
+                            <li>Point above wire: field points north</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Circular Loop Content -->
+                <div class="display-section" id="circular-loop-content">
+                    <div class="info-panel">
+                        <div class="info-title">⭕ Magnetic Field of Circular Loop</div>
+                        <p>When a straight wire is bent into a circular loop, the magnetic field pattern changes significantly</p>
+                    </div>
+
+                    <div class="activity-box">
+                        <h3>Activity 12.6: Circular Coil Field</h3>
+                        <p>Insert a circular coil through cardboard and observe iron filing patterns:</p>
+                        <ul style="margin-left: 20px; line-height: 2;">
+                            <li>Field lines form complex curved patterns</li>
+                            <li>Field is concentrated at the center</li>
+                            <li>Multiple turns increase field strength</li>
+                        </ul>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Field Characteristics</h3>
+                        <div class="example-card">
+                            <h4>🎯 Central Field</h4>
+                            <p>At the center of the loop, field lines appear straight and perpendicular to the loop plane.</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>🔄 Cumulative Effect</h4>
+                            <p>Each segment of the loop contributes field in the same direction at the center.</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>📊 Multiple Turns</h4>
+                            <p>For n turns, field strength is n times that of a single turn.</p>
+                        </div>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Mathematical Relationship</h3>
+                        <p>For a circular loop with n turns carrying current I:</p>
+                        <p style="text-align: center; font-size: 1.2rem; margin: 20px 0;">
+                            B ∝ n × I
+                        </p>
+                        <p>The field at the center is directly proportional to both the number of turns and the current.</p>
+                    </div>
+
+                </div>
+
+                <!-- Solenoid Content -->
+                <div class="display-section" id="solenoid-content">
+                    <div class="info-panel">
+                        <div class="info-title">🌀 Solenoid - Electromagnet</div>
+                        <p>A solenoid is a coil of many circular turns wrapped in a cylindrical shape, creating a strong uniform magnetic field</p>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>What is a Solenoid?</h3>
+                        <p>A solenoid consists of many circular turns of insulated copper wire wrapped closely in the shape of a cylinder. It behaves like a bar magnet when current flows through it.</p>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Magnetic Field Pattern</h3>
+                        <div class="example-card">
+                            <h4>🧲 Similar to Bar Magnet</h4>
+                            <p>The field pattern around a solenoid resembles that of a bar magnet.</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>🎯 Uniform Internal Field</h4>
+                            <p>Inside the solenoid, field lines are parallel and uniform.</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>🔄 Magnetic Poles</h4>
+                            <p>One end acts as north pole, the other as south pole.</p>
+                        </div>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Electromagnet Formation</h3>
+                        <p>When a soft iron core is placed inside the solenoid, it becomes magnetized and forms an <strong>electromagnet</strong>. This greatly increases the magnetic field strength.</p>
+                        <ul style="margin-left: 20px; line-height: 2;">
+                            <li>Soft iron core concentrates field lines</li>
+                            <li>Temporary magnetization only when current flows</li>
+                            <li>Field strength can be controlled by current</li>
+                            <li>Used in electric bells, motors, and cranes</li>
+                        </ul>
+                    </div>
+
+                </div>
+
+                <!-- Data Analysis Content -->
+                <div class="display-section" id="data-content">
+                    <div class="info-panel">
+                        <div class="info-title">📊 Quantitative Analysis</div>
+                        <p>Understanding the mathematical relationships in electromagnetic phenomena</p>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Key Relationships</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Configuration</th>
+                                    <th>Field Formula</th>
+                                    <th>Key Factor</th>
+                                    <th>Applications</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Straight Wire</td>
+                                    <td>B ∝ I/r</td>
+                                    <td>Distance (r)</td>
+                                    <td>Power lines</td>
+                                </tr>
+                                <tr>
+                                    <td>Circular Loop</td>
+                                    <td>B ∝ nI</td>
+                                    <td>Number of turns (n)</td>
+                                    <td>Coils</td>
+                                </tr>
+                                <tr>
+                                    <td>Solenoid</td>
+                                    <td>B = μ₀nI</td>
+                                    <td>Turn density (n/l)</td>
+                                    <td>Electromagnets</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Factors Affecting Field Strength</h3>
+                        <div class="example-card">
+                            <h4>⚡ Current (I)</h4>
+                            <p>Doubling current doubles magnetic field strength</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>🔄 Number of Turns (n)</h4>
+                            <p>More turns create stronger, more concentrated fields</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>📏 Distance (r)</h4>
+                            <p>Field strength decreases with distance from conductor</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>🧲 Core Material</h4>
+                            <p>Iron core can increase field strength by 1000x</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button class="control-btn active" data-mode="lesson">🎯 Complete Lesson</button>
+            <button class="control-btn" data-mode="straight-wire">📏 Straight Wire</button>
+            <button class="control-btn" data-mode="right-hand">👍 Right-Hand Rule</button>
+            <button class="control-btn" data-mode="circular-loop">⭕ Circular Loop</button>
+            <button class="control-btn" data-mode="solenoid">🌀 Solenoid</button>
+            <button class="control-btn" data-mode="data">📊 Data Analysis</button>
+        </div>
+        
+        <!-- Reset Button -->
+        <div style="text-align: center;">
+            <button class="control-btn reset-btn" id="resetBtn">🔄 Reset Everything</button>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let audioEnabled = true;
+        let currentMode = 'lesson';
+        let lessonSequence = null;
+        let charts = {};
+        let animationFrames = {};
+        let lessonStarted = false;
+        let currentDirection = 1;
+        let ironCore = false;
+
+        // Audio System
+        class AudioNarrator {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.enabled = true;
+                this.speaking = false;
+            }
+
+            speak(text, priority = false) {
+                if (!this.enabled) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    if (priority) {
+                        this.stop();
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.9;
+                    
+                    utterance.onend = () => {
+                        this.speaking = false;
+                        resolve();
+                    };
+                    
+                    this.synth.speak(utterance);
+                    this.speaking = true;
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.speaking = false;
+            }
+
+            toggle() {
+                this.enabled = !this.enabled;
+                if (!this.enabled) this.stop();
+                return this.enabled;
+            }
+        }
+
+        const narrator = new AudioNarrator();
+
+        // Enhanced 3D Straight Wire Animation
+        function animateStraightWire() {
+    const canvas = document.getElementById('straightWireCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    let time = 0;
+    const currentStrength = 5;
+    const distance = 100;
+    
+    function draw() {
+        // Deep space gradient background
+        const bgGradient = ctx.createRadialGradient(600, 250, 0, 600, 250, 800);
+        bgGradient.addColorStop(0, '#050510');
+        bgGradient.addColorStop(0.3, '#0a1929');
+        bgGradient.addColorStop(0.6, '#1e3c72');
+        bgGradient.addColorStop(1, '#050510');
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // 3D perspective grid layers
+        for (let depth = 5; depth > 0; depth--) {
+            const scale = depth / 5;
+            const opacity = 0.02 * scale;
+            ctx.strokeStyle = `rgba(100, 150, 255, ${opacity})`;
+            ctx.lineWidth = 0.5 * scale;
+            
+            // Horizontal grid lines with perspective
+            for (let y = 100; y < 400; y += 30 / scale) {
+                const perspective = (y - 250) / 500;
+                ctx.beginPath();
+                ctx.moveTo(300 - perspective * 200 * scale, y);
+                ctx.lineTo(900 + perspective * 200 * scale, y);
+                ctx.stroke();
+            }
+        }
+        
+        // Ultra-realistic 3D wire
+        ctx.save();
+        
+        // Deep shadow layers
+        for (let i = 5; i > 0; i--) {
+            ctx.shadowColor = `rgba(0, 0, 0, ${0.1 * i})`;
+            ctx.shadowBlur = 5 * i;
+            ctx.shadowOffsetX = 2 * i;
+            ctx.shadowOffsetY = 2 * i;
+        }
+        
+        // Wire with complex metallic gradient
+        const wireGradient = ctx.createLinearGradient(580, 0, 620, 0);
+        wireGradient.addColorStop(0, '#2a1810');
+        wireGradient.addColorStop(0.15, '#5a3820');
+        wireGradient.addColorStop(0.3, '#8b4513');
+        wireGradient.addColorStop(0.45, '#cd7f32');
+        wireGradient.addColorStop(0.5, '#ffd700');
+        wireGradient.addColorStop(0.55, '#cd7f32');
+        wireGradient.addColorStop(0.7, '#8b4513');
+        wireGradient.addColorStop(0.85, '#5a3820');
+        wireGradient.addColorStop(1, '#2a1810');
+        
+        ctx.strokeStyle = wireGradient;
+        ctx.lineWidth = 35;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(600, 20);
+        ctx.lineTo(600, 480);
+        ctx.stroke();
+        
+        // Multiple specular highlights for realism
+        ctx.shadowBlur = 0;
+        for (let i = 0; i < 3; i++) {
+            const offset = 590 + i * 4;
+            const highlight = ctx.createLinearGradient(offset, 0, offset + 2, 0);
+            highlight.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            highlight.addColorStop(0.5, `rgba(255, 255, 255, ${0.6 - i * 0.15})`);
+            highlight.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            ctx.strokeStyle = highlight;
+            ctx.lineWidth = 2 - i * 0.5;
+            ctx.beginPath();
+            ctx.moveTo(offset + 1, 30);
+            ctx.lineTo(offset + 1, 470);
+            ctx.stroke();
+        }
+        
+        ctx.restore();
+        
+        // 3D Current particles with volumetric glow
+        if (currentStrength > 0) {
+            for (let i = 0; i < 20; i++) {
+                const y = (time * 4 * currentDirection + i * 25) % 520 - 20;
+                if (y < 20 || y > 480) continue;
+                
+                // Multi-layer particle glow
+                for (let glow = 4; glow > 0; glow--) {
+                    const size = 6 * glow;
+                    const particleGlow = ctx.createRadialGradient(600, y, 0, 600, y, size);
+                    particleGlow.addColorStop(0, `rgba(255, 255, 100, ${0.4 / glow})`);
+                    particleGlow.addColorStop(0.2, `rgba(255, 220, 50, ${0.3 / glow})`);
+                    particleGlow.addColorStop(0.5, `rgba(255, 180, 0, ${0.15 / glow})`);
+                    particleGlow.addColorStop(1, 'rgba(255, 100, 0, 0)');
+                    
+                    ctx.fillStyle = particleGlow;
+                    ctx.beginPath();
+                    ctx.arc(600, y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // Core particle
+                ctx.fillStyle = 'rgba(255, 255, 200, 0.9)';
+                ctx.beginPath();
+                ctx.arc(600, y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // Ultra-realistic 3D magnetic field lines
+        if (currentStrength > 0) {
+            // Draw field lines in 3D layers
+            for (let layer = 0; layer < 4; layer++) {
+                const layerZ = (layer - 1.5) * 30; // Z-depth offset
+                const layerScale = 1 - Math.abs(layerZ) / 150;
+                const layerOpacity = layerScale;
+                
+                for (let r = 50; r < 250; r += 35) {
+                    const fieldOpacity = (currentStrength / 10) * (250 - r) / 250 * layerOpacity;
+                    
+                    ctx.save();
+                    ctx.translate(600, 250 + layerZ * 0.3);
+                    
+                    // Draw field line as series of curved segments
+                    for (let segment = 0; segment < 40; segment++) {
+                        const angle1 = (segment / 40) * Math.PI * 2;
+                        const angle2 = ((segment + 1) / 40) * Math.PI * 2;
+                        
+                        // Calculate 3D positions with perspective
+                        const x1 = Math.cos(angle1) * r * layerScale;
+                        const y1 = Math.sin(angle1) * r * 0.6 * layerScale; // Elliptical shape
+                        const z1 = Math.sin(angle1 * 2) * 10 * layerScale; // Sinusoidal Z variation
+                        
+                        const x2 = Math.cos(angle2) * r * layerScale;
+                        const y2 = Math.sin(angle2) * r * 0.6 * layerScale;
+                        const z2 = Math.sin(angle2 * 2) * 10 * layerScale;
+                        
+                        // Depth-based opacity (front brighter, back dimmer)
+                        const depthFactor1 = (Math.sin(angle1) + 1.5) / 2.5;
+                        const depthFactor2 = (Math.sin(angle2) + 1.5) / 2.5;
+                        
+                        // Apply perspective transformation
+                        const perspective1 = 1 + z1 / 500;
+                        const perspective2 = 1 + z2 / 500;
+                        
+                        const px1 = x1 * perspective1;
+                        const py1 = (y1 + z1 * 0.5) * perspective1;
+                        const px2 = x2 * perspective2;
+                        const py2 = (y2 + z2 * 0.5) * perspective2;
+                        
+                        // Gradient for each segment
+                        const segmentGradient = ctx.createLinearGradient(px1, py1, px2, py2);
+                        segmentGradient.addColorStop(0, `rgba(100, 180, 255, ${fieldOpacity * depthFactor1})`);
+                        segmentGradient.addColorStop(0.5, `rgba(150, 220, 255, ${fieldOpacity * (depthFactor1 + depthFactor2) / 2})`);
+                        segmentGradient.addColorStop(1, `rgba(100, 180, 255, ${fieldOpacity * depthFactor2})`);
+                        
+                        ctx.strokeStyle = segmentGradient;
+                        ctx.lineWidth = 2.5 * layerScale * ((depthFactor1 + depthFactor2) / 2);
+                        
+                        // Draw segment with subtle animation
+                        ctx.setLineDash([8, 4]);
+                        ctx.lineDashOffset = -time * 0.5 * currentDirection - segment * 2;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(px1, py1);
+                        
+                        // Bezier curve for smooth connection
+                        const cx = (px1 + px2) / 2 + Math.sin(angle1 + time * 0.01) * 2;
+                        const cy = (py1 + py2) / 2 + Math.cos(angle1 + time * 0.01) * 2;
+                        ctx.quadraticCurveTo(cx, cy, px2, py2);
+                        ctx.stroke();
+                        
+                        // Add glow effect for brighter segments
+                        if (depthFactor1 > 0.7) {
+                            ctx.shadowColor = 'rgba(100, 200, 255, 0.5)';
+                            ctx.shadowBlur = 8 * layerScale;
+                            ctx.stroke();
+                            ctx.shadowBlur = 0;
+                        }
+                        
+                        // Directional arrows on field lines
+                        if (segment % 5 === 0 && r < 200) {
+                            const arrowAngle = angle1 + Math.PI/2 * currentDirection;
+                            const arrowSize = 8 * layerScale * depthFactor1;
+                            
+                            ctx.save();
+                            ctx.translate(px1, py1);
+                            ctx.rotate(arrowAngle);
+                            
+                            // Arrow with gradient
+                            const arrowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, arrowSize);
+                            arrowGradient.addColorStop(0, `rgba(150, 220, 255, ${fieldOpacity * depthFactor1})`);
+                            arrowGradient.addColorStop(1, 'rgba(100, 180, 255, 0)');
+                            
+                            ctx.fillStyle = arrowGradient;
+                            ctx.beginPath();
+                            ctx.moveTo(0, -arrowSize);
+                            ctx.lineTo(-arrowSize * 0.6, arrowSize * 0.6);
+                            ctx.lineTo(arrowSize * 0.6, arrowSize * 0.6);
+                            ctx.closePath();
+                            ctx.fill();
+                            
+                            ctx.restore();
+                        }
+                    }
+                    
+                    ctx.setLineDash([]);
+                    ctx.restore();
+                }
+            }
+            
+            // Add field line convergence/divergence effect
+            const convergenceGlow = ctx.createRadialGradient(600, 250, 0, 600, 250, 300);
+            convergenceGlow.addColorStop(0, `rgba(100, 180, 255, ${currentStrength * 0.01})`);
+            convergenceGlow.addColorStop(0.5, `rgba(100, 180, 255, ${currentStrength * 0.005})`);
+            convergenceGlow.addColorStop(1, 'rgba(100, 180, 255, 0)');
+            
+            ctx.fillStyle = convergenceGlow;
+            ctx.fillRect(300, 0, 600, 500);
+        }
+        
+        // Information panel with glass effect
+        ctx.save();
+        
+        // Panel background with blur effect
+        const panelGradient = ctx.createLinearGradient(50, 50, 50, 200);
+        panelGradient.addColorStop(0, 'rgba(10, 20, 40, 0.7)');
+        panelGradient.addColorStop(1, 'rgba(20, 30, 50, 0.9)');
+        
+        ctx.fillStyle = panelGradient;
+        ctx.fillRect(50, 50, 300, 130);
+        
+        // Glass border
+        ctx.strokeStyle = 'rgba(100, 180, 255, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(50, 50, 300, 130);
+        
+        // Text with glow
+        ctx.shadowColor = 'rgba(100, 200, 255, 0.5)';
+        ctx.shadowBlur = 5;
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText('3D Magnetic Field Visualization', 70, 80);
+        
+        ctx.font = '14px Arial';
+        ctx.fillText(`Current: ${currentStrength} A`, 70, 105);
+        ctx.fillText(`Distance: ${distance} cm`, 70, 125);
+        ctx.fillText(`Field Strength: ${(currentStrength * 10 / (distance/10)).toFixed(2)} µT`, 70, 145);
+        ctx.fillText(`Direction: ${currentDirection > 0 ? 'Upward ↑' : 'Downward ↓'}`, 70, 165);
+        
+        ctx.restore();
+        
+        time++;
+        animationFrames.straightWire = requestAnimationFrame(draw);
+    }
+    
+    draw();
+}
+
+        // Enhanced 3D Right-Hand Rule Animation
+ // Enhanced and Corrected Right Hand Rule Animation
+function animateRightHandRule() {
+    const canvas = document.getElementById('rightHandCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    let time = 0;
+    let rotationAngle = 0;
+    let viewMode = 0; // 0: perspective, 1: top view, 2: side view
+    
+    function draw() {
+        // Dynamic gradient background with depth
+        const bgGradient = ctx.createRadialGradient(600, 250, 0, 600, 250, 800);
+        bgGradient.addColorStop(0, '#000005');
+        bgGradient.addColorStop(0.3, '#0a1929');
+        bgGradient.addColorStop(0.6, '#1e3c72');
+        bgGradient.addColorStop(0.8, '#0a1929');
+        bgGradient.addColorStop(1, '#000005');
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Subtle star field for depth
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        for (let i = 0; i < 50; i++) {
+            const x = (i * 137.5 + time * 0.1) % canvas.width;
+            const y = (i * 89.7) % canvas.height;
+            const size = Math.sin(i + time * 0.02) * 0.5 + 1;
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Main demonstration area
+        ctx.save();
+        ctx.translate(600, 250);
+        
+        // Apply rotation for 3D view
+        rotationAngle = Math.sin(time * 0.01) * 0.3;
+        
+        // Draw 3D coordinate system
+        ctx.strokeStyle = 'rgba(100, 150, 255, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        
+        // X-axis
+        ctx.beginPath();
+        ctx.moveTo(-300, 0);
+        ctx.lineTo(300, 0);
+        ctx.stroke();
+        
+        // Y-axis
+        ctx.beginPath();
+        ctx.moveTo(0, -200);
+        ctx.lineTo(0, 200);
+        ctx.stroke();
+        
+        // Z-axis (perspective)
+        ctx.beginPath();
+        ctx.moveTo(-150, -150);
+        ctx.lineTo(150, 150);
+        ctx.stroke();
+        
+        ctx.setLineDash([]);
+        
+        // 3D Wire with ultra-realistic rendering
+        ctx.save();
+        ctx.rotate(rotationAngle);
+        
+        // Multiple shadow layers for depth
+        for (let i = 4; i > 0; i--) {
+            ctx.shadowColor = `rgba(0, 0, 0, ${0.2 * i})`;
+            ctx.shadowBlur = 8 * i;
+            ctx.shadowOffsetX = 4 * i * Math.cos(rotationAngle);
+            ctx.shadowOffsetY = 4 * i;
+        }
+        
+        // Complex copper wire gradient
+        const wireGradient = ctx.createLinearGradient(-25, 0, 25, 0);
+        wireGradient.addColorStop(0, '#3a2418');
+        wireGradient.addColorStop(0.15, '#6b4423');
+        wireGradient.addColorStop(0.3, '#b87333');
+        wireGradient.addColorStop(0.45, '#da9100');
+        wireGradient.addColorStop(0.5, '#ffd700');
+        wireGradient.addColorStop(0.55, '#ffed4e');
+        wireGradient.addColorStop(0.7, '#da9100');
+        wireGradient.addColorStop(0.85, '#b87333');
+        wireGradient.addColorStop(1, '#3a2418');
+        
+        ctx.strokeStyle = wireGradient;
+        ctx.lineWidth = 40;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(0, -180);
+        ctx.lineTo(0, 180);
+        ctx.stroke();
+        
+        // Metallic highlights
+        ctx.shadowBlur = 0;
+        for (let i = 0; i < 3; i++) {
+            const offset = -12 + i * 8;
+            const highlightGradient = ctx.createLinearGradient(offset - 2, 0, offset + 2, 0);
+            highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            highlightGradient.addColorStop(0.5, `rgba(255, 255, 255, ${0.7 - i * 0.2})`);
+            highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            ctx.strokeStyle = highlightGradient;
+            ctx.lineWidth = 3 - i * 0.8;
+            ctx.beginPath();
+            ctx.moveTo(offset, -170);
+            ctx.lineTo(offset, 170);
+            ctx.stroke();
+        }
+        
+        // Current flow animation (upward)
+        for (let i = 0; i < 8; i++) {
+            const y = 160 - (time * 3 + i * 45) % 340;
+            if (y < -160 || y > 160) continue;
+            
+            // Multi-layer electron glow
+            for (let layer = 3; layer > 0; layer--) {
+                const size = 10 * layer;
+                const electronGlow = ctx.createRadialGradient(0, y, 0, 0, y, size);
+                electronGlow.addColorStop(0, `rgba(255, 255, 100, ${0.5 / layer})`);
+                electronGlow.addColorStop(0.3, `rgba(255, 220, 50, ${0.3 / layer})`);
+                electronGlow.addColorStop(0.6, `rgba(255, 180, 0, ${0.15 / layer})`);
+                electronGlow.addColorStop(1, 'rgba(255, 100, 0, 0)');
+                
+                ctx.fillStyle = electronGlow;
+                ctx.beginPath();
+                ctx.arc(0, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Core bright particle
+            ctx.fillStyle = 'rgba(255, 255, 200, 1)';
+            ctx.beginPath();
+            ctx.arc(0, y, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Large current direction arrow
+        ctx.strokeStyle = '#ffff00';
+        ctx.lineWidth = 10;
+        ctx.shadowColor = 'rgba(255, 255, 0, 0.6)';
+        ctx.shadowBlur = 20;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        ctx.beginPath();
+        ctx.moveTo(0, 120);
+        ctx.lineTo(0, -120);
+        ctx.stroke();
+        
+        // Animated arrow head
+        const arrowPulse = Math.sin(time * 0.05) * 3;
+        ctx.beginPath();
+        ctx.moveTo(0, -120);
+        ctx.lineTo(-20 - arrowPulse, -80);
+        ctx.moveTo(0, -120);
+        ctx.lineTo(20 + arrowPulse, -80);
+        ctx.stroke();
+        
+        // Label for current
+        ctx.fillStyle = '#ffff00';
+        ctx.font = 'bold 20px Arial';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        ctx.shadowBlur = 4;
+        // ctx.fillText('I', -40, -140);
+        // ctx.fillText('Current', -80, -160);
+        
+        ctx.restore();
+        
+        // CORRECTED 3D Magnetic field lines
+        // When current flows UP and we view from the front:
+        // Using right-hand rule: thumb up, fingers curl from right to left across the front
+        // This means field goes: RIGHT on front, DOWN on right, LEFT on back, UP on left
+        
+        for (let r = 60; r < 220; r += 35) {
+            const baseOpacity = (220 - r) / 160;
+            
+            // Multiple depth layers
+            for (let depthLayer = 0; depthLayer < 3; depthLayer++) {
+                const zOffset = (depthLayer - 1) * 25;
+                const depthScale = 1 - Math.abs(zOffset) / 100;
+                const layerOpacity = baseOpacity * depthScale;
+                
+                ctx.save();
+                
+                // Draw field line segments with proper 3D perspective
+                for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 40) {
+                    const nextAngle = angle + Math.PI / 40;
+                    
+                    // 3D positions with perspective
+                    const x1 = Math.sin(angle) * r * depthScale;  // Note: using sin for x
+                    const y1 = Math.cos(angle) * r * 0.6 * depthScale;  // cos for y (elliptical)
+                    const z1 = Math.cos(angle) * r * 0.4 * depthScale;  // depth component
+                    
+                    const x2 = Math.sin(nextAngle) * r * depthScale;
+                    const y2 = Math.cos(nextAngle) * r * 0.6 * depthScale;
+                    const z2 = Math.cos(nextAngle) * r * 0.4 * depthScale;
+                    
+                    // Apply perspective and rotation
+                    const perspectiveFactor1 = 1 + z1 / 500;
+                    const perspectiveFactor2 = 1 + z2 / 500;
+                    
+                    const px1 = x1 * perspectiveFactor1 + rotationAngle * z1;
+                    const py1 = y1 * perspectiveFactor1;
+                    const px2 = x2 * perspectiveFactor2 + rotationAngle * z2;
+                    const py2 = y2 * perspectiveFactor2;
+                    
+                    // Depth-based rendering (back to front)
+                    const depth1 = (Math.cos(angle) + 1) / 2;  // 0 = back, 1 = front
+                    const depth2 = (Math.cos(nextAngle) + 1) / 2;
+                    
+                    // Color based on position
+                    const hue = 200 + depth1 * 40;  // Blue to cyan
+                    const saturation = 80 + depth1 * 20;
+                    const lightness = 50 + depth1 * 30;
+                    
+                    // Segment gradient
+                    const segmentGradient = ctx.createLinearGradient(px1, py1, px2, py2);
+                    segmentGradient.addColorStop(0, `hsla(${hue}, ${saturation}%, ${lightness}%, ${layerOpacity * depth1})`);
+                    segmentGradient.addColorStop(1, `hsla(${hue}, ${saturation}%, ${lightness}%, ${layerOpacity * depth2})`);
+                    
+                    ctx.strokeStyle = segmentGradient;
+                    ctx.lineWidth = 4 * depthScale * (0.5 + depth1 * 0.5);
+                    
+                    // Animated dashes showing correct rotation direction
+                    ctx.setLineDash([10, 5]);
+                    ctx.lineDashOffset = time * 0.8 - angle * 10;  // Positive for correct direction
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(px1, py1);
+                    
+                    // Smooth curve
+                    const cpx = (px1 + px2) / 2 + Math.sin(angle * 3 + time * 0.02) * 2;
+                    const cpy = (py1 + py2) / 2 + Math.cos(angle * 3 + time * 0.02) * 1;
+                    ctx.quadraticCurveTo(cpx, cpy, px2, py2);
+                    ctx.stroke();
+                    
+                    // Glow effect for front segments
+                    if (depth1 > 0.7) {
+                        ctx.shadowColor = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.5)`;
+                        ctx.shadowBlur = 10 * depthScale;
+                        ctx.stroke();
+                        ctx.shadowBlur = 0;
+                    }
+                    
+                    // Directional arrows at key points
+                    if (angle % (Math.PI / 2) < Math.PI / 40 && depthLayer === 1) {
+                        ctx.save();
+                        ctx.translate(px1, py1);
+                        
+                        // Calculate tangent direction (corrected for right-hand rule)
+                        let arrowRotation;
+                        if (angle < Math.PI / 2) {
+                            arrowRotation = 0;  // Right
+                        } else if (angle < Math.PI) {
+                            arrowRotation = Math.PI / 2;  // Down
+                        } else if (angle < 3 * Math.PI / 2) {
+                            arrowRotation = Math.PI;  // Left
+                        } else {
+                            arrowRotation = -Math.PI / 2;  // Up
+                        }
+                        
+                        ctx.rotate(arrowRotation);
+                        
+                        const arrowSize = 12 * depthScale * depth1;
+                        const arrowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, arrowSize);
+                        arrowGradient.addColorStop(0, `hsla(${hue}, ${saturation}%, ${lightness + 20}%, ${layerOpacity * depth1})`);
+                        arrowGradient.addColorStop(1, 'hsla(200, 80%, 70%, 0)');
+                        
+                        ctx.fillStyle = arrowGradient;
+                        ctx.beginPath();
+                        ctx.moveTo(arrowSize, 0);
+                        ctx.lineTo(-arrowSize * 0.6, -arrowSize * 0.8);
+                        ctx.lineTo(-arrowSize * 0.3, 0);
+                        ctx.lineTo(-arrowSize * 0.6, arrowSize * 0.8);
+                        ctx.closePath();
+                        ctx.fill();
+                        
+                        ctx.restore();
+                    }
+                }
+                
+                ctx.setLineDash([]);
+                ctx.restore();
+            }
+            
+            // Add field line labels at cardinal points
+            if (r === 95) {
+                ctx.fillStyle = 'rgba(150, 220, 255, 0.8)';
+                ctx.font = 'bold 14px Arial';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                ctx.shadowBlur = 4;
+                
+                // Front (viewer-facing)
+                ctx.fillText('→', r + 10, 0);
+                // Right
+                ctx.fillText('↓', 0, r + 20);
+                // Back
+                ctx.fillText('←', -r - 20, 0);
+                // Left
+                ctx.fillText('↑', 0, -r - 10);
+            }
+        }
+        
+        // Add magnetic field concentration effect
+        const fieldGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 250);
+        fieldGlow.addColorStop(0, 'rgba(100, 180, 255, 0.05)');
+        fieldGlow.addColorStop(0.5, 'rgba(100, 180, 255, 0.02)');
+        fieldGlow.addColorStop(1, 'rgba(100, 180, 255, 0)');
+        ctx.fillStyle = fieldGlow;
+        ctx.fillRect(-400, -300, 800, 600);
+        
+        ctx.restore();
+        
+        // Interactive 3D visualization guide
+        ctx.save();
+        
+        // Top instruction panel
+        const topPanelGradient = ctx.createLinearGradient(350, 20, 850, 100);
+        topPanelGradient.addColorStop(0, 'rgba(10, 20, 40, 0.8)');
+        topPanelGradient.addColorStop(1, 'rgba(20, 30, 50, 0.95)');
+        
+        ctx.fillStyle = topPanelGradient;
+        ctx.fillRect(350, 20, 500, 80);
+        
+        ctx.strokeStyle = 'rgba(100, 180, 255, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(350, 20, 500, 80);
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 22px Arial';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        ctx.shadowBlur = 4;
+        ctx.fillText('Right-Hand Thumb Rule', 480, 50);
+        
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#ffff00';
+        ctx.fillText('Thumb: Current Direction (UP) ↑', 380, 75);
+        ctx.fillStyle = '#66ccff';
+        ctx.fillText('Fingers: Field Rotation (Clockwise from above)', 380, 95);
+        
+        // Bottom explanation panel
+        const bottomPanelGradient = ctx.createLinearGradient(50, 350, 350, 480);
+        bottomPanelGradient.addColorStop(0, 'rgba(10, 20, 40, 0.8)');
+        bottomPanelGradient.addColorStop(1, 'rgba(20, 30, 50, 0.95)');
+        
+        ctx.fillStyle = bottomPanelGradient;
+        ctx.fillRect(50, 350, 300, 130);
+        
+        ctx.strokeStyle = 'rgba(100, 180, 255, 0.5)';
+        ctx.strokeRect(50, 350, 300, 130);
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText('Field Direction (Viewing from Front):', 70, 375);
+        
+        ctx.font = '14px Arial';
+        ctx.fillText('• Front side: Moving RIGHT →', 70, 400);
+        ctx.fillText('• Right side: Moving DOWN ↓', 70, 420);
+        ctx.fillText('• Back side: Moving LEFT ←', 70, 440);
+        ctx.fillText('• Left side: Moving UP ↑', 70, 460);
+        
+        // 3D view indicator
+        const viewAngle = Math.abs(Math.sin(time * 0.01));
+        ctx.fillStyle = `rgba(100, 200, 255, ${0.5 + viewAngle * 0.3})`;
+        ctx.font = '12px Arial';
+        ctx.fillText(`3D View Rotation: ${(rotationAngle * 57.3).toFixed(1)}°`, 850, 480);
+        
+        ctx.restore();
+        
+        // Mini compass indicator showing field rotation
+        ctx.save();
+        ctx.translate(950, 250);
+        
+        // Compass background
+        const compassGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 60);
+        compassGradient.addColorStop(0, 'rgba(20, 30, 50, 0.9)');
+        compassGradient.addColorStop(1, 'rgba(10, 20, 40, 0.7)');
+        
+        ctx.fillStyle = compassGradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, 60, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = 'rgba(100, 180, 255, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 60, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Rotating field indicator
+        ctx.rotate(time * 0.03);
+        ctx.strokeStyle = '#66ccff';
+        ctx.lineWidth = 4;
+        ctx.shadowColor = 'rgba(100, 200, 255, 0.6)';
+        ctx.shadowBlur = 10;
+        
+        // Draw rotation arrow
+        ctx.beginPath();
+        ctx.arc(0, 0, 40, -Math.PI/2, Math.PI);
+        ctx.stroke();
+        
+        // Arrow head
+        // ctx.beginPath();
+        // ctx.moveTo(-40, 0);
+        // ctx.lineTo(-35, -10);
+        // ctx.moveTo(-40, 0);
+        // ctx.lineTo(-30, 5);
+        // ctx.stroke();
+        
+        ctx.restore();
+        
+        // Label for compass
+        // ctx.fillStyle = '#ffffff';
+        // ctx.font = '12px Arial';
+        // ctx.fillText('Field Rotation', 910, 330);
+        // ctx.fillText('(Top View)', 920, 345);
+        
+        time++;
+        animationFrames.rightHand = requestAnimationFrame(draw);
+    }
+    
+    draw();
+}
+function animateCircularLoop() {
+    const canvas = document.getElementById('circularLoopCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    let time = 0;
+    const turns = 3;
+    const current = 3;
+    
+    // 3D rotation angles
+    let rotX = 0.3;
+    let rotY = 0;
+    let autoRotate = true;
+    
+    // 3D field line points
+    const fieldLines = [];
+    const numFieldLines = 12;
+    const pointsPerLine = 50;
+    
+    // Initialize field lines
+    for (let i = 0; i < numFieldLines; i++) {
+        const line = [];
+        const angle = (i / numFieldLines) * Math.PI * 2;
+        
+        for (let j = 0; j < pointsPerLine; j++) {
+            const t = (j / pointsPerLine) * 2 - 1; // -1 to 1
+            line.push({
+                x: Math.cos(angle) * 150 * (1 - Math.abs(t) * 0.5),
+                y: t * 300,
+                z: Math.sin(angle) * 150 * (1 - Math.abs(t) * 0.5)
+            });
+        }
+        fieldLines.push(line);
+    }
+    
+    // 3D transformation function
+    function project3D(x, y, z) {
+        // Apply rotation around X axis
+        const y1 = y * Math.cos(rotX) - z * Math.sin(rotX);
+        const z1 = y * Math.sin(rotX) + z * Math.cos(rotX);
+        
+        // Apply rotation around Y axis
+        const x2 = x * Math.cos(rotY) + z1 * Math.sin(rotY);
+        const z2 = -x * Math.sin(rotY) + z1 * Math.cos(rotY);
+        
+        // Perspective projection
+        const scale = 600 / (600 + z2);
+        const px = x2 * scale + 600;
+        const py = y1 * scale + 250;
+        
+        return { x: px, y: py, scale: scale, depth: z2 };
+    }
+    
+    function draw() {
+        // Dark background for better 3D effect
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(0, 0, 1200, 500);
+        
+        // Add subtle gradient
+        const bgGradient = ctx.createRadialGradient(600, 250, 0, 600, 250, 400);
+        bgGradient.addColorStop(0, 'rgba(20, 30, 60, 0.3)');
+        bgGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, 1200, 500);
+        
+        // Auto rotation
+        if (autoRotate) {
+            rotY = time * 0.005;
+        }
+        
+        const loopRadius = 120;
+        const fieldStrength = turns * current / 5;
+        
+        // Sort objects by depth for proper rendering
+        const renderObjects = [];
+        
+        // Add field lines to render queue
+        if (current > 0) {
+            // Central field lines (straight through middle)
+            for (let i = -3; i <= 3; i++) {
+                for (let j = -3; j <= 3; j++) {
+                    const x = i * 30;
+                    const z = j * 30;
+                    
+                    if (Math.sqrt(x*x + z*z) < loopRadius * 0.8) {
+                        const lineSegments = [];
+                        for (let y = -200; y <= 200; y += 10) {
+                            lineSegments.push(project3D(x, y, z));
+                        }
+                        
+                        renderObjects.push({
+                            type: 'centralField',
+                            segments: lineSegments,
+                            depth: lineSegments[0].depth
+                        });
+                    }
+                }
+            }
+            
+            // Curved field lines around loop
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                const curveSegments = [];
+                
+                for (let t = -1; t <= 1; t += 0.02) {
+                    const r = loopRadius * 1.5 + Math.abs(t) * 100;
+                    const x = Math.cos(angle) * r * (1 - Math.abs(t) * 0.3);
+                    const y = t * 250;
+                    const z = Math.sin(angle) * r * (1 - Math.abs(t) * 0.3);
+                    
+                    curveSegments.push(project3D(x, y, z));
+                }
+                
+                renderObjects.push({
+                    type: 'curvedField',
+                    segments: curveSegments,
+                    depth: curveSegments[Math.floor(curveSegments.length/2)].depth
+                });
+            }
+        }
+        
+        // Add wire loops to render queue
+        for (let turn = 0; turn < turns; turn++) {
+            const offset = (turn - (turns - 1) / 2) * 8;
+            const segments = 60;
+            
+            for (let i = 0; i < segments; i++) {
+                const angle1 = (i / segments) * Math.PI * 2;
+                const angle2 = ((i + 1) / segments) * Math.PI * 2;
+                
+                const p1 = project3D(
+                    Math.cos(angle1) * loopRadius,
+                    offset,
+                    Math.sin(angle1) * loopRadius
+                );
+                
+                const p2 = project3D(
+                    Math.cos(angle2) * loopRadius,
+                    offset,
+                    Math.sin(angle2) * loopRadius
+                );
+                
+                renderObjects.push({
+                    type: 'wire',
+                    p1: p1,
+                    p2: p2,
+                    depth: (p1.depth + p2.depth) / 2,
+                    angle: angle1
+                });
+            }
+        }
+        
+        // Sort by depth (back to front)
+        renderObjects.sort((a, b) => b.depth - a.depth);
+        
+        // Render all objects
+        renderObjects.forEach(obj => {
+            if (obj.type === 'centralField') {
+                // Draw straight field lines through center
+                ctx.strokeStyle = `rgba(100, 200, 255, ${fieldStrength * 0.15})`;
+                ctx.lineWidth = 1.5;
+                
+                ctx.beginPath();
+                obj.segments.forEach((point, i) => {
+                    if (i === 0) ctx.moveTo(point.x, point.y);
+                    else ctx.lineTo(point.x, point.y);
+                });
+                ctx.stroke();
+                
+                // Add arrows
+                const mid = Math.floor(obj.segments.length / 2);
+                const arrow = obj.segments[mid];
+                if (arrow) {
+                    ctx.fillStyle = `rgba(150, 220, 255, ${fieldStrength * 0.4})`;
+                    ctx.beginPath();
+                    ctx.moveTo(arrow.x, arrow.y - 5 * arrow.scale);
+                    ctx.lineTo(arrow.x - 3 * arrow.scale, arrow.y + 3 * arrow.scale);
+                    ctx.lineTo(arrow.x + 3 * arrow.scale, arrow.y + 3 * arrow.scale);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+            else if (obj.type === 'curvedField') {
+                // Draw curved field lines
+                ctx.strokeStyle = `rgba(80, 150, 255, ${fieldStrength * 0.1})`;
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 3]);
+                
+                ctx.beginPath();
+                obj.segments.forEach((point, i) => {
+                    if (i === 0) ctx.moveTo(point.x, point.y);
+                    else ctx.lineTo(point.x, point.y);
+                });
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            else if (obj.type === 'wire') {
+                // Determine if front or back of wire
+                const isFront = obj.depth < 0;
+                
+                // Wire color with 3D shading
+                const brightness = isFront ? 1 : 0.6;
+                const r = Math.floor(184 * brightness);
+                const g = Math.floor(115 * brightness);
+                const b = Math.floor(51 * brightness);
+                
+                ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
+                ctx.lineWidth = 8 * obj.p1.scale;
+                ctx.lineCap = 'round';
+                
+                ctx.beginPath();
+                ctx.moveTo(obj.p1.x, obj.p1.y);
+                ctx.lineTo(obj.p2.x, obj.p2.y);
+                ctx.stroke();
+                
+                // Add highlights on front-facing parts
+                if (isFront && Math.sin(obj.angle) > 0.7) {
+                    ctx.strokeStyle = `rgba(255, 220, 150, 0.4)`;
+                    ctx.lineWidth = 3 * obj.p1.scale;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(obj.p1.x, obj.p1.y);
+                    ctx.lineTo(obj.p2.x, obj.p2.y);
+                    ctx.stroke();
+                }
+                
+                // Current flow animation
+                if (current > 0) {
+                    const flowPos = (time * 0.05 + obj.angle) % (Math.PI * 2);
+                    if (Math.abs(obj.angle - flowPos) < 0.1) {
+                        const glow = ctx.createRadialGradient(
+                            obj.p1.x, obj.p1.y, 0,
+                            obj.p1.x, obj.p1.y, 15 * obj.p1.scale
+                        );
+                        glow.addColorStop(0, 'rgba(255, 255, 100, 0.8)');
+                        glow.addColorStop(0.5, 'rgba(255, 200, 50, 0.3)');
+                        glow.addColorStop(1, 'rgba(255, 150, 0, 0)');
+                        
+                        ctx.fillStyle = glow;
+                        ctx.beginPath();
+                        ctx.arc(obj.p1.x, obj.p1.y, 15 * obj.p1.scale, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        });
+        
+        // Draw central field concentration
+        if (current > 0) {
+            const center = project3D(0, 0, 0);
+            const fieldGlow = ctx.createRadialGradient(
+                center.x, center.y, 0,
+                center.x, center.y, 100 * center.scale
+            );
+            fieldGlow.addColorStop(0, `rgba(150, 220, 255, ${fieldStrength * 0.2})`);
+            fieldGlow.addColorStop(0.5, `rgba(100, 180, 255, ${fieldStrength * 0.1})`);
+            fieldGlow.addColorStop(1, 'rgba(50, 150, 255, 0)');
+            
+            ctx.fillStyle = fieldGlow;
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 100 * center.scale, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Simple info display
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.font = '16px Arial';
+        ctx.fillText(`n = ${turns}`, 50, 50);
+        ctx.fillText(`I = ${current} A`, 50, 75);
+        ctx.fillText(`B ∝ ${(turns * current).toFixed(1)}`, 50, 100);
+        
+        // 3D axes indicator
+        ctx.save();
+        ctx.translate(1100, 80);
+        
+        // Draw rotating axes
+        const xAxis = project3D(40, 0, 0);
+        const yAxis = project3D(0, -40, 0);
+        const zAxis = project3D(0, 0, 40);
+        const origin = project3D(0, 0, 0);
+        
+        // X axis - red
+        ctx.strokeStyle = '#ff4444';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(origin.x - 1100, origin.y - 80);
+        ctx.lineTo(xAxis.x - 1100, xAxis.y - 80);
+        ctx.stroke();
+        
+        // Y axis - green
+        ctx.strokeStyle = '#44ff44';
+        ctx.beginPath();
+        ctx.moveTo(origin.x - 1100, origin.y - 80);
+        ctx.lineTo(yAxis.x - 1100, yAxis.y - 80);
+        ctx.stroke();
+        
+        // Z axis - blue
+        ctx.strokeStyle = '#4444ff';
+        ctx.beginPath();
+        ctx.moveTo(origin.x - 1100, origin.y - 80);
+        ctx.lineTo(zAxis.x - 1100, zAxis.y - 80);
+        ctx.stroke();
+        
+        ctx.restore();
+        
+        time++;
+        animationFrames.circularLoop = requestAnimationFrame(draw);
+    }
+    
+    draw();
+}
+        // Enhanced 3D Solenoid Animation
+        function animateSolenoid() {
+    const canvas = document.getElementById('solenoidCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    let time = 0;
+    const turns = 50;
+    const current = 4;
+    
+    function draw() {
+        // Deep space background
+        const bgGradient = ctx.createRadialGradient(600, 250, 0, 600, 250, 700);
+        bgGradient.addColorStop(0, '#030308');
+        bgGradient.addColorStop(0.3, '#0a1929');
+        bgGradient.addColorStop(0.6, '#1e3c72');
+        bgGradient.addColorStop(1, '#030308');
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // 3D perspective grid
+        for (let layer = 0; layer < 8; layer++) {
+            const depth = 1 - layer * 0.1;
+            ctx.strokeStyle = `rgba(100, 150, 255, ${0.02 * depth})`;
+            ctx.lineWidth = 0.5;
+            
+            for (let x = 100; x < 1100; x += 100) {
+                ctx.beginPath();
+                ctx.moveTo(x, 100 * depth);
+                ctx.lineTo(x, 400 / depth);
+                ctx.stroke();
+            }
+        }
+        
+        // 3D Solenoid rendering
+        const solenoidX = 600;
+        const solenoidY = 250;
+        const solenoidWidth = 320;
+        const solenoidHeight = 100;
+        
+        ctx.save();
+        ctx.translate(solenoidX, solenoidY);
+        
+        // Iron core with metallic shading
+        if (ironCore) {
+            // Core with complex metallic gradient
+            const coreGradient = ctx.createLinearGradient(-solenoidWidth/2, -25, -solenoidWidth/2, 25);
+            coreGradient.addColorStop(0, '#e0e0e0');
+            coreGradient.addColorStop(0.1, '#b0b0b0');
+            coreGradient.addColorStop(0.5, '#606060');
+            coreGradient.addColorStop(0.9, '#404040');
+            coreGradient.addColorStop(1, '#303030');
+            
+            ctx.fillStyle = coreGradient;
+            ctx.fillRect(-solenoidWidth/2, -25, solenoidWidth, 50);
+            
+            // Metallic highlights
+            for (let i = 0; i < 3; i++) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${0.3 - i * 0.08})`;
+                ctx.fillRect(-solenoidWidth/2, -20 + i * 8, solenoidWidth, 2);
+            }
+        }
+        
+        // Draw solenoid coils with 3D helix
+        const coilsVisible = Math.min(turns, 40);
+        const coilSpacing = solenoidWidth / coilsVisible;
+        
+        // Draw back coils first
+        for (let i = 0; i < coilsVisible; i++) {
+            const x = -solenoidWidth/2 + i * coilSpacing;
+            const coilPhase = (i / coilsVisible) * Math.PI * 2;
+            
+            // Back side of coil
+            for (let angle = Math.PI; angle < Math.PI * 2; angle += Math.PI / 20) {
+                const y = Math.sin(angle) * solenoidHeight/2;
+                const z = Math.cos(angle) * 15;
+                const nextY = Math.sin(angle + Math.PI/20) * solenoidHeight/2;
+                const nextZ = Math.cos(angle + Math.PI/20) * 15;
+                
+                const depth = (Math.cos(angle) + 1) / 2;
+                
+                const coilGradient = ctx.createLinearGradient(x + z * 0.5, y, x + nextZ * 0.5, nextY);
+                coilGradient.addColorStop(0, `rgba(139, 69, 19, ${0.3 + depth * 0.3})`);
+                coilGradient.addColorStop(1, `rgba(139, 69, 19, ${0.3 + depth * 0.3})`);
+                
+                ctx.strokeStyle = coilGradient;
+                ctx.lineWidth = 4 * (0.7 + depth * 0.3);
+                ctx.beginPath();
+                ctx.moveTo(x + z * 0.5, y);
+                ctx.lineTo(x + nextZ * 0.5, nextY);
+                ctx.stroke();
+            }
+        }
+        
+        // Draw front coils
+        for (let i = 0; i < coilsVisible; i++) {
+            const x = -solenoidWidth/2 + i * coilSpacing;
+            const coilPhase = (i / coilsVisible) * Math.PI * 2;
+            
+            // Front side of coil
+            for (let angle = 0; angle < Math.PI; angle += Math.PI / 20) {
+                const y = Math.sin(angle) * solenoidHeight/2;
+                const z = Math.cos(angle) * 15;
+                const nextY = Math.sin(angle + Math.PI/20) * solenoidHeight/2;
+                const nextZ = Math.cos(angle + Math.PI/20) * 15;
+                
+                const depth = (Math.cos(angle) + 1) / 2;
+                
+                const coilGradient = ctx.createLinearGradient(x + z * 0.5, y, x + nextZ * 0.5, nextY);
+                coilGradient.addColorStop(0, `rgba(205, 127, 50, ${0.6 + depth * 0.4})`);
+                coilGradient.addColorStop(0.5, `rgba(255, 215, 0, ${0.8 + depth * 0.2})`);
+                coilGradient.addColorStop(1, `rgba(205, 127, 50, ${0.6 + depth * 0.4})`);
+                
+                ctx.strokeStyle = coilGradient;
+                ctx.lineWidth = 6 * (0.8 + depth * 0.2);
+                ctx.beginPath();
+                ctx.moveTo(x + z * 0.5, y);
+                ctx.lineTo(x + nextZ * 0.5, nextY);
+                ctx.stroke();
+                
+                // Current flow effect
+                if (current > 0 && i % 4 === Math.floor(time / 10) % 4) {
+                    const glowSize = 15 * (0.8 + depth * 0.2);
+                    const currentGlow = ctx.createRadialGradient(x, y, 0, x, y, glowSize);
+                    currentGlow.addColorStop(0, 'rgba(255, 255, 150, 0.7)');
+                    currentGlow.addColorStop(0.5, 'rgba(255, 200, 100, 0.3)');
+                    currentGlow.addColorStop(1, 'rgba(255, 150, 50, 0)');
+                    
+                    ctx.fillStyle = currentGlow;
+                    ctx.beginPath();
+                    ctx.arc(x, y, glowSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+        
+        // 3D Magnetic field lines
+        const fieldStrength = (current / 10) * (turns / 50) * (ironCore ? 3 : 1);
+        
+        if (fieldStrength > 0) {
+            // Internal uniform field with 3D tubes
+            for (let layer = -2; layer <= 2; layer++) {
+                const layerY = layer * 15;
+                const layerOpacity = 1 - Math.abs(layer) / 3;
+                
+                // Field tubes inside solenoid
+                const tubeGradient = ctx.createLinearGradient(-solenoidWidth/2, layerY, solenoidWidth/2, layerY);
+                tubeGradient.addColorStop(0, `rgba(100, 180, 255, ${fieldStrength * 0.3 * layerOpacity})`);
+                tubeGradient.addColorStop(0.1, `rgba(150, 220, 255, ${fieldStrength * 0.5 * layerOpacity})`);
+                tubeGradient.addColorStop(0.5, `rgba(200, 240, 255, ${fieldStrength * 0.6 * layerOpacity})`);
+                tubeGradient.addColorStop(0.9, `rgba(150, 220, 255, ${fieldStrength * 0.5 * layerOpacity})`);
+                tubeGradient.addColorStop(1, `rgba(100, 180, 255, ${fieldStrength * 0.3 * layerOpacity})`);
+                
+                ctx.strokeStyle = tubeGradient;
+                ctx.lineWidth = 8 * layerOpacity;
+                ctx.shadowColor = 'rgba(150, 220, 255, 0.4)';
+                ctx.shadowBlur = 10;
+                
+                ctx.beginPath();
+                ctx.moveTo(-solenoidWidth/2 + 20, layerY);
+                
+                // Subtle wave effect for dynamism
+                for (let x = -solenoidWidth/2 + 20; x <= solenoidWidth/2 - 20; x += 5) {
+                    const wave = Math.sin((x + time * 3) * 0.01) * 2 * layerOpacity;
+                    ctx.lineTo(x, layerY + wave);
+                }
+                ctx.stroke();
+                
+                // Directional arrows
+                for (let x = -solenoidWidth/2 + 60; x < solenoidWidth/2 - 40; x += 80) {
+                    ctx.save();
+                    ctx.translate(x, layerY);
+                    
+                    const arrowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 12);
+                    arrowGradient.addColorStop(0, `rgba(200, 240, 255, ${fieldStrength * layerOpacity})`);
+                    arrowGradient.addColorStop(1, 'rgba(150, 220, 255, 0)');
+                    
+                    ctx.fillStyle = arrowGradient;
+                    ctx.beginPath();
+                    ctx.moveTo(12, 0);
+                    ctx.lineTo(-6, -8);
+                    ctx.lineTo(-6, 8);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    ctx.restore();
+                }
+            }
+            
+            // External field lines (3D curves)
+            for (let side = -1; side <= 1; side += 2) {
+                for (let curve = 1; curve <= 4; curve++) {
+                    const curveRadius = curve * 60;
+                    const opacity = fieldStrength * (0.5 - curve * 0.08);
+                    
+                    ctx.strokeStyle = `rgba(100, 180, 255, ${opacity})`;
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([10, 5]);
+                    ctx.lineDashOffset = -time * 0.8;
+                    
+                    ctx.beginPath();
+                    
+                    // 3D parametric curve
+                    for (let t = 0; t <= 1; t += 0.02) {
+                        const x = solenoidWidth/2 * (1 - 2*t);
+                        const y = side * curveRadius * Math.sin(t * Math.PI);
+                        const z = curveRadius * 0.3 * Math.sin(t * Math.PI * 2);
+                        
+                        // Apply perspective
+                        const perspective = 1 + z / 500;
+                        const px = x * perspective;
+                        const py = (y + z * 0.3) * perspective;
+                        
+                        if (t === 0) {
+                            ctx.moveTo(px, py);
+                        } else {
+                            ctx.lineTo(px, py);
+                        }
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+            
+            // Magnetic pole visualization
+            if (current > 0) {
+                // North pole
+                ctx.save();
+                ctx.translate(-solenoidWidth/2 - 50, 0);
+                
+                const northGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 40);
+                northGlow.addColorStop(0, 'rgba(255, 100, 100, 0.8)');
+                northGlow.addColorStop(0.5, 'rgba(255, 150, 150, 0.4)');
+                northGlow.addColorStop(1, 'rgba(255, 100, 100, 0)');
+                
+                ctx.fillStyle = northGlow;
+                ctx.beginPath();
+                ctx.arc(0, 0, 40, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#ff6666';
+                ctx.font = 'bold 24px Arial';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 4;
+                ctx.fillText('N', -10, 8);
+                ctx.restore();
+                
+                // South pole
+                ctx.save();
+                ctx.translate(solenoidWidth/2 + 50, 0);
+                
+                const southGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 40);
+                southGlow.addColorStop(0, 'rgba(100, 180, 255, 0.8)');
+                southGlow.addColorStop(0.5, 'rgba(150, 220, 255, 0.4)');
+                southGlow.addColorStop(1, 'rgba(100, 180, 255, 0)');
+                
+                ctx.fillStyle = southGlow;
+                ctx.beginPath();
+                ctx.arc(0, 0, 40, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#66aaff';
+                ctx.font = 'bold 24px Arial';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 4;
+                ctx.fillText('S', -8, 8);
+                ctx.restore();
+            }
+        }
+        
+        ctx.restore();
+        
+        // Info panel
+        ctx.save();
+        const panelGradient = ctx.createLinearGradient(50, 50, 50, 200);
+        panelGradient.addColorStop(0, 'rgba(10, 20, 40, 0.7)');
+        panelGradient.addColorStop(1, 'rgba(20, 30, 50, 0.9)');
+        
+        ctx.fillStyle = panelGradient;
+        ctx.fillRect(50, 50, 320, 150);
+        
+        ctx.strokeStyle = 'rgba(100, 180, 255, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(50, 50, 320, 150);
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText('3D Solenoid Electromagnetic Field', 70, 80);
+        
+        ctx.font = '14px Arial';
+        ctx.fillText(`Turns: ${turns}`, 70, 105);
+        ctx.fillText(`Current: ${current} A`, 70, 125);
+        ctx.fillText(`Core: ${ironCore ? 'Iron (Enhanced)' : 'Air'}`, 70, 145);
+        ctx.fillText(`Field Strength: ${fieldStrength.toFixed(2)} Tesla`, 70, 165);
+        ctx.fillText(`Uniform internal field`, 70, 185);
+        
+        ctx.restore();
+        
+        time++;
+        animationFrames.solenoid = requestAnimationFrame(draw);
+    }
+    
+    draw();
+}
+
+        // Chart Setup
+        function setupCharts() {
+            const ctx = document.getElementById('magneticChart');
+            if (ctx) {
+                charts.magnetic = new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['0', '2', '4', '6', '8', '10'],
+                        datasets: [{
+                            label: 'Straight Wire: B ∝ I/r',
+                            data: [0, 1.0, 2.0, 3.0, 4.0, 5.0],
+                            borderColor: '#ff6b6b',
+                            backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.1
+                        }, {
+                            label: 'Circular Loop: B ∝ nI',
+                            data: [0, 2.5, 5.0, 7.5, 10.0, 12.5],
+                            borderColor: '#4facfe',
+                            backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.1
+                        }, {
+                            label: 'Solenoid: B = μ₀nI',
+                            data: [0, 4.0, 8.0, 12.0, 16.0, 20.0],
+                            borderColor: '#f093fb',
+                            backgroundColor: 'rgba(240, 147, 251, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Magnetic Field Strength vs Current',
+                                color: '#ffffff',
+                                font: { size: 18 }
+                            },
+                            legend: {
+                                labels: { color: '#ffffff', font: { size: 12 } }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: { 
+                                    display: true, 
+                                    text: 'Magnetic Field Strength (Relative Units)', 
+                                    color: '#ffffff' 
+                                },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            x: {
+                                title: { 
+                                    display: true, 
+                                    text: 'Current (Amperes)', 
+                                    color: '#ffffff' 
+                                },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Complete Lesson Sequence
+        class LessonSequence {
+            constructor() {
+                this.sections = [
+                    { id: 'straight-wire', name: 'Magnetic Field Around Straight Wire', duration: 10000 },
+                    { id: 'right-hand', name: 'Right-Hand Thumb Rule', duration: 8000 },
+                    { id: 'circular-loop', name: 'Circular Loop Magnetic Field', duration: 10000 },
+                    { id: 'solenoid', name: 'Solenoid and Electromagnets', duration: 10000 },
+                    { id: 'data', name: 'Quantitative Analysis', duration: 8000 }
+                ];
+                this.currentSection = 0;
+                this.running = false;
+            }
+
+            async start() {
+                this.stop();
+                this.running = true;
+                this.currentSection = 0;
+                
+                this.showProgressBar();
+                
+                await narrator.speak("Welcome to the comprehensive lesson on magnetic fields due to current-carrying conductors! We'll explore how electric current creates magnetic fields in different configurations.");
+                
+                await this.runNextSection();
+            }
+
+            showProgressBar() {
+                const html = `
+                    <div class="lesson-progress">
+                        <div class="section-indicator" style="color: #4facfe;">
+                            Current Topic: <span id="currentSectionName">Starting...</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                        </div>
+                        <p style="color: #e2e8f0; margin-top: 10px;">
+                            Section <span id="currentNum">1</span> of ${this.sections.length}
+                        </p>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            updateProgress() {
+                const progress = ((this.currentSection + 1) / this.sections.length) * 100;
+                const progressFill = document.getElementById('progressFill');
+                const currentSectionName = document.getElementById('currentSectionName');
+                const currentNum = document.getElementById('currentNum');
+                
+                if (progressFill) progressFill.style.width = `${progress}%`;
+                if (currentSectionName && this.sections[this.currentSection]) {
+                    currentSectionName.textContent = this.sections[this.currentSection].name;
+                }
+                if (currentNum) currentNum.textContent = this.currentSection + 1;
+            }
+
+            async runNextSection() {
+                if (!this.running || this.currentSection >= this.sections.length) {
+                    if (this.running) {
+                        await narrator.speak("Excellent! You've completed the comprehensive study of magnetic fields due to current-carrying conductors. You now understand how electricity and magnetism are fundamentally connected.");
+                        this.showCompletionMessage();
+                    }
+                    return;
+                }
+
+                const section = this.sections[this.currentSection];
+                this.updateProgress();
+                
+                this.clearAnimations();
+                
+                document.querySelectorAll('.demo-container .display-section').forEach(s => {
+                    s.classList.remove('active');
+                });
+                
+                document.querySelectorAll('.content-container .display-section').forEach(s => {
+                    s.classList.remove('active');
+                });
+                
+                const sectionElement = document.getElementById(`${section.id}-section`);
+                const contentElement = document.getElementById(`${section.id}-content`);
+                
+                if (sectionElement) sectionElement.classList.add('active');
+                if (contentElement) contentElement.classList.add('active');
+                
+                switch(section.id) {
+                    case 'straight-wire':
+                        animateStraightWire();
+                        await narrator.speak("Let's begin with the magnetic field around a straight current-carrying wire. When electric current flows through a conductor, it creates concentric circular magnetic field lines around the wire. The field strength decreases with distance and increases with current. Reversing current direction reverses the field direction. This was first discovered through careful experiments with compass needles.");
+                        break;
+                        
+                    case 'right-hand':
+                        animateRightHandRule();
+                        await narrator.speak("The right-hand thumb rule provides a simple way to determine magnetic field direction. Hold the current-carrying conductor in your right hand with your thumb pointing in the current direction. Your fingers will curl in the direction of the magnetic field lines. This rule works for straight wires and helps predict field patterns around any current-carrying conductor.");
+                        break;
+                        
+                    case 'circular-loop':
+                        animateCircularLoop();
+                        await narrator.speak("When we bend a straight wire into a circular loop, the magnetic field pattern changes dramatically. Field lines become concentrated at the center of the loop, creating a strong uniform field region. Multiple turns in a coil multiply the field strength proportionally. Each additional turn contributes to the total field, making circular coils very effective for creating strong magnetic fields.");
+                        break;
+                        
+                    case 'solenoid':
+                        animateSolenoid();
+                        await narrator.speak("A solenoid is a cylindrical coil of wire that acts like a bar magnet when current flows through it. The magnetic field inside is uniform and strong, while outside it resembles a bar magnet with distinct north and south poles. Adding a soft iron core creates an electromagnet, greatly amplifying the field strength and enabling practical applications in motors, relays, and magnetic cranes.");
+                        break;
+                        
+                    case 'data':
+                        setupCharts();
+                        await narrator.speak("The mathematical relationships governing magnetic fields are beautifully simple. For straight wires, field strength is inversely proportional to distance. For loops and solenoids, field strength is directly proportional to both current and number of turns. These predictable relationships make electromagnetic devices highly controllable and form the foundation for electric motors, generators, and transformers.");
+                        break;
+                }
+                
+                await this.wait(section.duration);
+                
+                if (this.running) {
+                    this.currentSection++;
+                    await this.runNextSection();
+                }
+            }
+
+            showCompletionMessage() {
+                const html = `
+                    <div style="text-align: center; padding: 40px;">
+                        <h2 style="color: #4facfe; margin-bottom: 20px;">
+                            🎉 Lesson Complete!
+                        </h2>
+                        <p style="font-size: 1.2rem;">You've mastered the fundamentals of electromagnetic induction:</p>
+                        <ul style="margin: 20px auto; max-width: 500px; text-align: left; list-style: none;">
+                            ${this.sections.map(s => `
+                                <li style="margin: 10px 0; color: #4facfe;">
+                                    ✓ ${s.name}
+                                </li>
+                            `).join('')}
+                        </ul>
+                        <p style="margin-top: 30px; color: #e2e8f0;">
+                            You can now explore individual topics or reset to review the complete lesson.
+                        </p>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            wait(ms) {
+                return new Promise(resolve => {
+                    this.timeout = setTimeout(resolve, ms);
+                });
+            }
+
+            stop() {
+                this.running = false;
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                    this.timeout = null;
+                }
+                narrator.stop();
+                this.clearAnimations();
+            }
+
+            clearAnimations() {
+                Object.values(animationFrames).forEach(frame => {
+                    if (typeof frame === 'number') {
+                        cancelAnimationFrame(frame);
+                    }
+                });
+                animationFrames = {};
+            }
+        }
+
+        // Reset Function
+        function resetEverything() {
+            lessonStarted = false;
+            currentDirection = 1;
+            ironCore = false;
+            
+            if (lessonSequence) {
+                lessonSequence.stop();
+            }
+            narrator.stop();
+            
+            Object.values(animationFrames).forEach(frame => {
+                if (typeof frame === 'number') {
+                    cancelAnimationFrame(frame);
+                }
+            });
+            animationFrames = {};
+            
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            charts = {};
+            
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('[data-mode="lesson"]').classList.add('active');
+            
+            document.querySelectorAll('.display-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            document.getElementById('lesson-section').classList.add('active');
+            document.getElementById('lessonContent').innerHTML = '';
+            
+            currentMode = 'lesson';
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }, 1500);
+
+            lessonSequence = new LessonSequence();
+
+            // Control buttons
+            document.querySelectorAll('.control-btn:not(.reset-btn)').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const mode = this.getAttribute('data-mode');
+                    
+                    if (lessonSequence) lessonSequence.stop();
+                    narrator.stop();
+                    
+                    Object.values(animationFrames).forEach(frame => {
+                        if (typeof frame === 'number') {
+                            cancelAnimationFrame(frame);
+                        }
+                    });
+                    animationFrames = {};
+                    
+                    document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    document.querySelectorAll('.display-section').forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    
+                    currentMode = mode;
+                    
+                    switch(mode) {
+                        case 'lesson':
+                            document.getElementById('lesson-section').classList.add('active');
+                            if (!lessonStarted) {
+                                lessonStarted = true;
+                                lessonSequence.start();
+                            }
+                            break;
+                            
+                        case 'straight-wire':
+                            document.getElementById('straight-wire-section').classList.add('active');
+                            document.getElementById('straight-wire-content').classList.add('active');
+                            animateStraightWire();
+                            narrator.speak("Observing the magnetic field around a straight current-carrying wire. Notice how the field forms concentric circles and varies with current strength and distance.", true);
+                            break;
+                            
+                        case 'right-hand':
+                            document.getElementById('right-hand-section').classList.add('active');
+                            document.getElementById('right-hand-content').classList.add('active');
+                            animateRightHandRule();
+                            narrator.speak("The right-hand thumb rule demonstration. Point your thumb along current direction and your fingers curl in the magnetic field direction.", true);
+                            break;
+                            
+                        case 'circular-loop':
+                            document.getElementById('circular-loop-section').classList.add('active');
+                            document.getElementById('circular-loop-content').classList.add('active');
+                            animateCircularLoop();
+                            narrator.speak("Magnetic field of a circular current loop. The field is concentrated at the center and strengthened by multiple turns.", true);
+                            break;
+                            
+                        case 'solenoid':
+                            document.getElementById('solenoid-section').classList.add('active');
+                            document.getElementById('solenoid-content').classList.add('active');
+                            animateSolenoid();
+                            narrator.speak("A solenoid creates a uniform magnetic field inside and acts like a bar magnet. With an iron core, it becomes a powerful electromagnet.", true);
+                            break;
+                            
+                        case 'data':
+                            document.getElementById('data-section').classList.add('active');
+                            document.getElementById('data-content').classList.add('active');
+                            setupCharts();
+                            narrator.speak("Analyzing the quantitative relationships in electromagnetic phenomena. Field strength depends on current, distance, and geometry.", true);
+                            break;
+                    }
+                });
+            });
+
+            // Reset button
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                narrator.speak("Resetting the electromagnetic field laboratory.", true);
+                resetEverything();
+            });
+
+            // Audio toggle
+            document.getElementById('audio-toggle').addEventListener('click', function() {
+                audioEnabled = narrator.toggle();
+                this.textContent = audioEnabled ? '🔊' : '🔇';
+            });
+
+        });
+
+        window.addEventListener('beforeunload', function() {
+            narrator.stop();
+            if (lessonSequence) lessonSequence.stop();
+        });
+    </script>
+</body>
+</html>

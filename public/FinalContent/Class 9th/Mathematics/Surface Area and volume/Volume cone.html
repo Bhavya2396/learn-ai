@@ -1,0 +1,2190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volume of Cones - Master 3D Geometry</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header - Compact */
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Layout */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Demo Stage - Takes most space */
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+        }
+
+        /* Stage Content */
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Controls - Below Demo */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--accent-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* 3D Visualization */
+        .cone-3d-container {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            margin: 20px auto;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Formula Display */
+        .formula-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            font-size: 1.2rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .formula {
+            font-size: 1.4rem;
+            color: var(--text-accent);
+            margin: 10px 0;
+            font-weight: 600;
+        }
+
+        /* Value Display */
+        .value-display {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--text-accent);
+            margin: 20px 0;
+        }
+
+        /* Examples Grid */
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin: 30px 0;
+            padding: 20px;
+        }
+
+        .example-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(15px);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .example-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent-gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .example-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: rgba(79, 172, 254, 0.5);
+            box-shadow: 0 20px 40px rgba(79, 172, 254, 0.2);
+        }
+
+        .example-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .example-card:nth-child(1) {
+            animation: slideInLeft 0.6s ease-out;
+        }
+
+        .example-card:nth-child(2) {
+            animation: slideInRight 0.6s ease-out 0.2s both;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .example-title {
+            font-size: 1.3rem;
+            color: var(--text-accent);
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-align: center;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .example-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--accent-gradient);
+            border-radius: 2px;
+        }
+
+        .example-step {
+            background: rgba(79, 172, 254, 0.1);
+            border-left: 4px solid var(--accent-gradient);
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 0 10px 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        .example-step:hover {
+            background: rgba(79, 172, 254, 0.15);
+            transform: translateX(5px);
+        }
+
+        .example-step h4 {
+            color: var(--text-accent);
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .example-step p {
+            margin: 5px 0;
+            line-height: 1.6;
+        }
+
+        .example-result {
+            background: var(--success-gradient);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 15px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(67, 233, 123, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Input Controls */
+        .input-group {
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .input-group input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 10px 15px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            width: 200px;
+            text-align: center;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--text-accent);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Button Styles */
+        .action-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin: 10px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        /* Chart Container */
+        .chart-container {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            margin: 20px auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Real World Applications */
+        .application-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin: 30px 0;
+            padding: 20px;
+        }
+
+        .application-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            backdrop-filter: blur(15px);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+
+        .application-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--secondary-gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .application-card:hover {
+            transform: translateY(-10px) scale(1.05);
+            border-color: rgba(240, 147, 251, 0.5);
+            box-shadow: 0 25px 50px rgba(240, 147, 251, 0.2);
+        }
+
+        .application-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .application-card:nth-child(1) { animation: fadeInUp 0.6s ease-out; }
+        .application-card:nth-child(2) { animation: fadeInUp 0.6s ease-out 0.1s both; }
+        .application-card:nth-child(3) { animation: fadeInUp 0.6s ease-out 0.2s both; }
+        .application-card:nth-child(4) { animation: fadeInUp 0.6s ease-out 0.3s both; }
+        .application-card:nth-child(5) { animation: fadeInUp 0.6s ease-out 0.4s both; }
+        .application-card:nth-child(6) { animation: fadeInUp 0.6s ease-out 0.5s both; }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .application-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            display: block;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        }
+
+        .application-card:hover .application-icon {
+            transform: scale(1.2) rotate(5deg);
+            filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.3));
+        }
+
+        .application-card h3 {
+            font-size: 1.3rem;
+            color: var(--text-accent);
+            margin-bottom: 15px;
+            font-weight: 700;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .application-card h3::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 2px;
+            background: var(--secondary-gradient);
+            border-radius: 1px;
+        }
+
+        .application-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-size: 1rem;
+            margin: 0;
+        }
+
+        .application-card:hover p {
+            color: var(--text-primary);
+        }
+
+        /* Quiz Styles */
+        .quiz-question {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .quiz-options {
+            display: grid;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .quiz-option {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--text-accent);
+        }
+
+        .quiz-option.selected {
+            background: var(--accent-gradient);
+            border-color: transparent;
+        }
+
+        .quiz-option.correct {
+            background: var(--success-gradient);
+            border-color: transparent;
+        }
+
+        .quiz-option.incorrect {
+            background: var(--warning-gradient);
+            border-color: transparent;
+        }
+
+        /* Experiment Visualization */
+        .experiment-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .shape-visual {
+            width: 120px;
+            height: 150px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .cylinder-visual {
+            width: 80px;
+            height: 120px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border-radius: 5px 5px 40px 40px;
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .cone-visual {
+            width: 0;
+            height: 0;
+            border-left: 40px solid transparent;
+            border-right: 40px solid transparent;
+            border-bottom: 120px solid #f093fb;
+            margin-top: 10px;
+        }
+
+        .shape-label {
+            font-size: 0.9rem;
+            margin-top: 10px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .fill-level {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(251, 191, 36, 0.7);
+            border-radius: 0 0 40px 40px;
+            transition: height 0.5s ease;
+        }
+
+        /* Theory Card Styles */
+        .theory-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theory-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .theory-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .theory-title {
+            font-size: 1.8rem;
+            color: var(--text-accent);
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 700;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        .theory-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: var(--primary-gradient);
+            border-radius: 2px;
+        }
+
+        .theory-content {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .theory-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .theory-section:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .theory-section h3 {
+            color: var(--text-accent);
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .theory-section p {
+            margin: 10px 0;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .theory-section ul {
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+
+        .theory-section li {
+            margin: 8px 0;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+
+        .theory-section strong {
+            color: var(--text-accent);
+        }
+
+        .theory-section em {
+            color: var(--text-primary);
+            font-style: italic;
+        }
+
+        /* Derivation Steps */
+        .derivation-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .derivation-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            background: rgba(79, 172, 254, 0.1);
+            border-left: 4px solid var(--accent-gradient);
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        .derivation-step:hover {
+            background: rgba(79, 172, 254, 0.15);
+            transform: translateX(5px);
+        }
+
+        .step-number {
+            background: var(--accent-gradient);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .derivation-step p {
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        /* Notes Grid */
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .note-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .note-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--warning-gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .note-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .note-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .note-card h4 {
+            color: var(--text-accent);
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .note-card p {
+            margin: 0;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Strategy Steps */
+        .strategy-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .strategy-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            background: rgba(67, 233, 123, 0.1);
+            border: 1px solid rgba(67, 233, 123, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .strategy-step:hover {
+            background: rgba(67, 233, 123, 0.15);
+            transform: translateX(8px);
+            box-shadow: 0 5px 20px rgba(67, 233, 123, 0.2);
+        }
+
+        .strategy-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--success-gradient);
+            border-radius: 50%;
+            color: white;
+        }
+
+        .strategy-step div {
+            flex: 1;
+        }
+
+        .strategy-step h4 {
+            color: var(--text-accent);
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .strategy-step p {
+            margin: 0;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .application-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .notes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .demo-stage {
+                padding: 20px;
+                min-height: 300px;
+            }
+            
+            .controls {
+                gap: 5px;
+            }
+            
+            .demo-btn {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+            }
+            
+            .examples-grid {
+                grid-template-columns: 1fr;
+                padding: 10px;
+                gap: 15px;
+            }
+            
+            .application-grid {
+                grid-template-columns: 1fr;
+                padding: 10px;
+                gap: 15px;
+            }
+            
+            .example-card, .application-card {
+                padding: 20px;
+            }
+            
+            .example-title, .application-card h3 {
+                font-size: 1.1rem;
+            }
+            
+            .application-icon {
+                font-size: 3rem;
+            }
+            
+            .experiment-container {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .theory-card {
+                padding: 20px;
+                margin: 15px 0;
+            }
+            
+            .theory-title {
+                font-size: 1.5rem;
+            }
+            
+            .theory-section {
+                padding: 15px;
+            }
+            
+            .theory-section h3 {
+                font-size: 1.1rem;
+            }
+            
+            .derivation-step {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            
+            .strategy-step {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .strategy-icon {
+                align-self: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn" title="Toggle Audio">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>Volume of Right Circular Cones</h1>
+        <p>Discover how much space a cone can hold through interactive exploration</p>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Demo Stage -->
+        <div class="demo-stage" id="demo-stage">
+            <div class="stage-content active">
+                <h2 style="font-size: 2rem; margin-bottom: 20px;">Welcome to Cone Volume!</h2>
+                <div class="value-display">Let's Explore 3D Space!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    How much sand can fit inside a cone? How does a cone's volume compare to a cylinder? 
+                    Choose a lesson below to discover the fascinating mathematics of 3D volume!
+                </p>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">🎓 Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">📚 Introduction</button>
+            <button class="demo-btn" data-demo="derivation">🔬 Formula Derivation</button>
+            <button class="demo-btn" data-demo="examples">📝 Worked Examples</button>
+            <button class="demo-btn" data-demo="realworld">🌍 Real World Uses</button>
+            <button class="demo-btn" data-demo="chart">📊 Volume Analysis</button>
+            <button class="demo-btn" data-demo="quiz">🎯 Test Your Knowledge</button>
+            <button class="demo-btn" data-demo="interactive">🧮 Interactive Calculator</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+
+        <!-- Theory Card -->
+        <div class="theory-card">
+            <h2 class="theory-title">📖 Volume of Right Circular Cone - Theory</h2>
+            <div class="theory-content">
+                <div class="theory-section">
+                    <h3>🔍 Definition</h3>
+                    <p>A right circular cone is a 3D geometric shape with:</p>
+                    <ul>
+                        <li><strong>Base:</strong> A perfect circle</li>
+                        <li><strong>Apex:</strong> A single point (vertex) directly above the center of the base</li>
+                        <li><strong>Height (h):</strong> The perpendicular distance from the apex to the base</li>
+                        <li><strong>Radius (r):</strong> The distance from the center to any point on the circular base</li>
+                        <li><strong>Slant Height (l):</strong> The distance from the apex to any point on the circumference of the base</li>
+                    </ul>
+                </div>
+
+                <div class="theory-section">
+                    <h3>📐 Key Relationships</h3>
+                    <div class="formula-box">
+                        <div class="formula">l² = r² + h²</div>
+                        <p><em>Pythagorean theorem applied to the right triangle formed by radius, height, and slant height</em></p>
+                    </div>
+                </div>
+
+                <div class="theory-section">
+                    <h3>🧮 Volume Formula</h3>
+                    <div class="formula-box">
+                        <div class="formula">V = (1/3)πr²h</div>
+                        <p><strong>Where:</strong></p>
+                        <ul>
+                            <li>V = Volume of the cone</li>
+                            <li>r = Radius of the base</li>
+                            <li>h = Height of the cone</li>
+                            <li>π ≈ 3.14159 (pi)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="theory-section">
+                    <h3>🔬 Derivation Concept</h3>
+                    <p>The volume formula comes from the relationship between a cone and a cylinder:</p>
+                    <div class="derivation-steps">
+                        <div class="derivation-step">
+                            <span class="step-number">1</span>
+                            <p>A cone with radius <em>r</em> and height <em>h</em> has exactly <strong>1/3</strong> the volume of a cylinder with the same radius and height.</p>
+                        </div>
+                        <div class="derivation-step">
+                            <span class="step-number">2</span>
+                            <p>Cylinder volume = πr²h</p>
+                        </div>
+                        <div class="derivation-step">
+                            <span class="step-number">3</span>
+                            <p>Therefore: Cone volume = (1/3) × πr²h</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="theory-section">
+                    <h3>📏 Units and Measurements</h3>
+                    <p>Volume is always measured in cubic units:</p>
+                    <ul>
+                        <li><strong>Metric:</strong> cm³, m³, mm³</li>
+                        <li><strong>Imperial:</strong> in³, ft³, yd³</li>
+                        <li><strong>Important:</strong> All measurements (radius, height) must be in the same units</li>
+                    </ul>
+                </div>
+
+                <div class="theory-section">
+                    <h3>⚠️ Important Notes</h3>
+                    <div class="notes-grid">
+                        <div class="note-card">
+                            <h4>🎯 Right Circular Cone</h4>
+                            <p>This formula applies only to right circular cones where the apex is directly above the center of the circular base.</p>
+                        </div>
+                        <div class="note-card">
+                            <h4>📐 Radius vs Diameter</h4>
+                            <p>Always use the radius (half the diameter) in the formula. If given diameter, divide by 2 first.</p>
+                        </div>
+                        <div class="note-card">
+                            <h4>🔢 Precision</h4>
+                            <p>Use π ≈ 3.14 for rough calculations, or π ≈ 22/7 for fractions, or use calculator's π for accuracy.</p>
+                        </div>
+                        <div class="note-card">
+                            <h4>📊 Volume vs Surface Area</h4>
+                            <p>Volume measures space inside (3D), while surface area measures the outside covering (2D). Don't confuse them!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="theory-section">
+                    <h3>🎯 Problem-Solving Strategy</h3>
+                    <div class="strategy-steps">
+                        <div class="strategy-step">
+                            <span class="strategy-icon">1️⃣</span>
+                            <div>
+                                <h4>Identify Given Information</h4>
+                                <p>List what you know: radius, height, slant height, or other measurements</p>
+                            </div>
+                        </div>
+                        <div class="strategy-step">
+                            <span class="strategy-icon">2️⃣</span>
+                            <div>
+                                <h4>Find Missing Values</h4>
+                                <p>Use l² = r² + h² if you need to find radius or height from slant height</p>
+                            </div>
+                        </div>
+                        <div class="strategy-step">
+                            <span class="strategy-icon">3️⃣</span>
+                            <div>
+                                <h4>Apply the Formula</h4>
+                                <p>Substitute values into V = (1/3)πr²h</p>
+                            </div>
+                        </div>
+                        <div class="strategy-step">
+                            <span class="strategy-icon">4️⃣</span>
+                            <div>
+                                <h4>Calculate and Check</h4>
+                                <p>Perform calculations carefully and verify your answer makes sense</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let currentTeacher = null;
+        let currentDemo = null;
+        let globalAudioEnabled = true;
+        let animationTimeouts = [];
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let currentRunId = 0;
+        let currentTaskId = null;
+
+        // Teacher Voice System
+        class TeacherVoice {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.voice = null;
+                this.rate = 0.8;
+                this.pitch = 1.0;
+                this.volume = 0.9;
+                this.isEnabled = true;
+                this.currentUtterance = null;
+                this.isDestroyed = false;
+                this.setupVoice();
+            }
+
+            setupVoice() {
+                const loadVoices = () => {
+                    const voices = this.synth.getVoices();
+                    this.voice = voices.find(v => v.lang.includes('en')) || voices[0];
+                };
+                loadVoices();
+                this.synth.onvoiceschanged = loadVoices;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !globalAudioEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.voice = this.voice;
+                        utterance.rate = this.rate;
+                        utterance.pitch = this.pitch;
+                        utterance.volume = this.volume;
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        this.synth.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+            }
+        }
+
+        // State management functions
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            clearStage();
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentTeacher = new TeacherVoice();
+            currentTeacher.isEnabled = globalAudioEnabled;
+            return currentTeacher;
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        // Clear stage
+        function clearStage() {
+            const stage = document.getElementById('demo-stage');
+            stage.innerHTML = '';
+            
+            // Clear all timeouts
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+        }
+
+        // Create stage content
+        function createStageContent() {
+            clearStage();
+            const content = document.createElement('div');
+            content.className = 'stage-content active';
+            document.getElementById('demo-stage').appendChild(content);
+            return content;
+        }
+
+        // Demo functions
+        async function showIntroduction() {
+            const taskId = `intro-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">What is Volume?</h2>
+                <div class="value-display">Understanding 3D Space</div>
+                <div class="formula-box">
+                    <p style="margin: 15px 0;">Volume measures how much space is inside a 3D shape.</p>
+                    <p style="margin: 15px 0;">For a cone, we measure the space from the pointed top to the circular base.</p>
+                    <div class="cone-3d-container" id="intro-3d"></div>
+                </div>
+            `;
+            
+            // Create 3D visualization
+            setTimeout(() => createSimple3DCone('intro-3d'), 500);
+            
+            await teacher.speak("Welcome to the study of cone volume! Volume tells us how much space is inside a 3D shape - like how much water could fit in a cone-shaped cup.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("A cone has a circular base and tapers to a point at the top. The volume depends on both the radius of the base and the height of the cone.");
+            
+            isPlaying = false;
+        }
+
+
+
+        async function showDerivation() {
+            const taskId = `derivation-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">Formula Derivation</h2>
+                <div class="value-display">From Experiment to Formula</div>
+                <div class="formula-box">
+                    <p style="margin: 15px 0;">From our experiment, we learned:</p>
+                    <div class="formula">Volume of Cone = (1/3) × Volume of Cylinder</div>
+                    <p style="margin: 15px 0;">Since Volume of Cylinder = πr²h</p>
+                    <div class="formula">Volume of Cone = (1/3) × πr²h</div>
+                    <p style="margin: 15px 0; color: var(--text-accent);">
+                        V = (1/3)πr²h
+                    </p>
+                    <p style="margin: 15px 0;">
+                        Where: r = base radius, h = height
+                    </p>
+                </div>
+            `;
+            
+            await teacher.speak("Now let's derive the mathematical formula from our experiment. We discovered that a cone holds exactly one-third the volume of a cylinder with the same dimensions.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Since the volume of a cylinder is pi r squared h, the volume of a cone is one-third times pi r squared h.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("This gives us our final formula: V equals one-third pi r squared h, where r is the base radius and h is the height.");
+            
+            isPlaying = false;
+        }
+
+        async function showExamples() {
+            const taskId = `examples-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">Worked Examples</h2>
+                <div class="examples-grid">
+                    <div class="example-card">
+                        <h3 class="example-title">Example 1: Finding Volume from Height and Slant Height</h3>
+                        <div class="example-step">
+                            <h4>📋 Given Information</h4>
+                            <p><strong>Height (h):</strong> 21 cm</p>
+                            <p><strong>Slant height (l):</strong> 28 cm</p>
+                        </div>
+                        <div class="example-step">
+                            <h4>🎯 Objective</h4>
+                            <p>Find the volume of the cone</p>
+                        </div>
+                        <div class="example-step">
+                            <h4>📐 Step 1: Find radius using l² = r² + h²</h4>
+                            <p>r² = l² - h² = 28² - 21² = 784 - 441 = 343</p>
+                            <p>r = √343 = 7√7 cm</p>
+                        </div>
+                        <div class="example-step">
+                            <h4>🧮 Step 2: Calculate volume</h4>
+                            <p>V = (1/3)πr²h = (1/3) × (22/7) × (7√7)² × 21</p>
+                        </div>
+                        <div class="example-result">
+                            V = 7546 cm³
+                        </div>
+                    </div>
+                    <div class="example-card">
+                        <h3 class="example-title">Example 2: Conical Tent Volume</h3>
+                        <div class="example-step">
+                            <h4>📋 Given Information</h4>
+                            <p><strong>Canvas area:</strong> 550 m²</p>
+                            <p><strong>Base radius (r):</strong> 7 m</p>
+                        </div>
+                        <div class="example-step">
+                            <h4>🎯 Objective</h4>
+                            <p>Find the volume of the tent</p>
+                        </div>
+                        <div class="example-step">
+                            <h4>📐 Step 1: Find slant height from curved surface area</h4>
+                            <p>πrl = 550, so (22/7) × 7 × l = 550</p>
+                            <p>l = 25 m</p>
+                        </div>
+                        <div class="example-step">
+                            <h4>📏 Step 2: Find height using l² = r² + h²</h4>
+                            <p>h = √(25² - 7²) = √(625 - 49) = √576 = 24 m</p>
+                        </div>
+                        <div class="example-step">
+                            <h4>🧮 Step 3: Calculate volume</h4>
+                            <p>V = (1/3) × (22/7) × 7² × 24</p>
+                        </div>
+                        <div class="example-result">
+                            V = 1232 m³
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            await teacher.speak("Let's work through some examples to master volume calculations. Our first example involves finding the volume when we know the height and slant height.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(4000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("We use the relationship l squared equals r squared plus h squared to find the radius first, then apply our volume formula.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(4000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("The second example shows a practical application - finding the volume of a conical tent from the canvas area and base radius.");
+            
+            isPlaying = false;
+        }
+
+        async function showCalculator() {
+            const taskId = `calculator-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">Interactive Volume Calculator</h2>
+                <div class="value-display">Calculate Cone Volumes</div>
+                <div class="formula-box">
+                    <div class="formula">V = (1/3)πr²h</div>
+                    <div class="input-group">
+                        <label for="radius-input">Base Radius (r):</label>
+                        <input type="number" id="radius-input" value="5" min="0.1" step="0.1">
+                        <span>units</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="height-input">Height (h):</label>
+                        <input type="number" id="height-input" value="12" min="0.1" step="0.1">
+                        <span>units</span>
+                    </div>
+                    <button class="action-btn" onclick="calculateVolume()">Calculate Volume</button>
+                    <div id="volume-result" class="value-display" style="margin-top: 20px;">
+                        Volume = 314.16 cubic units
+                    </div>
+                    <div class="cone-3d-container" id="calculator-3d"></div>
+                </div>
+            `;
+            
+            // Initialize 3D visualization
+            setTimeout(() => createInteractive3DCone('calculator-3d'), 500);
+            
+            await teacher.speak("Now let's practice with the interactive calculator! Change the radius and height values to see how they affect the volume.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Notice how the volume changes dramatically when you increase the radius - that's because radius is squared in the formula!");
+            
+            isPlaying = false;
+        }
+
+        function calculateVolume() {
+            const radius = parseFloat(document.getElementById('radius-input').value);
+            const height = parseFloat(document.getElementById('height-input').value);
+            
+            if (radius > 0 && height > 0) {
+                const volume = (1/3) * Math.PI * radius * radius * height;
+                document.getElementById('volume-result').textContent = 
+                    `Volume = ${volume.toFixed(2)} cubic units`;
+                
+                // Update 3D visualization if exists
+                update3DCone(radius, height);
+            }
+        }
+
+        async function showRealWorld() {
+            const taskId = `realworld-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">Real World Applications</h2>
+                <div class="value-display">Volume in Everyday Life</div>
+                <div class="application-grid">
+                    <div class="application-card">
+                        <div class="application-icon">🍦</div>
+                        <h3>Ice Cream Cones</h3>
+                        <p>Calculate how much ice cream fits in different cone sizes for optimal serving portions</p>
+                    </div>
+                    <div class="application-card">
+                        <div class="application-icon">🚧</div>
+                        <h3>Traffic Cones</h3>
+                        <p>Determine material needed for manufacturing and weight distribution calculations</p>
+                    </div>
+                    <div class="application-card">
+                        <div class="application-icon">🏕️</div>
+                        <h3>Camping Tents</h3>
+                        <p>Calculate interior space for tent design and occupancy planning</p>
+                    </div>
+                    <div class="application-card">
+                        <div class="application-icon">🌪️</div>
+                        <h3>Funnels</h3>
+                        <p>Design funnels with specific holding capacity for industrial applications</p>
+                    </div>
+                    <div class="application-card">
+                        <div class="application-icon">🎪</div>
+                        <h3>Circus Tents</h3>
+                        <p>Plan space requirements for events and audience capacity calculations</p>
+                    </div>
+                    <div class="application-card">
+                        <div class="application-icon">🏭</div>
+                        <h3>Storage Silos</h3>
+                        <p>Calculate grain or material storage capacity for agricultural planning</p>
+                    </div>
+                </div>
+            `;
+            
+            await teacher.speak("Cone volume calculations are everywhere in real life! From determining how much ice cream fits in a cone to designing storage silos.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Engineers use these calculations when designing tents, funnels, and storage containers. Even in manufacturing, we need to know material requirements!");
+            
+            isPlaying = false;
+        }
+
+        async function showChart() {
+            const taskId = `chart-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">Volume Analysis Charts</h2>
+                <div class="value-display">Visualizing Relationships</div>
+                <div class="chart-container">
+                    <canvas id="volume-chart"></canvas>
+                </div>
+                <p style="text-align: center; margin-top: 20px;">
+                    How volume changes with radius and height variations
+                </p>
+            `;
+            
+            // Create chart
+            setTimeout(() => createVolumeChart(), 500);
+            
+            await teacher.speak("Let's analyze how volume changes with different dimensions using this interactive chart.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Notice how volume increases much faster when we increase the radius compared to the height - this is because radius is squared in our formula!");
+            
+            isPlaying = false;
+        }
+
+        async function showQuiz() {
+            const taskId = `quiz-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">Test Your Knowledge</h2>
+                <div class="value-display">Volume Quiz</div>
+                <div class="quiz-question">
+                    <h3>Question 1: What is the formula for the volume of a cone?</h3>
+                    <div class="quiz-options">
+                        <div class="quiz-option" onclick="selectQuizOption(this, false)">A) V = πr²h</div>
+                        <div class="quiz-option" onclick="selectQuizOption(this, true)">B) V = (1/3)πr²h</div>
+                        <div class="quiz-option" onclick="selectQuizOption(this, false)">C) V = (2/3)πr²h</div>
+                        <div class="quiz-option" onclick="selectQuizOption(this, false)">D) V = πr²h/2</div>
+                    </div>
+                    <div id="quiz-feedback"></div>
+                </div>
+                <div style="margin-top: 30px; text-align: center;">
+                    <button class="action-btn" onclick="showCalculator()" style="background: var(--success-gradient); font-size: 1.1rem; padding: 15px 30px;">
+                        🧮 Try Calculator
+                    </button>
+                </div>
+            `;
+            
+            await teacher.speak("Time to test your understanding! What is the correct formula for the volume of a cone?");
+            
+            isPlaying = false;
+        }
+
+        function selectQuizOption(element, isCorrect) {
+            // Clear previous selections
+            document.querySelectorAll('.quiz-option').forEach(opt => {
+                opt.classList.remove('selected', 'correct', 'incorrect');
+            });
+            
+            // Mark selection
+            element.classList.add('selected');
+            
+            // Show correct answer
+            if (isCorrect) {
+                element.classList.add('correct');
+                document.getElementById('quiz-feedback').innerHTML = 
+                    '<p style="color: #43e97b; font-weight: 600;">Correct! The volume of a cone is one-third of a cylinder with the same base and height.</p>';
+            } else {
+                element.classList.add('incorrect');
+                document.querySelector('.quiz-option[onclick*="true"]').classList.add('correct');
+                document.getElementById('quiz-feedback').innerHTML = 
+                    '<p style="color: #fa709a; font-weight: 600;">Not quite. The correct answer is (1/3)πr²h - remember the one-third relationship!</p>';
+            }
+            
+        }
+
+        function nextQuestion() {
+            // This could cycle through more questions
+            const teacher = createNewTeacher();
+            teacher.speak("Great job! You can explore more examples using the calculator or try the complete lesson for comprehensive coverage.");
+        }
+
+        // 3D Visualization functions
+        function createSimple3DCone(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true });
+            
+            renderer.setSize(container.offsetWidth, container.offsetHeight);
+            renderer.setClearColor(0x000000, 0);
+            container.appendChild(renderer.domElement);
+            
+            // Create cone geometry
+            const coneGeometry = new THREE.ConeGeometry(2, 4, 32);
+            const coneMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x4facfe,
+                transparent: true,
+                opacity: 0.8
+            });
+            const cone = new THREE.Mesh(coneGeometry, coneMaterial);
+            
+            // Create wireframe
+            const wireframeMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xffffff,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.3
+            });
+            const wireframe = new THREE.Mesh(coneGeometry, wireframeMaterial);
+            
+            scene.add(cone);
+            scene.add(wireframe);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            
+            scene.add(ambientLight);
+            scene.add(directionalLight);
+            
+            camera.position.z = 8;
+            
+            // Animation
+            function animate() {
+                requestAnimationFrame(animate);
+                cone.rotation.y += 0.01;
+                wireframe.rotation.y += 0.01;
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+
+        function createInteractive3DCone(containerId) {
+            createSimple3DCone(containerId);
+            
+            // Add event listeners for input changes
+            document.getElementById('radius-input').addEventListener('input', calculateVolume);
+            document.getElementById('height-input').addEventListener('input', calculateVolume);
+            
+            // Initial calculation
+            calculateVolume();
+        }
+
+        function update3DCone(radius, height) {
+            // This would update the 3D cone dimensions in a full implementation
+            console.log(`Updating cone: radius=${radius}, height=${height}`);
+        }
+
+        function createVolumeChart() {
+            const ctx = document.getElementById('volume-chart');
+            if (!ctx) return;
+            
+            const radiusValues = [1, 2, 3, 4, 5, 6, 7, 8];
+            const volumeData = radiusValues.map(r => (1/3) * Math.PI * r * r * 6); // height = 6
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: radiusValues,
+                    datasets: [{
+                        label: 'Volume (height = 6)',
+                        data: volumeData,
+                        borderColor: '#4facfe',
+                        backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                        borderWidth: 3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#ffffff' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Radius',
+                                color: '#ffffff'
+                            },
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Volume',
+                                color: '#ffffff'
+                            },
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function showCompleteLesson() {
+            const taskId = `complete-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            // Welcome
+            const welcomeContent = createStageContent();
+            welcomeContent.innerHTML = `
+                <h2 class="example-title">Complete Volume Lesson</h2>
+                <div class="value-display">Let's Master Cone Volume!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    We'll explore everything about cone volume, from the fundamental experiment to real applications.
+                </p>
+            `;
+            
+            await teacher.speak("Welcome to the complete lesson on the volume of right circular cones! Let's begin our comprehensive journey.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Run through all modules
+            await teacher.speak("First, let's understand what volume means.");
+            await showIntroductionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            
+            await wait(1000);
+            await teacher.speak("Let's derive the mathematical formula from our experiment.");
+            await showDerivationContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            await teacher.speak("Time to practice with worked examples!");
+            await showExamplesContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            await teacher.speak("Let's see how cone volume is used in real life!");
+            await showRealWorldContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            await teacher.speak("Now let's analyze the relationships with visual charts!");
+            await showChartContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            // Final message
+            const finalContent = createStageContent();
+            finalContent.innerHTML = `
+                <h2 class="example-title">Congratulations!</h2>
+                <div class="value-display">🎉 Volume Mastery Complete! 🎉</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    You've mastered cone volume! You understand the one-third relationship,
+                    can apply the formula, and solve real-world problems. Excellent work!
+                </p>
+            `;
+            
+            await teacher.speak("Congratulations! You've completed the full lesson on cone volume. You now understand the fundamental relationship between cone and cylinder volumes, can apply the formula confidently, and recognize real-world applications. Outstanding achievement!");
+            
+            isPlaying = false;
+        }
+
+        // Helper functions for complete lesson
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">What is Volume?</h2>
+                <div class="value-display">Understanding 3D Space</div>
+                <div class="formula-box">
+                    <p style="margin: 15px 0;">Volume measures how much space is inside a 3D shape.</p>
+                    <p style="margin: 15px 0;">For a cone, we measure the space from the pointed top to the circular base.</p>
+                    <div class="cone-3d-container" id="intro-3d"></div>
+                </div>
+            `;
+            
+            // Create 3D visualization
+            setTimeout(() => createSimple3DCone('intro-3d'), 500);
+            
+            await teacher.speak("Welcome to the study of cone volume! Volume tells us how much space is inside a 3D shape - like how much water could fit in a cone-shaped cup.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("A cone has a circular base and tapers to a point at the top. The volume depends on both the radius of the base and the height of the cone.");
+        }
+
+
+        async function showDerivationContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="example-title">Formula Derivation</h2>
+                <div class="value-display">From Experiment to Formula</div>
+                <div class="formula-box">
+                    <p style="margin: 15px 0;">From our experiment, we learned:</p>
+                    <div class="formula">Volume of Cone = (1/3) × Volume of Cylinder</div>
+                    <p style="margin: 15px 0;">Since Volume of Cylinder = πr²h</p>
+                    <div class="formula">Volume of Cone = (1/3) × πr²h</div>
+                    <p style="margin: 15px 0; color: var(--text-accent);">
+                        V = (1/3)πr²h
+                    </p>
+                    <p style="margin: 15px 0;">
+                        Where: r = base radius, h = height
+                    </p>
+                </div>
+            `;
+            
+            await teacher.speak("Now let's derive the mathematical formula from our experiment. We discovered that a cone holds exactly one-third the volume of a cylinder with the same dimensions.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Since the volume of a cylinder is pi r squared h, the volume of a cone is one-third times pi r squared h.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("This gives us our final formula: V equals one-third pi r squared h, where r is the base radius and h is the height.");
+        }
+
+        async function showExamplesContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="example-title">Worked Examples</h2>
+                <div class="examples-grid">
+                    <div class="example-card">
+                        <h3 class="example-title">Example 1: Finding Volume from Height and Slant Height</h3>
+                        <div class="example-step">
+                            <h4>📋 Given Information</h4>
+                            <p><strong>Height (h):</strong> 21 cm</p>
+                            <p><strong>Slant height (l):</strong> 28 cm</p>
+                        </div>
+                        <div class="example-step">
+                            <h4>🎯 Objective</h4>
+                            <p>Find the volume of the cone</p>
+                        </div>
+                        <div class="example-step">
+                            <h4>📐 Step 1: Find radius using l² = r² + h²</h4>
+                            <p>r² = l² - h² = 28² - 21² = 784 - 441 = 343</p>
+                            <p>r = √343 = 7√7 cm</p>
+                        </div>
+                        <div class="example-step">
+                            <h4>🧮 Step 2: Calculate volume</h4>
+                            <p>V = (1/3)πr²h = (1/3) × (22/7) × (7√7)² × 21</p>
+                        </div>
+                        <div class="example-result">
+                            V = 7546 cm³
+                        </div>
+                    </div>
+                    <div class="example-card">
+                        <h3 class="example-title">Example 2: Conical Tent Volume</h3>
+                        <div class="example-step">
+                            <h4>📋 Given Information</h4>
+                            <p><strong>Canvas area:</strong> 550 m²</p>
+                            <p><strong>Base radius (r):</strong> 7 m</p>
+                        </div>
+                        <div class="example-step">
+                            <h4>🎯 Objective</h4>
+                            <p>Find the volume of the tent</p>
+                        </div>
+                        <div class="example-step">
+                            <h4>📐 Step 1: Find slant height from curved surface area</h4>
+                            <p>πrl = 550, so (22/7) × 7 × l = 550</p>
+                            <p>l = 25 m</p>
+                        </div>
+                        <div class="example-step">
+                            <h4>📏 Step 2: Find height using l² = r² + h²</h4>
+                            <p>h = √(25² - 7²) = √(625 - 49) = √576 = 24 m</p>
+                        </div>
+                        <div class="example-step">
+                            <h4>🧮 Step 3: Calculate volume</h4>
+                            <p>V = (1/3) × (22/7) × 7² × 24</p>
+                        </div>
+                        <div class="example-result">
+                            V = 1232 m³
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            await teacher.speak("Let's work through some examples to master volume calculations. Our first example involves finding the volume when we know the height and slant height.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(4000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("We use the relationship l squared equals r squared plus h squared to find the radius first, then apply our volume formula.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(4000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("The second example shows a practical application - finding the volume of a conical tent from the canvas area and base radius.");
+        }
+
+        async function showRealWorldContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="example-title">Real World Applications</h2>
+                <div class="value-display">Volume in Everyday Life</div>
+                <div class="application-grid">
+                    <div class="application-card">
+                        <div class="application-icon">🍦</div>
+                        <h3>Ice Cream Cones</h3>
+                        <p>Calculate how much ice cream fits in different cone sizes for optimal serving portions</p>
+                    </div>
+                    <div class="application-card">
+                        <div class="application-icon">🚧</div>
+                        <h3>Traffic Cones</h3>
+                        <p>Determine material needed for manufacturing and weight distribution calculations</p>
+                    </div>
+                    <div class="application-card">
+                        <div class="application-icon">🏕️</div>
+                        <h3>Camping Tents</h3>
+                        <p>Calculate interior space for tent design and occupancy planning</p>
+                    </div>
+                    <div class="application-card">
+                        <div class="application-icon">🌪️</div>
+                        <h3>Funnels</h3>
+                        <p>Design funnels with specific holding capacity for industrial applications</p>
+                    </div>
+                    <div class="application-card">
+                        <div class="application-icon">🎪</div>
+                        <h3>Circus Tents</h3>
+                        <p>Plan space requirements for events and audience capacity calculations</p>
+                    </div>
+                    <div class="application-card">
+                        <div class="application-icon">🏭</div>
+                        <h3>Storage Silos</h3>
+                        <p>Calculate grain or material storage capacity for agricultural planning</p>
+                    </div>
+                </div>
+            `;
+            
+            await teacher.speak("Cone volume calculations are everywhere in real life! From determining how much ice cream fits in a cone to designing storage silos.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Engineers use these calculations when designing tents, funnels, and storage containers. Even in manufacturing, we need to know material requirements!");
+        }
+
+        async function showCalculatorContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="example-title">Interactive Volume Calculator</h2>
+                <div class="value-display">Calculate Cone Volumes</div>
+                <div class="formula-box">
+                    <div class="formula">V = (1/3)πr²h</div>
+                    <div class="input-group">
+                        <label for="radius-input">Base Radius (r):</label>
+                        <input type="number" id="radius-input" value="5" min="0.1" step="0.1">
+                        <span>units</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="height-input">Height (h):</label>
+                        <input type="number" id="height-input" value="12" min="0.1" step="0.1">
+                        <span>units</span>
+                    </div>
+                    <button class="action-btn" onclick="calculateVolume()">Calculate Volume</button>
+                    <div id="volume-result" class="value-display" style="margin-top: 20px;">
+                        Volume = 314.16 cubic units
+                    </div>
+                    <div class="cone-3d-container" id="calculator-3d"></div>
+                </div>
+            `;
+            
+            // Initialize 3D visualization
+            setTimeout(() => createInteractive3DCone('calculator-3d'), 500);
+            
+            await teacher.speak("Now let's practice with the interactive calculator! Change the radius and height values to see how they affect the volume.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Notice how the volume changes dramatically when you increase the radius - that's because radius is squared in the formula!");
+        }
+
+        async function showChartContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="example-title">Volume Analysis Charts</h2>
+                <div class="value-display">Visualizing Relationships</div>
+                <div class="chart-container">
+                    <canvas id="volume-chart"></canvas>
+                </div>
+                <p style="text-align: center; margin-top: 20px;">
+                    How volume changes with radius and height variations
+                </p>
+            `;
+            
+            // Create chart
+            setTimeout(() => createVolumeChart(), 500);
+            
+            await teacher.speak("Let's analyze how volume changes with different dimensions using this interactive chart.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Notice how volume increases much faster when we increase the radius compared to the height - this is because radius is squared in our formula!");
+        }
+
+        function resetApplication() {
+            stopCurrentDemo();
+            
+            // Clear stage and show welcome
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 style="font-size: 2rem; margin-bottom: 20px;">Welcome to Cone Volume!</h2>
+                <div class="value-display">Let's Explore 3D Space!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    How much sand can fit inside a cone? How does a cone's volume compare to a cylinder? 
+                    Choose a lesson below to discover the fascinating mathematics of 3D volume!
+                </p>
+            `;
+            
+            // Clear active button states
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Reset current demo
+            currentDemo = null;
+            
+            // Create new teacher and welcome message
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to continue exploring the fascinating world of cone volumes!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize teacher
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome to the volume of cones! Choose any lesson to begin your mathematical journey into 3D space!");
+            }, 500);
+            
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Clear active states
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'derivation':
+                            showDerivation();
+                            break;
+                        case 'examples':
+                            showExamples();
+                            break;
+                        case 'interactive':
+                            showCalculator();
+                            break;
+                        case 'realworld':
+                            showRealWorld();
+                            break;
+                        case 'chart':
+                            showChart();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+            
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

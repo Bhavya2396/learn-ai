@@ -1,0 +1,3033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultrasound Applications - Automated Physics Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --medical-gradient: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+            --industrial-gradient: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            --tech-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --text-dark: #1a202c;
+            --text-light: #f8fafc;
+            --shadow-primary: 0 20px 40px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 25px 50px rgba(0, 0, 0, 0.4);
+            --border-radius: 20px;
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .glass-hover:hover {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-5px);
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.15) rotate(10deg);
+            box-shadow: 0 0 30px rgba(79, 172, 254, 0.6);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 30px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding: 40px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--primary-gradient);
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        .header h1 {
+            font-size: 4rem;
+            background: var(--accent-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: 800;
+            letter-spacing: -2px;
+            animation: titleFloat 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleFloat {
+            0% { 
+                transform: translateY(0);
+                filter: drop-shadow(0 5px 15px rgba(79, 172, 254, 0.3));
+            }
+            100% { 
+                transform: translateY(-10px);
+                filter: drop-shadow(0 15px 30px rgba(79, 172, 254, 0.5));
+            }
+        }
+
+        .header p {
+            font-size: 1.4rem;
+            color: var(--text-secondary);
+            max-width: 900px;
+            margin: 0 auto;
+            font-weight: 300;
+        }
+
+        .demo-stage {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            min-height: 750px;
+            position: relative;
+            margin: 50px 0;
+            box-shadow: var(--shadow-primary);
+            overflow: hidden;
+            border: 2px solid var(--glass-border);
+            padding: 50px;
+        }
+
+        .demo-stage::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--dark-gradient);
+            opacity: 0.05;
+            z-index: -1;
+        }
+
+        .ultrasound-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 650px;
+        }
+
+        .ultrasound-demo.active {
+            display: block;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .overview-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            height: 100%;
+            align-items: center;
+        }
+
+        .overview-text {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            border-radius: 25px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            color: var(--text-light);
+        }
+
+        .overview-visual {
+            position: relative;
+            height: 500px;
+            background: linear-gradient(to bottom, #1a1a2e, #16213e);
+            border-radius: 25px;
+            border: 2px solid var(--glass-border);
+            overflow: hidden;
+        }
+
+        .ultrasound-source {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 40px;
+            background: var(--tech-gradient);
+            border-radius: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--text-dark);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            animation: sourceGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes sourceGlow {
+            0% { box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3); }
+            100% { box-shadow: 0 15px 30px rgba(168, 237, 234, 0.6); }
+        }
+
+        .cleaning-scene {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+            border-radius: 25px;
+            border: 3px solid var(--glass-border);
+            overflow: hidden;
+        }
+
+        .cleaning-tank {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 200px;
+            background: linear-gradient(to bottom, rgba(0, 123, 255, 0.3), rgba(0, 123, 255, 0.6));
+            border: 4px solid #007bff;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .dirty-object {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            background: #6c757d;
+            border-radius: 10px;
+            transition: var(--transition);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .dirty-object.cleaning {
+            animation: cleaningEffect 3s ease-in-out infinite;
+        }
+
+        @keyframes cleaningEffect {
+            0% { 
+                background: #6c757d;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            }
+            50% { 
+                background: #adb5bd;
+                transform: translateX(-50%) scale(1.1);
+                box-shadow: 0 0 25px rgba(0, 242, 254, 0.8);
+            }
+            100% { 
+                background: #f8f9fa;
+                transform: translateX(-50%) scale(1);
+                box-shadow: 0 5px 15px rgba(0, 200, 0, 0.4);
+            }
+        }
+
+        .ultrasound-emitter {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 280px;
+            height: 20px;
+            background: var(--tech-gradient);
+            border-radius: 10px;
+            animation: emitterPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes emitterPulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.05); box-shadow: 0 0 20px rgba(0, 242, 254, 0.6); }
+        }
+
+        .cleaning-bubbles {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            animation: bubbleRise 2s ease-out infinite;
+        }
+
+        @keyframes bubbleRise {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(0.5);
+            }
+            50% {
+                opacity: 0.7;
+                transform: translateY(-50px) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px) scale(1.5);
+            }
+        }
+
+        .detection-scene {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(to right, #2c3e50, #34495e);
+            border-radius: 25px;
+            border: 3px solid var(--glass-border);
+            overflow: hidden;
+        }
+
+        .metal-block {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px;
+            height: 150px;
+            background: linear-gradient(135deg, #7f8c8d, #95a5a6);
+            border-radius: 15px;
+            border: 3px solid #bdc3c7;
+            box-shadow: inset 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .defect {
+            position: absolute;
+            top: 60px;
+            right: 110px;
+            width: 20px;
+            height: 30px;
+            background: #e74c3c;
+            border-radius: 50%;
+            animation: defectPulse 2s ease-in-out infinite;
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+        }
+
+        @keyframes defectPulse {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+
+        .ultrasound-scanner {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 40px;
+            background: var(--industrial-gradient);
+            border-radius: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            animation: scannerMove 3s ease-in-out infinite;
+        }
+
+        @keyframes scannerMove {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.1); box-shadow: 0 0 20px rgba(78, 205, 196, 0.6); }
+        }
+
+        .scan-beam {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 200px;
+            background: linear-gradient(to bottom, rgba(0, 242, 254, 1), rgba(0, 242, 254, 0));
+            animation: scanPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes scanPulse {
+            0%, 100% { 
+                box-shadow: 0 0 10px rgba(0, 242, 254, 0.8);
+                opacity: 0.8;
+            }
+            50% { 
+                box-shadow: 0 0 25px rgba(0, 242, 254, 1);
+                opacity: 1;
+            }
+        }
+
+        .reflection-wave {
+            position: absolute;
+            top: 160px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100px;
+            background: linear-gradient(to top, rgba(231, 76, 60, 1), rgba(231, 76, 60, 0));
+            animation: reflectionPulse 1.5s ease-out infinite;
+        }
+
+        @keyframes reflectionPulse {
+            0% { height: 0; opacity: 1; }
+            50% { height: 100px; opacity: 0.8; }
+            100% { height: 0; opacity: 0; }
+        }
+
+        .medical-scene {
+            position: relative;
+            width: calc(100% - 370px);
+            height: 500px;
+            background: linear-gradient(to bottom, #2c3e50, #3498db);
+            border-radius: 25px;
+            border: 3px solid var(--glass-border);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            margin-right: 370px;
+        }
+
+        .patient-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .monitor-section {
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .monitor-section h3 {
+            color: var(--text-light);
+        }
+
+        .ultrasound-monitor {
+            width: 100%;
+            height: 250px;
+            background: #000;
+            border-radius: 15px;
+            border: 3px solid #333;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .monitor-grid {
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 0, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 0, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .ultrasound-image {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 70%;
+            background: radial-gradient(ellipse, rgba(0, 255, 0, 0.3) 0%, rgba(0, 255, 0, 0.1) 50%, transparent 100%);
+            animation: imageFlicker 0.1s ease-in-out infinite alternate;
+        }
+
+        @keyframes imageFlicker {
+            0% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        .monitor-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .monitor-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 15px;
+            font-weight: 600;
+            animation: btnGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes btnGlow {
+            0% { box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4); }
+            100% { box-shadow: 0 8px 20px rgba(79, 172, 254, 0.6); }
+        }
+
+        .ultrasound-probe {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            width: 30px;
+            height: 60px;
+            background: var(--medical-gradient);
+            border-radius: 15px;
+            z-index: 10;
+            animation: probeMove 3s ease-in-out infinite;
+        }
+
+        @keyframes probeMove {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(30px); box-shadow: 0 0 20px rgba(255, 107, 107, 0.6); }
+        }
+
+        .kidney-scene {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(to bottom, #ff6b6b, #ff8e53);
+            border-radius: 25px;
+            border: 3px solid var(--glass-border);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .kidney-model {
+            width: 200px;
+            height: 150px;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            border-radius: 50% 20% 50% 20%;
+            position: relative;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .kidney-stone {
+            position: absolute;
+            top: 60px;
+            left: 80px;
+            width: 20px;
+            height: 20px;
+            background: #2c3e50;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(44, 62, 80, 0.8);
+            animation: stoneBreaking 5s ease-out infinite;
+        }
+
+        .kidney-stone::before,
+        .kidney-stone::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #34495e;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .kidney-stone::before {
+            top: -5px;
+            left: -5px;
+            animation: fragment1 5s ease-out infinite;
+        }
+
+        .kidney-stone::after {
+            bottom: -5px;
+            right: -5px;
+            animation: fragment2 5s ease-out infinite;
+        }
+
+        @keyframes stoneBreaking {
+            0%, 50% {
+                transform: scale(1);
+                opacity: 1;
+                background: #2c3e50;
+                box-shadow: 0 0 10px rgba(44, 62, 80, 0.8);
+            }
+            60% {
+                transform: scale(1.3);
+                box-shadow: 0 0 25px rgba(255, 255, 255, 1);
+                background: #e74c3c;
+            }
+            70% {
+                transform: scale(1.5);
+                box-shadow: 0 0 40px rgba(255, 255, 255, 1);
+                background: #f39c12;
+            }
+            80% {
+                transform: scale(0.8);
+                opacity: 0.7;
+                background: #95a5a6;
+                box-shadow: 0 0 50px rgba(255, 255, 255, 0.8);
+            }
+            90% {
+                transform: scale(0.4);
+                opacity: 0.3;
+                background: #bdc3c7;
+                box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+            }
+            100% {
+                transform: scale(0.1);
+                opacity: 0;
+                background: #ecf0f1;
+                box-shadow: 0 0 60px rgba(255, 255, 255, 0);
+            }
+        }
+
+        @keyframes fragment1 {
+            0%, 60% {
+                opacity: 0;
+                transform: translate(0, 0) scale(0);
+            }
+            70% {
+                opacity: 1;
+                transform: translate(-15px, -15px) scale(1);
+                background: #34495e;
+            }
+            90% {
+                opacity: 0.6;
+                transform: translate(-30px, -30px) scale(0.6);
+                background: #7f8c8d;
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50px, -50px) scale(0.2);
+                background: #bdc3c7;
+            }
+        }
+
+        @keyframes fragment2 {
+            0%, 60% {
+                opacity: 0;
+                transform: translate(0, 0) scale(0);
+            }
+            70% {
+                opacity: 1;
+                transform: translate(15px, 15px) scale(1);
+                background: #34495e;
+            }
+            90% {
+                opacity: 0.6;
+                transform: translate(30px, 30px) scale(0.6);
+                background: #7f8c8d;
+            }
+            100% {
+                opacity: 0;
+                transform: translate(50px, 50px) scale(0.2);
+                background: #bdc3c7;
+            }
+        }
+
+        .ultrasound-device {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 50px;
+            background: var(--tech-gradient);
+            border-radius: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            animation: devicePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes devicePulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.1); box-shadow: 0 0 25px rgba(168, 237, 234, 0.8); }
+        }
+
+        .treatment-beam {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 150px;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.3));
+            animation: treatmentPulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes treatmentPulse {
+            0%, 100% { 
+                width: 6px;
+                box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+            }
+            50% { 
+                width: 12px;
+                box-shadow: 0 0 30px rgba(255, 255, 255, 1);
+            }
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            width: 300px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            backdrop-filter: blur(20px);
+            z-index: 60;
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+        }
+
+        .medical-demo .info-panel {
+            position: absolute;
+            top: 30px;
+            right: -350px;
+            width: 320px;
+        }
+
+        .info-panel:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .info-title {
+            color: #4facfe;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-align: center;
+            text-shadow: 0 0 15px rgba(79, 172, 254, 0.5);
+        }
+
+        .info-content {
+            color: var(--text-dark);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .frequency-display {
+            background: var(--accent-gradient);
+            padding: 12px;
+            border-radius: 12px;
+            margin: 12px 0;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        .frequency-value {
+            color: #ffffff;
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+            font-size: 1.2rem;
+            font-weight: 800;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .controls {
+            text-align: center;
+            margin: 50px 0;
+            padding: 40px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .controls-title {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            color: #4facfe;
+            font-weight: 800;
+            text-shadow: 0 0 25px rgba(79, 172, 254, 0.4);
+            animation: titleGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            0% { text-shadow: 0 0 25px rgba(79, 172, 254, 0.4); }
+            100% { text-shadow: 0 0 40px rgba(79, 172, 254, 0.7); }
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+
+        .demo-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 18px 32px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+            min-width: 220px;
+            border: 2px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .demo-btn:hover::before {
+            left: 100%;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .demo-btn:active {
+            transform: translateY(-2px) scale(1.02);
+        }
+
+        .demo-btn.active {
+            background: var(--warning-gradient);
+            box-shadow: 0 10px 30px rgba(250, 112, 154, 0.4);
+            transform: translateY(-3px);
+        }
+
+        .progress-indicator {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px 20px;
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .progress-indicator.visible {
+            opacity: 1;
+        }
+
+        .progress-text {
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            width: 200px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-gradient);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 3px;
+        }
+
+        .wave-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .organ-canvas {
+            position: absolute;
+            top: 45px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .theory-section {
+            background: var(--glass-bg);
+            border-radius: 30px;
+            padding: 50px;
+            margin: 50px 0;
+            border: 3px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .theory-title {
+            font-size: 2.2rem;
+            color: #4facfe;
+            margin-bottom: 35px;
+            text-align: center;
+            font-weight: 800;
+            text-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .concept-card {
+            background: rgba(0, 0, 0, 0.15);
+            padding: 30px;
+            border-radius: 25px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .concept-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-hover);
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        .concept-title {
+            color: #4facfe;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(79, 172, 254, 0.3);
+        }
+
+        .concept-text {
+            color: var(--text-light);
+            line-height: 1.8;
+            font-size: 1.1rem;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.8s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 5px solid rgba(79, 172, 254, 0.3);
+            border-top: 5px solid #4facfe;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            position: absolute;
+            bottom: 100px;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            font-weight: 600;
+            animation: fadeInOut 2s ease-in-out infinite;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .cleaning-scene h3,
+        .detection-scene h3,
+        .kidney-scene h3 {
+            color: var(--text-light);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .overview-text ul li {
+            color: var(--text-accent);
+        }
+
+        .cleaning-scene h3 {
+            color: var(--text-dark);
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+        }
+
+        /* Graph Sections */
+        .graph-section {
+            background: var(--glass-bg);
+            border-radius: 30px;
+            padding: 40px;
+            margin: 40px 0;
+            border: 3px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .graph-title {
+            font-size: 2rem;
+            color: #4facfe;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 800;
+            text-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .graphs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 30px;
+        }
+
+        .graph-container {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .graph-canvas {
+            width: 100%;
+            height: 300px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .graph-label {
+            color: var(--text-light);
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .graph-legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 1024px) {
+            .overview-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .medical-scene {
+                grid-template-columns: 1fr;
+                width: 100%;
+                margin-right: 0;
+            }
+
+            .medical-demo .info-panel {
+                position: static;
+                width: 100%;
+                margin-top: 20px;
+            }
+
+            .graphs-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.8rem;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .demo-btn {
+                min-width: 280px;
+            }
+            
+            .concept-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loading-overlay">
+        <div>
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading Ultrasound Physics...</div>
+        </div>
+    </div>
+
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="progress-indicator" id="progress-indicator">
+        <div class="progress-text">Lesson Progress</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Ultrasound Applications</h1>
+            <p>Explore the incredible world of ultrasonic waves and their practical applications! From cleaning delicate components to detecting hidden flaws and revolutionizing medical diagnosis, ultrasound technology shapes our modern world in remarkable ways.</p>
+        </div>
+
+        <div class="demo-stage" id="stage">
+            <div class="ultrasound-demo active" id="overview-demo">
+                <div class="overview-content">
+                    <div class="overview-text">
+                        <h2 style="color: #4facfe; font-size: 2rem; margin-bottom: 20px;">What is Ultrasound?</h2>
+                        <p style="margin-bottom: 15px;">Ultrasounds are high-frequency sound waves that travel in well-defined paths, even in the presence of obstacles. These powerful waves have frequencies above 20,000 Hz, beyond human hearing.</p>
+                        <p style="margin-bottom: 15px;"><strong>Key Properties:</strong></p>
+                        <ul style="margin-left: 20px; color: var(--text-accent);">
+                            <li>High frequency (>20 kHz)</li>
+                            <li>Directional propagation</li>
+                            <li>Excellent penetration</li>
+                            <li>Precise focusing capability</li>
+                        </ul>
+                        <div class="frequency-display">
+                            <div style="margin-bottom: 5px;">Ultrasound Frequency:</div>
+                            <div class="frequency-value">20+ kHz</div>
+                        </div>
+                    </div>
+                    <div class="overview-visual">
+                        <div class="ultrasound-source">
+                            🔊
+                        </div>
+                        <canvas class="wave-canvas" id="overview-canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ultrasound-demo" id="cleaning-demo">
+                <div class="cleaning-scene">
+                    <h3 style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 1.5rem; font-weight: 700;">Ultrasonic Cleaning</h3>
+                    
+                    <div class="cleaning-tank">
+                        <div class="dirty-object cleaning"></div>
+                        <div class="ultrasound-emitter"></div>
+                    </div>
+                </div>
+                
+                <div class="info-panel">
+                    <div class="info-title">🧽 Ultrasonic Cleaning</div>
+                    <div class="info-content">
+                        <p>High-frequency waves create cavitation bubbles that remove dirt and contaminants from hard-to-reach places.</p>
+                        <div class="frequency-display">
+                            <div>Cleaning Frequency:</div>
+                            <div class="frequency-value">40 kHz</div>
+                        </div>
+                        <p><strong>Applications:</strong> Electronics, jewelry, medical instruments, precision parts</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ultrasound-demo" id="detection-demo">
+                <div class="detection-scene">
+                    <h3 style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 1.5rem; font-weight: 700;">Defect Detection</h3>
+                    
+                    <div class="ultrasound-scanner"></div>
+                    <div class="scan-beam"></div>
+                    <div class="reflection-wave"></div>
+                    
+                    <div class="metal-block">
+                        <div class="defect"></div>
+                    </div>
+                </div>
+                
+                <div class="info-panel">
+                    <div class="info-title">🔍 Defect Detection</div>
+                    <div class="info-content">
+                        <p>Ultrasonic waves penetrate materials and reflect from internal defects, revealing hidden cracks and flaws.</p>
+                        <div class="frequency-display">
+                            <div>Detection Frequency:</div>
+                            <div class="frequency-value">2-10 MHz</div>
+                        </div>
+                        <p><strong>Uses:</strong> Bridge inspection, aircraft maintenance, pipeline testing</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ultrasound-demo" id="medical-demo">
+                <div class="medical-scene">
+                    <div class="patient-section">
+                        <h3 style="color: #ff6b6b; margin-bottom: 15px; text-align: center;">Patient Examination</h3>
+                        <canvas class="organ-canvas" id="organ-canvas" width="200" height="350"></canvas>
+                        <div class="ultrasound-probe"></div>
+                    </div>
+                    
+                    <div class="monitor-section">
+                        <h3 style="margin-bottom: 15px;">Ultrasound Monitor</h3>
+                        <div class="ultrasound-monitor">
+                            <div class="monitor-grid"></div>
+                            <div class="ultrasound-image"></div>
+                        </div>
+                        <div class="monitor-controls">
+                            <button class="monitor-btn">Heart</button>
+                            <button class="monitor-btn">Kidney</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-panel">
+                    <div class="info-title">🏥 Medical Imaging</div>
+                    <div class="info-content">
+                        <p>Ultrasound creates real-time images of internal organs for diagnosis and monitoring.</p>
+                        <div class="frequency-display">
+                            <div>Medical Frequency:</div>
+                            <div class="frequency-value">1-20 MHz</div>
+                        </div>
+                        <p><strong>Applications:</strong> Pregnancy monitoring, cardiac imaging, organ examination</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ultrasound-demo" id="kidney-demo">
+                <div class="kidney-scene">
+                    <h3 style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 1.5rem; font-weight: 700;">Kidney Stone Treatment</h3>
+                    
+                    <div class="ultrasound-device"></div>
+                    <div class="treatment-beam"></div>
+                    
+                    <div class="kidney-model">
+                        <div class="kidney-stone"></div>
+                    </div>
+                </div>
+                
+                <div class="info-panel">
+                    <div class="info-title">💎 Stone Treatment</div>
+                    <div class="info-content">
+                        <p>High-intensity ultrasound breaks kidney stones into small fragments that can be naturally flushed out.</p>
+                        <div class="frequency-display">
+                            <div>Treatment Frequency:</div>
+                            <div class="frequency-value">1-3 MHz</div>
+                        </div>
+                        <p><strong>Benefits:</strong> Non-invasive, no surgery required, quick recovery</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="controls-title" id="demo-title">Automated Ultrasound Applications</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" data-demo="complete">📚 Complete Lesson</button>
+                <button class="demo-btn active" data-demo="overview">🌊 Overview</button>
+                <button class="demo-btn" data-demo="cleaning">🧽 Industrial Cleaning</button>
+                <button class="demo-btn" data-demo="detection">🔍 Defect Detection</button>
+                <button class="demo-btn" data-demo="medical">🏥 Medical Imaging</button>
+                <button class="demo-btn" data-demo="kidney">💎 Kidney Treatment</button>
+                <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+            </div>
+        </div>
+
+        <div class="graph-section">
+            <div class="graph-title">Ultrasound Data Analysis & Visualization</div>
+            
+            <div class="graphs-grid">
+                <div class="graph-container">
+                    <div class="graph-label">Frequency Spectrum Analysis</div>
+                    <canvas class="graph-canvas" id="frequency-graph"></canvas>
+                    <div class="graph-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #4facfe;"></div>
+                            <span>Medical (1-20 MHz)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #43e97b;"></div>
+                            <span>Industrial (20-100 kHz)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #fa709a;"></div>
+                            <span>Cleaning (40 kHz)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="graph-container">
+                    <div class="graph-label">Wave Amplitude Over Time</div>
+                    <canvas class="graph-canvas" id="waveform-graph"></canvas>
+                    <div class="graph-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ff6b6b;"></div>
+                            <span>Transmitted Wave</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #00f2fe;"></div>
+                            <span>Reflected Wave</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="graph-container">
+                    <div class="graph-label">Penetration Depth vs Frequency</div>
+                    <canvas class="graph-canvas" id="penetration-graph"></canvas>
+                    <div class="graph-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #38f9d7;"></div>
+                            <span>Soft Tissue</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #fee140;"></div>
+                            <span>Bone</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #a8edea;"></div>
+                            <span>Metal</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="graph-container">
+                    <div class="graph-label">Treatment Intensity vs Time</div>
+                    <canvas class="graph-canvas" id="intensity-graph"></canvas>
+                    <div class="graph-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #667eea;"></div>
+                            <span>Diagnostic Level</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #f093fb;"></div>
+                            <span>Therapeutic Level</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="theory-section">
+            <div class="theory-title">Understanding Ultrasound Technology</div>
+            
+            <div class="concept-grid">
+                <div class="concept-card">
+                    <div class="concept-title">High Frequency Waves</div>
+                    <div class="concept-text">
+                        Ultrasounds operate at frequencies above 20,000 Hz, far beyond human hearing. These high frequencies allow for precise targeting and excellent penetration through various materials, making them ideal for both industrial and medical applications.
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <div class="concept-title">Directional Propagation</div>
+                    <div class="concept-text">
+                        Unlike ordinary sound waves, ultrasonic waves travel in well-defined paths even when obstacles are present. This directional property allows for precise targeting and reduces interference from surrounding structures.
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <div class="concept-title">Reflection & Detection</div>
+                    <div class="concept-text">
+                        When ultrasonic waves encounter density changes or defects, they reflect back to the source. This principle enables detection of internal flaws, medical imaging, and non-destructive testing of materials and structures.
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <div class="concept-title">Energy Applications</div>
+                    <div class="concept-text">
+                        High-intensity ultrasound can transfer significant energy to target areas. This property is utilized for cleaning applications, medical treatments like kidney stone destruction, and various industrial processes.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class AnimationManager {
+            constructor() {
+                this.activeAnimations = new Set();
+                this.animationTimeouts = new Set();
+                this.animationIntervals = new Set();
+                this.canvasAnimations = new Map();
+            }
+
+            addTimeout(timeoutId) {
+                this.animationTimeouts.add(timeoutId);
+                return timeoutId;
+            }
+
+            addInterval(intervalId) {
+                this.animationIntervals.add(intervalId);
+                return intervalId;
+            }
+
+            addCanvasAnimation(key, animationId) {
+                if (this.canvasAnimations.has(key)) {
+                    cancelAnimationFrame(this.canvasAnimations.get(key));
+                }
+                this.canvasAnimations.set(key, animationId);
+                return animationId;
+            }
+
+            cleanup() {
+                gsap.killTweensOf("*");
+                this.animationTimeouts.forEach(id => clearTimeout(id));
+                this.animationTimeouts.clear();
+                this.animationIntervals.forEach(id => clearInterval(id));
+                this.animationIntervals.clear();
+                this.canvasAnimations.forEach(id => cancelAnimationFrame(id));
+                this.canvasAnimations.clear();
+                this.activeAnimations.clear();
+            }
+        }
+
+        class UltrasoundTeacher {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.isDestroyed = false;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.85, pitch: 1.0, volume: 0.9 };
+                this.currentContext = null;
+                this.queue = [];
+                this.isProcessingQueue = false;
+                this.onComplete = null;
+            }
+
+            async speak(text, delay = 0, context = null) {
+                if (!this.isEnabled || !text || this.isDestroyed) return Promise.resolve();
+                
+                if (context) {
+                    this.currentContext = context;
+                }
+                
+                return new Promise((resolve) => {
+                    this.queue.push({
+                        text,
+                        delay,
+                        resolve,
+                        context: context || this.currentContext
+                    });
+                    
+                    if (!this.isProcessingQueue) {
+                        this.processQueue();
+                    }
+                });
+            }
+            
+            async processQueue() {
+                if (this.isProcessingQueue || this.queue.length === 0) return;
+                
+                this.isProcessingQueue = true;
+                
+                while (this.queue.length > 0) {
+                    const item = this.queue.shift();
+                    
+                    if (item.context && item.context !== this.currentContext) {
+                        item.resolve();
+                        continue;
+                    }
+                    
+                    await this.speakImmediate(item.text, item.delay);
+                    item.resolve();
+                }
+                
+                this.isProcessingQueue = false;
+                
+                if (this.onComplete) {
+                    this.onComplete();
+                    this.onComplete = null;
+                }
+            }
+            
+            async speakImmediate(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    const timeoutId = setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                    
+                    animationManager.addTimeout(timeoutId);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+                this.queue = [];
+                this.isProcessingQueue = false;
+                this.onComplete = null;
+            }
+            
+            setContext(context) {
+                this.currentContext = context;
+                this.queue = this.queue.filter(item => !item.context || item.context === context);
+            }
+
+            toggle() {
+                this.isEnabled = !this.isEnabled;
+                if (!this.isEnabled) this.stop();
+                return this.isEnabled;
+            }
+            
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+                this.queue = [];
+                this.currentContext = null;
+                this.onComplete = null;
+            }
+        }
+
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let currentDemo = null;
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let animationManager = new AnimationManager();
+        let lessonProgress = 0;
+
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+            }
+            currentTeacher = new UltrasoundTeacher();
+            return currentTeacher;
+        }
+
+        function updateProgress(percentage) {
+            lessonProgress = percentage;
+            document.getElementById('progress-fill').style.width = percentage + '%';
+            if (percentage > 0) {
+                document.getElementById('progress-indicator').classList.add('visible');
+            } else {
+                document.getElementById('progress-indicator').classList.remove('visible');
+            }
+        }
+
+        function hideAllDemos() {
+            document.querySelectorAll('.ultrasound-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+        }
+
+        function setActiveButton(activeBtn) {
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+        }
+
+        function updateTitle(title) {
+            document.getElementById('demo-title').textContent = title;
+        }
+        
+        function shouldContinue() {
+            return !currentDemoAborted;
+        }
+
+        function resetAll() {
+            animationManager.cleanup();
+            updateProgress(0);
+            
+            // Clear all dynamic elements
+            document.querySelectorAll('.cleaning-bubbles').forEach(bubble => bubble.remove());
+            
+            hideAllDemos();
+            updateTitle("Automated Ultrasound Applications");
+            
+            currentDemoAborted = false;
+            
+            // Show initial demo
+            document.getElementById('overview-demo').classList.add('active');
+        }
+        
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeoutId = setTimeout(resolve, ms);
+                animationManager.addTimeout(timeoutId);
+            });
+        }
+
+        function animateOverviewWaves() {
+            const canvas = document.getElementById('overview-canvas');
+            if (!canvas) return;
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            const ctx = canvas.getContext('2d');
+            let time = 0;
+            
+            function drawWaves() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height - 60;
+                
+                // Draw concentric waves
+                for (let i = 0; i < 6; i++) {
+                    const radius = (time * 3 + i * 40) % 250;
+                    const opacity = Math.max(0, 1 - radius / 250);
+                    
+                    ctx.strokeStyle = `rgba(0, 242, 254, ${opacity * 0.8})`;
+                    ctx.lineWidth = 4 - (radius / 250) * 2;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    // Add secondary waves
+                    if (radius > 50 && opacity > 0.3) {
+                        ctx.strokeStyle = `rgba(79, 172, 254, ${opacity * 0.4})`;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(centerX, centerY, radius + 15, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+                
+                time += 1;
+                const animId = requestAnimationFrame(drawWaves);
+                animationManager.addCanvasAnimation('overview', animId);
+            }
+            
+            drawWaves();
+        }
+
+        function createCleaningBubbles() {
+            const tank = document.querySelector('.cleaning-tank');
+            if (!tank) return;
+            
+            function addBubble() {
+                const bubble = document.createElement('div');
+                bubble.className = 'cleaning-bubbles';
+                bubble.style.left = Math.random() * (tank.offsetWidth - 20) + 'px';
+                bubble.style.bottom = '30px';
+                bubble.style.animationDelay = Math.random() * 2 + 's';
+                tank.appendChild(bubble);
+                
+                const timeoutId = setTimeout(() => {
+                    if (bubble.parentNode) {
+                        bubble.parentNode.removeChild(bubble);
+                    }
+                }, 3000);
+                animationManager.addTimeout(timeoutId);
+            }
+            
+            // Create initial bubbles
+            for (let i = 0; i < 15; i++) {
+                const timeoutId = setTimeout(() => addBubble(), i * 200);
+                animationManager.addTimeout(timeoutId);
+            }
+            
+            // Continue creating bubbles
+            const intervalId = setInterval(() => {
+                if (document.getElementById('cleaning-demo').classList.contains('active')) {
+                    addBubble();
+                } else {
+                    clearInterval(intervalId);
+                }
+            }, 800);
+            animationManager.addInterval(intervalId);
+        }
+
+        function drawOrganDiagram() {
+            const canvas = document.getElementById('organ-canvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw realistic human silhouette with proper proportions
+            const bodyGradient = ctx.createLinearGradient(0, 0, 0, height);
+            bodyGradient.addColorStop(0, 'rgba(245, 230, 210, 0.9)');
+            bodyGradient.addColorStop(1, 'rgba(230, 215, 195, 0.8)');
+            
+            // Head (more realistic oval shape)
+            ctx.fillStyle = bodyGradient;
+            ctx.beginPath();
+            ctx.ellipse(width/2, height * 0.08, width * 0.11, width * 0.13, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Neck
+            ctx.fillRect(width * 0.47, height * 0.16, width * 0.06, height * 0.04);
+            
+            // Torso (more anatomical shape)
+            ctx.beginPath();
+            ctx.moveTo(width * 0.35, height * 0.20);  // Left shoulder
+            ctx.quadraticCurveTo(width * 0.30, height * 0.25, width * 0.32, height * 0.40);  // Left side
+            ctx.lineTo(width * 0.34, height * 0.75);  // Left waist
+            ctx.quadraticCurveTo(width * 0.40, height * 0.78, width * 0.50, height * 0.78);  // Bottom
+            ctx.quadraticCurveTo(width * 0.60, height * 0.78, width * 0.66, height * 0.75);  // Right waist
+            ctx.lineTo(width * 0.68, height * 0.40);  // Right side
+            ctx.quadraticCurveTo(width * 0.70, height * 0.25, width * 0.65, height * 0.20);  // Right shoulder
+            ctx.lineTo(width * 0.53, height * 0.20);  // Right neck
+            ctx.lineTo(width * 0.47, height * 0.20);  // Left neck
+            ctx.closePath();
+            ctx.fill();
+            
+            // Arms (more natural positioning)
+            ctx.fillRect(width * 0.18, height * 0.22, width * 0.14, height * 0.40);
+            ctx.fillRect(width * 0.68, height * 0.22, width * 0.14, height * 0.40);
+            
+            // Draw ribcage structure
+            ctx.strokeStyle = 'rgba(220, 220, 220, 0.4)';
+            ctx.lineWidth = 1.5;
+            for (let i = 0; i < 10; i++) {
+                const y = height * 0.25 + i * height * 0.04;
+                const ribWidth = width * (0.25 - i * 0.015);
+                ctx.beginPath();
+                ctx.ellipse(width * 0.5, y, ribWidth, height * 0.015, 0, 0, Math.PI);
+                ctx.stroke();
+            }
+            
+            // Realistic heart with chambers and animation
+            const heartTime = Date.now() * 0.004;
+            const heartBeat = 0.95 + Math.sin(heartTime * 4) * 0.15;
+            const heartOpacity = 0.85 + Math.sin(heartTime * 4) * 0.15;
+            
+            ctx.save();
+            ctx.translate(width * 0.43, height * 0.30);
+            ctx.scale(heartBeat, heartBeat);
+            
+            // Heart main body
+            const heartGradient = ctx.createRadialGradient(0, 0, 5, 0, 0, 25);
+            heartGradient.addColorStop(0, `rgba(220, 53, 69, ${heartOpacity})`);
+            heartGradient.addColorStop(1, `rgba(176, 42, 55, ${heartOpacity * 0.8})`);
+            ctx.fillStyle = heartGradient;
+            
+            // More anatomically correct heart shape
+            ctx.beginPath();
+            ctx.moveTo(0, -8);
+            ctx.bezierCurveTo(-12, -16, -20, -6, -12, 2);
+            ctx.bezierCurveTo(-8, 8, 0, 18, 0, 18);
+            ctx.bezierCurveTo(0, 18, 8, 8, 12, 2);
+            ctx.bezierCurveTo(20, -6, 12, -16, 0, -8);
+            ctx.fill();
+            
+            // Heart chambers and details
+            ctx.strokeStyle = `rgba(139, 34, 44, ${heartOpacity})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(-6, -2);
+            ctx.quadraticCurveTo(0, 4, 6, -2);
+            ctx.moveTo(-8, 6);
+            ctx.quadraticCurveTo(-4, 12, 0, 8);
+            ctx.moveTo(8, 6);
+            ctx.quadraticCurveTo(4, 12, 0, 8);
+            ctx.stroke();
+            
+            // Aorta
+            ctx.strokeStyle = `rgba(200, 50, 60, ${heartOpacity})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(2, -8);
+            ctx.quadraticCurveTo(8, -12, 12, -18);
+            ctx.stroke();
+            ctx.restore();
+            
+            // Realistic lungs
+            const lungOpacity = 0.6 + Math.sin(heartTime + 1) * 0.2;
+            const lungGradient = ctx.createRadialGradient(0, 0, 10, 0, 0, 30);
+            lungGradient.addColorStop(0, `rgba(255, 182, 193, ${lungOpacity})`);
+            lungGradient.addColorStop(1, `rgba(240, 128, 128, ${lungOpacity * 0.7})`);
+            
+            // Left lung
+            ctx.save();
+            ctx.translate(width * 0.36, height * 0.35);
+            ctx.fillStyle = lungGradient;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, width * 0.08, height * 0.15, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Lung texture (alveoli representation)
+            ctx.fillStyle = `rgba(255, 160, 160, ${lungOpacity * 0.5})`;
+            for (let i = 0; i < 8; i++) {
+                const x = (Math.random() - 0.5) * width * 0.12;
+                const y = (Math.random() - 0.5) * height * 0.20;
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+            
+            // Right lung
+            ctx.save();
+            ctx.translate(width * 0.64, height * 0.35);
+            ctx.fillStyle = lungGradient;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, width * 0.08, height * 0.15, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Lung texture
+            ctx.fillStyle = `rgba(255, 160, 160, ${lungOpacity * 0.5})`;
+            for (let i = 0; i < 8; i++) {
+                const x = (Math.random() - 0.5) * width * 0.12;
+                const y = (Math.random() - 0.5) * height * 0.20;
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+            
+            // Realistic liver with lobes
+            const liverOpacity = 0.75 + Math.sin(heartTime + 2) * 0.15;
+            const liverGradient = ctx.createRadialGradient(0, 0, 10, 0, 0, 25);
+            liverGradient.addColorStop(0, `rgba(139, 69, 19, ${liverOpacity})`);
+            liverGradient.addColorStop(1, `rgba(160, 82, 45, ${liverOpacity * 0.8})`);
+            
+            ctx.save();
+            ctx.translate(width * 0.57, height * 0.42);
+            ctx.fillStyle = liverGradient;
+            
+            // Main liver lobe
+            ctx.beginPath();
+            ctx.ellipse(0, 0, width * 0.09, height * 0.08, Math.PI / 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Secondary lobe
+            ctx.beginPath();
+            ctx.ellipse(-width * 0.04, height * 0.03, width * 0.05, height * 0.05, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            
+            // Enhanced kidneys with renal structure
+            const kidneyTime = Date.now() * 0.003;
+            const kidneyOpacity = 0.8 + Math.sin(kidneyTime + 1) * 0.2;
+            
+            // Right kidney
+            ctx.save();
+            ctx.translate(width * 0.62, height * 0.50);
+            ctx.rotate(Math.PI / 12);
+            
+            const kidneyGradient = ctx.createRadialGradient(0, 0, 5, 0, 0, 20);
+            kidneyGradient.addColorStop(0, `rgba(139, 0, 139, ${kidneyOpacity})`);
+            kidneyGradient.addColorStop(1, `rgba(75, 0, 130, ${kidneyOpacity * 0.7})`);
+            ctx.fillStyle = kidneyGradient;
+            
+            // Kidney bean shape
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 16, 25, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Renal pelvis
+            ctx.fillStyle = `rgba(106, 90, 205, ${kidneyOpacity})`;
+            ctx.beginPath();
+            ctx.ellipse(-4, 0, 6, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Renal cortex details
+            ctx.strokeStyle = `rgba(72, 61, 139, ${kidneyOpacity})`;
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 5; i++) {
+                ctx.beginPath();
+                ctx.arc(2 + i * 2, -8 + i * 4, 2, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            ctx.restore();
+            
+            // Left kidney (mirrored)
+            ctx.save();
+            ctx.translate(width * 0.38, height * 0.50);
+            ctx.rotate(-Math.PI / 12);
+            ctx.fillStyle = kidneyGradient;
+            
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 16, 25, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = `rgba(106, 90, 205, ${kidneyOpacity})`;
+            ctx.beginPath();
+            ctx.ellipse(4, 0, 6, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = `rgba(72, 61, 139, ${kidneyOpacity})`;
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 5; i++) {
+                ctx.beginPath();
+                ctx.arc(-2 - i * 2, -8 + i * 4, 2, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            ctx.restore();
+            
+            // Stomach
+            const stomachOpacity = 0.6 + Math.sin(heartTime + 3) * 0.2;
+            ctx.save();
+            ctx.translate(width * 0.44, height * 0.48);
+            const stomachGradient = ctx.createRadialGradient(0, 0, 5, 0, 0, 15);
+            stomachGradient.addColorStop(0, `rgba(255, 140, 0, ${stomachOpacity})`);
+            stomachGradient.addColorStop(1, `rgba(255, 165, 0, ${stomachOpacity * 0.7})`);
+            ctx.fillStyle = stomachGradient;
+            
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 12, 18, Math.PI / 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            
+            // Spine with vertebrae
+            ctx.strokeStyle = 'rgba(248, 248, 255, 0.9)';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(width * 0.5, height * 0.20);
+            ctx.lineTo(width * 0.5, height * 0.75);
+            ctx.stroke();
+            
+            // Vertebrae with more detail
+            ctx.fillStyle = 'rgba(248, 248, 255, 0.8)';
+            for (let i = 0; i < 12; i++) {
+                const y = height * 0.22 + i * height * 0.045;
+                ctx.beginPath();
+                ctx.ellipse(width * 0.5, y, 4, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Vertebral processes
+                ctx.fillRect(width * 0.5 - 8, y - 1, 4, 2);
+                ctx.fillRect(width * 0.5 + 4, y - 1, 4, 2);
+            }
+            
+            // Realistic ultrasound scanning simulation
+            const scanTime = Date.now() * 0.006;
+            const probeY = height * 0.35 + Math.sin(scanTime * 0.5) * height * 0.15;
+            
+            // Ultrasound beam cone
+            ctx.fillStyle = 'rgba(0, 242, 254, 0.15)';
+            ctx.beginPath();
+            ctx.moveTo(width * 0.15, probeY);
+            ctx.lineTo(width * 0.45, probeY - 20);
+            ctx.lineTo(width * 0.45, probeY + 20);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Scan lines with depth attenuation
+            for (let i = 0; i < 8; i++) {
+                const x = width * 0.15 + i * (width * 0.3 / 8);
+                const opacity = (0.8 - i * 0.08) * (0.5 + Math.sin(scanTime + i * 0.3) * 0.5);
+                
+                ctx.strokeStyle = `rgba(0, 242, 254, ${opacity})`;
+                ctx.lineWidth = 3 - i * 0.3;
+                ctx.beginPath();
+                ctx.moveTo(x, probeY - 15);
+                ctx.lineTo(x, probeY + 15);
+                ctx.stroke();
+                
+                // Echo points on organs
+                if (x > width * 0.35 && x < width * 0.65) {
+                    ctx.fillStyle = `rgba(255, 255, 0, ${opacity * 0.8})`;
+                    ctx.beginPath();
+                    ctx.arc(x, probeY + Math.sin(x * 0.1) * 5, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // Doppler flow simulation
+            const flowTime = Date.now() * 0.01;
+            for (let i = 0; i < 6; i++) {
+                const x = width * 0.2 + (flowTime + i * 20) % (width * 0.6);
+                const y = height * 0.32 + Math.sin(x * 0.02) * 10;
+                const opacity = Math.sin((x / width) * Math.PI) * 0.6;
+                
+                ctx.fillStyle = `rgba(255, 0, 0, ${opacity})`;
+                ctx.beginPath();
+                ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Continue animation
+            const animId = requestAnimationFrame(drawOrganDiagram);
+            animationManager.addCanvasAnimation('organs', animId);
+        }
+
+        // Graph Functions
+        // Enhanced Graph Functions with Realistic Data
+        function drawFrequencyGraph() {
+            const canvas = document.getElementById('frequency-graph');
+            if (!canvas) return;
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            const time = Date.now() * 0.003;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw enhanced grid with frequency markers
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.lineWidth = 1;
+            
+            // Vertical grid lines (frequency markers)
+            const frequencies = [0.02, 0.04, 0.1, 1, 5, 10, 20]; // MHz
+            const maxFreq = 20;
+            
+            frequencies.forEach(freq => {
+                const x = 60 + (Math.log10(freq * 1000) / Math.log10(maxFreq * 1000)) * (width - 80);
+                ctx.beginPath();
+                ctx.moveTo(x, 20);
+                ctx.lineTo(x, height - 40);
+                ctx.stroke();
+                
+                // Frequency labels
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.font = '10px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText(freq >= 1 ? freq + 'M' : (freq * 1000) + 'k', x, height - 25);
+            });
+            
+            // Horizontal grid
+            for (let i = 0; i <= 5; i++) {
+                const y = 20 + (height - 60) * i / 5;
+                ctx.beginPath();
+                ctx.moveTo(60, y);
+                ctx.lineTo(width - 20, y);
+                ctx.stroke();
+            }
+            
+            // Draw realistic frequency spectrum with multiple harmonics
+            const applications = [
+                { 
+                    name: 'Industrial Cleaning', 
+                    centerFreq: 0.04, 
+                    bandwidth: 0.02, 
+                    amplitude: 0.8, 
+                    color: '#fa709a',
+                    harmonics: [1, 0.3, 0.1]
+                },
+                { 
+                    name: 'NDT Detection', 
+                    centerFreq: 2.25, 
+                    bandwidth: 1.5, 
+                    amplitude: 0.6, 
+                    color: '#43e97b',
+                    harmonics: [1, 0.4, 0.15, 0.05]
+                },
+                { 
+                    name: 'Medical Imaging', 
+                    centerFreq: 5, 
+                    bandwidth: 4, 
+                    amplitude: 0.9, 
+                    color: '#4facfe',
+                    harmonics: [1, 0.5, 0.2, 0.08]
+                },
+                { 
+                    name: 'High-Res Medical', 
+                    centerFreq: 15, 
+                    bandwidth: 5, 
+                    amplitude: 0.7, 
+                    color: '#00f2fe',
+                    harmonics: [1, 0.6, 0.25, 0.1]
+                }
+            ];
+            
+            applications.forEach(app => {
+                app.harmonics.forEach((harmonic, idx) => {
+                    const freq = app.centerFreq * (idx + 1);
+                    if (freq > maxFreq) return;
+                    
+                    const x = 60 + (Math.log10(freq * 1000) / Math.log10(maxFreq * 1000)) * (width - 80);
+                    const baseHeight = (height - 60) * app.amplitude * harmonic;
+                    const animatedHeight = baseHeight * (0.8 + 0.2 * Math.sin(time + idx * 0.5));
+                    
+                    // Create gradient for each peak
+                    const gradient = ctx.createLinearGradient(0, height - 40 - animatedHeight, 0, height - 40);
+                    gradient.addColorStop(0, app.color + 'FF');
+                    gradient.addColorStop(0.7, app.color + 'AA');
+                    gradient.addColorStop(1, app.color + '40');
+                    
+                    ctx.fillStyle = gradient;
+                    
+                    // Draw bell-shaped frequency response
+                    ctx.beginPath();
+                    ctx.moveTo(x - app.bandwidth * 3, height - 40);
+                    
+                    for (let i = -app.bandwidth * 3; i <= app.bandwidth * 3; i += 0.5) {
+                        const freqResponse = Math.exp(-(i * i) / (2 * app.bandwidth * app.bandwidth));
+                        const yPos = height - 40 - animatedHeight * freqResponse;
+                        ctx.lineTo(x + i, yPos);
+                    }
+                    
+                    ctx.lineTo(x + app.bandwidth * 3, height - 40);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // Add peak marker
+                    if (idx === 0) {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath();
+                        ctx.arc(x, height - 40 - animatedHeight, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+            });
+            
+            // Draw axes
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(60, 20);
+            ctx.lineTo(60, height - 40);
+            ctx.lineTo(width - 20, height - 40);
+            ctx.stroke();
+            
+            // Enhanced labels
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Frequency (Hz)', width / 2, height - 5);
+            
+            ctx.save();
+            ctx.translate(20, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Amplitude (dB)', 0, 0);
+            ctx.restore();
+            
+            // Application labels
+            ctx.font = '11px Inter';
+            ctx.textAlign = 'left';
+            let yPos = 35;
+            applications.forEach(app => {
+                ctx.fillStyle = app.color;
+                ctx.fillRect(width - 140, yPos - 8, 12, 12);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(app.name, width - 125, yPos);
+                yPos += 18;
+            });
+        }
+
+        function drawWaveformGraph() {
+            const canvas = document.getElementById('waveform-graph');
+            if (!canvas) return;
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            const time = Date.now() * 0.002;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Enhanced grid with time markers
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            
+            // Time grid (microseconds)
+            for (let i = 0; i <= 10; i++) {
+                const x = 50 + (width - 70) * i / 10;
+                ctx.beginPath();
+                ctx.moveTo(x, 20);
+                ctx.lineTo(x, height - 40);
+                ctx.stroke();
+                
+                if (i % 2 === 0) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                    ctx.font = '10px Inter';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(i * 10 + 'μs', x, height - 25);
+                }
+            }
+            
+            // Amplitude grid
+            for (let i = 0; i <= 8; i++) {
+                const y = 20 + (height - 60) * i / 8;
+                ctx.beginPath();
+                ctx.moveTo(50, y);
+                ctx.lineTo(width - 20, y);
+                ctx.stroke();
+            }
+            
+            // Draw realistic ultrasound pulse (5 MHz with envelope)
+            const frequency = 5; // MHz
+            const pulseWidth = 2; // microseconds
+            const travelTime = 65; // microseconds for tissue depth
+            
+            // Transmitted pulse
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            for (let x = 50; x < width - 20; x++) {
+                const timeUs = ((x - 50) / (width - 70)) * 100; // 0-100 microseconds
+                const pulsePhase = Math.sin(time * 2) * 10; // Moving pulse
+                const adjustedTime = timeUs - pulsePhase;
+                
+                let amplitude = 0;
+                if (adjustedTime >= 0 && adjustedTime <= pulseWidth) {
+                    // Gaussian envelope
+                    const envelope = Math.exp(-Math.pow((adjustedTime - pulseWidth/2) / (pulseWidth/6), 2));
+                    amplitude = envelope * Math.sin(2 * Math.PI * frequency * adjustedTime) * 0.8;
+                }
+                
+                const y = height/3 + amplitude * (height - 60) * 0.3;
+                if (x === 50) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // Reflected pulse (attenuated and delayed)
+            ctx.strokeStyle = '#00f2fe';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            for (let x = 50; x < width - 20; x++) {
+                const timeUs = ((x - 50) / (width - 70)) * 100;
+                const pulsePhase = Math.sin(time * 2) * 10;
+                const adjustedTime = timeUs - travelTime - pulsePhase;
+                
+                let amplitude = 0;
+                if (adjustedTime >= 0 && adjustedTime <= pulseWidth) {
+                    const envelope = Math.exp(-Math.pow((adjustedTime - pulseWidth/2) / (pulseWidth/6), 2));
+                    // Attenuation and phase inversion
+                    amplitude = -0.4 * envelope * Math.sin(2 * Math.PI * frequency * adjustedTime);
+                }
+                
+                const y = height*2/3 + amplitude * (height - 60) * 0.3;
+                if (x === 50) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // Add noise floor
+            ctx.strokeStyle = 'rgba(150, 150, 150, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let x = 50; x < width - 20; x++) {
+                const noise = (Math.random() - 0.5) * 0.05 * (height - 60);
+                const y = height * 0.85 + noise;
+                if (x === 50) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // Draw axes
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(50, 20);
+            ctx.lineTo(50, height - 40);
+            ctx.lineTo(width - 20, height - 40);
+            ctx.stroke();
+            
+            // Labels and annotations
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Time (μs)', width / 2, height - 5);
+            
+            ctx.save();
+            ctx.translate(20, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Amplitude (V)', 0, 0);
+            ctx.restore();
+            
+            // Wave labels
+            ctx.font = '12px Inter';
+            ctx.fillStyle = '#ff6b6b';
+            ctx.fillText('Transmitted Pulse', 120, height/3 - 20);
+            ctx.fillStyle = '#00f2fe';
+            ctx.fillText('Echo (Reflected)', 350, height*2/3 - 20);
+            ctx.fillStyle = '#969696';
+            ctx.fillText('Noise Floor', width - 100, height * 0.85 - 10);
+            
+            const animId = requestAnimationFrame(drawWaveformGraph);
+            animationManager.addCanvasAnimation('waveform', animId);
+        }
+
+        function drawPenetrationGraph() {
+            const canvas = document.getElementById('penetration-graph');
+            if (!canvas) return;
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Enhanced grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            
+            // Frequency grid (logarithmic scale for realism)
+            const freqMarkers = [1, 2, 5, 10, 15, 20]; // MHz
+            freqMarkers.forEach(freq => {
+                const x = 60 + (freq / 20) * (width - 80);
+                ctx.beginPath();
+                ctx.moveTo(x, 20);
+                ctx.lineTo(x, height - 40);
+                ctx.stroke();
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.font = '10px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText(freq + 'M', x, height - 25);
+            });
+            
+            // Penetration depth grid (cm)
+            const depthMarkers = [0, 5, 10, 15, 20, 25, 30]; // cm
+            depthMarkers.forEach(depth => {
+                const y = height - 40 - (depth / 30) * (height - 60);
+                ctx.beginPath();
+                ctx.moveTo(60, y);
+                ctx.lineTo(width - 20, y);
+                ctx.stroke();
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.font = '10px Inter';
+                ctx.textAlign = 'right';
+                ctx.fillText(depth + 'cm', 55, y + 3);
+            });
+            
+            // Realistic attenuation curves based on actual physics
+            const materials = [
+                { 
+                    name: 'Water', 
+                    color: '#38f9d7', 
+                    attenuation: (f) => 0.002 * f * f, // dB/cm/MHz²
+                    baseDepth: 30
+                },
+                { 
+                    name: 'Soft Tissue', 
+                    color: '#4facfe', 
+                    attenuation: (f) => 0.5 * f, // dB/cm/MHz
+                    baseDepth: 25
+                },
+                { 
+                    name: 'Muscle', 
+                    color: '#fee140', 
+                    attenuation: (f) => 0.8 * f, // dB/cm/MHz
+                    baseDepth: 20
+                },
+                { 
+                    name: 'Bone', 
+                    color: '#fa709a', 
+                    attenuation: (f) => 4 * f, // dB/cm/MHz
+                    baseDepth: 15
+                },
+                { 
+                    name: 'Air/Gas', 
+                    color: '#ff6b6b', 
+                    attenuation: (f) => 12 * f, // Very high attenuation
+                    baseDepth: 5
+                }
+            ];
+            
+            materials.forEach(material => {
+                ctx.strokeStyle = material.color;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                
+                for (let x = 60; x < width - 20; x++) {
+                    const frequency = ((x - 60) / (width - 80)) * 20; // 0-20 MHz
+                    if (frequency === 0) continue;
+                    
+                    // Calculate penetration depth where signal drops to -60 dB
+                    const attenuationCoeff = material.attenuation(frequency);
+                    const penetrationDepth = 60 / (2 * attenuationCoeff); // Half-value layer
+                    const clampedDepth = Math.min(penetrationDepth, material.baseDepth);
+                    
+                    const y = height - 40 - (clampedDepth / 30) * (height - 60);
+                    
+                    if (x === 60) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                
+                // Add data points for key frequencies
+                const keyFreqs = [2, 5, 10, 15];
+                keyFreqs.forEach(freq => {
+                    const x = 60 + (freq / 20) * (width - 80);
+                    const attenuationCoeff = material.attenuation(freq);
+                    const penetrationDepth = Math.min(60 / (2 * attenuationCoeff), material.baseDepth);
+                    const y = height - 40 - (penetrationDepth / 30) * (height - 60);
+                    
+                    ctx.fillStyle = material.color;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Add value labels for better readability
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '9px Inter';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(penetrationDepth.toFixed(1), x, y - 8);
+                });
+            });
+            
+            // Draw axes
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(60, 20);
+            ctx.lineTo(60, height - 40);
+            ctx.lineTo(width - 20, height - 40);
+            ctx.stroke();
+            
+            // Enhanced labels
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Frequency (MHz)', width / 2, height - 5);
+            
+            ctx.save();
+            ctx.translate(20, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Penetration Depth (cm)', 0, 0);
+            ctx.restore();
+            
+            // Legend with realistic values
+            ctx.font = '11px Inter';
+            ctx.textAlign = 'left';
+            let yPos = 35;
+            materials.forEach(material => {
+                ctx.fillStyle = material.color;
+                ctx.fillRect(width - 150, yPos - 8, 12, 12);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(material.name, width - 135, yPos);
+                yPos += 16;
+            });
+            
+            // Add title annotation
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = '12px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Higher frequency = Lower penetration', width / 2, 35);
+        }
+
+        function drawIntensityGraph() {
+            const canvas = document.getElementById('intensity-graph');
+            if (!canvas) return;
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            const time = Date.now() * 0.001;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Enhanced grid with intensity markers
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            
+            // Time grid (minutes)
+            for (let i = 0; i <= 10; i++) {
+                const x = 50 + (width - 70) * i / 10;
+                ctx.beginPath();
+                ctx.moveTo(x, 20);
+                ctx.lineTo(x, height - 40);
+                ctx.stroke();
+                
+                if (i % 2 === 0) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                    ctx.font = '10px Inter';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(i + 'min', x, height - 25);
+                }
+            }
+            
+            // Intensity grid (W/cm²)
+            const intensityLevels = [0.001, 0.01, 0.1, 1, 10, 100, 1000]; // W/cm²
+            intensityLevels.forEach((intensity, idx) => {
+                const y = height - 40 - (Math.log10(intensity) + 3) / 6 * (height - 60);
+                if (y >= 20 && y <= height - 40) {
+                    ctx.beginPath();
+                    ctx.moveTo(50, y);
+                    ctx.lineTo(width - 20, y);
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                    ctx.font = '9px Inter';
+                    ctx.textAlign = 'right';
+                    if (intensity >= 1) {
+                        ctx.fillText(intensity + ' W/cm²', 45, y + 3);
+                    } else {
+                        ctx.fillText(intensity + ' W/cm²', 45, y + 3);
+                    }
+                }
+            });
+            
+            // Diagnostic ultrasound level (0.1 W/cm²)
+            const diagnosticIntensity = 0.1;
+            const diagnosticY = height - 40 - (Math.log10(diagnosticIntensity) + 3) / 6 * (height - 60);
+            
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let x = 50; x < width - 20; x++) {
+                const timeMin = ((x - 50) / (width - 70)) * 10;
+                const variation = 1 + 0.1 * Math.sin(timeMin * 0.5 + time) + 0.05 * Math.sin(timeMin * 2 + time * 2);
+                const intensity = diagnosticIntensity * variation;
+                const y = height - 40 - (Math.log10(intensity) + 3) / 6 * (height - 60);
+                
+                if (x === 50) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // Therapeutic ultrasound level (1-50 W/cm²)
+            ctx.strokeStyle = '#f093fb';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let x = 50; x < width - 20; x++) {
+                const timeMin = ((x - 50) / (width - 70)) * 10;
+                
+                // Pulsed therapy pattern
+                const pulseOn = Math.sin(timeMin * 3 + time * 1.5) > 0;
+                const baseIntensity = pulseOn ? 10 : 0.5; // 10 W/cm² on, 0.5 W/cm² off
+                const modulation = 1 + 0.2 * Math.sin(timeMin * 1.2 + time * 0.8);
+                const intensity = baseIntensity * modulation;
+                const y = height - 40 - (Math.log10(intensity) + 3) / 6 * (height - 60);
+                
+                if (x === 50) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // HIFU (High Intensity Focused Ultrasound) level (100-10000 W/cm²)
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let x = 50; x < width - 20; x++) {
+                const timeMin = ((x - 50) / (width - 70)) * 10;
+                
+                // HIFU treatment bursts
+                const burst = timeMin > 2 && timeMin < 3 || timeMin > 5 && timeMin < 6;
+                const intensity = burst ? 1000 * (1 + 0.1 * Math.sin(timeMin * 10)) : 0.01;
+                const y = height - 40 - (Math.log10(intensity) + 3) / 6 * (height - 60);
+                
+                if (x === 50) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // Safety threshold lines
+            const safetyLimits = [
+                { intensity: 0.72, label: 'FDA Diagnostic Limit', color: 'rgba(255, 255, 0, 0.8)' },
+                { intensity: 3, label: 'Thermal Threshold', color: 'rgba(255, 165, 0, 0.8)' },
+                { intensity: 50, label: 'Cavitation Threshold', color: 'rgba(255, 0, 0, 0.8)' }
+            ];
+            
+            safetyLimits.forEach(limit => {
+                const y = height - 40 - (Math.log10(limit.intensity) + 3) / 6 * (height - 60);
+                if (y >= 20 && y <= height - 40) {
+                    ctx.strokeStyle = limit.color;
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(50, y);
+                    ctx.lineTo(width - 20, y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    ctx.fillStyle = limit.color;
+                    ctx.font = '10px Inter';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(limit.label, width - 180, y - 5);
+                }
+            });
+            
+            // Draw axes
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(50, 20);
+            ctx.lineTo(50, height - 40);
+            ctx.lineTo(width - 20, height - 40);
+            ctx.stroke();
+            
+            // Enhanced labels
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Treatment Time (minutes)', width / 2, height - 5);
+            
+            ctx.save();
+            ctx.translate(15, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Intensity (W/cm²)', 0, 0);
+            ctx.restore();
+            
+            // Legend
+            ctx.font = '11px Inter';
+            ctx.textAlign = 'left';
+            let yPos = 35;
+            const applications = [
+                { name: 'Diagnostic Imaging', color: '#667eea' },
+                { name: 'Physical Therapy', color: '#f093fb' },
+                { name: 'HIFU Surgery', color: '#ff6b6b' }
+            ];
+            
+            applications.forEach(app => {
+                ctx.fillStyle = app.color;
+                ctx.fillRect(width - 140, yPos - 8, 12, 12);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(app.name, width - 125, yPos);
+                yPos += 18;
+            });
+            
+            const animId = requestAnimationFrame(drawIntensityGraph);
+            animationManager.addCanvasAnimation('intensity', animId);
+        }
+
+        function initializeGraphs() {
+            drawFrequencyGraph();
+            drawWaveformGraph();
+            drawPenetrationGraph();
+            drawIntensityGraph();
+        }
+
+        async function showOverview() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            const teacher = createNewTeacher();
+            teacher.setContext('overview');
+            
+            hideAllDemos();
+            updateTitle("🌊 Ultrasound Overview");
+            document.getElementById('overview-demo').classList.add('active');
+            
+            await teacher.speak("Welcome to the fascinating world of ultrasound applications! Ultrasonic waves are high-frequency sound waves above 20,000 Hz that travel in well-defined paths. Watch as these powerful waves propagate automatically!", 0, 'overview');
+            
+            const timeoutId = setTimeout(() => {
+                animateOverviewWaves();
+            }, 1000);
+            animationManager.addTimeout(timeoutId);
+            
+            isPlaying = false;
+        }
+
+        async function showCleaning() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            const teacher = createNewTeacher();
+            teacher.setContext('cleaning');
+            
+            hideAllDemos();
+            updateTitle("🧽 Industrial Ultrasonic Cleaning");
+            document.getElementById('cleaning-demo').classList.add('active');
+            
+            await teacher.speak("Ultrasonic cleaning uses high-frequency waves to remove dirt and contaminants from hard-to-reach places. The waves create cavitation bubbles that automatically scrub surfaces clean without damage. Watch the automated cleaning process!", 0, 'cleaning');
+            
+            createCleaningBubbles();
+            
+            isPlaying = false;
+        }
+
+        async function showDetection() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            const teacher = createNewTeacher();
+            teacher.setContext('detection');
+            
+            hideAllDemos();
+            updateTitle("🔍 Ultrasonic Defect Detection");
+            document.getElementById('detection-demo').classList.add('active');
+            
+            await teacher.speak("Ultrasonic testing automatically detects hidden flaws and cracks in materials. When waves encounter defects, they reflect back, continuously revealing internal problems invisible to the naked eye. Observe the automatic scanning process!", 0, 'detection');
+            
+            isPlaying = false;
+        }
+
+        async function showMedical() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            const teacher = createNewTeacher();
+            teacher.setContext('medical');
+            
+            hideAllDemos();
+            updateTitle("🏥 Medical Ultrasound Imaging");
+            document.getElementById('medical-demo').classList.add('active');
+            
+            await teacher.speak("Medical ultrasound creates real-time images of internal organs using sound waves. This safe, non-invasive technique automatically helps doctors diagnose conditions and monitor patient health. Watch the automated scanning of organs!", 0, 'medical');
+            
+            const timeoutId = setTimeout(() => {
+                drawOrganDiagram();
+            }, 1000);
+            animationManager.addTimeout(timeoutId);
+            
+            isPlaying = false;
+        }
+
+        async function showKidney() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            const teacher = createNewTeacher();
+            teacher.setContext('kidney');
+            
+            hideAllDemos();
+            updateTitle("💎 Ultrasonic Kidney Stone Treatment");
+            document.getElementById('kidney-demo').classList.add('active');
+            
+            await teacher.speak("High-intensity ultrasound automatically breaks kidney stones into tiny fragments that are naturally flushed out with urine. This non-invasive treatment eliminates the need for surgery. Watch the automated stone breaking process!", 0, 'kidney');
+            
+            isPlaying = false;
+        }
+
+        async function showCompleteLesson() {
+            currentDemoAborted = true;
+            await wait(300);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            updateProgress(5);
+            
+            const teacher = createNewTeacher();
+            const lessonContext = 'complete-lesson';
+            teacher.setContext(lessonContext);
+            
+            updateTitle("📚 Complete Ultrasound Applications Lesson");
+            
+            await teacher.speak("Welcome to our comprehensive automated lesson on ultrasound applications! We'll explore how high-frequency sound waves revolutionize industry, medicine, and technology. Let's discover the amazing world of ultrasonic applications!", 0, lessonContext);
+            if (!shouldContinue()) return;
+            
+            updateProgress(15);
+            await showOverviewInternal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            updateProgress(30);
+            await wait(3000);
+            await showCleaningInternal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            updateProgress(50);
+            await wait(3000);
+            await showDetectionInternal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            updateProgress(70);
+            await wait(3000);
+            await showMedicalInternal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            updateProgress(90);
+            await wait(3000);
+            await showKidneyInternal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            updateProgress(100);
+            await teacher.speak("Congratulations! You've completed the comprehensive ultrasound applications lesson. From cleaning delicate components to saving lives through medical imaging, ultrasound technology continues to transform our world in remarkable ways!", 0, lessonContext);
+            
+            isPlaying = false;
+        }
+
+        async function showOverviewInternal(parentContext) {
+            const teacher = currentTeacher || createNewTeacher();
+            hideAllDemos();
+            document.getElementById('overview-demo').classList.add('active');
+            
+            await teacher.speak("First, let's understand what ultrasound is. These are high-frequency waves above 20,000 Hz that travel in precise, well-defined paths even around obstacles.", 0, parentContext);
+            
+            const timeoutId = setTimeout(() => {
+                animateOverviewWaves();
+            }, 1000);
+            animationManager.addTimeout(timeoutId);
+            
+            return true;
+        }
+
+        async function showCleaningInternal(parentContext) {
+            const teacher = currentTeacher || createNewTeacher();
+            hideAllDemos();
+            document.getElementById('cleaning-demo').classList.add('active');
+            
+            await teacher.speak("Ultrasonic cleaning automatically removes dirt from hard-to-reach places like electronic components and precision parts. High-frequency waves create cavitation bubbles that thoroughly clean surfaces without damage.", 0, parentContext);
+            
+            createCleaningBubbles();
+            
+            return true;
+        }
+
+        async function showDetectionInternal(parentContext) {
+            const teacher = currentTeacher || createNewTeacher();
+            hideAllDemos();
+            document.getElementById('detection-demo').classList.add('active');
+            
+            await teacher.speak("Defect detection uses ultrasonic waves to automatically find hidden cracks and flaws in metal structures. This non-destructive testing is crucial for the safety of buildings, bridges, and aircraft.", 0, parentContext);
+            
+            return true;
+        }
+
+        async function showMedicalInternal(parentContext) {
+            const teacher = currentTeacher || createNewTeacher();
+            hideAllDemos();
+            document.getElementById('medical-demo').classList.add('active');
+            
+            await teacher.speak("Medical ultrasound automatically creates real-time images of internal organs for diagnosis. From monitoring pregnancies to examining hearts and kidneys, this safe technology revolutionizes healthcare.", 0, parentContext);
+            
+            const timeoutId = setTimeout(() => {
+                drawOrganDiagram();
+            }, 1000);
+            animationManager.addTimeout(timeoutId);
+            
+            return true;
+        }
+
+        async function showKidneyInternal(parentContext) {
+            const teacher = currentTeacher || createNewTeacher();
+            hideAllDemos();
+            document.getElementById('kidney-demo').classList.add('active');
+            
+            await teacher.speak("Finally, ultrasound can automatically break kidney stones into tiny fragments without surgery. This non-invasive treatment demonstrates the incredible power and precision of ultrasonic technology.", 0, parentContext);
+            
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide loading overlay
+            const loadingTimeout = setTimeout(() => {
+                document.getElementById('loading-overlay').classList.add('hidden');
+            }, 1200);
+            
+            // Initialize graphs
+            setTimeout(() => {
+                initializeGraphs();
+            }, 2000);
+            
+            // Button click handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const demo = this.getAttribute('data-demo');
+                    setActiveButton(this);
+                    
+                    currentDemoAborted = true;
+                    if (currentTeacher) {
+                        currentTeacher.stop();
+                    }
+                    
+                    animationManager.cleanup();
+                    
+                    await wait(300);
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'overview':
+                            showOverview();
+                            break;
+                        case 'cleaning':
+                            showCleaning();
+                            break;
+                        case 'detection':
+                            showDetection();
+                            break;
+                        case 'medical':
+                            showMedical();
+                            break;
+                        case 'kidney':
+                            showKidney();
+                            break;
+                        case 'reset':
+                            resetAll();
+                            setActiveButton(null);
+                            break;
+                    }
+                });
+            });
+
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+
+            // Initialize
+            const teacher = createNewTeacher();
+            const welcomeContext = 'initial-welcome';
+            teacher.setContext(welcomeContext);
+            
+            const welcomeTimeout = setTimeout(() => {
+                teacher.speak("Welcome to the world of automated ultrasound applications! Discover how high-frequency sound waves clean delicate components, detect hidden flaws, revolutionize medical diagnosis, and even break kidney stones. Explore our automated demonstrations to see ultrasound technology in action!", 0, welcomeContext);
+                
+                animateOverviewWaves();
+            }, 1800);
+            animationManager.addTimeout(welcomeTimeout);
+        });
+    </script>
+</body>
+</html>

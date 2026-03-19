@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathematical Formulation of Second Law - Physics in Motion</title>
+    <!-- GSAP for realistic animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/TextPlugin.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #3a5998 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(37, 99, 235, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(37, 99, 235, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #60a5fa, #3b82f6, #2563eb);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+
+
+        /* Visualization Stage */
+        .viz-stage {
+            background: linear-gradient(to bottom, #0f172a, #1e293b, #334155);
+            border-radius: 20px;
+            padding: 25px;
+            margin: 30px 0;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(59, 130, 246, 0.4);
+            position: relative;
+            height: 450px;
+            overflow: hidden;
+        }
+
+        /* Derivation Visualization */
+        .derivation-viz {
+            display: none;
+            height: 100%;
+        }
+
+        .derivation-viz.active {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .animation-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .object-motion {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            position: relative;
+            height: 80px;
+        }
+
+        .motion-track {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .motion-object {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            font-size: 1.3rem;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .velocity-label {
+            position: absolute;
+            top: -28px;
+            font-size: 1rem;
+            color: #60a5fa;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .force-arrow {
+            position: absolute;
+            left: -50px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #f59e0b;
+            font-size: 35px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+        }
+
+        /* Motion particles */
+        .motion-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #60a5fa;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        /* Speed lines */
+        .speed-line {
+            position: absolute;
+            height: 1px;
+            background: linear-gradient(to right, transparent, #60a5fa, transparent);
+            opacity: 0;
+        }
+
+        .timeline {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            position: relative;
+            margin-top: 15px;
+        }
+
+        .timeline-fill {
+            height: 100%;
+            background: linear-gradient(to right, #3b82f6, #60a5fa);
+            border-radius: 2px;
+            width: 0;
+        }
+
+        .time-label {
+            position: absolute;
+            bottom: -22px;
+            font-size: 0.85rem;
+            color: #60a5fa;
+        }
+
+        .time-label.start {
+            left: 0;
+        }
+
+        .time-label.end {
+            right: 0;
+        }
+
+        /* Equation Steps */
+        .equation-section {
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .equation-steps {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .equation-step {
+            margin: 10px 0;
+            padding: 12px;
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 3px solid #3b82f6;
+            border-radius: 6px;
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+
+        .step-label {
+            font-size: 0.85rem;
+            color: #60a5fa;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .equation {
+            font-size: 1.1rem;
+            font-family: 'Courier New', monospace;
+            color: #fbbf24;
+            margin: 8px 0;
+            text-align: center;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .equation-main {
+            font-size: 1.4rem;
+            color: #f59e0b;
+            font-weight: bold;
+            padding: 12px;
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: 8px;
+            margin: 10px 0;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+        }
+
+        /* Real-World Applications */
+        .applications-demo {
+            display: none;
+            height: 100%;
+        }
+
+        .applications-demo.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .app-scenario {
+            display: none;
+            align-items: center;
+            gap: 25px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .app-scenario.visible {
+            display: flex;
+        }
+
+        .app-navigation {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .app-nav-btn {
+            background: rgba(59, 130, 246, 0.2);
+            border: 2px solid #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .app-nav-btn:hover {
+            background: rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .app-nav-btn.active {
+            background: #3b82f6;
+        }
+
+        .app-nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .app-visual {
+            font-size: 50px;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .app-visual.animating {
+            animation: visualPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes visualPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        .app-content {
+            flex: 1;
+        }
+
+        .app-title {
+            font-size: 1.2rem;
+            color: #60a5fa;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .app-description {
+            line-height: 1.5;
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        .app-formula {
+            margin-top: 8px;
+            font-family: 'Courier New', monospace;
+            color: #fbbf24;
+            font-size: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 6px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+
+        /* Interactive diagram */
+        .force-time-graph {
+            width: 100%;
+            max-width: 300px;
+            height: 120px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin: 10px auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .graph-axis {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .graph-axis.x {
+            bottom: 15px;
+            left: 25px;
+            right: 10px;
+            height: 1px;
+        }
+
+        .graph-axis.y {
+            left: 25px;
+            top: 10px;
+            bottom: 15px;
+            width: 1px;
+        }
+
+        .graph-bar {
+            position: absolute;
+            bottom: 15px;
+            background: #60a5fa;
+            border-radius: 2px 2px 0 0;
+            width: 25px;
+            height: 0;
+            transition: height 1s ease-out;
+        }
+
+        /* Example Problems */
+        .problem-solver {
+            display: none;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .problem-solver.active {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .problem-statement {
+            background: rgba(59, 130, 246, 0.15);
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .problem-title {
+            font-size: 1.1rem;
+            color: #60a5fa;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .given-data {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+        }
+
+        .given-title {
+            color: #fbbf24;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .data-item-problem {
+            padding: 4px 0;
+            font-family: 'Courier New', monospace;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .solution-steps {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        .solution-step {
+            margin: 10px 0;
+            padding: 8px;
+            border-left: 3px solid #10b981;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        .step-number {
+            color: #10b981;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .answer-box {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.2));
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 15px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #fbbf24;
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .controls-title {
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3);
+            min-width: 140px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.4);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Theory Section */
+        .theory-section {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+            border: 2px solid rgba(59, 130, 246, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .formula-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.15));
+            padding: 20px;
+            border-radius: 15px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .formula-title {
+            font-size: 1.2rem;
+            color: #60a5fa;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .main-formula {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #fbbf24;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .formula-explanation {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #e2e8f0;
+        }
+
+        .unit-info {
+            background: rgba(16, 185, 129, 0.1);
+            padding: 18px;
+            border-radius: 12px;
+            margin: 15px 0;
+            border-left: 4px solid #10b981;
+        }
+
+        .unit-title {
+            color: #10b981;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        /* Example selector */
+        .example-selector {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .example-btn {
+            padding: 8px 16px;
+            background: rgba(59, 130, 246, 0.2);
+            border: 2px solid #3b82f6;
+            color: white;
+            border-radius: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .example-btn:hover {
+            background: rgba(59, 130, 246, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .example-btn.selected {
+            background: #3b82f6;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .viz-stage {
+                height: auto;
+                min-height: 400px;
+            }
+            
+            .derivation-viz.active {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .equation {
+                font-size: 1rem;
+            }
+            
+            .equation-main {
+                font-size: 1.2rem;
+            }
+            
+            .main-formula {
+                font-size: 1.8rem;
+            }
+            
+            .app-scenario {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.6rem;
+            }
+            
+            .header p {
+                font-size: 0.95rem;
+            }
+            
+            .viz-stage {
+                padding: 15px 10px;
+            }
+            
+            .theory-section {
+                padding: 20px;
+            }
+            
+            .equation {
+                font-size: 0.9rem;
+            }
+            
+            .equation-main {
+                font-size: 1.1rem;
+                padding: 10px;
+            }
+            
+            .main-formula {
+                font-size: 1.4rem;
+            }
+            
+            .demo-btn {
+                min-width: 120px;
+                padding: 10px 18px;
+                font-size: 0.9rem;
+            }
+            
+            .motion-object {
+                width: 55px;
+                height: 55px;
+                font-size: 1.1rem;
+            }
+            
+            .force-arrow {
+                font-size: 28px;
+                left: -35px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Mathematical Formulation of Second Law</h1>
+            <p>Discover how F = ma is derived from momentum principles and solve real-world problems using Newton's equations</p>
+        </div>
+
+        <!-- Visualization Stage -->
+        <div class="viz-stage">
+            <!-- Derivation Visualization -->
+            <div class="derivation-viz" id="derivation-viz">
+                <div class="animation-section">
+                    <div class="object-motion">
+                        <div class="motion-track"></div>
+                        <div class="motion-object" id="motion-object">
+                            <span>5kg</span>
+                            <div class="velocity-label" id="velocity-label">u = 3 m/s</div>
+                            <div class="force-arrow" id="force-arrow">→ F</div>
+                        </div>
+                        <!-- Motion particles for visual effect -->
+                        <div class="motion-particle" style="top: 40%; left: 10px;"></div>
+                        <div class="motion-particle" style="top: 50%; left: 20px;"></div>
+                        <div class="motion-particle" style="top: 60%; left: 30px;"></div>
+                        <!-- Speed lines -->
+                        <div class="speed-line" style="top: 35%; width: 70px; left: -80px;"></div>
+                        <div class="speed-line" style="top: 50%; width: 50px; left: -60px;"></div>
+                        <div class="speed-line" style="top: 65%; width: 30px; left: -40px;"></div>
+                    </div>
+                    <div class="timeline">
+                        <div class="timeline-fill" id="timeline"></div>
+                        <span class="time-label start">t = 0</span>
+                        <span class="time-label end" id="time-end">t = 2s</span>
+                    </div>
+                </div>
+                <div class="equation-section">
+                    <div class="equation-steps">
+                        <div class="equation-step" id="step1">
+                            <div class="step-label">Initial Momentum:</div>
+                            <div class="equation">p₁ = mu = 5 × 3 = 15 kg⋅m/s</div>
+                        </div>
+                        <div class="equation-step" id="step2">
+                            <div class="step-label">Final Momentum:</div>
+                            <div class="equation">p₂ = mv = 5 × 7 = 35 kg⋅m/s</div>
+                        </div>
+                        <div class="equation-step" id="step3">
+                            <div class="step-label">Change in Momentum:</div>
+                            <div class="equation">Δp = mv - mu = 35 - 15 = 20 kg⋅m/s</div>
+                        </div>
+                        <div class="equation-step" id="step4">
+                            <div class="step-label">Rate of Change (Force):</div>
+                            <div class="equation">F = Δp/t = 20/2 = 10 N</div>
+                        </div>
+                        <div class="equation-step" id="step5">
+                            <div class="step-label">Since a = (v - u)/t = (7-3)/2 = 2 m/s²:</div>
+                            <div class="equation equation-main">F = ma = 5 × 2 = 10 N ✓</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Real-World Applications -->
+            <div class="applications-demo" id="applications-demo">
+                <div class="app-scenario visible" id="app1">
+                    <div class="app-visual" id="visual1">🏏</div>
+                    <div class="app-content">
+                        <div class="app-title">Cricket Fielder Catching</div>
+                        <div class="app-description">
+                            A fielder pulls hands backward while catching to increase the time (t) over which 
+                            the ball's momentum changes. This reduces the force F = Δp/t on the hands.
+                        </div>
+                        <div class="app-formula">↑ time → ↓ force → less pain!</div>
+                        <div class="force-time-graph">
+                            <div class="graph-axis x"></div>
+                            <div class="graph-axis y"></div>
+                            <div class="graph-bar" id="bar1" style="left: 40px;"></div>
+                            <div class="graph-bar" id="bar2" style="left: 100px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="app-scenario" id="app2">
+                    <div class="app-visual" id="visual2">🤸</div>
+                    <div class="app-content">
+                        <div class="app-title">High Jump Landing</div>
+                        <div class="app-description">
+                            Athletes land on cushioned beds or sand to increase the stopping time. 
+                            This decreases the rate of momentum change and reduces impact force.
+                        </div>
+                        <div class="app-formula">Soft landing → ↑ t → ↓ F</div>
+                    </div>
+                </div>
+                <div class="app-scenario" id="app3">
+                    <div class="app-visual" id="visual3">🥋</div>
+                    <div class="app-content">
+                        <div class="app-title">Karate Ice Break</div>
+                        <div class="app-description">
+                            A karate player delivers maximum momentum change in minimum time by 
+                            striking swiftly. Very short contact time creates enormous force.
+                        </div>
+                        <div class="app-formula">↓ time → ↑ force → break!</div>
+                    </div>
+                </div>
+                <div class="app-navigation">
+                    <button class="app-nav-btn" id="prev-app" onclick="navigateApp('prev')">← Previous</button>
+                    <button class="app-nav-btn active" id="app-indicator">1 / 3</button>
+                    <button class="app-nav-btn" id="next-app" onclick="navigateApp('next')">Next →</button>
+                </div>
+            </div>
+
+            <!-- Problem Solver -->
+            <div class="problem-solver" id="problem-solver">
+                <div class="example-selector">
+                    <button class="example-btn selected" onclick="showExample(1)">Example 8.1</button>
+                    <button class="example-btn" onclick="showExample(2)">Example 8.2</button>
+                    <button class="example-btn" onclick="showExample(3)">Example 8.3</button>
+                    <button class="example-btn" onclick="showExample(4)">Example 8.4</button>
+                    <button class="example-btn" onclick="showExample(5)">Example 8.5</button>
+                </div>
+
+                <div id="example-content">
+                    <!-- Example content will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="demo-title">Explore F = ma</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playFullLesson()">📚 Complete Lesson</button>
+                <button class="demo-btn" onclick="showDerivation()">🔍 Derivation</button>
+                <button class="demo-btn" onclick="showApplications()">🌍 Applications</button>
+                <button class="demo-btn" onclick="showProblems()">📝 Problems</button>
+                <button class="demo-btn" onclick="resetAllClick()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Theory Section -->
+        <div class="theory-section">
+            <div class="formula-card">
+                <div class="formula-title">Newton's Second Law - Mathematical Form</div>
+                <div class="main-formula">F = ma</div>
+                <div class="formula-explanation">
+                    Force equals mass times acceleration. This fundamental equation relates the force applied 
+                    to an object with its mass and the resulting acceleration.
+                </div>
+            </div>
+
+            <div class="unit-info">
+                <div class="unit-title">📏 Units and Definitions</div>
+                <div style="line-height: 1.6;">
+                    <strong>Force (F):</strong> Newton (N) = kg⋅m/s²<br>
+                    <strong>Mass (m):</strong> kilogram (kg)<br>
+                    <strong>Acceleration (a):</strong> meter per second squared (m/s²)<br><br>
+                    <strong>Definition:</strong> One Newton is the force required to accelerate a 1 kg mass at 1 m/s²
+                </div>
+            </div>
+
+            <div class="formula-card">
+                <div class="formula-title">Alternative Forms</div>
+                <div class="equation" style="margin: 12px 0;">F = m(v - u)/t</div>
+                <div class="equation" style="margin: 12px 0;">F⋅t = m⋅v - m⋅u</div>
+                <div class="equation" style="margin: 12px 0;">F⋅t = Δp (Impulse-Momentum Theorem)</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice Teacher System
+        class PhysicsTeacher {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.9, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+        }
+
+        // Global state management
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let isPlaying = false;
+        let animationTimeline = null;
+        let currentDemoAborted = false;
+        let activeAnimations = [];
+        let currentRunId = 0;
+        let currentExample = 1;
+        let currentApp = 1;
+        let currentTaskId = null; // Track current task ID
+
+        // Function to create new animation timeline
+        function createNewTimeline() {
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            gsap.killTweensOf("*");
+            
+            const newTimeline = gsap.timeline();
+            animationTimeline = newTimeline;
+            return newTimeline;
+        }
+
+        function trackAnimation(animation) {
+            if (animation) {
+                activeAnimations.push(animation);
+            }
+            return animation;
+        }
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            
+            // Clear current task context
+            currentTaskId = null;
+            
+            // Stop teacher
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            // Kill all animations
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            
+            gsap.killTweensOf("*");
+            
+            // Hide all demos immediately
+            document.querySelectorAll('.derivation-viz, .applications-demo, .problem-solver').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            // If a specific task ID is provided, check if it matches current task
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentTeacher = new PhysicsTeacher();
+            return currentTeacher;
+        }
+
+        // Navigate through applications
+        function navigateApp(direction) {
+            const apps = ['app1', 'app2', 'app3'];
+            
+            // Stop current narration when manually navigating
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            
+            // Hide current app
+            document.getElementById(apps[currentApp - 1]).classList.remove('visible');
+            gsap.set(`#${apps[currentApp - 1]}`, { opacity: 0, y: 20 });
+            
+            // Update current app
+            if (direction === 'next' && currentApp < 3) {
+                currentApp++;
+            } else if (direction === 'prev' && currentApp > 1) {
+                currentApp--;
+            }
+            
+            // Show new app
+            document.getElementById(apps[currentApp - 1]).classList.add('visible');
+            gsap.to(`#${apps[currentApp - 1]}`, {
+                duration: 0.5,
+                opacity: 1,
+                y: 0,
+                ease: "power2.out"
+            });
+            
+            // Update navigation buttons
+            document.getElementById('prev-app').disabled = currentApp === 1;
+            document.getElementById('next-app').disabled = currentApp === 3;
+            document.getElementById('app-indicator').textContent = `${currentApp} / 3`;
+            
+            // Add visual animation
+            document.getElementById(`visual${currentApp}`).classList.add('animating');
+            
+            // Animate graph bars for first app
+            if (currentApp === 1) {
+                setTimeout(() => {
+                    gsap.to('#bar1', {
+                        duration: 1,
+                        height: 70,
+                        ease: "power2.out"
+                    });
+                    gsap.to('#bar2', {
+                        duration: 1,
+                        height: 35,
+                        delay: 0.2,
+                        ease: "power2.out"
+                    });
+                }, 500);
+            }
+            
+            // Narrate the current application if teacher is active
+            if (currentTeacher && isPlaying) {
+                narrateCurrentApplication();
+            }
+        }
+
+        // Function to narrate the currently visible application
+        async function narrateCurrentApplication() {
+            if (!currentTeacher || !isPlaying) return;
+            
+            const appNarrations = {
+                1: "A cricket fielder pulls hands backward to increase time, reducing force and preventing injury. When catching a fast ball, increasing the time over which momentum changes reduces the impact force.",
+                2: "High jumpers land on soft cushioned beds to increase stopping time. The soft surface extends the time of impact, significantly reducing the force on the athlete's body and preventing injury.",
+                3: "Karate players break ice by minimizing contact time to maximize force. By delivering the momentum change in the shortest possible time, they create enormous force that breaks through solid objects!"
+            };
+            
+            const narration = appNarrations[currentApp];
+            if (narration) {
+                await currentTeacher.speak(narration);
+            }
+        }
+
+        // Function to wait for sentence completion before proceeding
+        async function waitForSentenceCompletion(teacher) {
+            if (!teacher || !teacher.currentUtterance) {
+                await wait(2000); // Fallback wait time
+                return;
+            }
+            
+            return new Promise((resolve) => {
+                const checkCompletion = () => {
+                    if (!teacher.currentUtterance || speechSynthesis.speaking === false) {
+                        resolve();
+                    } else {
+                        setTimeout(checkCompletion, 100);
+                    }
+                };
+                checkCompletion();
+            });
+        }
+
+        const examples = {
+            1: {
+                title: "Example 8.1: Force and Velocity Change",
+                problem: "A constant force acts on an object of mass 5 kg for 2 s. It increases velocity from 3 m/s to 7 m/s. Find the force. If applied for 5 s, what's the final velocity?",
+                given: ["m = 5 kg", "u = 3 m/s", "v = 7 m/s", "t = 2 s"],
+                solution: [
+                    "Using F = m(v - u)/t",
+                    "F = 5 kg × (7 - 3) m/s / 2 s",
+                    "F = 5 × 4 / 2 = 10 N",
+                    "For t = 5 s: v = u + Ft/m",
+                    "v = 3 + (10 × 5)/5 = 13 m/s"
+                ],
+                answer: "Force = 10 N, Final velocity = 13 m/s"
+            },
+            2: {
+                title: "Example 8.2: Comparing Forces",
+                problem: "Which requires greater force: accelerating 2 kg at 5 m/s² or 4 kg at 2 m/s²?",
+                given: ["m₁ = 2 kg, a₁ = 5 m/s²", "m₂ = 4 kg, a₂ = 2 m/s²"],
+                solution: [
+                    "Using F = ma",
+                    "F₁ = 2 kg × 5 m/s² = 10 N",
+                    "F₂ = 4 kg × 2 m/s² = 8 N",
+                    "F₁ > F₂"
+                ],
+                answer: "First case (2 kg at 5 m/s²) requires greater force"
+            },
+            3: {
+                title: "Example 8.3: Braking Force",
+                problem: "A car moving at 108 km/h stops in 4 s after braking. Mass with passengers is 1000 kg. Find braking force.",
+                given: ["u = 108 km/h = 30 m/s", "v = 0 m/s", "m = 1000 kg", "t = 4 s"],
+                solution: [
+                    "Convert: 108 km/h = 108×1000/(60×60) = 30 m/s",
+                    "Using F = m(v - u)/t",
+                    "F = 1000 × (0 - 30) / 4",
+                    "F = -7500 N"
+                ],
+                answer: "Braking force = -7500 N (opposite to motion)"
+            },
+            4: {
+                title: "Example 8.4: Combined Masses",
+                problem: "A 5 N force gives mass m₁ acceleration 10 m/s² and mass m₂ acceleration 20 m/s². What if both masses are tied together?",
+                given: ["F = 5 N", "a₁ = 10 m/s²", "a₂ = 20 m/s²"],
+                solution: [
+                    "Find masses: m = F/a",
+                    "m₁ = 5/10 = 0.5 kg",
+                    "m₂ = 5/20 = 0.25 kg",
+                    "Combined: m = 0.5 + 0.25 = 0.75 kg",
+                    "a = F/m = 5/0.75 = 6.67 m/s²"
+                ],
+                answer: "Combined acceleration = 6.67 m/s²"
+            },
+            5: {
+                title: "Example 8.5: Friction Force",
+                problem: "A 20 g ball moving at 20 cm/s comes to rest in 10 s on a table. Find the friction force.",
+                given: ["m = 20 g = 0.02 kg", "u = 20 cm/s = 0.2 m/s", "v = 0 m/s", "t = 10 s"],
+                solution: [
+                    "Find acceleration: a = (v - u)/t",
+                    "a = (0 - 0.2)/10 = -0.02 m/s²",
+                    "Find force: F = ma",
+                    "F = 0.02 × (-0.02) = -0.0004 N"
+                ],
+                answer: "Friction force = -0.0004 N (opposing motion)"
+            }
+        };
+
+        // Initialize
+        window.addEventListener('load', () => {
+            const teacher = createNewTeacher('initialization');
+            teacher.speak("Welcome! Let's explore the mathematical formulation of Newton's Second Law and learn how to solve physics problems using F equals m a.");
+        });
+
+        // Complete Lesson
+        async function playFullLesson() {
+            const taskId = 'full-lesson';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            const teacher = createNewTeacher(taskId);
+            
+            await resetAll();
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📚 Complete Mathematical Formulation");
+            
+            await teacher.speak("Let's derive the famous equation F equals m a from momentum principles!");
+            if (!shouldContinue(taskId)) return;
+            
+            await showDerivationInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+            
+            await teacher.speak("Now let's see real-world applications of this principle.");
+            if (!shouldContinue(taskId)) return;
+            await showApplicationsInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Finally, let's solve a problem using our equation.");
+            if (!shouldContinue(taskId)) return;
+            await showProblemsInternal(teacher, taskId);
+            
+            isPlaying = false;
+        }
+
+        // Show Derivation with GSAP
+        async function showDerivation() {
+            const taskId = 'derivation-demo';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            const teacher = createNewTeacher(taskId);
+            await showDerivationInternal(teacher, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showDerivationInternal(teacher, taskId) {
+            await resetAll();
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🔍 Deriving F = ma");
+            
+            document.getElementById('derivation-viz').classList.add('active');
+            
+            await teacher.speak("Consider an object of mass 5 kilograms moving with initial velocity 3 meters per second.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Animate force arrow appearing
+            trackAnimation(gsap.to('#force-arrow', {
+                duration: 0.5,
+                opacity: 1,
+                left: -50,
+                ease: "power2.out"
+            }));
+            
+            await wait(500);
+            
+            // Animate speed lines
+            const speedLines = document.querySelectorAll('.speed-line');
+            speedLines.forEach((line, index) => {
+                trackAnimation(gsap.to(line, {
+                    duration: 0.3,
+                    opacity: 0.6,
+                    delay: index * 0.1,
+                    repeat: 5,
+                    yoyo: true
+                }));
+            });
+            
+            // Create motion particles effect
+            const particles = document.querySelectorAll('.motion-particle');
+            particles.forEach((particle, index) => {
+                trackAnimation(gsap.timeline({ repeat: 3 })
+                    .set(particle, { opacity: 1, left: 70 })
+                    .to(particle, {
+                        duration: 0.5,
+                        left: -20,
+                        opacity: 0,
+                        ease: "power2.out",
+                        delay: index * 0.1
+                    }));
+            });
+            
+            // Main motion animation with GSAP
+            const motionObject = document.getElementById('motion-object');
+            const timeline = document.getElementById('timeline');
+            const velocityLabel = document.getElementById('velocity-label');
+            
+            trackAnimation(gsap.timeline()
+                .to(motionObject, {
+                    duration: 2,
+                    left: "calc(100% - 70px)",
+                    ease: "power2.inOut",
+                    onComplete: () => {
+                        velocityLabel.textContent = 'v = 7 m/s';
+                    }
+                })
+                .to(timeline, {
+                    duration: 2,
+                    width: "100%",
+                    ease: "none"
+                }, "-=2"));
+            
+            await teacher.speak("A constant force of 10 Newtons accelerates it to velocity 7 meters per second in 2 seconds.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Show equation steps with GSAP
+            const steps = ['step1', 'step2', 'step3', 'step4', 'step5'];
+            
+            for (let i = 0; i < steps.length; i++) {
+                await wait(1500);
+                if (!shouldContinue(taskId)) return;
+                
+                trackAnimation(gsap.to(`#${steps[i]}`, {
+                    duration: 0.5,
+                    opacity: 1,
+                    x: 0,
+                    ease: "power2.out"
+                }));
+                
+                if (i === 4) {
+                    // Highlight final equation with pulse
+                    trackAnimation(gsap.to(`#${steps[i]} .equation-main`, {
+                        duration: 0.5,
+                        scale: 1.1,
+                        repeat: 2,
+                        yoyo: true,
+                        ease: "power2.inOut"
+                    }));
+                }
+                
+                if (i === 0) await teacher.speak("Initial momentum is 5 times 3 equals 15 kilogram meters per second.");
+                if (i === 1) await teacher.speak("Final momentum is 5 times 7 equals 35 kilogram meters per second.");
+                if (i === 2) await teacher.speak("Change in momentum is 35 minus 15 equals 20 kilogram meters per second.");
+                if (i === 3) await teacher.speak("Force equals change in momentum over time, which is 20 over 2 equals 10 Newtons.");
+                if (i === 4) await teacher.speak("Since acceleration equals change in velocity over time, which is 2 meters per second squared, we get F equals m a equals 10 Newtons!");
+                
+                if (!shouldContinue(taskId)) return;
+            }
+        }
+
+        // Show Applications with animations
+        async function showApplications() {
+            const taskId = 'applications-demo';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            const teacher = createNewTeacher(taskId);
+            await showApplicationsInternal(teacher, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showApplicationsInternal(teacher, taskId) {
+            await resetAll();
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🌍 Real-World Applications");
+            
+            document.getElementById('applications-demo').classList.add('active');
+            
+            // Reset to first app
+            currentApp = 1;
+            document.getElementById('app1').classList.add('visible');
+            document.getElementById('app2').classList.remove('visible');
+            document.getElementById('app3').classList.remove('visible');
+            document.getElementById('prev-app').disabled = true;
+            document.getElementById('next-app').disabled = false;
+            document.getElementById('app-indicator').textContent = '1 / 3';
+            
+            await teacher.speak("Let's see how F equals m a explains everyday phenomena.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Application 1 - Cricket
+            trackAnimation(gsap.to('#app1', {
+                duration: 0.5,
+                opacity: 1,
+                y: 0,
+                ease: "power2.out"
+            }));
+            
+            document.getElementById('visual1').classList.add('animating');
+            
+            // Animate force-time graph bars
+            trackAnimation(gsap.to('#bar1', {
+                duration: 1,
+                height: 70,
+                delay: 0.5,
+                ease: "power2.out"
+            }));
+            trackAnimation(gsap.to('#bar2', {
+                duration: 1,
+                height: 35,
+                delay: 0.7,
+                ease: "power2.out"
+            }));
+            
+            await teacher.speak("A cricket fielder pulls hands backward to increase time, reducing force and preventing injury. When catching a fast ball, increasing the time over which momentum changes reduces the impact force.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Wait for sentence completion before auto-advancing
+            await waitForSentenceCompletion(teacher);
+            if (!shouldContinue(taskId)) return;
+            
+            // Transition to Application 2
+            document.getElementById('app1').classList.remove('visible');
+            gsap.set('#app1', { opacity: 0, y: 20 });
+            document.getElementById('app2').classList.add('visible');
+            currentApp = 2;
+            document.getElementById('app-indicator').textContent = '2 / 3';
+            document.getElementById('prev-app').disabled = false;
+            
+            trackAnimation(gsap.to('#app2', {
+                duration: 0.5,
+                opacity: 1,
+                y: 0,
+                ease: "power2.out"
+            }));
+            
+            document.getElementById('visual2').classList.add('animating');
+            
+            await teacher.speak("High jumpers land on soft cushioned beds to increase stopping time. The soft surface extends the time of impact, significantly reducing the force on the athlete's body and preventing injury.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Wait for sentence completion before auto-advancing
+            await waitForSentenceCompletion(teacher);
+            if (!shouldContinue(taskId)) return;
+            
+            // Transition to Application 3
+            document.getElementById('app2').classList.remove('visible');
+            gsap.set('#app2', { opacity: 0, y: 20 });
+            document.getElementById('app3').classList.add('visible');
+            currentApp = 3;
+            document.getElementById('app-indicator').textContent = '3 / 3';
+            document.getElementById('next-app').disabled = true;
+            
+            trackAnimation(gsap.to('#app3', {
+                duration: 0.5,
+                opacity: 1,
+                y: 0,
+                ease: "power2.out"
+            }));
+            
+            document.getElementById('visual3').classList.add('animating');
+            
+            await teacher.speak("Karate players break ice by minimizing contact time to maximize force. By delivering the momentum change in the shortest possible time, they create enormous force that breaks through solid objects!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Wait for sentence completion
+            await waitForSentenceCompletion(teacher);
+        }
+
+        // Show Problems with step-by-step solutions
+        async function showProblems() {
+            const taskId = 'problems-demo';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            const teacher = createNewTeacher(taskId);
+            await showProblemsInternal(teacher, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showProblemsInternal(teacher, taskId) {
+            await resetAll();
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📝 Solving Problems");
+            
+            document.getElementById('problem-solver').classList.add('active');
+            
+            showExample(1);
+            
+            await teacher.speak("Let's solve Example 8.1. We need to find the force and predict future velocity.");
+        }
+
+        // Show specific example with animations
+        function showExample(num) {
+            currentExample = num;
+            const example = examples[num];
+            
+            // Update button selection
+            document.querySelectorAll('.example-btn').forEach((btn, index) => {
+                btn.classList.toggle('selected', index === num - 1);
+            });
+            
+            // Build example content
+            const content = `
+                <div class="problem-statement">
+                    <div class="problem-title">${example.title}</div>
+                    <div>${example.problem}</div>
+                </div>
+                <div class="given-data">
+                    <div class="given-title">Given Data:</div>
+                    ${example.given.map(item => `<div class="data-item-problem">• ${item}</div>`).join('')}
+                </div>
+                <div class="solution-steps">
+                    ${example.solution.map((step, i) => `
+                        <div class="solution-step" id="sol-step-${i}">
+                            <div class="step-number">Step ${i + 1}:</div>
+                            <div>${step}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="answer-box" id="answer-box">
+                    ${example.answer}
+                </div>
+            `;
+            
+            document.getElementById('example-content').innerHTML = content;
+            
+            // Animate solution steps with GSAP
+            setTimeout(() => {
+                example.solution.forEach((_, i) => {
+                    trackAnimation(gsap.to(`#sol-step-${i}`, {
+                        delay: i * 0.5,
+                        duration: 0.5,
+                        opacity: 1,
+                        y: 0,
+                        ease: "power2.out"
+                    }));
+                });
+                
+                trackAnimation(gsap.to('#answer-box', {
+                    delay: example.solution.length * 0.5,
+                    duration: 0.5,
+                    opacity: 1,
+                    scale: 1,
+                    ease: "back.out(1.7)"
+                }));
+            }, 100);
+        }
+
+        // Helper Functions
+        async function resetAll() {
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            gsap.killTweensOf("*");
+            
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            
+            // Hide all demos
+            document.getElementById('derivation-viz').classList.remove('active');
+            document.getElementById('applications-demo').classList.remove('active');
+            document.getElementById('problem-solver').classList.remove('active');
+            
+            // Reset derivation
+            const motionObject = document.getElementById('motion-object');
+            const timeline = document.getElementById('timeline');
+            const forceArrow = document.getElementById('force-arrow');
+            const velocityLabel = document.getElementById('velocity-label');
+            
+            gsap.set(motionObject, { left: 0 });
+            gsap.set(timeline, { width: 0 });
+            gsap.set(forceArrow, { opacity: 0, left: -100 });
+            velocityLabel.textContent = 'u = 3 m/s';
+            
+            // Reset equation steps
+            ['step1', 'step2', 'step3', 'step4', 'step5'].forEach(id => {
+                gsap.set(`#${id}`, { opacity: 0, x: -20 });
+            });
+            
+            // Reset application scenarios
+            currentApp = 1;
+            ['app1', 'app2', 'app3'].forEach((id, index) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.classList.toggle('visible', index === 0);
+                    gsap.set(`#${id}`, { opacity: 0, y: 20 });
+                }
+            });
+            
+            // Remove visual animations
+            ['visual1', 'visual2', 'visual3'].forEach(id => {
+                document.getElementById(id).classList.remove('animating');
+            });
+            
+            // Reset graph bars
+            gsap.set(['#bar1', '#bar2'], { height: 0 });
+            
+            updateTitle("Explore F = ma");
+            
+            await wait(300);
+        }
+
+        function updateTitle(title) {
+            document.getElementById('demo-title').textContent = title;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Reset Button Handler - ensures same behavior as other buttons
+        async function resetAllClick() {
+            stopCurrentDemo();
+            isPlaying = false;
+            await resetAll();
+        }
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+            
+            if (!globalAudioEnabled && currentTeacher) {
+                currentTeacher.stop();
+            }
+        });
+    </script>
+</body>
+</html>

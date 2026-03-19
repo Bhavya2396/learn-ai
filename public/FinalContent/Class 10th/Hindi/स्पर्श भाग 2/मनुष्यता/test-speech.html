@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Synthesis Test</title>
+</head>
+<body>
+    <h1>Speech Synthesis Test</h1>
+    <button id="testBtn" onclick="testSpeech()">Test Speech</button>
+    <button id="stopBtn" onclick="stopSpeech()">Stop Speech</button>
+    
+    <div id="log"></div>
+    
+    <script>
+        let synth = window.speechSynthesis;
+        let currentUtterance = null;
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+        }
+        
+        function testSpeech() {
+            log('Starting speech test...');
+            
+            // Test the problematic text
+            const testTexts = [
+                "मैथिलीशरण गुप्त का जन्म 1886 में झाँसी के करीब चिरगाँव में हुआ था।",
+                "गुप्त जी संस्कृत, बांग्ला, मराठी और अंग्रेज़ी भाषाओं के अच्छे जानकार थे।",
+                "उन्होंने भारतीय जीवन को समग्रता में समझने का प्रयास किया।",
+                "गुप्त जी ने भारतीय जीवन को समग्रता में समझने का प्रयास किया।"
+            ];
+            
+            let currentIndex = 0;
+            
+            function speakNext() {
+                if (currentIndex < testTexts.length) {
+                    const text = testTexts[currentIndex];
+                    log(`Speaking text ${currentIndex + 1}: "${text}"`);
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'hi-IN';
+                    utterance.rate = 0.8;
+                    
+                    utterance.onend = function() {
+                        log(`Finished speaking text ${currentIndex + 1}`);
+                        currentIndex++;
+                        setTimeout(speakNext, 1000);
+                    };
+                    
+                    utterance.onerror = function(event) {
+                        log(`Error speaking text ${currentIndex + 1}: ${event.error}`);
+                        currentIndex++;
+                        setTimeout(speakNext, 1000);
+                    };
+                    
+                    currentUtterance = utterance;
+                    synth.speak(utterance);
+                } else {
+                    log('All texts completed!');
+                }
+            }
+            
+            // Start with first text
+            speakNext();
+        }
+        
+        function stopSpeech() {
+            log('Stopping speech...');
+            synth.cancel();
+            currentUtterance = null;
+        }
+        
+        // Check if speech synthesis is available
+        if ('speechSynthesis' in window) {
+            log('Speech synthesis is available');
+            
+            // List available voices
+            function listVoices() {
+                const voices = synth.getVoices();
+                log(`Available voices: ${voices.length}`);
+                voices.forEach((voice, index) => {
+                    if (voice.lang.includes('hi') || voice.lang.includes('en')) {
+                        log(`Voice ${index}: ${voice.name} (${voice.lang})`);
+                    }
+                });
+            }
+            
+            // Wait for voices to load
+            if (synth.getVoices().length === 0) {
+                synth.addEventListener('voiceschanged', listVoices);
+            } else {
+                listVoices();
+            }
+        } else {
+            log('Speech synthesis is NOT available');
+        }
+    </script>
+</body>
+</html>

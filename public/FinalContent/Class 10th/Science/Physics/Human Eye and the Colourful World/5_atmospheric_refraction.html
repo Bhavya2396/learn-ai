@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atmospheric Refraction - Interactive Learning Experience</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --sunset-gradient: linear-gradient(135deg, #ff6b6b 0%, #ffd93d 50%, #6bcb77 100%);
+            --night-gradient: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            --star-gradient: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 20px 40px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 25px 50px rgba(0, 0, 0, 0.4);
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--night-gradient);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--night-gradient);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-star {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 30px;
+            animation: twinkle 2s ease-in-out infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        .loading-text {
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            font-weight: 600;
+            background: var(--star-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 2s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 50px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            backdrop-filter: blur(20px);
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: var(--sunset-gradient);
+            opacity: 0.3;
+            z-index: -1;
+            border-radius: 30px;
+            animation: sunsetRotate 15s linear infinite;
+        }
+
+        @keyframes sunsetRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: var(--sunset-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: 800;
+            animation: titlePulse 3s ease-in-out infinite;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .main-display {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .demo-container {
+            height: 500px;
+            overflow: hidden;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .content-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+            max-height: 600px;
+        }
+
+        .content-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .content-container::-webkit-scrollbar-thumb {
+            background: var(--accent-gradient);
+            border-radius: 4px;
+        }
+
+        .content-container::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-gradient);
+        }
+
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            min-width: 180px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .control-btn.active {
+            background: var(--warning-gradient);
+            transform: translateY(-2px);
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            margin-top: 20px;
+        }
+
+        .display-section {
+            display: none;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .display-section.active {
+            display: block;
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .demo-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #0a0a0a, #1a1a1a);
+            border-radius: 20px;
+            border: 2px solid var(--glass-border);
+            overflow: hidden;
+        }
+
+        .demo-stage canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .info-panel {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            border-radius: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #4facfe;
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .info-title {
+            color: #4facfe;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .activity-box {
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.1), rgba(110, 231, 183, 0.1));
+            border-left: 4px solid #4facfe;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .activity-box h3 {
+            color: #4facfe;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+
+        .phenomenon-section {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.05), rgba(255, 217, 61, 0.05));
+            padding: 30px;
+            border-radius: 20px;
+            margin: 30px 0;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .phenomenon-section h3 {
+            background: var(--sunset-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .data-table {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .data-table th {
+            background: var(--accent-gradient);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            height: 400px;
+            position: relative;
+        }
+
+        .lesson-progress {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-gradient);
+            transition: width 0.5s ease;
+            border-radius: 5px;
+        }
+
+        .section-indicator {
+            color: #4facfe;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .concept-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .concept-card h4 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        #audio-toggle {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+        }
+
+        #audio-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .control-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <svg class="loading-star" viewBox="0 0 100 100">
+                <path d="M50,5 L61,35 L95,35 L68,57 L79,87 L50,65 L21,87 L32,57 L5,35 L39,35 Z" 
+                      fill="#ffd700" stroke="#ffed4e" stroke-width="2"/>
+            </svg>
+            <div class="loading-text">Preparing Atmospheric Lab...</div>
+        </div>
+    </div>
+
+    <!-- Audio Control -->
+    <button id="audio-toggle" title="Toggle Audio Narration">🔊</button>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🌟 Atmospheric Refraction</h1>
+            <p>Discover how Earth's atmosphere bends light to create amazing optical phenomena</p>
+        </div>
+
+        <!-- Main Display Area -->
+        <div class="main-display">
+            <!-- Demo Container (Fixed Height) -->
+            <div class="demo-container">
+                <!-- Complete Lesson Section -->
+                <div class="display-section active" id="lesson-section">
+                    <div class="demo-stage">
+                        <div id="lessonContent" style="padding: 40px; text-align: center;">
+                            <h2 style="color: #4facfe; margin-bottom: 30px;">Ready to Begin?</h2>
+                            <p style="font-size: 1.2rem; color: #e2e8f0;">Click "Complete Lesson" to start the automated journey through atmospheric refraction phenomena.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hot Air Demo Section -->
+                <div class="display-section" id="hotair-section">
+                    <div class="demo-stage">
+                        <canvas id="hotairCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Twinkling Stars Section -->
+                <div class="display-section" id="twinkling-section">
+                    <div class="demo-stage">
+                        <canvas id="twinklingCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Planets Section -->
+                <div class="display-section" id="planets-section">
+                    <div class="demo-stage">
+                        <canvas id="planetsCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Sunrise/Sunset Section -->
+                <div class="display-section" id="sunrise-section">
+                    <div class="demo-stage">
+                        <canvas id="sunriseCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Data Analysis Section -->
+                <div class="display-section" id="data-section">
+                    <div class="demo-stage" style="padding: 20px;">
+                        <div class="chart-container">
+                            <canvas id="refractionChart"></canvas>
+                        </div>
+                        <!-- <div class="chart-container">
+                            <canvas id="densityChart"></canvas>
+                        </div> -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Container (Scrollable) -->
+            <div class="content-container">
+                <!-- Hot Air Demo Content -->
+                <div class="display-section" id="hotair-content">
+                    <div class="info-panel">
+                        <div class="info-title">🔥 Hot Air Refraction</div>
+                        <p>Observing the wavering effect through turbulent hot air</p>
+                    </div>
+                    
+                    <div class="activity-box">
+                        <h3>What's Happening?</h3>
+                        <p>When you look at objects through hot air rising from a fire or radiator, they appear to waver or flicker. This happens because:</p>
+                        <ul style="margin: 20px 0 0 30px; line-height: 2;">
+                            <li>Hot air is less dense than cool air</li>
+                            <li>Less dense air has a lower refractive index</li>
+                            <li>Light bends as it passes through layers of different density</li>
+                            <li>Turbulent air creates constantly changing conditions</li>
+                            <li>The apparent position of objects fluctuates rapidly</li>
+                        </ul>
+                    </div>
+
+                    <div class="concept-card">
+                        <h4>Key Principle</h4>
+                        <p>The refractive index of air changes with temperature and density. Hot air near a flame has a refractive index of about 1.00025, while cooler air above might be 1.00029. This tiny difference is enough to bend light and create the shimmer effect!</p>
+                    </div>
+                </div>
+
+                <!-- Twinkling Stars Content -->
+                <div class="display-section" id="twinkling-content">
+                    <div class="info-panel">
+                        <div class="info-title">⭐ Why Stars Twinkle</div>
+                        <p>Understanding stellar scintillation through atmospheric refraction</p>
+                    </div>
+
+                    <div class="phenomenon-section">
+                        <h3>The Science of Twinkling</h3>
+                        <p>Stars twinkle due to atmospheric refraction on a large scale. Here's the complete process:</p>
+                        
+                        <ol style="margin: 20px 0 0 30px; line-height: 2.5;">
+                            <li><strong>Starlight enters atmosphere:</strong> Light travels through space uninterrupted</li>
+                            <li><strong>Continuous refraction:</strong> Light bends through layers of different density</li>
+                            <li><strong>Apparent position shifts:</strong> Star appears slightly higher than actual position</li>
+                            <li><strong>Atmospheric turbulence:</strong> Moving air masses change the light path</li>
+                            <li><strong>Fluctuating brightness:</strong> Amount of light reaching eye varies</li>
+                            <li><strong>Twinkling effect:</strong> Star appears to flicker and change brightness</li>
+                        </ol>
+                        
+                        <div style="margin-top: 20px; padding: 20px; background: rgba(79, 172, 254, 0.1); border-radius: 10px;">
+                            <strong>Important Note:</strong> Stars appear as point sources due to their vast distance. Even the nearest star (Proxima Centauri) is 4.2 light-years away!
+                        </div>
+                    </div>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Altitude</th>
+                                <th>Air Density</th>
+                                <th>Refractive Index</th>
+                                <th>Effect on Starlight</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Sea Level</td><td>1.225 kg/m³</td><td>1.000293</td><td>Maximum refraction</td></tr>
+                            <tr><td>5 km</td><td>0.736 kg/m³</td><td>1.000176</td><td>Moderate refraction</td></tr>
+                            <tr><td>10 km</td><td>0.414 kg/m³</td><td>1.000099</td><td>Light refraction</td></tr>
+                            <tr><td>20 km</td><td>0.089 kg/m³</td><td>1.000021</td><td>Minimal refraction</td></tr>
+                            <tr><td>Space</td><td>~0 kg/m³</td><td>1.000000</td><td>No refraction</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Planets Content -->
+                <div class="display-section" id="planets-content">
+                    <div class="info-panel">
+                        <div class="info-title">🪐 Why Planets Don't Twinkle</div>
+                        <p>The difference between point sources and extended sources</p>
+                    </div>
+
+                    <div class="activity-box">
+                        <h3>Extended Sources vs Point Sources</h3>
+                        <p>Planets don't twinkle because they appear as extended sources (tiny disks) rather than points:</p>
+                        
+                        <div style="display: flex; justify-content: space-around; margin: 20px 0;">
+                            <div style="flex: 1; padding: 20px; background: rgba(255, 215, 0, 0.1); border-radius: 10px; margin: 0 10px;">
+                                <h4 style="color: #ffd700;">Stars (Point Sources)</h4>
+                                <ul style="line-height: 2;">
+                                    <li>Extremely distant</li>
+                                    <li>Appear as single points</li>
+                                    <li>All light follows one path</li>
+                                    <li>Path variations cause twinkling</li>
+                                </ul>
+                            </div>
+                            <div style="flex: 1; padding: 20px; background: rgba(79, 172, 254, 0.1); border-radius: 10px; margin: 0 10px;">
+                                <h4 style="color: #4facfe;">Planets (Extended Sources)</h4>
+                                <ul style="line-height: 2;">
+                                    <li>Much closer to Earth</li>
+                                    <li>Appear as tiny disks</li>
+                                    <li>Multiple light paths</li>
+                                    <li>Variations average out</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <p style="margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                            <strong>Think of it this way:</strong> A planet is like thousands of point sources grouped together. When some twinkle brighter, others twinkle dimmer, and the overall effect cancels out!
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Sunrise/Sunset Content -->
+                <div class="display-section" id="sunrise-content">
+                    <div class="info-panel">
+                        <div class="info-title">🌅 Advanced Sunrise & Delayed Sunset</div>
+                        <p>How atmospheric refraction gives us extra daylight</p>
+                    </div>
+
+                    <div class="phenomenon-section">
+                        <h3>The 2-Minute Miracle</h3>
+                        <p>The Sun is visible for about 2 minutes before actual sunrise and 2 minutes after actual sunset. This amazing phenomenon gives us approximately 4 extra minutes of daylight every day!</p>
+                        
+                        <div class="concept-card">
+                            <h4>How It Works</h4>
+                            <ol style="margin-left: 20px; line-height: 2;">
+                                <li>When the Sun is just below the horizon, its light enters Earth's atmosphere</li>
+                                <li>The atmosphere acts like a lens, bending the light downward</li>
+                                <li>This bent light reaches our eyes even though the Sun is geometrically below the horizon</li>
+                                <li>We see the Sun's image about 0.5° above its actual position</li>
+                                <li>Since the Sun's angular diameter is also about 0.5°, we see the full disk when it's actually below the horizon</li>
+                            </ol>
+                        </div>
+
+                        <div class="activity-box">
+                            <h3>Sun's Apparent Flattening</h3>
+                            <p>At sunrise and sunset, the Sun appears flattened because:</p>
+                            <ul style="margin-left: 30px; line-height: 2;">
+                                <li>Light from the bottom of the Sun's disk travels through more atmosphere</li>
+                                <li>Greater refraction lifts the bottom edge more than the top</li>
+                                <li>This differential refraction compresses the vertical diameter</li>
+                                <li>The Sun appears oval rather than circular</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Actual Position</th>
+                                <th>Apparent Position</th>
+                                <th>Refraction Angle</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>2 min before sunrise</td><td>0.5° below horizon</td><td>At horizon</td><td>~34 arcminutes</td></tr>
+                            <tr><td>Actual sunrise</td><td>At horizon</td><td>0.5° above horizon</td><td>~34 arcminutes</td></tr>
+                            <tr><td>Noon (overhead)</td><td>90° altitude</td><td>90° altitude</td><td>0 arcminutes</td></tr>
+                            <tr><td>Actual sunset</td><td>At horizon</td><td>0.5° above horizon</td><td>~34 arcminutes</td></tr>
+                            <tr><td>2 min after sunset</td><td>0.5° below horizon</td><td>At horizon</td><td>~34 arcminutes</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Data Analysis Content -->
+                <div class="display-section" id="data-content">
+                    <div class="info-panel">
+                        <div class="info-title">📊 Atmospheric Data Analysis</div>
+                        <p>Visualizing how atmospheric conditions affect light refraction</p>
+                    </div>
+
+                    <div class="concept-card">
+                        <h4>Factors Affecting Atmospheric Refraction</h4>
+                        <ul style="margin-left: 30px; line-height: 2;">
+                            <li><strong>Temperature:</strong> Warmer air has lower refractive index</li>
+                            <li><strong>Pressure:</strong> Higher pressure increases refractive index</li>
+                            <li><strong>Humidity:</strong> Water vapor affects refraction</li>
+                            <li><strong>Altitude:</strong> Air density decreases with height</li>
+                            <li><strong>Wavelength:</strong> Different colors refract differently</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button class="control-btn active" data-mode="lesson">🎯 Complete Lesson</button>
+            <button class="control-btn" data-mode="hotair">🔥 Hot Air Effect</button>
+            <button class="control-btn" data-mode="twinkling">⭐ Twinkling Stars</button>
+            <button class="control-btn" data-mode="planets">🪐 Planets Don't Twinkle</button>
+            <button class="control-btn" data-mode="sunrise">🌅 Sunrise & Sunset</button>
+            <button class="control-btn" data-mode="data">📊 Data Analysis</button>
+        </div>
+        
+        <!-- Reset Button -->
+        <div style="text-align: center;">
+            <button class="control-btn reset-btn" id="resetBtn">🔄 Reset Everything</button>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let audioEnabled = true;
+        let currentMode = 'lesson';
+        let lessonSequence = null;
+        let charts = {};
+        let animationFrames = {};
+        let lessonStarted = false;
+
+        // Audio System
+        class AudioNarrator {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.enabled = true;
+                this.queue = [];
+                this.speaking = false;
+            }
+
+            speak(text, priority = false) {
+                if (!this.enabled) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    if (priority) {
+                        this.stop();
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.9;
+                    
+                    utterance.onend = () => {
+                        this.speaking = false;
+                        resolve();
+                    };
+                    
+                    this.synth.speak(utterance);
+                    this.speaking = true;
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.queue = [];
+                this.speaking = false;
+            }
+
+            toggle() {
+                this.enabled = !this.enabled;
+                if (!this.enabled) this.stop();
+                return this.enabled;
+            }
+        }
+
+        const narrator = new AudioNarrator();
+
+        // Canvas Drawing Functions
+        function drawStar(ctx, x, y, size, brightness = 1) {
+            ctx.save();
+            ctx.globalAlpha = brightness;
+            
+            // Draw star glow
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, size * 3);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, size * 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw star core
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+        function drawPlanet(ctx, x, y, radius, color) {
+            // Planet body
+            const gradient = ctx.createRadialGradient(x - radius/3, y - radius/3, 0, x, y, radius);
+            gradient.addColorStop(0, color);
+            gradient.addColorStop(1, shadeColor(color, -40));
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawSun(ctx, x, y, radius, flatten = 1) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(1, flatten);
+            
+            // Sun glow
+            const glowGradient = ctx.createRadialGradient(0, 0, radius, 0, 0, radius * 2);
+            glowGradient.addColorStop(0, 'rgba(255, 200, 0, 0.8)');
+            glowGradient.addColorStop(0.5, 'rgba(255, 150, 0, 0.3)');
+            glowGradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+            
+            ctx.fillStyle = glowGradient;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius * 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Sun body
+            const sunGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+            sunGradient.addColorStop(0, '#fff5b4');
+            sunGradient.addColorStop(0.7, '#ffda44');
+            sunGradient.addColorStop(1, '#ff9800');
+            
+            ctx.fillStyle = sunGradient;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+        function shadeColor(color, percent) {
+            const num = parseInt(color.replace("#",""), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + 
+                         (G<255?G<1?0:G:255)*0x100 + 
+                         (B<255?B<1?0:B:255)).toString(16).slice(1);
+        }
+
+        // Animation Functions
+        function animateHotAir() {
+            const canvas = document.getElementById('hotairCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let time = 0;
+            const waves = [];
+            
+            // Initialize heat waves
+            for (let i = 0; i < 20; i++) {
+                waves.push({
+                    x: 200 + Math.random() * 400,
+                    y: 400,
+                    speed: 1 + Math.random() * 2,
+                    amplitude: 10 + Math.random() * 20,
+                    frequency: 0.02 + Math.random() * 0.03,
+                    opacity: 0.3 + Math.random() * 0.4
+                });
+            }
+            
+            function draw() {
+                // Background
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, '#1a1a1a');
+                gradient.addColorStop(1, '#2a2a2a');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw fire/heat source
+                ctx.fillStyle = '#ff6b00';
+                ctx.fillRect(500, 450, 100, 50);
+                
+                // Fire flames
+                for (let i = 0; i < 5; i++) {
+                    const flameHeight = 30 + Math.sin(time * 0.1 + i) * 10;
+                    const flameX = 510 + i * 20;
+                    
+                    const flameGradient = ctx.createLinearGradient(flameX, 450, flameX, 450 - flameHeight);
+                    flameGradient.addColorStop(0, '#ff6b00');
+                    flameGradient.addColorStop(0.5, '#ffa500');
+                    flameGradient.addColorStop(1, '#ffff00');
+                    
+                    ctx.fillStyle = flameGradient;
+                    ctx.beginPath();
+                    ctx.moveTo(flameX - 5, 450);
+                    ctx.quadraticCurveTo(flameX, 450 - flameHeight * 1.5, flameX + 5, 450);
+                    ctx.fill();
+                }
+                
+                // Draw object viewed through hot air
+                ctx.save();
+                
+                // Apply wavy distortion
+                const distortion = Math.sin(time * 0.05) * 5;
+                ctx.translate(600 + distortion, 200);
+                
+                // Draw a simple building
+                ctx.fillStyle = '#666666';
+                ctx.fillRect(-50, -80, 100, 120);
+                ctx.fillStyle = '#333333';
+                ctx.fillRect(-50, -80, 100, 20);
+                
+                // Windows
+                ctx.fillStyle = '#ffff99';
+                for (let row = 0; row < 3; row++) {
+                    for (let col = 0; col < 3; col++) {
+                        ctx.fillRect(-40 + col * 30, -50 + row * 30, 20, 20);
+                    }
+                }
+                
+                ctx.restore();
+                
+                // Draw heat waves
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 2;
+                
+                waves.forEach(wave => {
+                    ctx.save();
+                    ctx.globalAlpha = wave.opacity * (1 - wave.y / 400);
+                    ctx.beginPath();
+                    
+                    for (let y = wave.y; y > 100; y -= 5) {
+                        const x = wave.x + Math.sin(y * wave.frequency + time * 0.05) * wave.amplitude;
+                        if (y === wave.y) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    
+                    ctx.stroke();
+                    ctx.restore();
+                    
+                    // Move wave up
+                    wave.y -= wave.speed;
+                    if (wave.y < 100) {
+                        wave.y = 400;
+                        wave.x = 200 + Math.random() * 400;
+                    }
+                });
+                
+                // Labels
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '16px Arial';
+                ctx.fillText('Object appears to waver', 500, 50);
+                ctx.fillText('Hot air (less dense)', 300, 350);
+                ctx.fillText('Cool air (more dense)', 300, 150);
+                ctx.fillText('Heat source', 520, 490);
+                
+                time++;
+                animationFrames.hotair = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+
+        function animateTwinkling() {
+            const canvas = document.getElementById('twinklingCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let time = 0;
+            const stars = [];
+            
+            // Create stars
+            for (let i = 0; i < 50; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * (canvas.height - 200),
+                    size: Math.random() * 2 + 0.5,
+                    twinkleSpeed: Math.random() * 0.1 + 0.05,
+                    twinklePhase: Math.random() * Math.PI * 2
+                });
+            }
+            
+            function draw() {
+                // Night sky gradient
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, '#000033');
+                gradient.addColorStop(0.7, '#000066');
+                gradient.addColorStop(1, '#4444aa');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw atmospheric layers
+                for (let i = 0; i < 5; i++) {
+                    ctx.strokeStyle = `rgba(100, 150, 255, ${0.1 - i * 0.015})`;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    const y = canvas.height - 50 - i * 30;
+                    for (let x = 0; x < canvas.width; x += 5) {
+                        const waveY = y + Math.sin(x * 0.01 + time * 0.02 + i) * 5;
+                        if (x === 0) {
+                            ctx.moveTo(x, waveY);
+                        } else {
+                            ctx.lineTo(x, waveY);
+                        }
+                    }
+                    ctx.stroke();
+                }
+                
+                // Draw stars with twinkling
+                stars.forEach(star => {
+                    const brightness = 0.5 + 0.5 * Math.sin(time * star.twinkleSpeed + star.twinklePhase);
+                    drawStar(ctx, star.x, star.y, star.size, brightness);
+                });
+                
+                // Draw one large star with light path
+                const mainStarX = 600;
+                const mainStarY = 100;
+                const brightness = 0.5 + 0.5 * Math.sin(time * 0.05);
+                
+                // Light path through atmosphere
+                ctx.strokeStyle = `rgba(255, 255, 100, ${brightness * 0.3})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(mainStarX, mainStarY);
+                
+                for (let y = mainStarY; y < canvas.height - 100; y += 20) {
+                    const wobble = Math.sin(y * 0.01 + time * 0.03) * 10;
+                    ctx.lineTo(mainStarX + wobble, y);
+                }
+                
+                ctx.stroke();
+                
+                // Draw main star
+                drawStar(ctx, mainStarX, mainStarY, 5, brightness);
+                
+                // Draw Earth's surface
+                ctx.fillStyle = '#2a4d3a';
+                ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+                
+                // Observer
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(600, canvas.height - 75, 10, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Labels
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px Arial';
+                ctx.fillText('Star (point source)', mainStarX + 20, mainStarY);
+                ctx.fillText('Atmospheric turbulence', 200, canvas.height - 150);
+                ctx.fillText('Observer on Earth', 620, canvas.height - 70);
+                ctx.fillText(`Brightness: ${(brightness * 100).toFixed(0)}%`, 50, 30);
+                
+                time++;
+                animationFrames.twinkling = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+
+        function animatePlanets() {
+            const canvas = document.getElementById('planetsCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let time = 0;
+            
+            function draw() {
+                // Night sky
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, '#000033');
+                gradient.addColorStop(1, '#000066');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw comparison: Star vs Planet
+                
+                // Star side (left)
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.fillRect(0, 0, canvas.width / 2, canvas.height);
+                
+                // Draw star as point source
+                const starBrightness = 0.5 + 0.5 * Math.sin(time * 0.1);
+                drawStar(ctx, 300, 150, 3, starBrightness);
+                
+                // Show single light path
+                ctx.strokeStyle = `rgba(255, 255, 0, ${starBrightness * 0.5})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(300, 150);
+                const wobble1 = Math.sin(time * 0.05) * 15;
+                ctx.quadraticCurveTo(300 + wobble1, 250, 300 + wobble1 * 2, 400);
+                ctx.stroke();
+                
+                // Planet side (right)
+                ctx.fillStyle = 'rgba(0, 100, 200, 0.05)';
+                ctx.fillRect(canvas.width / 2, 0, canvas.width / 2, canvas.height);
+                
+                // Draw planet as extended source
+                drawPlanet(ctx, 900, 150, 20, '#ff8844');
+                
+                // Show multiple light paths
+                for (let i = 0; i < 5; i++) {
+                    ctx.strokeStyle = `rgba(255, 150, 100, 0.3)`;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    
+                    const startX = 880 + i * 10;
+                    ctx.moveTo(startX, 150);
+                    
+                    const wobble = Math.sin(time * 0.05 + i) * 10;
+                    ctx.quadraticCurveTo(startX + wobble, 250, 900, 400);
+                    ctx.stroke();
+                }
+                
+                // Draw observer
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(300, 400, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(900, 400, 8, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Dividing line
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2, 0);
+                ctx.lineTo(canvas.width / 2, canvas.height);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Labels
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 18px Arial';
+                ctx.fillText('STAR (Point Source)', 150, 50);
+                ctx.fillText('PLANET (Extended Source)', 750, 50);
+                
+                ctx.font = '14px Arial';
+                ctx.fillText('Single light path', 150, 300);
+                ctx.fillText('Twinkling: YES', 150, 320);
+                ctx.fillText(`Brightness: ${(starBrightness * 100).toFixed(0)}%`, 150, 340);
+                
+                ctx.fillText('Multiple light paths', 750, 300);
+                ctx.fillText('Twinkling: NO', 750, 320);
+                ctx.fillText('Brightness: Steady', 750, 340);
+                
+                time++;
+                animationFrames.planets = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+
+        function animateSunrise() {
+            const canvas = document.getElementById('sunriseCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let time = 0;
+            
+            function draw() {
+                // Sky gradient (sunrise colors)
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                const skyLightness = 0.3 + 0.2 * Math.sin(time * 0.02);
+                gradient.addColorStop(0, `hsl(220, 60%, ${20 + skyLightness * 30}%)`);
+                gradient.addColorStop(0.5, `hsl(30, 80%, ${40 + skyLightness * 20}%)`);
+                gradient.addColorStop(1, `hsl(20, 90%, ${50 + skyLightness * 20}%)`);
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Horizon line
+                const horizonY = 300;
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, horizonY);
+                ctx.lineTo(canvas.width, horizonY);
+                ctx.stroke();
+                
+                // Calculate sun positions
+                const actualSunY = horizonY + 30 + Math.sin(time * 0.02) * 40;
+                const apparentSunY = actualSunY - 35; // Atmospheric refraction lifts by ~0.5°
+                
+                // Draw light path showing refraction
+                if (actualSunY > horizonY - 20) {
+                    ctx.strokeStyle = 'rgba(255, 200, 0, 0.3)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(300, actualSunY);
+                    ctx.quadraticCurveTo(600, horizonY - 50, 900, apparentSunY);
+                    ctx.stroke();
+                    
+                    // Atmosphere layers
+                    for (let i = 0; i < 5; i++) {
+                        ctx.strokeStyle = `rgba(100, 150, 255, ${0.05 - i * 0.01})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        const layerY = horizonY - 20 - i * 15;
+                        ctx.moveTo(0, layerY);
+                        ctx.lineTo(canvas.width, layerY);
+                        ctx.stroke();
+                    }
+                }
+                
+                // Draw actual sun position (dashed outline)
+                ctx.save();
+                ctx.globalAlpha = 0.5;
+                ctx.strokeStyle = '#ff6666';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.arc(300, actualSunY, 30, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.restore();
+                
+                // Draw apparent sun position (what we see)
+                const flatten = actualSunY > horizonY - 30 ? 0.8 : 1;
+                drawSun(ctx, 900, apparentSunY, 30, flatten);
+                
+                // Ground
+                ctx.fillStyle = '#2a4d3a';
+                ctx.fillRect(0, horizonY, canvas.width, canvas.height - horizonY);
+                
+                // Observer
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(1000, horizonY - 20, 10, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Labels
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText('Actual Position', 220, actualSunY - 40);
+                ctx.fillText('Apparent Position', 800, apparentSunY - 40);
+                
+                ctx.font = '14px Arial';
+                ctx.fillText('Horizon', 10, horizonY - 5);
+                ctx.fillText('Observer', 1020, horizonY - 15);
+                
+                // Time display
+                const phase = ((time * 2) % 360) / 15; // Convert to hours (0-24)
+                let timeStr;
+                if (phase < 6) timeStr = "Night";
+                else if (phase < 7) timeStr = "Advanced Sunrise (~5:58 AM)";
+                else if (phase < 8) timeStr = "Actual Sunrise (6:00 AM)";
+                else if (phase < 17) timeStr = "Day";
+                else if (phase < 18) timeStr = "Actual Sunset (6:00 PM)";
+                else if (phase < 19) timeStr = "Delayed Sunset (~6:02 PM)";
+                else timeStr = "Night";
+                
+                ctx.fillStyle = '#ffff00';
+                ctx.font = 'bold 18px Arial';
+                ctx.fillText(timeStr, 50, 50);
+                
+                // Info box
+                if (actualSunY > horizonY - 40 && actualSunY < horizonY + 40) {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    ctx.fillRect(50, 100, 300, 100);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '12px Arial';
+                    ctx.fillText('Sun visible ~2 minutes before', 60, 120);
+                    ctx.fillText('actual sunrise and ~2 minutes', 60, 140);
+                    ctx.fillText('after actual sunset due to', 60, 160);
+                    ctx.fillText('atmospheric refraction!', 60, 180);
+                }
+                
+                time++;
+                animationFrames.sunrise = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+
+        // Chart Setup
+        function setupCharts() {
+            // Clear existing charts
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            
+            const ctx1 = document.getElementById('refractionChart');
+            if (ctx1) {
+                charts.refraction = new Chart(ctx1.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['90°', '60°', '45°', '30°', '20°', '10°', '5°', '0°'],
+                        datasets: [{
+                            label: 'Refraction Angle (arcminutes)',
+                            data: [0, 0.6, 1.0, 1.7, 2.6, 5.3, 9.9, 34.4],
+                            borderColor: '#4facfe',
+                            backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Atmospheric Refraction vs Altitude',
+                                color: '#ffffff',
+                                font: { size: 16 }
+                            },
+                            legend: {
+                                labels: { color: '#ffffff' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: { display: true, text: 'Refraction (arcminutes)', color: '#ffffff' },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            x: {
+                                title: { display: true, text: 'Altitude Above Horizon', color: '#ffffff' },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            const ctx2 = document.getElementById('densityChart');
+            if (ctx2) {
+                charts.density = new Chart(ctx2.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Sea Level', '1 km', '5 km', '10 km', '15 km', '20 km', '30 km'],
+                        datasets: [{
+                            label: 'Air Density (kg/m³)',
+                            data: [1.225, 1.112, 0.736, 0.414, 0.195, 0.089, 0.018],
+                            backgroundColor: 'rgba(255, 107, 107, 0.6)',
+                            borderColor: '#ff6b6b',
+                            borderWidth: 2
+                        }, {
+                            label: 'Relative Refractive Index (×10⁻⁴)',
+                            data: [2.93, 2.65, 1.76, 0.99, 0.47, 0.21, 0.04],
+                            backgroundColor: 'rgba(255, 217, 61, 0.6)',
+                            borderColor: '#ffd93d',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Atmospheric Properties vs Altitude',
+                                color: '#ffffff',
+                                font: { size: 16 }
+                            },
+                            legend: {
+                                labels: { color: '#ffffff' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: { display: true, text: 'Value', color: '#ffffff' },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            x: {
+                                title: { display: true, text: 'Altitude', color: '#ffffff' },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Complete Lesson Sequence
+        class LessonSequence {
+            constructor() {
+                this.sections = [
+                    { id: 'hotair', name: 'Hot Air Refraction', duration: 5000 },
+                    { id: 'twinkling', name: 'Twinkling of Stars', duration: 5000 },
+                    { id: 'planets', name: "Why Planets Don't Twinkle", duration: 5000 },
+                    { id: 'sunrise', name: 'Sunrise & Sunset', duration: 5000 },
+                    { id: 'data', name: 'Data Analysis', duration: 5000 }
+                ];
+                this.currentSection = 0;
+                this.running = false;
+            }
+
+            async start() {
+                this.stop();
+                this.running = true;
+                this.currentSection = 0;
+                
+                this.showProgressBar();
+                
+                await narrator.speak("Welcome to the complete lesson on atmospheric refraction!");
+                
+                await this.runNextSection();
+            }
+
+            showProgressBar() {
+                const html = `
+                    <div class="lesson-progress">
+                        <div class="section-indicator">Current Section: <span id="currentSectionName">Starting...</span></div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                        </div>
+                        <p style="color: #e2e8f0; margin-top: 10px;">Section <span id="currentNum">1</span> of ${this.sections.length}</p>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            updateProgress() {
+                const progress = ((this.currentSection + 1) / this.sections.length) * 100;
+                const progressFill = document.getElementById('progressFill');
+                const currentSectionName = document.getElementById('currentSectionName');
+                const currentNum = document.getElementById('currentNum');
+                
+                if (progressFill) progressFill.style.width = `${progress}%`;
+                if (currentSectionName && this.sections[this.currentSection]) {
+                    currentSectionName.textContent = this.sections[this.currentSection].name;
+                }
+                if (currentNum) currentNum.textContent = this.currentSection + 1;
+            }
+
+            async runNextSection() {
+                if (!this.running || this.currentSection >= this.sections.length) {
+                if (this.running) {
+                    await narrator.speak("Lesson complete!");
+                    this.showCompletionMessage();
+                }
+                    return;
+                }
+
+                const section = this.sections[this.currentSection];
+                this.updateProgress();
+                
+                // Clear all animations first
+                this.clearAnimations();
+                
+                // Clear all demo sections
+                document.querySelectorAll('.demo-container .display-section').forEach(s => {
+                    s.classList.remove('active');
+                });
+                
+                // Clear all content sections
+                document.querySelectorAll('.content-container .display-section').forEach(s => {
+                    s.classList.remove('active');
+                });
+                
+                // Activate the current demo section
+                document.getElementById(`${section.id}-section`).classList.add('active');
+                
+                // Activate the corresponding content section
+                document.getElementById(`${section.id}-content`).classList.add('active');
+                
+                // Start appropriate animation and narration
+                switch(section.id) {
+                    case 'hotair':
+                        animateHotAir();
+                        await narrator.speak("Hot air refraction occurs when light passes through air layers of different temperatures and densities. Hot air is less dense than cool air, giving it a lower refractive index. When you look at objects through hot air rising from a fire, radiator, or hot pavement, the light bends as it passes through these varying density layers. The turbulent air creates constantly changing conditions, causing the apparent position of objects to fluctuate rapidly. This creates the characteristic wavering or shimmering effect you see when looking at distant objects through heat waves.");
+                        break;
+                        
+                    case 'twinkling':
+                        animateTwinkling();
+                        await narrator.speak("Stars twinkle due to atmospheric refraction on a large scale. Starlight travels through space uninterrupted, but when it enters Earth's atmosphere, it encounters layers of air with different densities and temperatures. This causes continuous refraction, making the star appear slightly higher than its actual position. Atmospheric turbulence from moving air masses constantly changes the light path, causing the amount of light reaching our eyes to vary. Since stars appear as point sources due to their vast distance, even tiny changes in the light path cause significant fluctuations in brightness. The twinkling effect is strongest near the horizon where light passes through more atmosphere, and it's more noticeable on clear nights with good seeing conditions.");
+                        break;
+                        
+                    case 'planets':
+                        animatePlanets();
+                        await narrator.speak("Planets don't twinkle because they appear as extended sources rather than point sources. Unlike stars which are extremely distant and appear as single points of light, planets are much closer to Earth and appear as tiny disks. This means light from different parts of the planet follows multiple paths through the atmosphere. When some light paths are refracted to appear brighter, other paths are refracted to appear dimmer, and these variations average out across the entire disk. Think of a planet as thousands of point sources grouped together - when some twinkle brighter, others twinkle dimmer, and the overall effect cancels out, resulting in steady, non-twinkling light. This is why planets like Venus, Mars, and Jupiter appear as steady points of light in the night sky.");
+                        break;
+                        
+                    case 'sunrise':
+                        animateSunrise();
+                        await narrator.speak("Atmospheric refraction creates the phenomenon of advanced sunrise and delayed sunset. When the Sun is just below the horizon, its light enters Earth's atmosphere and gets bent downward by the varying air density layers. This atmospheric lensing effect makes the Sun visible about 2 minutes before actual sunrise and 2 minutes after actual sunset, giving us approximately 4 extra minutes of daylight every day. The Sun's image appears about 0.5 degrees above its actual position, and since the Sun's angular diameter is also about 0.5 degrees, we see the full disk even when it's geometrically below the horizon. At sunrise and sunset, the Sun also appears flattened because light from the bottom travels through more atmosphere and gets refracted more than light from the top, compressing the vertical diameter.");
+                        break;
+                        
+                    case 'data':
+                        setupCharts();
+                        await narrator.speak("The data analysis reveals how atmospheric properties dramatically affect light refraction. Refraction increases exponentially as objects approach the horizon - at 0 degrees altitude, refraction is about 34 arcminutes, while at 30 degrees it's only 1.7 arcminutes. Air density decreases with altitude from 1.225 kilograms per cubic meter at sea level to nearly zero at 30 kilometers. The refractive index follows this density pattern, decreasing from 1.000293 at sea level to 1.000000 in space. Temperature, pressure, humidity, and altitude all influence refraction. Warmer air has lower refractive index, higher pressure increases it, and water vapor affects the overall atmospheric composition. These mathematical relationships explain why refraction effects are most pronounced near the horizon and why atmospheric conditions significantly impact astronomical observations.");
+                        break;
+                }
+                
+                await this.wait(section.duration);
+                
+                if (this.running) {
+                    this.currentSection++;
+                    await this.runNextSection();
+                }
+            }
+
+            showCompletionMessage() {
+                const html = `
+                    <div style="text-align: center; padding: 40px;">
+                        <h2 style="color: #43e97b; margin-bottom: 20px;">🎉 Complete Lesson Finished!</h2>
+                        <p style="font-size: 1.2rem;">You've successfully completed all sections:</p>
+                        <ul style="margin: 20px auto; max-width: 400px; text-align: left; list-style: none;">
+                            ${this.sections.map(s => `<li style="margin: 10px 0; color: #4facfe;">✔ ${s.name}</li>`).join('')}
+                        </ul>
+                        <p style="margin-top: 30px;">Explore individual sections using the buttons below or click Reset to start over.</p>
+                        <button class="control-btn reset-btn" onclick="resetEverything()" style="margin-top: 20px;">
+                            🔄 Reset Everything
+                        </button>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            wait(ms) {
+                return new Promise(resolve => {
+                    this.timeout = setTimeout(resolve, ms);
+                });
+            }
+
+            stop() {
+                this.running = false;
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                    this.timeout = null;
+                }
+                narrator.stop();
+                this.clearAnimations();
+            }
+
+            clearAnimations() {
+                Object.values(animationFrames).forEach(frame => {
+                    if (typeof frame === 'number') {
+                        cancelAnimationFrame(frame);
+                    } else {
+                        clearInterval(frame);
+                    }
+                });
+                animationFrames = {};
+            }
+        }
+
+        // Reset Function
+        function resetEverything() {
+            lessonStarted = false;
+            
+            if (lessonSequence) {
+                lessonSequence.stop();
+            }
+            narrator.stop();
+            
+            Object.values(animationFrames).forEach(frame => {
+                if (typeof frame === 'number') {
+                    cancelAnimationFrame(frame);
+                } else {
+                    clearInterval(frame);
+                }
+            });
+            animationFrames = {};
+            
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            charts = {};
+            
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('[data-mode="lesson"]').classList.add('active');
+            
+            // Clear all demo sections
+            document.querySelectorAll('.demo-container .display-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Clear all content sections
+            document.querySelectorAll('.content-container .display-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            document.getElementById('lesson-section').classList.add('active');
+            
+            document.getElementById('lessonContent').innerHTML = `
+                <div style="padding: 40px; text-align: center;">
+                    <h2 style="color: #4facfe; margin-bottom: 30px;">Ready to Begin?</h2>
+                    <p style="font-size: 1.2rem; color: #e2e8f0;">Click "Complete Lesson" to start the automated journey through atmospheric refraction phenomena.</p>
+                </div>
+            `;
+            
+            currentMode = 'lesson';
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }, 1500);
+
+            lessonSequence = new LessonSequence();
+
+            document.querySelectorAll('.control-btn:not(.reset-btn)').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const mode = this.getAttribute('data-mode');
+                    
+                    // Stop complete lesson if running
+                    if (lessonSequence) lessonSequence.stop();
+                    narrator.stop();
+                    Object.values(animationFrames).forEach(frame => {
+                        if (typeof frame === 'number') {
+                            cancelAnimationFrame(frame);
+                        } else {
+                            clearInterval(frame);
+                        }
+                    });
+                    animationFrames = {};
+                    
+                    document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Clear all demo sections
+                    document.querySelectorAll('.demo-container .display-section').forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    
+                    // Clear all content sections
+                    document.querySelectorAll('.content-container .display-section').forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    
+                    currentMode = mode;
+                    
+                    switch(mode) {
+                        case 'lesson':
+                            document.getElementById('lesson-section').classList.add('active');
+                            if (!lessonStarted) {
+                                lessonStarted = true;
+                                lessonSequence.start();
+                            }
+                            break;
+                            
+                        case 'hotair':
+                            document.getElementById('hotair-section').classList.add('active');
+                            document.getElementById('hotair-content').classList.add('active');
+                            animateHotAir();
+                            narrator.speak("Hot air refraction occurs when light passes through air layers of different temperatures and densities. Hot air is less dense than cool air, giving it a lower refractive index. When you look at objects through hot air rising from a fire, radiator, or hot pavement, the light bends as it passes through these varying density layers. The turbulent air creates constantly changing conditions, causing the apparent position of objects to fluctuate rapidly. This creates the characteristic wavering or shimmering effect you see when looking at distant objects through heat waves.", true);
+                            break;
+                            
+                        case 'twinkling':
+                            document.getElementById('twinkling-section').classList.add('active');
+                            document.getElementById('twinkling-content').classList.add('active');
+                            animateTwinkling();
+                            narrator.speak("Stars twinkle due to atmospheric refraction on a large scale. Starlight travels through space uninterrupted, but when it enters Earth's atmosphere, it encounters layers of air with different densities and temperatures. This causes continuous refraction, making the star appear slightly higher than its actual position. Atmospheric turbulence from moving air masses constantly changes the light path, causing the amount of light reaching our eyes to vary. Since stars appear as point sources due to their vast distance, even tiny changes in the light path cause significant fluctuations in brightness. The twinkling effect is strongest near the horizon where light passes through more atmosphere, and it's more noticeable on clear nights with good seeing conditions.", true);
+                            break;
+                            
+                        case 'planets':
+                            document.getElementById('planets-section').classList.add('active');
+                            document.getElementById('planets-content').classList.add('active');
+                            animatePlanets();
+                            narrator.speak("Planets don't twinkle because they appear as extended sources rather than point sources. Unlike stars which are extremely distant and appear as single points of light, planets are much closer to Earth and appear as tiny disks. This means light from different parts of the planet follows multiple paths through the atmosphere. When some light paths are refracted to appear brighter, other paths are refracted to appear dimmer, and these variations average out across the entire disk. Think of a planet as thousands of point sources grouped together - when some twinkle brighter, others twinkle dimmer, and the overall effect cancels out, resulting in steady, non-twinkling light. This is why planets like Venus, Mars, and Jupiter appear as steady points of light in the night sky.", true);
+                            break;
+                            
+                        case 'sunrise':
+                            document.getElementById('sunrise-section').classList.add('active');
+                            document.getElementById('sunrise-content').classList.add('active');
+                            animateSunrise();
+                            narrator.speak("Atmospheric refraction creates the phenomenon of advanced sunrise and delayed sunset. When the Sun is just below the horizon, its light enters Earth's atmosphere and gets bent downward by the varying air density layers. This atmospheric lensing effect makes the Sun visible about 2 minutes before actual sunrise and 2 minutes after actual sunset, giving us approximately 4 extra minutes of daylight every day. The Sun's image appears about 0.5 degrees above its actual position, and since the Sun's angular diameter is also about 0.5 degrees, we see the full disk even when it's geometrically below the horizon. At sunrise and sunset, the Sun also appears flattened because light from the bottom travels through more atmosphere and gets refracted more than light from the top, compressing the vertical diameter.", true);
+                            break;
+                            
+                        case 'data':
+                            document.getElementById('data-section').classList.add('active');
+                            document.getElementById('data-content').classList.add('active');
+                            setupCharts();
+                            narrator.speak("The data analysis reveals how atmospheric properties dramatically affect light refraction. Refraction increases exponentially as objects approach the horizon - at 0 degrees altitude, refraction is about 34 arcminutes, while at 30 degrees it's only 1.7 arcminutes. Air density decreases with altitude from 1.225 kilograms per cubic meter at sea level to nearly zero at 30 kilometers. The refractive index follows this density pattern, decreasing from 1.000293 at sea level to 1.000000 in space. Temperature, pressure, humidity, and altitude all influence refraction. Warmer air has lower refractive index, higher pressure increases it, and water vapor affects the overall atmospheric composition. These mathematical relationships explain why refraction effects are most pronounced near the horizon and why atmospheric conditions significantly impact astronomical observations.", true);
+                            break;
+                    }
+                });
+            });
+
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                narrator.speak("Resetting lesson.", true);
+                resetEverything();
+            });
+
+            document.getElementById('audio-toggle').addEventListener('click', function() {
+                audioEnabled = narrator.toggle();
+                this.textContent = audioEnabled ? '🔊' : '🔇';
+            });
+        });
+
+        window.addEventListener('beforeunload', function() {
+            narrator.stop();
+            if (lessonSequence) lessonSequence.stop();
+        });
+    </script>
+</body>
+</html>

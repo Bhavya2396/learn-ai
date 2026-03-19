@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dispersion of White Light by Glass Prism - Interactive Learning Experience</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --rainbow-gradient: linear-gradient(90deg, #ff0000, #ff8c00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 20px 40px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 25px 50px rgba(0, 0, 0, 0.4);
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-prism {
+            width: 0;
+            height: 0;
+            border-left: 60px solid transparent;
+            border-right: 60px solid transparent;
+            border-bottom: 100px solid;
+            border-bottom-color: #667eea;
+            margin: 0 auto 30px;
+            animation: prismRotate 2s linear infinite;
+        }
+
+        @keyframes prismRotate {
+            0% { 
+                transform: rotateY(0deg);
+                border-bottom-color: #667eea;
+            }
+            50% {
+                transform: rotateY(180deg);
+                border-bottom-color: #4facfe;
+            }
+            100% { 
+                transform: rotateY(360deg);
+                border-bottom-color: #667eea;
+            }
+        }
+
+        .loading-text {
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            font-weight: 600;
+            background: var(--rainbow-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 2s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 50px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            backdrop-filter: blur(20px);
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: var(--rainbow-gradient);
+            opacity: 0.3;
+            z-index: -1;
+            border-radius: 30px;
+            animation: rainbowRotate 10s linear infinite;
+        }
+
+        @keyframes rainbowRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: var(--rainbow-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: 800;
+            animation: titlePulse 3s ease-in-out infinite;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .main-display {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .demo-container {
+            height: 500px;
+            overflow: hidden;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .content-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .content-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .content-container::-webkit-scrollbar-thumb {
+            background: var(--accent-gradient);
+            border-radius: 4px;
+        }
+
+        .content-container::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-gradient);
+        }
+
+        .content-container .display-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .content-container .display-section:first-child {
+            margin-top: 0;
+        }
+
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            min-width: 180px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .control-btn.active {
+            background: var(--warning-gradient);
+            transform: translateY(-2px);
+        }
+
+
+        .reset-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            margin-top: 20px;
+        }
+
+        .display-section {
+            display: none;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .display-section.active {
+            display: block;
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .lesson-ready {
+            text-align: center;
+            padding: 60px;
+        }
+
+        .lesson-ready h2 {
+            font-size: 2.5rem;
+            background: var(--rainbow-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+        }
+
+        .demo-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #0a0a0a, #1a1a1a);
+            border-radius: 20px;
+            border: 2px solid var(--glass-border);
+            overflow: hidden;
+        }
+
+        .activity-box {
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.1), rgba(110, 231, 183, 0.1));
+            border-left: 4px solid #4facfe;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .activity-box h3 {
+            color: #4facfe;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+
+        .activity-steps {
+            margin-left: 20px;
+        }
+
+        .activity-steps li {
+            margin: 15px 0;
+            position: relative;
+            padding-left: 30px;
+            list-style: none;
+        }
+
+        .activity-steps li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: #43e97b;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .info-panel {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            border-radius: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #4facfe;
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .info-title {
+            color: #4facfe;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .spectrum-display {
+            background: var(--rainbow-gradient);
+            height: 60px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            animation: spectrumShimmer 5s linear infinite;
+        }
+
+        @keyframes spectrumShimmer {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+        }
+
+        .vibgyor-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+        }
+
+        .color-card {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 90px;
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .color-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .color-card .color-box {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 10px;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .color-card .color-name {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        .color-card .wavelength {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .newton-section {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            border-radius: 20px;
+            margin: 30px 0;
+            box-shadow: 0 8px 25px rgba(251, 191, 36, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .newton-section h3 {
+            color: #fbbf24;
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+        }
+
+        .rainbow-section {
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.05), rgba(247, 191, 36, 0.05));
+            padding: 30px;
+            border-radius: 20px;
+            margin: 30px 0;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .rainbow-section h3 {
+            background: var(--rainbow-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .data-table {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .data-table th {
+            background: var(--accent-gradient);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            height: 400px;
+            position: relative;
+        }
+
+        .lesson-progress {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-gradient);
+            transition: width 0.5s ease;
+            border-radius: 5px;
+        }
+
+        .section-indicator {
+            color: #4facfe;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        #audio-toggle {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+        }
+
+        #audio-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .vibgyor-container {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            .color-card {
+                min-width: 70px;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .control-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-prism"></div>
+            <div class="loading-text">Preparing Dispersion Lab...</div>
+        </div>
+    </div>
+
+    <!-- Audio Control -->
+    <button id="audio-toggle" title="Toggle Audio Narration">🔊</button>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🌈 Dispersion of White Light by Glass Prism</h1>
+            <p>Discover how white light transforms into a spectacular rainbow through the magic of prism physics</p>
+        </div>
+
+        <!-- Main Display Area -->
+        <div class="main-display">
+            <!-- Demo Container (Fixed Height) -->
+            <div class="demo-container">
+                <!-- Complete Lesson Section -->
+                <div class="display-section active" id="lesson-section">
+                    <div class="demo-stage">
+                        <div id="lessonContent">
+                            <!-- Content will be dynamically added -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Section -->
+                <div class="display-section" id="activity-section">
+                    <div class="demo-stage">
+                        <canvas id="activityCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Theory Section -->
+                <div class="display-section" id="theory-section">
+                    <div class="demo-stage">
+                        <div class="spectrum-display"></div>
+                        <div class="vibgyor-container">
+                            <div class="color-card">
+                                <div class="color-box" style="background: #8b00ff;"></div>
+                                <div class="color-name">Violet</div>
+                                <div class="wavelength">380-450 nm</div>
+                            </div>
+                            <div class="color-card">
+                                <div class="color-box" style="background: #4b0082;"></div>
+                                <div class="color-name">Indigo</div>
+                                <div class="wavelength">450-485 nm</div>
+                            </div>
+                            <div class="color-card">
+                                <div class="color-box" style="background: #0000ff;"></div>
+                                <div class="color-name">Blue</div>
+                                <div class="wavelength">485-500 nm</div>
+                            </div>
+                            <div class="color-card">
+                                <div class="color-box" style="background: #00ff00;"></div>
+                                <div class="color-name">Green</div>
+                                <div class="wavelength">500-565 nm</div>
+                            </div>
+                            <div class="color-card">
+                                <div class="color-box" style="background: #ffff00;"></div>
+                                <div class="color-name">Yellow</div>
+                                <div class="wavelength">565-590 nm</div>
+                            </div>
+                            <div class="color-card">
+                                <div class="color-box" style="background: #ff8c00;"></div>
+                                <div class="color-name">Orange</div>
+                                <div class="wavelength">590-625 nm</div>
+                            </div>
+                            <div class="color-card">
+                                <div class="color-box" style="background: #ff0000;"></div>
+                                <div class="color-name">Red</div>
+                                <div class="wavelength">625-750 nm</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Newton's Experiment Section -->
+                <div class="display-section" id="newton-section">
+                    <div class="demo-stage">
+                        <canvas id="newtonCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Rainbow Section -->
+                <div class="display-section" id="rainbow-section">
+                    <div class="demo-stage">
+                        <canvas id="rainbowCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Data Analysis Section -->
+                <div class="display-section" id="data-section">
+                    <div class="demo-stage">
+                        <div class="chart-container">
+                            <canvas id="wavelengthChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="deviationChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Container (Scrollable) -->
+            <div class="content-container">
+                <!-- Activity Section Content -->
+                <div class="display-section" id="activity-content">
+                    <div class="info-panel">
+                        <div class="info-title">📚 Activity 10.2: Observing Dispersion</div>
+                        <p>Follow these steps to create your own spectrum using sunlight and a prism</p>
+                    </div>
+                    
+                    <div class="activity-box">
+                        <h3>Materials Required:</h3>
+                        <ul style="margin-left: 30px; line-height: 2;">
+                            <li>A glass prism</li>
+                            <li>Thick cardboard sheet</li>
+                            <li>White screen or wall</li>
+                            <li>Sunlight (or bright white light source)</li>
+                        </ul>
+                    </div>
+
+                    <div class="activity-box">
+                        <h3>Procedure:</h3>
+                        <ul class="activity-steps">
+                            <li>Take a thick sheet of cardboard and make a small hole or narrow slit in its middle</li>
+                            <li>Allow sunlight to fall on the narrow slit to create a narrow beam of white light</li>
+                            <li>Take a glass prism and allow the light from the slit to fall on one of its faces</li>
+                            <li>Turn the prism slowly until the light that comes out appears on a nearby screen</li>
+                            <li>Observe the beautiful band of colors that appears!</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Theory Section Content -->
+                <div class="display-section" id="theory-content">
+                    <div class="info-panel">
+                        <div class="info-title">🔬 The Science of Dispersion</div>
+                        <p>Understanding how white light splits into its component colors</p>
+                    </div>
+
+                    <div class="info-panel">
+                        <h3 style="color: #4facfe;">Key Principle</h3>
+                        <p>Different colors of light bend through different angles as they pass through a prism. This happens because:</p>
+                        <ul style="margin: 20px 0 0 30px; line-height: 2;">
+                            <li>Each color has a different wavelength</li>
+                            <li>The refractive index varies with wavelength</li>
+                            <li>Violet light (shortest wavelength) bends the most</li>
+                            <li>Red light (longest wavelength) bends the least</li>
+                        </ul>
+                    </div>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Color</th>
+                                <th>Wavelength Range</th>
+                                <th>Refractive Index</th>
+                                <th>Deviation Angle</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="color: #8b00ff;"><td>Violet</td><td>380-450 nm</td><td>1.532</td><td>44.2°</td></tr>
+                            <tr style="color: #4b0082;"><td>Indigo</td><td>450-485 nm</td><td>1.528</td><td>43.5°</td></tr>
+                            <tr style="color: #0000ff;"><td>Blue</td><td>485-500 nm</td><td>1.523</td><td>42.8°</td></tr>
+                            <tr style="color: #00ff00;"><td>Green</td><td>500-565 nm</td><td>1.519</td><td>42.1°</td></tr>
+                            <tr style="color: #ffff00;"><td>Yellow</td><td>565-590 nm</td><td>1.517</td><td>41.7°</td></tr>
+                            <tr style="color: #ff8c00;"><td>Orange</td><td>590-625 nm</td><td>1.514</td><td>41.3°</td></tr>
+                            <tr style="color: #ff0000;"><td>Red</td><td>625-750 nm</td><td>1.512</td><td>40.9°</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Newton's Experiment Content -->
+                <div class="display-section" id="newton-content">
+                    <div class="info-panel">
+                        <div class="info-title">🎩 Isaac Newton's Discovery</div>
+                        <p>The historic experiment that revealed the true nature of white light</p>
+                    </div>
+
+                    <div class="newton-section">
+                        <h3>Newton's Prism Experiments</h3>
+                        <p>Isaac Newton was the first to use a glass prism to obtain the spectrum of sunlight. His groundbreaking experiments included:</p>
+                        
+                        <h4 style="color: #4facfe; margin-top: 20px;">Experiment 1: Single Prism</h4>
+                        <p>Newton passed white sunlight through a prism and observed it split into colors. When he tried to split these colors further with another prism, no additional colors appeared.</p>
+                        
+                        <h4 style="color: #4facfe; margin-top: 20px;">Experiment 2: Double Prism</h4>
+                        <p>He placed a second identical prism in an inverted position. All the colors from the first prism passed through the second prism and recombined to form white light again!</p>
+                        
+                        <p style="margin-top: 20px; padding: 20px; background: rgba(79, 172, 254, 0.1); border-radius: 10px;">
+                            <strong>Conclusion:</strong> This proved that white light is actually composed of seven colors, not that the prism creates the colors.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Rainbow Section Content -->
+                <div class="display-section" id="rainbow-content">
+                    <div class="info-panel">
+                        <div class="info-title">🌈 Natural Rainbows</div>
+                        <p>How tiny water droplets create nature's most beautiful light show</p>
+                    </div>
+
+                    <div class="rainbow-section">
+                        <h3>Formation of Rainbow</h3>
+                        <p>A rainbow is a natural spectrum appearing in the sky after a rain shower. Here's how it forms:</p>
+                        
+                        <ol style="margin: 20px 0 0 30px; line-height: 2;">
+                            <li><strong>Sunlight enters water droplets:</strong> Each droplet acts like a tiny prism</li>
+                            <li><strong>Refraction at entry:</strong> Light bends as it enters the droplet</li>
+                            <li><strong>Internal reflection:</strong> Light bounces off the back of the droplet</li>
+                            <li><strong>Refraction at exit:</strong> Light bends again as it leaves</li>
+                            <li><strong>Dispersion:</strong> Different colors separate due to varying refraction</li>
+                        </ol>
+                        
+                        <div style="margin-top: 20px; padding: 20px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                            <h4 style="color: #fbbf24;">Fun Facts about Rainbows:</h4>
+                            <ul style="margin-left: 20px; line-height: 2;">
+                                <li>Rainbows always appear opposite to the Sun</li>
+                                <li>Each person sees their own unique rainbow</li>
+                                <li>Double rainbows have reversed color order in the outer arc</li>
+                                <li>You can create mini-rainbows with a garden hose on a sunny day!</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Analysis Content -->
+                <div class="display-section" id="data-content">
+                    <div class="info-panel">
+                        <div class="info-title">📊 Dispersion Data Analysis</div>
+                        <p>Visualizing the relationship between wavelength, refractive index, and deviation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button class="control-btn active" data-mode="lesson">🎯 Complete Lesson</button>
+            <button class="control-btn" data-mode="activity">📚 Activity 10.2</button>
+            <button class="control-btn" data-mode="theory">🔬 Theory</button>
+            <button class="control-btn" data-mode="newton">🎩 Newton's Discovery</button>
+            <button class="control-btn" data-mode="rainbow">🌈 Rainbow Formation</button>
+            <button class="control-btn" data-mode="data">📊 Data Analysis</button>
+        </div>
+        
+        <!-- Reset Button -->
+        <div style="text-align: center;">
+            <button class="control-btn reset-btn" id="resetBtn">🔄 Reset Everything</button>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let audioEnabled = true;
+        let currentMode = 'lesson';
+        let lessonSequence = null;
+        let charts = {};
+        let animationFrames = {};
+        let lessonStarted = false;
+
+        // Audio System
+        class AudioNarrator {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.enabled = true;
+                this.queue = [];
+                this.speaking = false;
+            }
+
+            speak(text, priority = false) {
+                if (!this.enabled) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    if (priority) {
+                        this.stop();
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.9;
+                    
+                    utterance.onend = () => {
+                        this.speaking = false;
+                        resolve();
+                    };
+                    
+                    this.synth.speak(utterance);
+                    this.speaking = true;
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.queue = [];
+                this.speaking = false;
+            }
+
+            toggle() {
+                this.enabled = !this.enabled;
+                if (!this.enabled) this.stop();
+                return this.enabled;
+            }
+        }
+
+        const narrator = new AudioNarrator();
+
+        // Canvas Drawing Functions
+        function drawPrism(ctx, x, y, size, opacity = 0.3) {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            const gradient = ctx.createLinearGradient(-size, -size, size, size);
+            gradient.addColorStop(0, `rgba(144, 202, 249, ${opacity})`);
+            gradient.addColorStop(0.5, `rgba(255, 255, 255, ${opacity * 0.5})`);
+            gradient.addColorStop(1, `rgba(144, 202, 249, ${opacity})`);
+            
+            ctx.beginPath();
+            ctx.moveTo(0, -size);
+            ctx.lineTo(-size * 0.866, size * 0.5);
+            ctx.lineTo(size * 0.866, size * 0.5);
+            ctx.closePath();
+            
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            ctx.strokeStyle = `rgba(144, 202, 249, ${opacity * 2})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+
+        function drawBeam(ctx, x1, y1, x2, y2, color, width = 3) {
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawSpectrum(ctx, x, y, width, height) {
+            const colors = ['#ff0000', '#ff8c00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#8b00ff'];
+            const segmentWidth = width / colors.length;
+            
+            colors.forEach((color, i) => {
+                ctx.fillStyle = color;
+                ctx.fillRect(x + i * segmentWidth, y, segmentWidth, height);
+            });
+        }
+
+        // Animation Functions
+        function animateActivity() {
+            const canvas = document.getElementById('activityCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            // Improve canvas text rendering
+            ctx.textBaseline = 'top';
+            ctx.textAlign = 'left';
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            let time = 0;
+            
+            function draw() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Cardboard with slit
+                ctx.fillStyle = '#8b7355';
+                ctx.fillRect(100, 150, 100, 200);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(145, 240, 10, 20);
+                
+                // Sun
+                ctx.fillStyle = '#ffd700';
+                ctx.beginPath();
+                ctx.arc(150, 100, 30, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Light beams
+                drawBeam(ctx, 150, 130, 150, 250, '#ffffff', 8);
+                drawBeam(ctx, 155, 250, 500, 250, '#ffffff', 6);
+                
+                // Prism
+                drawPrism(ctx, 600, 250, 80, 0.6);
+                
+                // Spectrum colors
+                const colors = ['#ff0000', '#ff8c00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#8b00ff'];
+                colors.forEach((color, i) => {
+                    const angle = -15 + i * 5;
+                    const rad = angle * Math.PI / 180;
+                    const startX = 650;
+                    const startY = 250;
+                    const endX = startX + 200 * Math.cos(rad);
+                    const endY = startY + 200 * Math.sin(rad);
+                    
+                    ctx.save();
+                    ctx.globalAlpha = 0.7 + 0.3 * Math.sin(time * 0.05 + i);
+                    drawBeam(ctx, startX, startY, endX, endY, color, 4);
+                    ctx.restore();
+                });
+                
+                // Screen
+                ctx.fillStyle = '#f0f0f0';
+                ctx.fillRect(1000, 150, 20, 200);
+                drawSpectrum(ctx, 1005, 200, 10, 100);
+                
+                // Labels with improved styling
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 16px Arial';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                ctx.shadowBlur = 3;
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 1;
+                
+                // Sun label
+                ctx.fillText('Sun', 100, 60);
+                
+                // Cardboard label
+                ctx.fillText('Cardboard', 80, 140);
+                ctx.fillText('with Slit', 75, 160);
+                
+                // White light label
+                ctx.fillText('White Light', 170, 220);
+                
+                // Prism label
+                ctx.fillText('Glass Prism', 550, 200);
+                
+                // Spectrum labels
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('VIBGYOR', 700, 100);
+                ctx.fillText('Spectrum', 700, 120);
+                
+                // Screen label
+                ctx.fillText('Screen', 950, 140);
+                ctx.fillText('(Wall)', 950, 160);
+                
+                // Color labels
+                // const colorNames = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Indigo', 'Violet'];
+                // colors.forEach((color, i) => {
+                //     const angle = -15 + i * 5;
+                //     const rad = angle * Math.PI / 180;
+                //     const labelX = 500 + 150 * Math.cos(rad);
+                //     const labelY = 200 + 150 * Math.sin(rad);
+                    
+                //     ctx.fillStyle = color;
+                //     ctx.font = 'bold 12px Arial';
+                //     ctx.fillText(colorNames[i], labelX, labelY);
+                // });
+                
+                // Reset shadow
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                
+                time++;
+                animationFrames.activity = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+
+        function animateNewton() {
+            const canvas = document.getElementById('newtonCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            // Improve canvas text rendering
+            ctx.textBaseline = 'top';
+            ctx.textAlign = 'left';
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            let phase = 0;
+            let time = 0;
+            
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Title
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 18px Arial';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                ctx.shadowBlur = 3;
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 1;
+                ctx.fillText(phase === 0 ? 'Single Prism - Dispersion' : 'Double Prism - Recombination', 50, 30);
+                
+                // White light source
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(150, 250, 20, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // White light beam
+                drawBeam(ctx, 170, 250, 450, 250, '#ffffff', 8);
+                
+                // First prism
+                drawPrism(ctx, 500, 250, 70);
+                
+                if (phase === 0) {
+                    // Dispersion phase
+                    const colors = ['#ff0000', '#ff8c00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#8b00ff'];
+                    colors.forEach((color, i) => {
+                        const angle = -10 + i * 3;
+                        const rad = angle * Math.PI / 180;
+                        const endX = 550 + 250 * Math.cos(rad);
+                        const endY = 250 + 250 * Math.sin(rad);
+                        drawBeam(ctx, 550, 250, endX, endY, color, 3);
+                    });
+                    
+                    // Labels for dispersion
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.fillText('White Light', 100, 220);
+                    ctx.fillText('Prism 1', 470, 200);
+                    ctx.fillText('Dispersion', 600, 100);
+                    ctx.fillText('VIBGYOR', 600, 120);
+                } else {
+                    // Recombination phase
+                    const colors = ['#ff0000', '#ff8c00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#8b00ff'];
+                    colors.forEach((color, i) => {
+                        const angle = -10 + i * 3;
+                        const rad = angle * Math.PI / 180;
+                        const midX = 550 + 100 * Math.cos(rad);
+                        const midY = 250 + 100 * Math.sin(rad);
+                        drawBeam(ctx, 550, 250, midX, midY, color, 3);
+                    });
+                    
+                    // Second prism (inverted)
+                    ctx.save();
+                    ctx.translate(700, 250);
+                    ctx.rotate(Math.PI);
+                    drawPrism(ctx, 0, 0, 70);
+                    ctx.restore();
+                    
+                    // Recombined white light beam
+                    drawBeam(ctx, 750, 250, 900, 250, '#ffffff', 8);
+                    
+                    // Labels for recombination
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.fillText('White Light', 100, 220);
+                    ctx.fillText('Prism 1', 470, 200);
+                    ctx.fillText('Prism 2', 670, 200);
+                    ctx.fillText('(Inverted)', 665, 220);
+                    ctx.fillText('Recombination', 600, 100);
+                    
+                    // Success message
+                    ctx.fillStyle = '#4facfe';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillText('White Light Restored!', 800, 300);
+                }
+                
+                // Reset shadow
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                
+                time++;
+                if (time % 180 === 0) {
+                    phase = (phase + 1) % 2;
+                }
+                
+                animationFrames.newton = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+
+        function animateRainbow() {
+            const canvas = document.getElementById('rainbowCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            // Improve canvas text rendering
+            ctx.textBaseline = 'top';
+            ctx.textAlign = 'left';
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            let time = 0;
+            
+            function draw() {
+                // Sky background
+                const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                skyGradient.addColorStop(0, '#87CEEB');
+                skyGradient.addColorStop(1, '#98D8E8');
+                ctx.fillStyle = skyGradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Sun
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(150, 100, 40, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Water droplet
+                const dropX = 600;
+                const dropY = 250;
+                const dropRadius = 60;
+                
+                ctx.strokeStyle = 'rgba(173, 216, 230, 0.8)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(dropX, dropY, dropRadius, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                ctx.fillStyle = 'rgba(173, 216, 230, 0.3)';
+                ctx.fill();
+                
+                // Sunlight beam
+                drawBeam(ctx, 150, 140, dropX - 40, dropY - 20, '#ffffff', 4);
+                
+                // Dispersed light rays
+                const colors = ['#ff0000', '#ff8c00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#8b00ff'];
+                colors.forEach((color, i) => {
+                    const angle = 135 + i * 3;
+                    const rad = angle * Math.PI / 180;
+                    const endX = dropX + 150 * Math.cos(rad);
+                    const endY = dropY + 150 * Math.sin(rad);
+                    
+                    ctx.save();
+                    ctx.globalAlpha = 0.6 + 0.4 * Math.sin(time * 0.03 + i);
+                    drawBeam(ctx, dropX + 20, dropY + 10, endX, endY, color, 3);
+                    ctx.restore();
+                });
+                
+                // Rainbow arc
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height + 100;
+                const radius = 350;
+                
+                colors.reverse().forEach((color, i) => {
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 15;
+                    ctx.globalAlpha = 0.5 + 0.2 * Math.sin(time * 0.02);
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius - i * 15, Math.PI * 1.2, Math.PI * 1.8);
+                    ctx.stroke();
+                });
+                
+                ctx.globalAlpha = 1;
+                
+                // Labels with improved styling
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 16px Arial';
+                ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+                ctx.shadowBlur = 2;
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 1;
+                
+                // Main labels
+                ctx.fillText('Sunlight', 100, 160);
+                ctx.fillText('Water Droplet', dropX - 50, dropY + 80);
+                ctx.fillText('Rainbow Formation', centerX - 80, 50);
+                
+                // Process labels
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('1. Refraction', dropX - 30, dropY - 100);
+                ctx.fillText('2. Internal Reflection', dropX - 50, dropY - 80);
+                ctx.fillText('3. Dispersion', dropX - 30, dropY - 60);
+                
+                // Rainbow labels
+                // ctx.font = 'bold 12px Arial';
+                // ctx.fillText('Violet', centerX - 200, 200);
+                // ctx.fillText('Red', centerX + 150, 200);
+                // ctx.fillText('VIBGYOR', centerX - 30, 180);
+                
+                // Angle labels
+                ctx.font = 'bold 10px Arial';
+                ctx.fillText('42°', centerX - 100, 250);
+                ctx.fillText('40°', centerX + 80, 250);
+                
+                // Reset shadow
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                
+                time++;
+                animationFrames.rainbow = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+
+        // Chart Setup
+        function setupCharts() {
+            const ctx1 = document.getElementById('wavelengthChart');
+            if (ctx1) {
+                charts.wavelength = new Chart(ctx1.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['Violet', 'Indigo', 'Blue', 'Green', 'Yellow', 'Orange', 'Red'],
+                        datasets: [{
+                            label: 'Wavelength (nm)',
+                            data: [415, 467, 492, 532, 577, 607, 687],
+                            borderColor: '#4facfe',
+                            backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        }, {
+                            label: 'Refractive Index',
+                            data: [1.532, 1.528, 1.523, 1.519, 1.517, 1.514, 1.512],
+                            borderColor: '#fa709a',
+                            backgroundColor: 'rgba(250, 112, 154, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Wavelength & Refractive Index Relationship',
+                                color: '#ffffff',
+                                font: { size: 16 }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                position: 'left',
+                                title: { display: true, text: 'Wavelength (nm)', color: '#4facfe' },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            y1: {
+                                type: 'linear',
+                                position: 'right',
+                                title: { display: true, text: 'Refractive Index', color: '#fa709a' },
+                                ticks: { color: '#ffffff' },
+                                grid: { display: false }
+                            },
+                            x: {
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            const ctx2 = document.getElementById('deviationChart');
+            if (ctx2) {
+                charts.deviation = new Chart(ctx2.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Violet', 'Indigo', 'Blue', 'Green', 'Yellow', 'Orange', 'Red'],
+                        datasets: [{
+                            label: 'Deviation Angle (degrees)',
+                            data: [44.2, 43.5, 42.8, 42.1, 41.7, 41.3, 40.9],
+                            backgroundColor: [
+                                '#8b00ff', '#4b0082', '#0000ff', '#00ff00',
+                                '#ffff00', '#ff8c00', '#ff0000'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Color-Dependent Deviation Angles',
+                                color: '#ffffff',
+                                font: { size: 16 }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: { display: true, text: 'Deviation Angle (°)', color: '#ffffff' },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' },
+                                min: 40
+                            },
+                            x: {
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Complete Lesson Sequence
+        class LessonSequence {
+            constructor() {
+                this.sections = [
+                    { id: 'activity', name: 'Activity 10.2', duration: 8000 },
+                    { id: 'theory', name: 'Theory of Dispersion', duration: 8000 },
+                    { id: 'newton', name: "Newton's Discovery", duration: 8000 },
+                    { id: 'rainbow', name: 'Rainbow Formation', duration: 8000 },
+                    { id: 'data', name: 'Data Analysis', duration: 8000 }
+                ];
+                this.currentSection = 0;
+                this.running = false;
+            }
+
+            async start() {
+                this.stop();
+                this.running = true;
+                this.currentSection = 0;
+                
+                this.showProgressBar();
+                
+                await narrator.speak("Welcome to the complete lesson on dispersion of white light! We'll explore all aspects of this fascinating phenomenon.");
+                
+                await this.runNextSection();
+            }
+
+            showProgressBar() {
+                const html = `
+                    <div class="lesson-progress">
+                        <div class="section-indicator">Current Section: <span id="currentSectionName">Starting...</span></div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                        </div>
+                        <p style="color: #e2e8f0; margin-top: 10px;">Section <span id="currentNum">1</span> of ${this.sections.length}</p>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            updateProgress() {
+                const progress = ((this.currentSection + 1) / this.sections.length) * 100;
+                const progressFill = document.getElementById('progressFill');
+                const currentSectionName = document.getElementById('currentSectionName');
+                const currentNum = document.getElementById('currentNum');
+                
+                if (progressFill) progressFill.style.width = `${progress}%`;
+                if (currentSectionName && this.sections[this.currentSection]) {
+                    currentSectionName.textContent = this.sections[this.currentSection].name;
+                }
+                if (currentNum) currentNum.textContent = this.currentSection + 1;
+            }
+
+            async runNextSection() {
+                if (!this.running || this.currentSection >= this.sections.length) {
+                    if (this.running) {
+                        await narrator.speak("Congratulations! You've completed the comprehensive lesson on dispersion of white light.");
+                        this.showCompletionMessage();
+                    }
+                    return;
+                }
+
+                const section = this.sections[this.currentSection];
+                this.updateProgress();
+                
+                // Clear all animations first
+                this.clearAnimations();
+                
+                // Clear all demo sections
+                document.querySelectorAll('.demo-container .display-section').forEach(s => {
+                    s.classList.remove('active');
+                });
+                
+                // Clear all content sections
+                document.querySelectorAll('.content-container .display-section').forEach(s => {
+                    s.classList.remove('active');
+                });
+                
+                // Activate the current demo section
+                document.getElementById(`${section.id}-section`).classList.add('active');
+                
+                // Activate the corresponding content section
+                document.getElementById(`${section.id}-content`).classList.add('active');
+                
+                // Start appropriate animation and narration
+                switch(section.id) {
+                    case 'activity':
+                        animateActivity();
+                        await narrator.speak("Activity 10.2: Let's create a spectrum using a simple setup with cardboard, sunlight, and a prism. Watch how white light separates into beautiful colors!");
+                        break;
+                        
+                    case 'theory':
+                        await narrator.speak("The Science of Dispersion: Each color has a different wavelength. Violet light bends the most, red bends the least, creating the spectrum we call VIBGYOR.");
+                        break;
+                        
+                    case 'newton':
+                        animateNewton();
+                        await narrator.speak("Isaac Newton's Discovery: Newton proved that prisms don't create colors - they reveal them. His double-prism experiment showed white light contains all colors.");
+                        break;
+                        
+                    case 'rainbow':
+                        animateRainbow();
+                        await narrator.speak("Natural Rainbows: Millions of water droplets act like tiny prisms, creating nature's most spectacular light show opposite to the sun.");
+                        break;
+                        
+                    case 'data':
+                        setupCharts();
+                        await narrator.speak("Data Analysis: The charts show the relationship between wavelength, refractive index, and deviation angle for each color in the spectrum.");
+                        break;
+                }
+                
+                await this.wait(section.duration);
+                
+                if (this.running) {
+                    this.currentSection++;
+                    await this.runNextSection();
+                }
+            }
+
+            showCompletionMessage() {
+                const html = `
+                    <div style="text-align: center; padding: 40px;">
+                        <h2 style="color: #43e97b; margin-bottom: 20px;">🎉 Complete Lesson Finished!</h2>
+                        <p style="font-size: 1.2rem;">You've successfully completed all sections:</p>
+                        <ul style="margin: 20px auto; max-width: 400px; text-align: left; list-style: none;">
+                            ${this.sections.map(s => `<li style="margin: 10px 0; color: #4facfe;">✓ ${s.name}</li>`).join('')}
+                        </ul>
+                        <p style="margin-top: 30px;">Explore individual sections using the buttons below or click Reset to start over.</p>
+                        <button class="control-btn reset-btn" onclick="resetEverything()" style="margin-top: 20px;">
+                            🔄 Reset Everything
+                        </button>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            wait(ms) {
+                return new Promise(resolve => {
+                    this.timeout = setTimeout(resolve, ms);
+                });
+            }
+
+            stop() {
+                this.running = false;
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                    this.timeout = null;
+                }
+                narrator.stop();
+                this.clearAnimations();
+            }
+
+            clearAnimations() {
+                Object.values(animationFrames).forEach(frame => {
+                    if (typeof frame === 'number') {
+                        cancelAnimationFrame(frame);
+                    } else {
+                        clearInterval(frame);
+                    }
+                });
+                animationFrames = {};
+            }
+        }
+
+        // Reset Function
+        function resetEverything() {
+            lessonStarted = false;
+            
+            if (lessonSequence) {
+                lessonSequence.stop();
+            }
+            narrator.stop();
+            
+            Object.values(animationFrames).forEach(frame => {
+                if (typeof frame === 'number') {
+                    cancelAnimationFrame(frame);
+                } else {
+                    clearInterval(frame);
+                }
+            });
+            animationFrames = {};
+            
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            charts = {};
+            
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('[data-mode="lesson"]').classList.add('active');
+            
+            // Clear all demo sections
+            document.querySelectorAll('.demo-container .display-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Clear all content sections
+            document.querySelectorAll('.content-container .display-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            document.getElementById('lesson-section').classList.add('active');
+            
+            document.getElementById('lessonContent').innerHTML = '';
+            
+            currentMode = 'lesson';
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }, 1500);
+
+            lessonSequence = new LessonSequence();
+
+            document.querySelectorAll('.control-btn:not(.reset-btn)').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const mode = this.getAttribute('data-mode');
+                    
+                    // Stop complete lesson if running
+                    if (lessonSequence) lessonSequence.stop();
+                    narrator.stop();
+                    Object.values(animationFrames).forEach(frame => {
+                        if (typeof frame === 'number') {
+                            cancelAnimationFrame(frame);
+                        } else {
+                            clearInterval(frame);
+                        }
+                    });
+                    animationFrames = {};
+                    
+                    document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Clear all demo sections
+                    document.querySelectorAll('.demo-container .display-section').forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    
+                    // Clear all content sections
+                    document.querySelectorAll('.content-container .display-section').forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    
+                    currentMode = mode;
+                    
+                    switch(mode) {
+                        case 'lesson':
+                            document.getElementById('lesson-section').classList.add('active');
+                            if (!lessonStarted) {
+                                lessonStarted = true;
+                                lessonSequence.start();
+                            }
+                            break;
+                            
+                        case 'activity':
+                            document.getElementById('activity-section').classList.add('active');
+                            document.getElementById('activity-content').classList.add('active');
+                            animateActivity();
+                            narrator.speak("Activity 10.2 demonstrates how to create a spectrum using simple materials.", true);
+                            break;
+                            
+                        case 'theory':
+                            document.getElementById('theory-section').classList.add('active');
+                            document.getElementById('theory-content').classList.add('active');
+                            narrator.speak("Explore the science behind dispersion and the VIBGYOR spectrum.", true);
+                            break;
+                            
+                        case 'newton':
+                            document.getElementById('newton-section').classList.add('active');
+                            document.getElementById('newton-content').classList.add('active');
+                            animateNewton();
+                            narrator.speak("Discover Newton's groundbreaking experiments with prisms.", true);
+                            break;
+                            
+                        case 'rainbow':
+                            document.getElementById('rainbow-section').classList.add('active');
+                            document.getElementById('rainbow-content').classList.add('active');
+                            animateRainbow();
+                            narrator.speak("Learn how rainbows form in nature through water droplets.", true);
+                            break;
+                            
+                        case 'data':
+                            document.getElementById('data-section').classList.add('active');
+                            document.getElementById('data-content').classList.add('active');
+                            setupCharts();
+                            narrator.speak("Analyze the data showing wavelength and deviation relationships.", true);
+                            break;
+                    }
+                });
+            });
+
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                narrator.speak("Resetting everything and returning to the start.", true);
+                resetEverything();
+            });
+
+            document.getElementById('audio-toggle').addEventListener('click', function() {
+                audioEnabled = narrator.toggle();
+                this.textContent = audioEnabled ? '🔊' : '🔇';
+            });
+        });
+
+        window.addEventListener('beforeunload', function() {
+            narrator.stop();
+            if (lessonSequence) lessonSequence.stop();
+        });
+    </script>
+</body>
+</html>

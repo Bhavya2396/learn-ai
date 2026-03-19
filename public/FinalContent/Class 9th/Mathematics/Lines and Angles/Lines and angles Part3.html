@@ -1,0 +1,2902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry: Pairs of Angles - Interactive Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --geometry-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--geometry-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Layout */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Demo Stage */
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+        }
+
+        /* Stage Content */
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--geometry-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--geometry-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Three.js Container */
+        .threejs-container {
+            width: 100%;
+            height: 450px;
+            border-radius: 15px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            width: 100%;
+            max-width: 600px;
+            height: 350px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px auto;
+        }
+
+        /* Geometry Elements */
+        .geometry-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .geometry-description {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 20px auto;
+            line-height: 1.6;
+        }
+
+        .theorem-box {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+            max-width: 700px;
+        }
+
+        .theorem-title {
+            color: var(--text-accent);
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .theorem-content {
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .value-display {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .angle-display {
+            font-size: 1.5rem;
+            color: var(--text-accent);
+            margin: 10px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Interactive Controls */
+        .interactive-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .slider-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 200px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--accent-gradient);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* Quiz Styles */
+        .quiz-container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .quiz-question {
+            font-size: 1.2rem;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .quiz-option {
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: left;
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        .quiz-option.correct {
+            background: rgba(67, 233, 123, 0.3);
+            border-color: #43e97b;
+        }
+
+        .quiz-option.incorrect {
+            background: rgba(245, 87, 108, 0.3);
+            border-color: #f5576c;
+        }
+
+        /* Theory Cards */
+        .theory-cards-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .theory-section-title {
+            font-size: 1.8rem;
+            color: var(--text-accent);
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: 600;
+            background: var(--geometry-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .theory-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .theory-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            transition: var(--transition);
+        }
+
+        .theory-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+        }
+
+        .theory-card-header h3 {
+            color: var(--text-accent);
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+
+        .theory-card-content p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .formula {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            color: var(--text-accent);
+            margin: 10px 0;
+        }
+
+        /* Step Display */
+        .step-display {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid var(--text-accent);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .step-number {
+            color: var(--text-accent);
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .step-content {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Grid Layout for Examples */
+        .example-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .example-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>Geometry: Pairs of Angles</h1>
+        <p>Interactive Learning with 3D Animations</p>
+    </div>
+
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Demo Stage -->
+        <div id="demo-stage" class="demo-stage"></div>
+
+        <!-- Control Buttons -->
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">📚 Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">🎯 Introduction</button>
+            <button class="demo-btn" data-demo="axiom-1">📐 Linear Pair Axiom 1</button>
+            <button class="demo-btn" data-demo="axiom-2">🔄 Linear Pair Axiom 2</button>
+            <button class="demo-btn" data-demo="vertical-angles">✖️ Vertically Opposite Angles</button>
+            <button class="demo-btn" data-demo="example-1">📝 Example 1: Ratio</button>
+            <button class="demo-btn" data-demo="example-2">📝 Example 2: Bisectors</button>
+            <button class="demo-btn" data-demo="example-3">📝 Example 3: Four Rays</button>
+            <button class="demo-btn" data-demo="interactive">🎮 Interactive Demo</button>
+            <button class="demo-btn" data-demo="quiz">🧮 Quiz</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+    </div>
+
+    <!-- Theory Cards Section -->
+    <div class="theory-cards-section">
+        <h2 class="theory-section-title">Quick Reference Guide</h2>
+        <div class="theory-cards-grid">
+            <div class="theory-card">
+                <div class="theory-card-header">
+                    <h3>📐 Linear Pair Axiom 6.1</h3>
+                </div>
+                <div class="theory-card-content">
+                    <p><strong>Statement:</strong> If a ray stands on a line, then the sum of two adjacent angles so formed is 180°.</p>
+                    <div class="formula">∠AOC + ∠BOC = 180°</div>
+                </div>
+            </div>
+
+            <div class="theory-card">
+                <div class="theory-card-header">
+                    <h3>🔄 Linear Pair Axiom 6.2</h3>
+                </div>
+                <div class="theory-card-content">
+                    <p><strong>Statement:</strong> If the sum of two adjacent angles is 180°, then the non-common arms form a line.</p>
+                    <p><strong>Note:</strong> This is the converse of Axiom 6.1</p>
+                </div>
+            </div>
+
+            <div class="theory-card">
+                <div class="theory-card-header">
+                    <h3>✖️ Theorem 6.1</h3>
+                </div>
+                <div class="theory-card-content">
+                    <p><strong>Statement:</strong> If two lines intersect each other, then the vertically opposite angles are equal.</p>
+                    <div class="formula">∠AOC = ∠BOD<br>∠AOD = ∠BOC</div>
+                </div>
+            </div>
+
+            <div class="theory-card">
+                <div class="theory-card-header">
+                    <h3>🎯 Adjacent Angles</h3>
+                </div>
+                <div class="theory-card-content">
+                    <p>Two angles are adjacent if they have:</p>
+                    <p>• A common vertex</p>
+                    <p>• A common arm</p>
+                    <p>• Non-common arms on opposite sides</p>
+                </div>
+            </div>
+
+            <div class="theory-card">
+                <div class="theory-card-header">
+                    <h3>🔢 Angles Around a Point</h3>
+                </div>
+                <div class="theory-card-content">
+                    <p><strong>Property:</strong> The sum of all angles around a point is 360°.</p>
+                    <div class="formula">∠1 + ∠2 + ∠3 + ∠4 = 360°</div>
+                </div>
+            </div>
+
+            <div class="theory-card">
+                <div class="theory-card-header">
+                    <h3>📏 Practical Applications</h3>
+                </div>
+                <div class="theory-card-content">
+                    <p>• <strong>Architecture:</strong> Roof angles and support structures</p>
+                    <p>• <strong>Engineering:</strong> Bridge design and truss systems</p>
+                    <p>• <strong>Navigation:</strong> Bearing calculations</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // GLOBAL VARIABLES (Exactly 10)
+        // ========================================
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let activeTasks = new Set();
+        let currentRunId = 0;
+        let isPlaying = false;
+        let currentDemo = null;
+        let threeJsScenes = [];
+        let currentDemoAborted = false;
+        let currentTaskId = null;
+        let animationTimeouts = [];
+
+        // ========================================
+        // TEACHER VOICE SYSTEM
+        // ========================================
+        class TeacherVoice {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.voice = null;
+                this.rate = 0.9;
+                this.pitch = 1.0;
+                this.volume = 0.8;
+                this.isEnabled = true;
+                this.currentUtterance = null;
+                this.isDestroyed = false;
+                this.setupVoice();
+            }
+
+            setupVoice() {
+                const loadVoices = () => {
+                    const voices = this.synth.getVoices();
+                    this.voice = voices.find(v => v.lang.includes('en')) || voices[0];
+                };
+                loadVoices();
+                this.synth.onvoiceschanged = loadVoices;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !globalAudioEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.voice = this.voice;
+                        utterance.rate = this.rate;
+                        utterance.pitch = this.pitch;
+                        utterance.volume = this.volume;
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        this.synth.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+            }
+        }
+
+        // ========================================
+        // STATE MANAGEMENT FUNCTIONS
+        // ========================================
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            threeJsScenes.forEach(scene => {
+                if (scene.renderer) {
+                    scene.renderer.dispose();
+                }
+                if (scene.animationId) {
+                    cancelAnimationFrame(scene.animationId);
+                }
+            });
+            threeJsScenes = [];
+            
+            activeTasks.clear();
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentTeacher = new TeacherVoice();
+            currentTeacher.isEnabled = globalAudioEnabled;
+            return currentTeacher;
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        function createStageContent() {
+            const stage = document.getElementById('demo-stage');
+            stage.innerHTML = '';
+            const content = document.createElement('div');
+            content.className = 'stage-content active';
+            stage.appendChild(content);
+            return content;
+        }
+
+        // ========================================
+        // THREE.JS SCENE CREATION
+        // ========================================
+        function createThreeJsScene(container, config = {}) {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setClearColor(0x000000, 0);
+            container.appendChild(renderer.domElement);
+            
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const pointLight = new THREE.PointLight(0xffffff, 0.8);
+            pointLight.position.set(5, 5, 5);
+            scene.add(pointLight);
+            
+            camera.position.z = 8;
+            
+            const sceneData = {
+                scene,
+                camera,
+                renderer,
+                objects: [],
+                animationId: null
+            };
+            
+            function animate() {
+                sceneData.animationId = requestAnimationFrame(animate);
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+            threeJsScenes.push(sceneData);
+            return sceneData;
+        }
+
+        // ========================================
+        // GEOMETRY HELPER FUNCTIONS
+        // ========================================
+        function createLine(sceneData, x1, y1, x2, y2, color = 0x4facfe, linewidth = 3) {
+            const points = [
+                new THREE.Vector3(x1, y1, 0),
+                new THREE.Vector3(x2, y2, 0)
+            ];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color, linewidth });
+            const line = new THREE.Line(geometry, material);
+            sceneData.scene.add(line);
+            sceneData.objects.push(line);
+            return line;
+        }
+
+        function createRay(sceneData, x1, y1, angle, length = 4, color = 0xf5576c) {
+            const x2 = x1 + length * Math.cos(angle);
+            const y2 = y1 + length * Math.sin(angle);
+            return createLine(sceneData, x1, y1, x2, y2, color);
+        }
+
+        function createPoint(sceneData, x, y, color = 0x43e97b, size = 0.15) {
+            const geometry = new THREE.SphereGeometry(size, 16, 16);
+            const material = new THREE.MeshPhongMaterial({ color });
+            const point = new THREE.Mesh(geometry, material);
+            point.position.set(x, y, 0);
+            sceneData.scene.add(point);
+            sceneData.objects.push(point);
+            return point;
+        }
+
+        function createAngleArc(sceneData, centerX, centerY, radius, startAngle, endAngle, color = 0xfbbf24) {
+            const curve = new THREE.EllipseCurve(
+                centerX, centerY,
+                radius, radius,
+                startAngle, endAngle,
+                false, 0
+            );
+            const points = curve.getPoints(50);
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color, linewidth: 2 });
+            const arc = new THREE.Line(geometry, material);
+            sceneData.scene.add(arc);
+            sceneData.objects.push(arc);
+            return arc;
+        }
+
+        // ========================================
+        // ANIMATED DRAWING FUNCTIONS
+        // ========================================
+        
+        // Animated line drawing
+        async function createLineAnimated(sceneData, x1, y1, x2, y2, color, lineWidth = 2, duration = 1000) {
+            return new Promise((resolve) => {
+                const geometry = new THREE.BufferGeometry();
+                const material = new THREE.LineBasicMaterial({ 
+                    color: color,
+                    linewidth: lineWidth
+                });
+                
+                const startTime = Date.now();
+                const startPoint = new THREE.Vector3(x1, y1, 0);
+                const endPoint = new THREE.Vector3(x2, y2, 0);
+                
+                const points = [startPoint.clone(), startPoint.clone()];
+                geometry.setFromPoints(points);
+                
+                const line = new THREE.Line(geometry, material);
+                sceneData.scene.add(line);
+                sceneData.objects.push(line);
+                
+                function animate() {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Update the end point of the line
+                    const currentEnd = startPoint.clone().lerp(endPoint, progress);
+                    const newPoints = [startPoint, currentEnd];
+                    geometry.setFromPoints(newPoints);
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        resolve();
+                    }
+                }
+                
+                animate();
+            });
+        }
+        
+        // Animated ray drawing
+        async function createRayAnimated(sceneData, x, y, angle, length, color, duration = 1000) {
+            const x2 = x + length * Math.cos(angle);
+            const y2 = y + length * Math.sin(angle);
+            return createLineAnimated(sceneData, x, y, x2, y2, color, 2, duration);
+        }
+        
+        // Animated angle arc drawing
+        async function createAngleArcAnimated(sceneData, x, y, radius, startAngle, endAngle, color, duration = 1000) {
+            return new Promise((resolve) => {
+                const segments = 32;
+                const geometry = new THREE.BufferGeometry();
+                const material = new THREE.LineBasicMaterial({ color: color, linewidth: 2 });
+                
+                const startTime = Date.now();
+                const totalAngle = endAngle - startAngle;
+                
+                function animate() {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    const currentEndAngle = startAngle + totalAngle * progress;
+                    const currentSegments = Math.max(2, Math.floor(segments * progress));
+                    
+                    const points = [];
+                    for (let i = 0; i <= currentSegments; i++) {
+                        const angle = startAngle + (currentEndAngle - startAngle) * (i / currentSegments);
+                        points.push(new THREE.Vector3(
+                            x + radius * Math.cos(angle),
+                            y + radius * Math.sin(angle),
+                            0
+                        ));
+                    }
+                    
+                    geometry.setFromPoints(points);
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        resolve();
+                    }
+                }
+                
+                const arc = new THREE.Line(geometry, material);
+                sceneData.scene.add(arc);
+                sceneData.objects.push(arc);
+                
+                animate();
+            });
+        }
+
+        function createLabel(sceneData, text, x, y, color = '#ffffff') {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 256;
+    canvas.height = 128;
+    ctx.font = 'bold 72px Arial';
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 128, 68);
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({ map: texture });
+    const sprite = new THREE.Sprite(material);
+    sprite.position.set(x, y, 0);
+    sprite.scale.set(1.5, 0.8, 1);
+    sceneData.scene.add(sprite);
+    sceneData.objects.push(sprite);
+    return sprite;
+}
+
+        function animateRayAppearance(sceneData, x, y, finalAngle, duration = 1000) {
+            return new Promise(resolve => {
+                let startTime = null;
+                const startAngle = 0;
+                
+                function animate(currentTime) {
+                    if (!startTime) startTime = currentTime;
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    const currentAngle = startAngle + (finalAngle - startAngle) * progress;
+                    
+                    sceneData.objects.forEach(obj => sceneData.scene.remove(obj));
+                    sceneData.objects = [];
+                    
+                    createRay(sceneData, x, y, currentAngle, 4, 0xf5576c);
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        resolve();
+                    }
+                }
+                
+                requestAnimationFrame(animate);
+            });
+        }
+
+        // ========================================
+        // MODULE 1: INTRODUCTION (STANDALONE)
+        // ========================================
+        async function showIntroduction() {
+            const taskId = `intro-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Introduction to Pairs of Angles</h2>
+                <div class="threejs-container" id="intro-threejs"></div>
+                <p class="geometry-description">
+                    Let's explore different types of angle pairs and their fascinating relationships!
+                </p>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('intro-threejs');
+            const sceneData = createThreeJsScene(container);
+            
+            await teacher.speak("Welcome to Pairs of Angles! Today we'll discover amazing relationships between angles.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            // Animate drawing the base line
+            await createLineAnimated(sceneData, -4, 0, 4, 0, 0x4facfe, 3, 1000);
+            
+            // Add point O at the center
+            createPoint(sceneData, 0, 0, 0x43e97b, 0.2);
+            createLabel(sceneData, 'O', 0, -0.4, '#43e97b');
+            
+            // Add point A at the right end
+            createPoint(sceneData, 4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'A', 4.3, 0, '#4facfe');
+            
+            // Add point B at the left end
+            createPoint(sceneData, -4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'B', -4.3, 0, '#4facfe');
+            
+            await wait(500);
+            
+            // Animate drawing the ray OC
+            const angleC = 0.4 * Math.PI;
+            await createRayAnimated(sceneData, 0, 0, angleC, 4, 0xf5576c, 1000);
+            
+            // Add point C
+            createPoint(sceneData, 4 * Math.cos(angleC), 4 * Math.sin(angleC), 0xf5576c, 0.15);
+            createLabel(sceneData, 'C', 4.3 * Math.cos(angleC), 4.3 * Math.sin(angleC), '#f5576c');
+            
+            await wait(500);
+            
+            // Animate drawing the angle arc for ∠AOC
+            await createAngleArcAnimated(sceneData, 0, 0, 1, 0, angleC, 0xfbbf24, 800);
+            createLabel(sceneData, '∠AOC', 1.1 * Math.cos(angleC / 2), 1.1 * Math.sin(angleC / 2), '#fbbf24');
+            
+            await wait(300);
+            
+            // Animate drawing the angle arc for ∠BOC
+            await createAngleArcAnimated(sceneData, 0, 0, 1.2, angleC, Math.PI, 0x43e97b, 800);
+            createLabel(sceneData, '∠BOC', 1.4 * Math.cos((angleC + Math.PI) / 2), 1.4 * Math.sin((angleC + Math.PI) / 2), '#43e97b');
+            
+            await wait(500);
+            
+            await teacher.speak("When a ray stands on a line, it creates two adjacent angles. We'll learn about their special properties!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // ========================================
+        // MODULE 2: LINEAR PAIR AXIOM 1 (STANDALONE)
+        // ========================================
+        async function showAxiom1() {
+            const taskId = `axiom1-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Linear Pair Axiom 6.1</h2>
+                <div class="threejs-container" id="axiom1-threejs"></div>
+                <div class="angle-display" id="angle1-display">∠AOC = 0°</div>
+                <div class="angle-display" id="angle2-display">∠BOC = 0°</div>
+                <div class="theorem-box">
+                    <div class="theorem-title">📐 Axiom 6.1</div>
+                    <div class="theorem-content">
+                        If a ray stands on a line, then the sum of two adjacent angles so formed is 180°.
+                        <div class="formula">∠AOC + ∠BOC = 180°</div>
+                    </div>
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('axiom1-threejs');
+            const sceneData = createThreeJsScene(container);
+            
+            await teacher.speak("Let's prove Linear Pair Axiom 6 point 1. When a ray stands on a line, something magical happens!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            // Animate drawing line AB
+            await createLineAnimated(sceneData, -4, 0, 4, 0, 0x4facfe, 3, 1000);
+            
+            // Add points
+            createPoint(sceneData, -4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'B', -4.3, 0, '#4facfe');
+            createPoint(sceneData, 4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'A', 4.3, 0, '#4facfe');
+            createPoint(sceneData, 0, 0, 0xfbbf24, 0.2);
+            createLabel(sceneData, 'O', 0, -0.35, '#fbbf24');
+            
+            await wait(500);
+            
+            await teacher.speak("Here we have line A B. Now watch as ray O C stands on it!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Animate ray OC appearing
+            const rayAngle = Math.PI * 0.35;
+            await createRayAnimated(sceneData, 0, 0, rayAngle, 4, 0xf5576c, 1500);
+            
+            // Add point C
+            createPoint(sceneData, 4 * Math.cos(rayAngle), 4 * Math.sin(rayAngle), 0xf5576c, 0.15);
+            createLabel(sceneData, 'C', 4.3 * Math.cos(rayAngle), 4.3 * Math.sin(rayAngle), '#f5576c');
+            
+            await wait(500);
+            
+            // Draw angle arcs with animation
+            const arcRadius1 = 1.0;
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius1, 0, rayAngle, 0xfbbf24, 1000);
+            createLabel(sceneData, '∠AOC', (arcRadius1 + 0.3) * Math.cos(rayAngle / 2), (arcRadius1 + 0.3) * Math.sin(rayAngle / 2), '#fbbf24');
+            
+            await wait(300);
+            
+            const arcRadius2 = 1.2;
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius2, rayAngle, Math.PI, 0x43e97b, 1000);
+            createLabel(sceneData, '∠BOC', (arcRadius2 + 0.3) * Math.cos((rayAngle + Math.PI) / 2), (arcRadius2 + 0.3) * Math.sin((rayAngle + Math.PI) / 2), '#43e97b');
+            
+            const angle1 = Math.round(rayAngle * 180 / Math.PI);
+            const angle2 = 180 - angle1;
+            
+            document.getElementById('angle1-display').textContent = `∠AOC = ${angle1}°`;
+            document.getElementById('angle2-display').textContent = `∠BOC = ${angle2}°`;
+            
+            await teacher.speak(`Angle A O C is ${angle1} degrees, and angle B O C is ${angle2} degrees.`);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak(`Notice that ${angle1} plus ${angle2} equals 180 degrees! This is always true when a ray stands on a line.`);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // ========================================
+        // MODULE 3: LINEAR PAIR AXIOM 2 (STANDALONE)
+        // ========================================
+        async function showAxiom2() {
+            const taskId = `axiom2-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Linear Pair Axiom 6.2 (Converse)</h2>
+                <div class="example-grid">
+                    <div class="threejs-container" id="axiom2-test1"></div>
+                    <div class="threejs-container" id="axiom2-test2"></div>
+                </div>
+                <div class="theorem-box">
+                    <div class="theorem-title">🔄 Axiom 6.2 (Converse of 6.1)</div>
+                    <div class="theorem-content">
+                        If the sum of two adjacent angles is 180°, then the non-common arms of the angles form a line.
+                    </div>
+                </div>
+            `;
+            
+            await wait(100);
+            const container1 = document.getElementById('axiom2-test1');
+            const container2 = document.getElementById('axiom2-test2');
+            const sceneData1 = createThreeJsScene(container1);
+            const sceneData2 = createThreeJsScene(container2);
+            
+            await teacher.speak("Now let's test the converse! If angles sum to 180 degrees, do the arms form a line?");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            // Test 1: Angles that DON'T sum to 180° - Animate
+            // Draw first ray OB
+            await createRayAnimated(sceneData1, 0, 0, 0, 3, 0x4facfe, 600);
+            createPoint(sceneData1, 3, 0, 0x4facfe, 0.15);
+            createLabel(sceneData1, 'B', 3.3, 0, '#4facfe');
+            
+            // Draw center point O
+            createPoint(sceneData1, 0, 0, 0xfbbf24, 0.15);
+            createLabel(sceneData1, 'O', 0, -0.35, '#fbbf24');
+            
+            await wait(300);
+            
+            // Draw second ray OA
+            await createRayAnimated(sceneData1, 0, 0, Math.PI * 0.6, 3, 0xf5576c, 600);
+            createPoint(sceneData1, 3 * Math.cos(Math.PI * 0.6), 3 * Math.sin(Math.PI * 0.6), 0xf5576c, 0.15);
+            createLabel(sceneData1, 'A', 3 * Math.cos(Math.PI * 0.6) + 0.3, 3 * Math.sin(Math.PI * 0.6) + 0.2, '#f5576c');
+            
+            await wait(300);
+            
+            // Draw third ray OC
+            await createRayAnimated(sceneData1, 0, 0, Math.PI * 0.8, 3, 0x43e97b, 600);
+            createPoint(sceneData1, 3 * Math.cos(Math.PI * 0.8), 3 * Math.sin(Math.PI * 0.8), 0x43e97b, 0.15);
+            createLabel(sceneData1, 'C', 3 * Math.cos(Math.PI * 0.8) - 0.1, 3 * Math.sin(Math.PI * 0.8) + 0.3, '#43e97b');
+            
+            await wait(300);
+            
+            // Draw angle arcs for Test 1
+            await createAngleArcAnimated(sceneData1, 0, 0, 1, 0, Math.PI * 0.6, 0xfbbf24, 600);
+            createLabel(sceneData1, '∠BOA', Math.cos(Math.PI * 0.3) * 1.4, Math.sin(Math.PI * 0.3) * 1.4, '#fbbf24');
+            
+            await wait(200);
+            
+            await createAngleArcAnimated(sceneData1, 0, 0, 1.2, Math.PI * 0.6, Math.PI * 0.8, 0xfa709a, 600);
+            createLabel(sceneData1, '∠AOC', Math.cos(Math.PI * 0.7) * 1.5, Math.sin(Math.PI * 0.7) * 1.5, '#fa709a');
+
+            await wait(500);
+            
+            // Test 2: Angles that DO sum to 180° - Animate
+            // Draw first ray OB
+            await createRayAnimated(sceneData2, 0, 0, 0, 3, 0x4facfe, 600);
+            createPoint(sceneData2, 3, 0, 0x4facfe, 0.15);
+            createLabel(sceneData2, 'B', 3.3, 0, '#4facfe');
+            
+            // Draw center point O
+            createPoint(sceneData2, 0, 0, 0xfbbf24, 0.15);
+            createLabel(sceneData2, 'O', 0, -0.35, '#fbbf24');
+            
+            await wait(300);
+            
+            // Draw second ray OC
+            await createRayAnimated(sceneData2, 0, 0, Math.PI * 0.4, 3, 0xf5576c, 600);
+            createPoint(sceneData2, 3 * Math.cos(Math.PI * 0.4), 3 * Math.sin(Math.PI * 0.4), 0xf5576c, 0.15);
+            createLabel(sceneData2, 'C', 3 * Math.cos(Math.PI * 0.4) + 0.35, 3 * Math.sin(Math.PI * 0.4) + 0.1, '#f5576c');
+            
+            await wait(300);
+            
+            // Draw third ray OA (forms a line with OB)
+            await createRayAnimated(sceneData2, 0, 0, Math.PI, 3, 0x43e97b, 600);
+            createPoint(sceneData2, -3, 0, 0x43e97b, 0.15);
+            createLabel(sceneData2, 'A', -3.3, 0, '#43e97b');
+            
+            await wait(300);
+            
+            // Draw angle arcs for Test 2
+            await createAngleArcAnimated(sceneData2, 0, 0, 1, 0, Math.PI * 0.4, 0xfbbf24, 600);
+            createLabel(sceneData2, '∠BOC', Math.cos(Math.PI * 0.2) * 1.4, Math.sin(Math.PI * 0.2) * 1.4, '#fbbf24');
+            
+            await wait(200);
+            
+            await createAngleArcAnimated(sceneData2, 0, 0, 1.2, Math.PI * 0.4, Math.PI, 0x43e97b, 600);
+            createLabel(sceneData2, '∠COA', Math.cos(Math.PI * 0.7) * 1.5, Math.sin(Math.PI * 0.7) * 1.5, '#43e97b');
+            
+            await teacher.speak("On the left, angles sum to 144 degrees - the arms don't form a line. On the right, they sum to 180 degrees - the arms DO form a perfect line!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(4000);
+            isPlaying = false;
+        }
+
+        // ========================================
+        // MODULE 4: VERTICALLY OPPOSITE ANGLES (STANDALONE)
+        // ========================================
+        async function showVerticalAngles() {
+            const taskId = `vertical-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Theorem 6.1: Vertically Opposite Angles</h2>
+                <div class="threejs-container" id="vertical-threejs"></div>
+                <div class="angle-display" id="vertical-display">Vertically Opposite Angles are Equal</div>
+                <div class="theorem-box">
+                    <div class="theorem-title">✖️ Theorem 6.1</div>
+                    <div class="theorem-content">
+                        If two lines intersect each other, then the vertically opposite angles are equal.
+                        <div class="formula">∠AOC = ∠BOD and ∠AOD = ∠BOC</div>
+                    </div>
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('vertical-threejs');
+            const sceneData = createThreeJsScene(container);
+            
+            await teacher.speak("Let's prove that vertically opposite angles are equal when two lines intersect!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw first line with animation
+            await createLineAnimated(sceneData, -4, 1.5, 4, -1.5, 0x4facfe, 3, 1000);
+            createPoint(sceneData, -4, 1.5, 0x4facfe, 0.15);
+            createLabel(sceneData, 'A', -4.3, 1.5, '#4facfe');
+            createPoint(sceneData, 4, -1.5, 0x4facfe, 0.15);
+            createLabel(sceneData, 'B', 4.3, -1.5, '#4facfe');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw second line intersecting with animation
+            await createLineAnimated(sceneData, -3, -1.5, 3, 1.5, 0xf5576c, 3, 1000);
+            createPoint(sceneData, -3, -1.5, 0xf5576c, 0.15);
+            createLabel(sceneData, 'C', -3.3, -1.5, '#f5576c');
+            createPoint(sceneData, 3, 1.5, 0xf5576c, 0.15);
+            createLabel(sceneData, 'D', 3.3, 1.5, '#f5576c');
+            createPoint(sceneData, 0, 0, 0xfbbf24, 0.2);
+            createLabel(sceneData, 'O', 0, 0.4, '#fbbf24');
+            
+            await wait(700);
+            if (!shouldContinue(taskId)) return;
+            
+            // Calculate precise angles for the intersection
+            const lineAB_angle = Math.atan2(-1.5 - 1.5, 4 - (-4));
+            const lineCD_angle = Math.atan2(1.5 - (-1.5), 3 - (-3));
+            
+            // Angle AOC (from A to C) - precise calculation
+            const arcRadius1 = 1.0;
+            const angleAOC_start = lineAB_angle;
+            const angleAOC_end = lineCD_angle;
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius1, angleAOC_start, angleAOC_end, 0xfbbf24, 1000);
+            const labelAngle1 = (angleAOC_start + angleAOC_end) / 2;
+            createLabel(sceneData, '∠BOD', (arcRadius1 + 0.3) * Math.cos(labelAngle1), (arcRadius1 + 0.3) * Math.sin(labelAngle1), '#fbbf24');
+            
+            await wait(300);
+            if (!shouldContinue(taskId)) return;
+            
+            // Angle BOD (vertically opposite to AOC) - precise calculation
+            const angleBOD_start = lineAB_angle + Math.PI;
+            const angleBOD_end = lineCD_angle + Math.PI;
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius1, angleBOD_start, angleBOD_end, 0xfbbf24, 1000);
+            const labelAngle2 = (angleBOD_start + angleBOD_end) / 2;
+            createLabel(sceneData, '∠AOC', (arcRadius1 + 0.3) * Math.cos(labelAngle2), (arcRadius1 + 0.3) * Math.sin(labelAngle2), '#fbbf24');
+            
+            await teacher.speak("Notice these yellow angles? They're vertically opposite. Let me prove they're equal!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Since ray O A stands on line C D, angle A O C plus angle A O D equals 180 degrees by the linear pair axiom.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("Similarly, angle A O D plus angle B O D also equals 180 degrees.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Therefore, angle A O C equals angle B O D! Vertically opposite angles are equal. Proven!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // ========================================
+        // MODULE 5: EXAMPLE 1 (STANDALONE)
+        // ========================================
+        async function showExample1() {
+            const taskId = `ex1-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Example 1: Finding Angles with Ratio</h2>
+                <div class="threejs-container" id="ex1-threejs"></div>
+                <div class="step-display">
+                    <div class="step-number">Problem:</div>
+                    <div class="step-content">Lines PQ and RS intersect at point O. If ∠POR : ∠ROQ = 5 : 7, find all angles.</div>
+                </div>
+                <div class="angle-display" id="ex1-display"></div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('ex1-threejs');
+            const sceneData = createThreeJsScene(container);
+            
+            await teacher.speak("Let's solve Example 1. Lines P Q and R S intersect at O, with angle P O R to angle R O Q in ratio 5 to 7.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw line PQ with animation
+            await createLineAnimated(sceneData, -4, 0, 4, 0, 0x4facfe, 3, 1000);
+            createPoint(sceneData, -4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'P', -4.3, 0, '#4facfe');
+            createPoint(sceneData, 4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'Q', 4.3, 0, '#4facfe');
+            createPoint(sceneData, 0, 0, 0xfbbf24, 0.2);
+            createLabel(sceneData, 'O', 0, -0.4, '#fbbf24');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw line RS with animation
+            await createLineAnimated(sceneData, -1, -3, 1, 3, 0xf5576c, 3, 1000);
+            createPoint(sceneData, -1, -3, 0xf5576c, 0.15);
+            createLabel(sceneData, 'R', -1.3, -3.2, '#f5576c');
+            createPoint(sceneData, 1, 3, 0xf5576c, 0.15);
+            createLabel(sceneData, 'S', 1.3, 3.2, '#f5576c');
+            
+            await wait(800);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Since P O R and R O Q form a linear pair, their sum is 180 degrees.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Calculate precise angle for RS line
+            const angleRS = Math.atan2(3 - (-3), 1 - (-1));
+            
+            // Draw angle POR with animation - from P (π) to R (π + angleRS)
+            const arcRadius1 = 1.0;
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius1, Math.PI, Math.PI + angleRS, 0xfbbf24, 1000);
+            const labelAngle1 = Math.PI + (angleRS / 2);
+            createLabel(sceneData, '∠POR', (arcRadius1 + 0.4) * Math.cos(labelAngle1), (arcRadius1 + 0.4) * Math.sin(labelAngle1), '#fbbf24');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw angle ROQ with animation - from R (π + angleRS) to Q (2π or 0)
+            const arcRadius2 = 1.2;
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius2, Math.PI + angleRS, 2 * Math.PI, 0x43e97b, 1000);
+            const labelAngle2 = Math.PI + angleRS + ((2 * Math.PI - (Math.PI + angleRS)) / 2);
+            createLabel(sceneData, '∠ROQ', (arcRadius2 + 0.4) * Math.cos(labelAngle2), (arcRadius2 + 0.4) * Math.sin(labelAngle2), '#43e97b');
+            
+            await wait(2000);
+            
+            const display = document.getElementById('ex1-display');
+            display.textContent = "Calculating: 5x + 7x = 180°";
+            
+            await teacher.speak("Let angle P O R equal 5 x and angle R O Q equal 7 x. So 5 x plus 7 x equals 180 degrees.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            display.textContent = "12x = 180°, so x = 15°";
+            
+            await teacher.speak("This gives us 12 x equals 180, so x equals 15 degrees.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            display.textContent = "∠POR = 5×15° = 75°, ∠ROQ = 7×15° = 105°";
+            
+            await teacher.speak("Therefore, angle P O R equals 75 degrees, and angle R O Q equals 105 degrees!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            display.textContent = "By Theorem 6.1: ∠POS = 105°, ∠SOQ = 75°";
+            
+            await teacher.speak("By the vertically opposite angles theorem, angle P O S also equals 105 degrees, and angle S O Q equals 75 degrees!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // ========================================
+        // MODULE 6: EXAMPLE 2 (STANDALONE)
+        // ========================================
+        async function showExample2() {
+            const taskId = `ex2-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Example 2: Angle Bisectors</h2>
+                <div class="threejs-container" id="ex2-threejs"></div>
+                <div class="step-display">
+                    <div class="step-number">Problem:</div>
+                    <div class="step-content">Ray OS stands on line POQ. Ray OR and OT are angle bisectors of ∠POS and ∠SOQ. If ∠POS = x, find ∠ROT.</div>
+                </div>
+                <div class="angle-display" id="ex2-display"></div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('ex2-threejs');
+            const sceneData = createThreeJsScene(container);
+            
+            await teacher.speak("Welcome to Example 2! Here we'll explore an interesting property of angle bisectors. Watch as ray O S stands on line P O Q.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            // Draw line POQ with animation
+            await createLineAnimated(sceneData, -4, 0, 4, 0, 0x4facfe, 3, 1000);
+            
+            // Add points P, O, and Q with labels
+            createPoint(sceneData, -4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'Q', -4.3, 0, '#4facfe');
+            createPoint(sceneData, 4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'P', 4.3, 0, '#4facfe');
+            createPoint(sceneData, 0, 0, 0xfbbf24, 0.2);
+            createLabel(sceneData, 'O', 0, -0.4, '#fbbf24');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw ray OS with animation
+            const angleX = Math.PI * 0.35;
+            await createRayAnimated(sceneData, 0, 0, angleX, 3.5, 0xf5576c, 1000);
+            
+            // Add point S with label
+            createPoint(sceneData, 3.5 * Math.cos(angleX), 3.5 * Math.sin(angleX), 0xf5576c, 0.15);
+            createLabel(sceneData, 'S', 3.8 * Math.cos(angleX), 3.8 * Math.sin(angleX), '#f5576c');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw angle POS arc with animation
+            await createAngleArcAnimated(sceneData, 0, 0, 0.8, 0, angleX, 0xfbbf24, 800);
+            createLabel(sceneData, '∠POS', 1.1 * Math.cos(angleX / 2), 1.1 * Math.sin(angleX / 2), '#fbbf24');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Let's say angle P O S is x degrees. Since these two angles form a linear pair on the line, angle S O Q must be 180 minus x degrees. Together they always make a straight line!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            // Draw angle bisector OR with animation
+            const bisectorAngle1 = angleX / 2;
+            await createRayAnimated(sceneData, 0, 0, bisectorAngle1, 2.5, 0x43e97b, 1000);
+            
+            const bisector1Pt = 2.5;
+            createPoint(sceneData, bisector1Pt * Math.cos(bisectorAngle1), bisector1Pt * Math.sin(bisectorAngle1), 0x43e97b, 0.15);
+            createLabel(sceneData, 'R', (bisector1Pt + 0.3) * Math.cos(bisectorAngle1), (bisector1Pt + 0.3) * Math.sin(bisectorAngle1), '#43e97b');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw angle bisector OT with animation
+            const bisectorAngle2 = angleX + (Math.PI - angleX) / 2;
+            await createRayAnimated(sceneData, 0, 0, bisectorAngle2, 2.5, 0xfa709a, 1000);
+            
+            const bisector2Pt = 2.5;
+            createPoint(sceneData, bisector2Pt * Math.cos(bisectorAngle2), bisector2Pt * Math.sin(bisectorAngle2), 0xfa709a, 0.15);
+            createLabel(sceneData, 'T', (bisector2Pt + 0.3) * Math.cos(bisectorAngle2), (bisector2Pt + 0.3) * Math.sin(bisectorAngle2), '#fa709a');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw angle ROT arc with animation
+            await createAngleArcAnimated(sceneData, 0, 0, 1.5, bisectorAngle1, bisectorAngle2, 0xff6b6b, 1000);
+            createLabel(sceneData, '∠ROT', 1.8 * Math.cos((bisectorAngle1 + bisectorAngle2) / 2), 1.8 * Math.sin((bisectorAngle1 + bisectorAngle2) / 2), '#ff6b6b');
+            
+            const display = document.getElementById('ex2-display');
+            display.textContent = "∠ROS = x/2, ∠SOT = (180°-x)/2";
+            
+            await teacher.speak("Now, ray O R is the bisector of angle P O S. This means it divides the angle into two equal parts. So angle R O S is exactly half of x. Similarly, ray O T bisects angle S O Q, so angle S O T is half of 180 minus x.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            
+            display.textContent = "∠ROT = x/2 + (180°-x)/2 = 90°";
+            
+            await teacher.speak("Here comes the beautiful part! Angle R O T is the sum of these two halves. That's half of x plus half of 180 minus x. When we add them together, we get half of 180, which equals 90 degrees! No matter what x is, the angle between the bisectors is always 90 degrees. Isn't that amazing?");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // ========================================
+        // MODULE 7: EXAMPLE 3 (STANDALONE)
+        // ========================================
+        async function showExample3() {
+            const taskId = `ex3-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Example 3: Four Rays - 360° Proof</h2>
+                <div class="threejs-container" id="ex3-threejs"></div>
+                <div class="step-display">
+                    <div class="step-number">Problem:</div>
+                    <div class="step-content">Prove that ∠POQ + ∠QOR + ∠SOR + ∠POS = 360°</div>
+                </div>
+                <div class="angle-display" id="ex3-display"></div>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="ex3-chart"></canvas>
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('ex3-threejs');
+            const sceneData = createThreeJsScene(container);
+            
+            await teacher.speak("Welcome to Example 3! Here we'll discover a fundamental property of geometry. When multiple rays meet at a point, something special happens with the angles they create. Let's find out what!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            createPoint(sceneData, 0, 0, 0xfbbf24, 0.2);
+            createLabel(sceneData, 'O', 0, -0.5, '#fbbf24');
+            
+            await teacher.speak("We start with point O. Now watch as we draw four rays from this point.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw ray OP with animation
+            await createRayAnimated(sceneData, 0, 0, 0, 3, 0x4facfe, 600);
+            createPoint(sceneData, 3, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'P', 3.3, 0, '#4facfe');
+            
+            await wait(300);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw ray OQ with animation
+            const angleQ = Math.PI * 0.3;
+            await createRayAnimated(sceneData, 0, 0, angleQ, 3, 0xf5576c, 600);
+            createPoint(sceneData, 3 * Math.cos(angleQ), 3 * Math.sin(angleQ), 0xf5576c, 0.15);
+            createLabel(sceneData, 'Q', 3.3 * Math.cos(angleQ), 3.3 * Math.sin(angleQ), '#f5576c');
+            
+            await wait(300);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw ray OR with animation
+            const angleR = Math.PI * 0.7;
+            await createRayAnimated(sceneData, 0, 0, angleR, 3, 0x43e97b, 600);
+            createPoint(sceneData, 3 * Math.cos(angleR), 3 * Math.sin(angleR), 0x43e97b, 0.15);
+            createLabel(sceneData, 'R', 3.3 * Math.cos(angleR), 3.3 * Math.sin(angleR), '#43e97b');
+            
+            await wait(300);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw ray OS with animation
+            const angleS = Math.PI * 1.3;
+            await createRayAnimated(sceneData, 0, 0, angleS, 3, 0xfa709a, 600);
+            createPoint(sceneData, 3 * Math.cos(angleS), 3 * Math.sin(angleS), 0xfa709a, 0.15);
+            createLabel(sceneData, 'S', 3.3 * Math.cos(angleS), 3.3 * Math.sin(angleS), '#fa709a');
+            
+            await wait(700);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Perfect! We now have four rays: O P, O Q, O R, and O S, all meeting at point O. These rays divide the space around point O into four separate angles.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Draw all angle arcs with animation and precise labels
+            const arcRadius = 1.5;
+            
+            // Angle POQ
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius, 0, angleQ, 0xfbbf24, 800);
+            createLabel(sceneData, '∠POQ', (arcRadius + 0.4) * Math.cos(angleQ / 2), (arcRadius + 0.4) * Math.sin(angleQ / 2), '#fbbf24');
+            await wait(200);
+            
+            // Angle QOR
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius, angleQ, angleR, 0xff6b6b, 800);
+            createLabel(sceneData, '∠QOR', (arcRadius + 0.4) * Math.cos((angleQ + angleR) / 2), (arcRadius + 0.4) * Math.sin((angleQ + angleR) / 2), '#ff6b6b');
+            await wait(200);
+            
+            // Angle ROS
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius, angleR, angleS, 0x4facfe, 800);
+            createLabel(sceneData, '∠ROS', (arcRadius + 0.4) * Math.cos((angleR + angleS) / 2), (arcRadius + 0.4) * Math.sin((angleR + angleS) / 2), '#4facfe');
+            await wait(200);
+            
+            // Angle SOP
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius, angleS, Math.PI * 2, 0x43e97b, 800);
+            createLabel(sceneData, '∠SOP', (arcRadius + 0.4) * Math.cos((angleS + Math.PI * 2) / 2), (arcRadius + 0.4) * Math.sin((angleS + Math.PI * 2) / 2), '#43e97b');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Look at these beautiful angles! Angle P O Q, angle Q O R, angle R O S, and angle S O P. Each one represents a portion of the space around point O.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Now, here's the key insight. Imagine if you were standing at point O and you turned all the way around in a complete circle. You would turn through 360 degrees, right?");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("These four angles together cover that entire circle around point O! So they must add up to 360 degrees.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Create chart showing angle distribution
+            const ctx = document.getElementById('ex3-chart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['∠POQ', '∠QOR', '∠SOR', '∠POS'],
+                    datasets: [{
+                        data: [54, 72, 108, 126],
+                        backgroundColor: [
+                            'rgba(251, 191, 36, 0.8)',
+                            'rgba(255, 107, 107, 0.8)',
+                            'rgba(79, 172, 254, 0.8)',
+                            'rgba(67, 233, 123, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff',
+                                font: { size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            const display = document.getElementById('ex3-display');
+            display.textContent = "Total: 54° + 72° + 108° + 126° = 360°";
+            
+            await teacher.speak("Let's verify this! In our example, the angles measure 54, 72, 108, and 126 degrees. Watch as we add them together.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("54 plus 72 is 126. Then 126 plus 108 gives us 234. Finally, 234 plus 126 equals exactly 360 degrees!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("This proves our theorem! No matter how many rays you draw from a point, or how you arrange them, the angles will always sum to 360 degrees. This is because they complete one full rotation around the point. Isn't geometry beautiful?");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(4000);
+            isPlaying = false;
+        }
+
+        // ========================================
+        // MODULE 8: INTERACTIVE DEMO (STANDALONE)
+        // ========================================
+        async function showInteractiveDemo() {
+            const taskId = `interactive-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Interactive Angle Explorer</h2>
+                <div class="threejs-container" id="interactive-threejs"></div>
+                <div class="interactive-controls">
+                    <div class="slider-container">
+                        <span class="slider-label">Adjust Angle</span>
+                        <input type="range" id="angle-slider" min="30" max="150" value="70">
+                        <span class="slider-label" id="slider-value">70°</span>
+                    </div>
+                </div>
+                <div class="angle-display" id="interactive-display"></div>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="interactive-chart"></canvas>
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('interactive-threejs');
+            const sceneData = createThreeJsScene(container);
+            
+            const slider = document.getElementById('angle-slider');
+            const sliderValue = document.getElementById('slider-value');
+            const display = document.getElementById('interactive-display');
+            
+            // Create chart
+            const ctx = document.getElementById('interactive-chart').getContext('2d');
+            const chartData = {
+                labels: ['∠AOC', '∠BOC'],
+                datasets: [{
+                    label: 'Angle (degrees)',
+                    data: [70, 110],
+                    backgroundColor: [
+                        'rgba(251, 191, 36, 0.6)',
+                        'rgba(67, 233, 123, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgba(251, 191, 36, 1)',
+                        'rgba(67, 233, 123, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            };
+            
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 180,
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+            
+            function updateVisualization(angleDegrees) {
+                const angleRadians = angleDegrees * Math.PI / 180;
+                
+                // Clear scene
+                sceneData.objects.forEach(obj => sceneData.scene.remove(obj));
+                sceneData.objects = [];
+                
+                // Draw line AB
+                createLine(sceneData, -4, 0, 4, 0, 0x4facfe, 3);
+                createPoint(sceneData, -4, 0, 0x4facfe, 0.15);
+                createLabel(sceneData, 'A', -4.3, 0, '#4facfe');
+                createPoint(sceneData, 4, 0, 0x4facfe, 0.15);
+                createLabel(sceneData, 'B', 4.3, 0, '#4facfe');
+                
+                // Draw ray OC
+                createRay(sceneData, 0, 0, angleRadians, 3.5, 0xf5576c);
+                createPoint(sceneData, 3.5 * Math.cos(angleRadians), 3.5 * Math.sin(angleRadians), 0xf5576c, 0.15);
+                createLabel(sceneData, 'C', 3.8 * Math.cos(angleRadians), 3.8 * Math.sin(angleRadians), '#f5576c');
+                
+                // Add center point
+                createPoint(sceneData, 0, 0, 0xfbbf24, 0.2);
+                createLabel(sceneData, 'O', 0, -0.4, '#fbbf24');
+                
+                // Add angle arcs with precise positioning
+                const arcRadius1 = 1.0;
+                createAngleArc(sceneData, 0, 0, arcRadius1, 0, angleRadians, 0xfbbf24);
+                const labelAngle1 = angleRadians / 2;
+                const labelRadius1 = arcRadius1 + 0.35;
+                createLabel(sceneData, '∠AOC', labelRadius1 * Math.cos(labelAngle1), labelRadius1 * Math.sin(labelAngle1), '#fbbf24');
+                
+                const arcRadius2 = 1.2;
+                createAngleArc(sceneData, 0, 0, arcRadius2, angleRadians, Math.PI, 0x43e97b);
+                const labelAngle2 = (angleRadians + Math.PI) / 2;
+                const labelRadius2 = arcRadius2 + 0.35;
+                createLabel(sceneData, '∠BOC', labelRadius2 * Math.cos(labelAngle2), labelRadius2 * Math.sin(labelAngle2), '#43e97b');
+                
+                // Update displays
+                sliderValue.textContent = `${angleDegrees}°`;
+                display.textContent = `∠AOC = ${angleDegrees}°, ∠BOC = ${180 - angleDegrees}°, Sum = 180°`;
+                
+                // Update chart
+                chart.data.datasets[0].data = [angleDegrees, 180 - angleDegrees];
+                chart.update();
+            }
+            
+            slider.addEventListener('input', (e) => {
+                updateVisualization(parseInt(e.target.value));
+            });
+            
+            updateVisualization(70);
+            
+            await teacher.speak("Now it's your turn! Use the slider to change the angle and see how the linear pair axiom works in real-time!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(5000);
+            isPlaying = false;
+        }
+
+        // ========================================
+        // MODULE 9: QUIZ (STANDALONE)
+        // ========================================
+        async function showQuiz() {
+            const taskId = `quiz-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            const questions = [
+                {
+                    question: "If a ray stands on a line, what is the sum of the two adjacent angles formed?",
+                    options: [
+                        "90°",
+                        "180°",
+                        "270°",
+                        "360°"
+                    ],
+                    correct: 1
+                },
+                {
+                    question: "What can we conclude about vertically opposite angles when two lines intersect?",
+                    options: [
+                        "They are complementary",
+                        "They are supplementary",
+                        "They are equal",
+                        "They sum to 360°"
+                    ],
+                    correct: 2
+                },
+                {
+                    question: "If two adjacent angles sum to 180°, what do their non-common arms form?",
+                    options: [
+                        "A ray",
+                        "A line",
+                        "A circle",
+                        "An arc"
+                    ],
+                    correct: 1
+                },
+                {
+                    question: "What is the sum of all angles around a point?",
+                    options: [
+                        "90°",
+                        "180°",
+                        "270°",
+                        "360°"
+                    ],
+                    correct: 3
+                }
+            ];
+            
+            let currentQuestion = 0;
+            let score = 0;
+            
+            function showQuestion() {
+                const q = questions[currentQuestion];
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="geometry-title">Question ${currentQuestion + 1} of ${questions.length}</h2>
+                        <div class="quiz-question">${q.question}</div>
+                        <div class="quiz-options">
+                            ${q.options.map((opt, i) => `
+                                <div class="quiz-option" data-index="${i}">${opt}</div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                
+                document.querySelectorAll('.quiz-option').forEach((option, index) => {
+                    option.addEventListener('click', function() {
+                        const isCorrect = index === q.correct;
+                        
+                        if (isCorrect) {
+                            this.classList.add('correct');
+                            score++;
+                        } else {
+                            this.classList.add('incorrect');
+                            document.querySelectorAll('.quiz-option')[q.correct].classList.add('correct');
+                        }
+                        
+                        document.querySelectorAll('.quiz-option').forEach(opt => {
+                            opt.style.pointerEvents = 'none';
+                        });
+                        
+                        setTimeout(() => {
+                            currentQuestion++;
+                            if (currentQuestion < questions.length) {
+                                showQuestion();
+                            } else {
+                                showResults();
+                            }
+                        }, 2000);
+                    });
+                });
+            }
+            
+            function showResults() {
+                const percentage = (score / questions.length) * 100;
+                content.innerHTML = `
+                    <h2 class="geometry-title">Quiz Complete!</h2>
+                    <div class="value-display">${score}/${questions.length}</div>
+                    <p class="geometry-description">
+                        You scored ${percentage.toFixed(0)}%! 
+                        ${percentage >= 80 ? 'Excellent work! 🌟' : 
+                          percentage >= 60 ? 'Good job! 👍' : 'Keep practicing! 📚'}
+                    </p>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="quiz-chart"></canvas>
+                    </div>
+                `;
+                
+                const ctx = document.getElementById('quiz-chart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Correct', 'Incorrect'],
+                        datasets: [{
+                            data: [score, questions.length - score],
+                            backgroundColor: [
+                                'rgba(67, 233, 123, 0.8)',
+                                'rgba(245, 87, 108, 0.8)'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#ffffff',
+                                    font: { size: 14 }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            await teacher.speak("Let's test your knowledge with a quiz!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            showQuestion();
+            
+            isPlaying = false;
+        }
+
+        // ========================================
+        // COMPLETE LESSON (MASTER ORCHESTRATOR)
+        // ========================================
+        async function showCompleteLesson() {
+            const taskId = `complete-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            const welcomeContent = createStageContent();
+            welcomeContent.innerHTML = `
+                <h2 class="geometry-title">Complete Lesson: Pairs of Angles</h2>
+                <div class="value-display">Let's Master Everything! 🚀</div>
+                <p class="geometry-description">
+                    We'll explore all concepts about angle pairs with stunning 3D animations!
+                </p>
+            `;
+            
+            await teacher.speak("Welcome to the complete lesson on Pairs of Angles! We'll cover all axioms, theorems, and examples with amazing visualizations!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Part 1: Introduction
+            await teacher.speak("First, let's understand what angle pairs are.");
+            if (!shouldContinue(taskId)) return;
+            await showIntroductionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Part 2: Linear Pair Axiom 1
+            await teacher.speak("Now, let's learn about Linear Pair Axiom 6.1.");
+            if (!shouldContinue(taskId)) return;
+            await showAxiom1Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Part 3: Linear Pair Axiom 2
+            await teacher.speak("Next, the converse axiom.");
+            if (!shouldContinue(taskId)) return;
+            await showAxiom2Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Part 4: Vertically Opposite Angles
+            await teacher.speak("Let's prove that vertically opposite angles are equal.");
+            if (!shouldContinue(taskId)) return;
+            await showVerticalAnglesContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Part 5: Example 1
+            await teacher.speak("Now let's solve some practical examples.");
+            if (!shouldContinue(taskId)) return;
+            await showExample1Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Part 6: Example 2
+            await teacher.speak("Here's another example with angle bisectors.");
+            if (!shouldContinue(taskId)) return;
+            await showExample2Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Part 7: Example 3
+            await teacher.speak("Finally, let's prove angles around a point sum to 360 degrees.");
+            if (!shouldContinue(taskId)) return;
+            await showExample3Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            // Final message
+            const finalContent = createStageContent();
+            finalContent.innerHTML = `
+                <h2 class="geometry-title">Congratulations! 🎉</h2>
+                <div class="value-display">Lesson Complete!</div>
+                <p class="geometry-description">
+                    You've mastered Pairs of Angles with interactive 3D visualizations! 
+                    Try the interactive demo or test your knowledge with the quiz.
+                </p>
+            `;
+            
+            await teacher.speak("Congratulations! You've completed the full lesson on Pairs of Angles. You now understand Linear Pair Axioms and Vertically Opposite Angles theorem. Fantastic work!");
+            
+            isPlaying = false;
+        }
+
+        // ========================================
+        // CONTENT FUNCTIONS (For Complete Lesson)
+        // ========================================
+        
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Introduction to Pairs of Angles</h2>
+                <div class="threejs-container" id="intro-content-threejs"></div>
+                <p class="geometry-description">
+                    Let's explore different types of angle pairs and their fascinating relationships!
+                </p>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('intro-content-threejs');
+            const sceneData = createThreeJsScene(container);
+            
+            await teacher.speak("Welcome to Pairs of Angles! Today we'll discover amazing relationships between angles.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            // Animate drawing the base line
+            await createLineAnimated(sceneData, -4, 0, 4, 0, 0x4facfe, 3, 1000);
+            
+            // Add point O at the center
+            createPoint(sceneData, 0, 0, 0x43e97b, 0.2);
+            createLabel(sceneData, 'O', 0, -0.4, '#43e97b');
+            
+            // Add point A at the right end
+            createPoint(sceneData, 4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'A', 4.3, 0, '#4facfe');
+            
+            // Add point B at the left end
+            createPoint(sceneData, -4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'B', -4.3, 0, '#4facfe');
+            
+            await wait(500);
+            
+            // Animate drawing the ray OC
+            const angleC = 0.4 * Math.PI;
+            await createRayAnimated(sceneData, 0, 0, angleC, 4, 0xf5576c, 1000);
+            
+            // Add point C
+            createPoint(sceneData, 4 * Math.cos(angleC), 4 * Math.sin(angleC), 0xf5576c, 0.15);
+            createLabel(sceneData, 'C', 4.3 * Math.cos(angleC), 4.3 * Math.sin(angleC), '#f5576c');
+            
+            await wait(500);
+            
+            // Animate drawing the angle arc for ∠AOC
+            await createAngleArcAnimated(sceneData, 0, 0, 1, 0, angleC, 0xfbbf24, 800);
+            createLabel(sceneData, '∠AOC', 1.1 * Math.cos(angleC / 2), 1.1 * Math.sin(angleC / 2), '#fbbf24');
+            
+            await wait(300);
+            
+            // Animate drawing the angle arc for ∠BOC
+            await createAngleArcAnimated(sceneData, 0, 0, 1.2, angleC, Math.PI, 0x43e97b, 800);
+            createLabel(sceneData, '∠BOC', 1.4 * Math.cos((angleC + Math.PI) / 2), 1.4 * Math.sin((angleC + Math.PI) / 2), '#43e97b');
+            
+            await wait(500);
+            
+            await teacher.speak("When a ray stands on a line, it creates two adjacent angles. We'll learn about their special properties!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+        }
+
+        async function showAxiom1Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Linear Pair Axiom 6.1</h2>
+                <div class="threejs-container" id="axiom1-content-threejs"></div>
+                <div class="angle-display" id="angle1-content-display">∠AOC = 0°</div>
+                <div class="angle-display" id="angle2-content-display">∠BOC = 0°</div>
+                <div class="theorem-box">
+                    <div class="theorem-title">📐 Axiom 6.1</div>
+                    <div class="theorem-content">
+                        If a ray stands on a line, then the sum of two adjacent angles so formed is 180°.
+                        <div class="formula">∠AOC + ∠BOC = 180°</div>
+                    </div>
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('axiom1-content-threejs');
+            const sceneData = createThreeJsScene(container);
+            
+            await teacher.speak("Let's prove Linear Pair Axiom 6 point 1. When a ray stands on a line, something magical happens!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            // Animate drawing line AB
+            await createLineAnimated(sceneData, -4, 0, 4, 0, 0x4facfe, 3, 1000);
+            
+            // Add points
+            createPoint(sceneData, -4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'B', -4.3, 0, '#4facfe');
+            createPoint(sceneData, 4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'A', 4.3, 0, '#4facfe');
+            createPoint(sceneData, 0, 0, 0xfbbf24, 0.2);
+            createLabel(sceneData, 'O', 0, -0.35, '#fbbf24');
+            
+            await wait(500);
+            
+            await teacher.speak("Here we have line A B. Now watch as ray O C stands on it!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Animate ray OC appearing
+            const rayAngle = Math.PI * 0.35;
+            await createRayAnimated(sceneData, 0, 0, rayAngle, 4, 0xf5576c, 1500);
+            
+            // Add point C
+            createPoint(sceneData, 4 * Math.cos(rayAngle), 4 * Math.sin(rayAngle), 0xf5576c, 0.15);
+            createLabel(sceneData, 'C', 4.3 * Math.cos(rayAngle), 4.3 * Math.sin(rayAngle), '#f5576c');
+            
+            await wait(500);
+            
+            // Draw angle arcs with animation
+            const arcRadius1 = 1.0;
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius1, 0, rayAngle, 0xfbbf24, 1000);
+            createLabel(sceneData, '∠AOC', (arcRadius1 + 0.3) * Math.cos(rayAngle / 2), (arcRadius1 + 0.3) * Math.sin(rayAngle / 2), '#fbbf24');
+            
+            await wait(300);
+            
+            const arcRadius2 = 1.2;
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius2, rayAngle, Math.PI, 0x43e97b, 1000);
+            createLabel(sceneData, '∠BOC', (arcRadius2 + 0.3) * Math.cos((rayAngle + Math.PI) / 2), (arcRadius2 + 0.3) * Math.sin((rayAngle + Math.PI) / 2), '#43e97b');
+            
+            const angle1 = Math.round(rayAngle * 180 / Math.PI);
+            const angle2 = 180 - angle1;
+            
+            document.getElementById('angle1-content-display').textContent = `∠AOC = ${angle1}°`;
+            document.getElementById('angle2-content-display').textContent = `∠BOC = ${angle2}°`;
+            
+            await teacher.speak(`Angle A O C is ${angle1} degrees, and angle B O C is ${angle2} degrees.`);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak(`Notice that ${angle1} plus ${angle2} equals 180 degrees! This is always true when a ray stands on a line.`);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+        }
+
+        async function showAxiom2Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Linear Pair Axiom 6.2 (Converse)</h2>
+                <div class="example-grid">
+                    <div class="threejs-container" id="axiom2-content-test1"></div>
+                    <div class="threejs-container" id="axiom2-content-test2"></div>
+                </div>
+                <div class="theorem-box">
+                    <div class="theorem-title">🔄 Axiom 6.2 (Converse of 6.1)</div>
+                    <div class="theorem-content">
+                        If the sum of two adjacent angles is 180°, then the non-common arms of the angles form a line.
+                    </div>
+                </div>
+            `;
+            
+            await wait(100);
+            const container1 = document.getElementById('axiom2-content-test1');
+            const container2 = document.getElementById('axiom2-content-test2');
+            const sceneData1 = createThreeJsScene(container1);
+            const sceneData2 = createThreeJsScene(container2);
+            
+            await teacher.speak("Now let's test the converse! If angles sum to 180 degrees, do the arms form a line?");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            // Test 1: Angles that DON'T sum to 180° - Animate
+            // Draw first ray OB
+            await createRayAnimated(sceneData1, 0, 0, 0, 3, 0x4facfe, 600);
+            createPoint(sceneData1, 3, 0, 0x4facfe, 0.15);
+            createLabel(sceneData1, 'B', 3.3, 0, '#4facfe');
+            
+            // Draw center point O
+            createPoint(sceneData1, 0, 0, 0xfbbf24, 0.15);
+            createLabel(sceneData1, 'O', 0, -0.35, '#fbbf24');
+            
+            await wait(300);
+            
+            // Draw second ray OA
+            await createRayAnimated(sceneData1, 0, 0, Math.PI * 0.6, 3, 0xf5576c, 600);
+            createPoint(sceneData1, 3 * Math.cos(Math.PI * 0.6), 3 * Math.sin(Math.PI * 0.6), 0xf5576c, 0.15);
+            createLabel(sceneData1, 'A', 3 * Math.cos(Math.PI * 0.6) + 0.3, 3 * Math.sin(Math.PI * 0.6) + 0.2, '#f5576c');
+            
+            await wait(300);
+            
+            // Draw third ray OC
+            await createRayAnimated(sceneData1, 0, 0, Math.PI * 0.8, 3, 0x43e97b, 600);
+            createPoint(sceneData1, 3 * Math.cos(Math.PI * 0.8), 3 * Math.sin(Math.PI * 0.8), 0x43e97b, 0.15);
+            createLabel(sceneData1, 'C', 3 * Math.cos(Math.PI * 0.8) - 0.1, 3 * Math.sin(Math.PI * 0.8) + 0.3, '#43e97b');
+            
+            await wait(300);
+            
+            // Draw angle arcs for Test 1
+            await createAngleArcAnimated(sceneData1, 0, 0, 1, 0, Math.PI * 0.6, 0xfbbf24, 600);
+            createLabel(sceneData1, '∠BOA', Math.cos(Math.PI * 0.3) * 1.4, Math.sin(Math.PI * 0.3) * 1.4, '#fbbf24');
+            
+            await wait(200);
+            
+            await createAngleArcAnimated(sceneData1, 0, 0, 1.2, Math.PI * 0.6, Math.PI * 0.8, 0xfa709a, 600);
+            createLabel(sceneData1, '∠AOC', Math.cos(Math.PI * 0.7) * 1.5, Math.sin(Math.PI * 0.7) * 1.5, '#fa709a');
+
+            await wait(500);
+            
+            // Test 2: Angles that DO sum to 180° - Animate
+            // Draw first ray OB
+            await createRayAnimated(sceneData2, 0, 0, 0, 3, 0x4facfe, 600);
+            createPoint(sceneData2, 3, 0, 0x4facfe, 0.15);
+            createLabel(sceneData2, 'B', 3.3, 0, '#4facfe');
+            
+            // Draw center point O
+            createPoint(sceneData2, 0, 0, 0xfbbf24, 0.15);
+            createLabel(sceneData2, 'O', 0, -0.35, '#fbbf24');
+            
+            await wait(300);
+            
+            // Draw second ray OC
+            await createRayAnimated(sceneData2, 0, 0, Math.PI * 0.4, 3, 0xf5576c, 600);
+            createPoint(sceneData2, 3 * Math.cos(Math.PI * 0.4), 3 * Math.sin(Math.PI * 0.4), 0xf5576c, 0.15);
+            createLabel(sceneData2, 'C', 3 * Math.cos(Math.PI * 0.4) + 0.35, 3 * Math.sin(Math.PI * 0.4) + 0.1, '#f5576c');
+            
+            await wait(300);
+            
+            // Draw third ray OA (forms a line with OB)
+            await createRayAnimated(sceneData2, 0, 0, Math.PI, 3, 0x43e97b, 600);
+            createPoint(sceneData2, -3, 0, 0x43e97b, 0.15);
+            createLabel(sceneData2, 'A', -3.3, 0, '#43e97b');
+            
+            await wait(300);
+            
+            // Draw angle arcs for Test 2
+            await createAngleArcAnimated(sceneData2, 0, 0, 1, 0, Math.PI * 0.4, 0xfbbf24, 600);
+            createLabel(sceneData2, '∠BOC', Math.cos(Math.PI * 0.2) * 1.4, Math.sin(Math.PI * 0.2) * 1.4, '#fbbf24');
+            
+            await wait(200);
+            
+            await createAngleArcAnimated(sceneData2, 0, 0, 1.2, Math.PI * 0.4, Math.PI, 0x43e97b, 600);
+            createLabel(sceneData2, '∠COA', Math.cos(Math.PI * 0.7) * 1.5, Math.sin(Math.PI * 0.7) * 1.5, '#43e97b');
+            
+            await teacher.speak("On the left, angles sum to 144 degrees - the arms don't form a line. On the right, they sum to 180 degrees - the arms DO form a perfect line!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+        }
+
+        async function showVerticalAnglesContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Theorem 6.1: Vertically Opposite Angles</h2>
+                <div class="threejs-container" id="vertical-content-threejs"></div>
+                <div class="angle-display" id="vertical-content-display">Vertically Opposite Angles are Equal</div>
+                <div class="theorem-box">
+                    <div class="theorem-title">✖️ Theorem 6.1</div>
+                    <div class="theorem-content">
+                        If two lines intersect each other, then the vertically opposite angles are equal.
+                        <div class="formula">∠AOC = ∠BOD and ∠AOD = ∠BOC</div>
+                    </div>
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('vertical-content-threejs');
+            const sceneData = createThreeJsScene(container);
+            
+            await teacher.speak("Let's prove that vertically opposite angles are equal when two lines intersect!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw first line with animation
+            await createLineAnimated(sceneData, -4, 1.5, 4, -1.5, 0x4facfe, 3, 1000);
+            createPoint(sceneData, -4, 1.5, 0x4facfe, 0.15);
+            createLabel(sceneData, 'A', -4.3, 1.5, '#4facfe');
+            createPoint(sceneData, 4, -1.5, 0x4facfe, 0.15);
+            createLabel(sceneData, 'B', 4.3, -1.5, '#4facfe');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw second line intersecting with animation
+            await createLineAnimated(sceneData, -3, -1.5, 3, 1.5, 0xf5576c, 3, 1000);
+            createPoint(sceneData, -3, -1.5, 0xf5576c, 0.15);
+            createLabel(sceneData, 'C', -3.3, -1.5, '#f5576c');
+            createPoint(sceneData, 3, 1.5, 0xf5576c, 0.15);
+            createLabel(sceneData, 'D', 3.3, 1.5, '#f5576c');
+            createPoint(sceneData, 0, 0, 0xfbbf24, 0.2);
+            createLabel(sceneData, 'O', 0, 0.4, '#fbbf24');
+            
+            await wait(700);
+            if (!shouldContinue(taskId)) return;
+            
+            // Calculate precise angles for the intersection
+            const lineAB_angle = Math.atan2(-1.5 - 1.5, 4 - (-4));
+            const lineCD_angle = Math.atan2(1.5 - (-1.5), 3 - (-3));
+            
+            // Angle AOC (from A to C) - precise calculation
+            const arcRadius1 = 1.0;
+            const angleAOC_start = lineAB_angle;
+            const angleAOC_end = lineCD_angle;
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius1, angleAOC_start, angleAOC_end, 0xfbbf24, 1000);
+            const labelAngle1 = (angleAOC_start + angleAOC_end) / 2;
+            createLabel(sceneData, '∠BOD', (arcRadius1 + 0.3) * Math.cos(labelAngle1), (arcRadius1 + 0.3) * Math.sin(labelAngle1), '#fbbf24');
+            
+            await wait(300);
+            if (!shouldContinue(taskId)) return;
+            
+            // Angle BOD (vertically opposite to AOC) - precise calculation
+            const angleBOD_start = lineAB_angle + Math.PI;
+            const angleBOD_end = lineCD_angle + Math.PI;
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius1, angleBOD_start, angleBOD_end, 0xfbbf24, 1000);
+            const labelAngle2 = (angleBOD_start + angleBOD_end) / 2;
+            createLabel(sceneData, '∠AOC', (arcRadius1 + 0.3) * Math.cos(labelAngle2), (arcRadius1 + 0.3) * Math.sin(labelAngle2), '#fbbf24');
+            
+            await teacher.speak("Notice these yellow angles? They're vertically opposite. Let me prove they're equal!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Since ray O A stands on line C D, angle A O C plus angle A O D equals 180 degrees by the linear pair axiom.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("Similarly, angle A O D plus angle B O D also equals 180 degrees.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Therefore, angle A O C equals angle B O D! Vertically opposite angles are equal. Proven!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+        }
+
+        async function showExample1Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Example 1: Finding Angles with Ratio</h2>
+                <div class="threejs-container" id="ex1-content-threejs"></div>
+                <div class="step-display">
+                    <div class="step-number">Problem:</div>
+                    <div class="step-content">Lines PQ and RS intersect at point O. If ∠POR : ∠ROQ = 5 : 7, find all angles.</div>
+                </div>
+                <div class="angle-display" id="ex1-content-display"></div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('ex1-content-threejs');
+            const sceneData = createThreeJsScene(container);
+            
+            await teacher.speak("Let's solve Example 1. Lines P Q and R S intersect at O, with angle P O R to angle R O Q in ratio 5 to 7.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw line PQ with animation
+            await createLineAnimated(sceneData, -4, 0, 4, 0, 0x4facfe, 3, 1000);
+            createPoint(sceneData, -4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'P', -4.3, 0, '#4facfe');
+            createPoint(sceneData, 4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'Q', 4.3, 0, '#4facfe');
+            createPoint(sceneData, 0, 0, 0xfbbf24, 0.2);
+            createLabel(sceneData, 'O', 0, -0.4, '#fbbf24');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw line RS with animation
+            await createLineAnimated(sceneData, -1, -3, 1, 3, 0xf5576c, 3, 1000);
+            createPoint(sceneData, -1, -3, 0xf5576c, 0.15);
+            createLabel(sceneData, 'R', -1.3, -3.2, '#f5576c');
+            createPoint(sceneData, 1, 3, 0xf5576c, 0.15);
+            createLabel(sceneData, 'S', 1.3, 3.2, '#f5576c');
+            
+            await wait(800);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Since P O R and R O Q form a linear pair, their sum is 180 degrees.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Calculate precise angle for RS line
+            const angleRS = Math.atan2(3 - (-3), 1 - (-1));
+            
+            // Draw angle POR with animation - from P (π) to R (π + angleRS)
+            const arcRadius1 = 1.0;
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius1, Math.PI, Math.PI + angleRS, 0xfbbf24, 1000);
+            const labelAngle1 = Math.PI + (angleRS / 2);
+            createLabel(sceneData, '∠POR', (arcRadius1 + 0.4) * Math.cos(labelAngle1), (arcRadius1 + 0.4) * Math.sin(labelAngle1), '#fbbf24');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw angle ROQ with animation - from R (π + angleRS) to Q (2π or 0)
+            const arcRadius2 = 1.2;
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius2, Math.PI + angleRS, 2 * Math.PI, 0x43e97b, 1000);
+            const labelAngle2 = Math.PI + angleRS + ((2 * Math.PI - (Math.PI + angleRS)) / 2);
+            createLabel(sceneData, '∠ROQ', (arcRadius2 + 0.4) * Math.cos(labelAngle2), (arcRadius2 + 0.4) * Math.sin(labelAngle2), '#43e97b');
+            
+            await wait(2000);
+            
+            const display = document.getElementById('ex1-content-display');
+            display.textContent = "Calculating: 5x + 7x = 180°";
+            
+            await teacher.speak("Let angle P O R equal 5 x and angle R O Q equal 7 x. So 5 x plus 7 x equals 180 degrees.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            display.textContent = "12x = 180°, so x = 15°";
+            
+            await teacher.speak("This gives us 12 x equals 180, so x equals 15 degrees.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            display.textContent = "∠POR = 5×15° = 75°, ∠ROQ = 7×15° = 105°";
+            
+            await teacher.speak("Therefore, angle P O R equals 75 degrees, and angle R O Q equals 105 degrees!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            display.textContent = "By Theorem 6.1: ∠POS = 105°, ∠SOQ = 75°";
+            
+            await teacher.speak("By the vertically opposite angles theorem, angle P O S also equals 105 degrees, and angle S O Q equals 75 degrees!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+        }
+
+        async function showExample2Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Example 2: Angle Bisectors</h2>
+                <div class="threejs-container" id="ex2-content-threejs"></div>
+                <div class="step-display">
+                    <div class="step-number">Problem:</div>
+                    <div class="step-content">Ray OS stands on line POQ. Ray OR and OT are angle bisectors of ∠POS and ∠SOQ. If ∠POS = x, find ∠ROT.</div>
+                </div>
+                <div class="angle-display" id="ex2-content-display"></div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('ex2-content-threejs');
+            const sceneData = createThreeJsScene(container);
+            
+            await teacher.speak("Welcome to Example 2! Here we'll explore an interesting property of angle bisectors. Watch as ray O S stands on line P O Q.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            // Draw line POQ with animation
+            await createLineAnimated(sceneData, -4, 0, 4, 0, 0x4facfe, 3, 1000);
+            
+            // Add points P, O, and Q with labels
+            createPoint(sceneData, -4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'Q', -4.3, 0, '#4facfe');
+            createPoint(sceneData, 4, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'P', 4.3, 0, '#4facfe');
+            createPoint(sceneData, 0, 0, 0xfbbf24, 0.2);
+            createLabel(sceneData, 'O', 0, -0.4, '#fbbf24');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw ray OS with animation
+            const angleX = Math.PI * 0.35;
+            await createRayAnimated(sceneData, 0, 0, angleX, 3.5, 0xf5576c, 1000);
+            
+            // Add point S with label
+            createPoint(sceneData, 3.5 * Math.cos(angleX), 3.5 * Math.sin(angleX), 0xf5576c, 0.15);
+            createLabel(sceneData, 'S', 3.8 * Math.cos(angleX), 3.8 * Math.sin(angleX), '#f5576c');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw angle POS arc with animation
+            await createAngleArcAnimated(sceneData, 0, 0, 0.8, 0, angleX, 0xfbbf24, 800);
+            createLabel(sceneData, '∠POS', 1.1 * Math.cos(angleX / 2), 1.1 * Math.sin(angleX / 2), '#fbbf24');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Let's say angle P O S is x degrees. Since these two angles form a linear pair on the line, angle S O Q must be 180 minus x degrees. Together they always make a straight line!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            // Draw angle bisector OR with animation
+            const bisectorAngle1 = angleX / 2;
+            await createRayAnimated(sceneData, 0, 0, bisectorAngle1, 2.5, 0x43e97b, 1000);
+            
+            const bisector1Pt = 2.5;
+            createPoint(sceneData, bisector1Pt * Math.cos(bisectorAngle1), bisector1Pt * Math.sin(bisectorAngle1), 0x43e97b, 0.15);
+            createLabel(sceneData, 'R', (bisector1Pt + 0.3) * Math.cos(bisectorAngle1), (bisector1Pt + 0.3) * Math.sin(bisectorAngle1), '#43e97b');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw angle bisector OT with animation
+            const bisectorAngle2 = angleX + (Math.PI - angleX) / 2;
+            await createRayAnimated(sceneData, 0, 0, bisectorAngle2, 2.5, 0xfa709a, 1000);
+            
+            const bisector2Pt = 2.5;
+            createPoint(sceneData, bisector2Pt * Math.cos(bisectorAngle2), bisector2Pt * Math.sin(bisectorAngle2), 0xfa709a, 0.15);
+            createLabel(sceneData, 'T', (bisector2Pt + 0.3) * Math.cos(bisectorAngle2), (bisector2Pt + 0.3) * Math.sin(bisectorAngle2), '#fa709a');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw angle ROT arc with animation
+            await createAngleArcAnimated(sceneData, 0, 0, 1.5, bisectorAngle1, bisectorAngle2, 0xff6b6b, 1000);
+            createLabel(sceneData, '∠ROT', 1.8 * Math.cos((bisectorAngle1 + bisectorAngle2) / 2), 1.8 * Math.sin((bisectorAngle1 + bisectorAngle2) / 2), '#ff6b6b');
+            
+            const display = document.getElementById('ex2-content-display');
+            display.textContent = "∠ROS = x/2, ∠SOT = (180°-x)/2";
+            
+            await teacher.speak("Now, ray O R is the bisector of angle P O S. This means it divides the angle into two equal parts. So angle R O S is exactly half of x. Similarly, ray O T bisects angle S O Q, so angle S O T is half of 180 minus x.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            
+            display.textContent = "∠ROT = x/2 + (180°-x)/2 = 90°";
+            
+            await teacher.speak("Here comes the beautiful part! Angle R O T is the sum of these two halves. That's half of x plus half of 180 minus x. When we add them together, we get half of 180, which equals 90 degrees! No matter what x is, the angle between the bisectors is always 90 degrees. Isn't that amazing?");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+        }
+
+        async function showExample3Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Example 3: Four Rays - 360° Proof</h2>
+                <div class="threejs-container" id="ex3-content-threejs"></div>
+                <div class="step-display">
+                    <div class="step-number">Problem:</div>
+                    <div class="step-content">Prove that ∠POQ + ∠QOR + ∠SOR + ∠POS = 360°</div>
+                </div>
+                <div class="angle-display" id="ex3-content-display"></div>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="ex3-content-chart"></canvas>
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('ex3-content-threejs');
+            const sceneData = createThreeJsScene(container);
+            
+            await teacher.speak("Welcome to Example 3! Here we'll discover a fundamental property of geometry. When multiple rays meet at a point, something special happens with the angles they create. Let's find out what!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            createPoint(sceneData, 0, 0, 0xfbbf24, 0.2);
+            createLabel(sceneData, 'O', 0, -0.5, '#fbbf24');
+            
+            await teacher.speak("We start with point O. Now watch as we draw four rays from this point.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw ray OP with animation
+            await createRayAnimated(sceneData, 0, 0, 0, 3, 0x4facfe, 600);
+            createPoint(sceneData, 3, 0, 0x4facfe, 0.15);
+            createLabel(sceneData, 'P', 3.3, 0, '#4facfe');
+            
+            await wait(300);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw ray OQ with animation
+            const angleQ = Math.PI * 0.3;
+            await createRayAnimated(sceneData, 0, 0, angleQ, 3, 0xf5576c, 600);
+            createPoint(sceneData, 3 * Math.cos(angleQ), 3 * Math.sin(angleQ), 0xf5576c, 0.15);
+            createLabel(sceneData, 'Q', 3.3 * Math.cos(angleQ), 3.3 * Math.sin(angleQ), '#f5576c');
+            
+            await wait(300);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw ray OR with animation
+            const angleR = Math.PI * 0.7;
+            await createRayAnimated(sceneData, 0, 0, angleR, 3, 0x43e97b, 600);
+            createPoint(sceneData, 3 * Math.cos(angleR), 3 * Math.sin(angleR), 0x43e97b, 0.15);
+            createLabel(sceneData, 'R', 3.3 * Math.cos(angleR), 3.3 * Math.sin(angleR), '#43e97b');
+            
+            await wait(300);
+            if (!shouldContinue(taskId)) return;
+            
+            // Draw ray OS with animation
+            const angleS = Math.PI * 1.3;
+            await createRayAnimated(sceneData, 0, 0, angleS, 3, 0xfa709a, 600);
+            createPoint(sceneData, 3 * Math.cos(angleS), 3 * Math.sin(angleS), 0xfa709a, 0.15);
+            createLabel(sceneData, 'S', 3.3 * Math.cos(angleS), 3.3 * Math.sin(angleS), '#fa709a');
+            
+            await wait(700);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Perfect! We now have four rays: O P, O Q, O R, and O S, all meeting at point O. These rays divide the space around point O into four separate angles.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Draw all angle arcs with animation and precise labels
+            const arcRadius = 1.5;
+            
+            // Angle POQ
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius, 0, angleQ, 0xfbbf24, 800);
+            createLabel(sceneData, '∠POQ', (arcRadius + 0.4) * Math.cos(angleQ / 2), (arcRadius + 0.4) * Math.sin(angleQ / 2), '#fbbf24');
+            await wait(200);
+            
+            // Angle QOR
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius, angleQ, angleR, 0xff6b6b, 800);
+            createLabel(sceneData, '∠QOR', (arcRadius + 0.4) * Math.cos((angleQ + angleR) / 2), (arcRadius + 0.4) * Math.sin((angleQ + angleR) / 2), '#ff6b6b');
+            await wait(200);
+            
+            // Angle ROS
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius, angleR, angleS, 0x4facfe, 800);
+            createLabel(sceneData, '∠ROS', (arcRadius + 0.4) * Math.cos((angleR + angleS) / 2), (arcRadius + 0.4) * Math.sin((angleR + angleS) / 2), '#4facfe');
+            await wait(200);
+            
+            // Angle SOP
+            await createAngleArcAnimated(sceneData, 0, 0, arcRadius, angleS, Math.PI * 2, 0x43e97b, 800);
+            createLabel(sceneData, '∠SOP', (arcRadius + 0.4) * Math.cos((angleS + Math.PI * 2) / 2), (arcRadius + 0.4) * Math.sin((angleS + Math.PI * 2) / 2), '#43e97b');
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Look at these beautiful angles! Angle P O Q, angle Q O R, angle R O S, and angle S O P. Each one represents a portion of the space around point O.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Now, here's the key insight. Imagine if you were standing at point O and you turned all the way around in a complete circle. You would turn through 360 degrees, right?");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("These four angles together cover that entire circle around point O! So they must add up to 360 degrees.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Create chart showing angle distribution
+            const ctx = document.getElementById('ex3-content-chart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['∠POQ', '∠QOR', '∠SOR', '∠POS'],
+                    datasets: [{
+                        data: [54, 72, 108, 126],
+                        backgroundColor: [
+                            'rgba(251, 191, 36, 0.8)',
+                            'rgba(255, 107, 107, 0.8)',
+                            'rgba(79, 172, 254, 0.8)',
+                            'rgba(67, 233, 123, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff',
+                                font: { size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            const display = document.getElementById('ex3-content-display');
+            display.textContent = "Total: 54° + 72° + 108° + 126° = 360°";
+            
+            await teacher.speak("Let's verify this! In our example, the angles measure 54, 72, 108, and 126 degrees. Watch as we add them together.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("54 plus 72 is 126. Then 126 plus 108 gives us 234. Finally, 234 plus 126 equals exactly 360 degrees!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("This proves our theorem! No matter how many rays you draw from a point, or how you arrange them, the angles will always sum to 360 degrees. This is because they complete one full rotation around the point. Isn't geometry beautiful?");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+        }
+
+        // ========================================
+        // RESET FUNCTION
+        // ========================================
+        function resetApplication() {
+            stopCurrentDemo();
+            
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="geometry-title">Welcome to Pairs of Angles! ✨</h2>
+                <div class="value-display">Let's Explore!</div>
+                <p class="geometry-description">
+                    Discover the relationships between angle pairs with stunning 3D animations! 
+                    Choose a lesson below to begin your geometric journey!
+                </p>
+            `;
+            
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            currentDemo = null;
+            
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to continue your geometry exploration!");
+            }, 500);
+        }
+
+        // ========================================
+        // EVENT LISTENERS
+        // ========================================
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+            
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="geometry-title">Welcome to Pairs of Angles! ✨</h2>
+                <div class="value-display">3D Interactive Learning</div>
+                <p class="geometry-description">
+                    Experience geometry like never before with stunning Three.js animations!
+                </p>
+            `;
+            
+            setTimeout(() => {
+                teacher.speak("Welcome to Pairs of Angles! Explore the fascinating world of angle relationships with amazing three D animations!");
+            }, 500);
+            
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'axiom-1':
+                            showAxiom1();
+                            break;
+                        case 'axiom-2':
+                            showAxiom2();
+                            break;
+                        case 'vertical-angles':
+                            showVerticalAngles();
+                            break;
+                        case 'example-1':
+                            showExample1();
+                            break;
+                        case 'example-2':
+                            showExample2();
+                            break;
+                        case 'example-3':
+                            showExample3();
+                            break;
+                        case 'interactive':
+                            showInteractiveDemo();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+            
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                threeJsScenes.forEach(sceneData => {
+                    const container = sceneData.renderer.domElement.parentElement;
+                    if (container) {
+                        sceneData.camera.aspect = container.clientWidth / container.clientHeight;
+                        sceneData.camera.updateProjectionMatrix();
+                        sceneData.renderer.setSize(container.clientWidth, container.clientHeight);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AP Advanced Applications - Complex Problem Solving</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 25%, #2d1b69 50%, #3730a3 100%);
+            background-attachment: fixed;
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 25% 25%, rgba(139, 69, 19, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(34, 197, 94, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(139, 69, 19, 0.3);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 30%, #92400e 60%, #451a03 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: #cbd5e1;
+            margin: 0 auto;
+        }
+
+        /* Main Animation Stage */
+        .animation-stage {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            height: 600px;
+            position: relative;
+            margin: 30px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        /* Content Scenes */
+        .content-scene {
+            display: none;
+            opacity: 0;
+            padding: 25px;
+            width: 100%;
+            min-height: 550px;
+            transition: opacity 0.8s ease;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .content-scene.visible {
+            display: block;
+            opacity: 1;
+        }
+
+        .scene-title {
+            font-size: 2.2rem;
+            color: #f59e0b;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .scene-content {
+            max-width: 100%;
+            width: 100%;
+        }
+
+        /* Problem Container */
+        .problem-container {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 15px 0;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
+        }
+
+        .problem-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .problem-title {
+            font-size: 1.4rem;
+            color: #34d399;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .problem-statement {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 12px 0;
+            color: #e2e8f0;
+            line-height: 1.6;
+            font-size: 1.05rem;
+        }
+
+        .solution-steps {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 12px 0;
+        }
+
+        .step {
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.5s ease;
+        }
+
+        .step.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .step:last-child {
+            border-bottom: none;
+        }
+
+        .step-label {
+            color: #fbbf24;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .step-content {
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .step-explanation {
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        /* Answer highlight */
+        .final-answer {
+            background: rgba(245, 158, 11, 0.2);
+            border: 2px solid rgba(245, 158, 11, 0.5);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #fbbf24;
+        }
+
+        /* Visual aids */
+        .visual-aid {
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 12px 0;
+            text-align: center;
+        }
+
+        .diagram {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+
+        .diagram-element {
+            background: rgba(99, 102, 241, 0.3);
+            border: 1px solid rgba(99, 102, 241, 0.5);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: #c7d2fe;
+            font-weight: 600;
+            min-width: 40px;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+        }
+
+        .diagram-element.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .diagram-element.highlight {
+            background: rgba(34, 197, 94, 0.3);
+            border-color: rgba(34, 197, 94, 0.5);
+            color: #86efac;
+        }
+
+        /* Multiple choice or comparison sections */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .comparison-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            opacity: 0;
+            transform: scale(0.9);
+            transition: all 0.5s ease;
+        }
+
+        .comparison-item.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .comparison-title {
+            color: #60a5fa;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .comparison-content {
+            color: #e2e8f0;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .controls-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 140px;
+        }
+
+        .demo-btn:hover {
+            background: linear-gradient(135deg, #334155 0%, #475569 100%);
+            transform: translateY(-2px);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
+        }
+
+        /* Analysis Panel */
+        .analysis {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+
+        .analysis-title {
+            font-size: 1.4rem;
+            color: #f59e0b;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .analysis-content {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #e2e8f0;
+            text-align: center;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .animation-stage {
+                height: 550px;
+            }
+            
+            .content-scene {
+                padding: 15px;
+                min-height: 500px;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .diagram {
+                gap: 5px;
+            }
+            
+            .diagram-element {
+                padding: 6px 8px;
+                min-width: 35px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Advanced AP Applications</h1>
+            <p>Master complex real-world problems with detailed step-by-step solutions</p>
+        </div>
+
+        <!-- Main Animation Stage -->
+        <div class="animation-stage">
+            
+            <!-- Welcome Scene -->
+            <div class="content-scene visible" id="welcome-scene">
+                <div class="scene-title">Complex Problem Solving</div>
+                <div class="scene-content">
+                    <div class="problem-container visible">
+                        <div class="problem-title">Advanced Applications Overview</div>
+                        <div class="problem-statement">
+                            Ready to tackle complex real-world problems? We'll explore:
+                            <br><br>
+                            🏗️ <strong>Construction & Architecture</strong> - Stadium seating, building calculations
+                            <br>
+                            💼 <strong>Business & Finance</strong> - Salary progressions, investment analysis  
+                            <br>
+                            🏃 <strong>Sports & Games</strong> - Potato race, log stacking problems
+                            <br>
+                            🔢 <strong>Pattern Problems</strong> - Complex sequences and series
+                        </div>
+                        <div style="text-align: center; margin-top: 20px; color: #34d399; font-size: 1.1rem;">
+                            Each problem includes detailed step-by-step solutions with visual aids
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stadium Seating Problem -->
+            <div class="content-scene" id="stadium-scene">
+                <div class="scene-title">Stadium Seating Problem</div>
+                <div class="scene-content">
+                    <div class="problem-container">
+                        <div class="problem-title">Construction Planning</div>
+                        <div class="problem-statement">
+                            A new stadium is being designed with seating arranged in rows. The first row has 20 seats, 
+                            the second row has 24 seats, the third row has 28 seats, and so on. Each row has 4 more 
+                            seats than the previous row. If there are 25 rows total, find:
+                            <br>a) Number of seats in the 25th row
+                            <br>b) Total number of seats in the stadium
+                        </div>
+                        
+                        <div class="visual-aid">
+                            <div class="diagram" id="stadium-diagram">
+                                <div class="diagram-element">Row 1: 20</div>
+                                <div class="diagram-element">Row 2: 24</div>
+                                <div class="diagram-element">Row 3: 28</div>
+                                <div class="diagram-element">...</div>
+                                <div class="diagram-element">Row 25: ?</div>
+                            </div>
+                        </div>
+                        
+                        <div class="solution-steps">
+                            <div class="step">
+                                <div class="step-label">Step 1: Identify the sequence</div>
+                                <div class="step-content">First term a = 20, Common difference d = 4, Number of terms n = 25</div>
+                                <div class="step-explanation">This is clearly an arithmetic progression</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Step 2: Find the 25th term (part a)</div>
+                                <div class="step-content">a₂₅ = a + (n-1)d = 20 + (25-1)×4 = 20 + 24×4 = 20 + 96 = 116</div>
+                                <div class="step-explanation">Using the nth term formula</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Step 3: Find total seats (part b)</div>
+                                <div class="step-content">S₂₅ = n/2[2a + (n-1)d] = 25/2[2×20 + 24×4] = 25/2[40 + 96] = 25/2 × 136 = 1700</div>
+                                <div class="step-explanation">Using the sum formula</div>
+                            </div>
+                        </div>
+                        
+                        <div class="final-answer">
+                            Answer: a) 25th row has 116 seats &nbsp;&nbsp;&nbsp; b) Total seats = 1,700
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Salary Progression Problem -->
+            <div class="content-scene" id="salary-scene">
+                <div class="scene-title">Salary Progression Analysis</div>
+                <div class="scene-content">
+                    <div class="problem-container">
+                        <div class="problem-title">Corporate Finance Planning</div>
+                        <div class="problem-statement">
+                            An employee starts with a salary of ₹50,000 per month and receives an annual increment 
+                            of ₹5,000. After working for 10 years, she wants to know:
+                            <br>a) Her salary in the 10th year
+                            <br>b) Total amount she will earn in 10 years
+                            <br>c) In which year will her salary first exceed ₹75,000?
+                        </div>
+                        
+                        <div class="comparison-grid">
+                            <div class="comparison-item">
+                                <div class="comparison-title">Year-wise Salary</div>
+                                <div class="comparison-content">
+                                    Year 1: ₹50,000<br>
+                                    Year 2: ₹55,000<br>
+                                    Year 3: ₹60,000<br>
+                                    Year 4: ₹65,000<br>
+                                    ...
+                                </div>
+                            </div>
+                            <div class="comparison-item">
+                                <div class="comparison-title">Sequence Parameters</div>
+                                <div class="comparison-content">
+                                    First term a = 50,000<br>
+                                    Common difference d = 5,000<br>
+                                    Number of terms n = 10
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="solution-steps">
+                            <div class="step">
+                                <div class="step-label">Part (a): Salary in 10th year</div>
+                                <div class="step-content">a₁₀ = a + (n-1)d = 50,000 + (10-1)×5,000 = 50,000 + 45,000 = ₹95,000</div>
+                                <div class="step-explanation">Using nth term formula</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Part (b): Total earnings in 10 years</div>
+                                <div class="step-content">S₁₀ = n/2[2a + (n-1)d] = 10/2[2×50,000 + 9×5,000] = 5[100,000 + 45,000] = 5 × 145,000 = ₹7,25,000</div>
+                                <div class="step-explanation">Using sum formula</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Part (c): When salary exceeds ₹75,000</div>
+                                <div class="step-content">aₙ > 75,000 → 50,000 + (n-1)×5,000 > 75,000 → (n-1)×5,000 > 25,000 → n-1 > 5 → n > 6</div>
+                                <div class="step-explanation">So salary first exceeds ₹75,000 in year 7</div>
+                            </div>
+                        </div>
+                        
+                        <div class="final-answer">
+                            Answer: a) ₹95,000 &nbsp;&nbsp;&nbsp; b) ₹7,25,000 &nbsp;&nbsp;&nbsp; c) Year 7
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Potato Race Problem -->
+            <div class="content-scene" id="potato-scene">
+                <div class="scene-title">Potato Race Problem</div>
+                <div class="scene-content">
+                    <div class="problem-container">
+                        <div class="problem-title">Distance Calculation Challenge</div>
+                        <div class="problem-statement">
+                            In a potato race, potatoes are placed in a line with the first potato 7 meters from the starting line, 
+                            and each subsequent potato is 3 meters further than the previous one. A runner starts from the starting 
+                            line, picks up each potato one by one, and returns to the starting line after picking up each potato. 
+                            Find the total distance covered by the runner to collect all 10 potatoes.
+                        </div>
+                        
+                        <div class="visual-aid">
+                            <div class="diagram" id="potato-diagram">
+                                <div class="diagram-element">Start</div>
+                                <div class="diagram-element">7m</div>
+                                <div class="diagram-element">10m</div>
+                                <div class="diagram-element">13m</div>
+                                <div class="diagram-element">16m</div>
+                                <div class="diagram-element">...</div>
+                            </div>
+                        </div>
+                        
+                        <div class="solution-steps">
+                            <div class="step">
+                                <div class="step-label">Step 1: Find distances of potatoes from start</div>
+                                <div class="step-content">Distances: 7, 10, 13, 16, 19, 22, 25, 28, 31, 34 meters</div>
+                                <div class="step-explanation">This forms an AP with a = 7, d = 3, n = 10</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Step 2: Distance for each potato</div>
+                                <div class="step-content">For each potato, runner goes there and returns, so distance = 2 × potato position</div>
+                                <div class="step-explanation">Runner covers double the distance to each potato</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Step 3: Total one-way distance to all potatoes</div>
+                                <div class="step-content">S₁₀ = 10/2[2×7 + (10-1)×3] = 5[14 + 27] = 5 × 41 = 205 meters</div>
+                                <div class="step-explanation">Sum of AP for potato positions</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Step 4: Total distance covered</div>
+                                <div class="step-content">Total distance = 2 × 205 = 410 meters</div>
+                                <div class="step-explanation">Double because runner returns to start after each potato</div>
+                            </div>
+                        </div>
+                        
+                        <div class="final-answer">
+                            Answer: Total distance covered = 410 meters
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Log Stacking Problem -->
+            <div class="content-scene" id="log-scene">
+                <div class="scene-title">Log Stacking Problem</div>
+                <div class="scene-content">
+                    <div class="problem-container">
+                        <div class="problem-title">Warehouse Storage Optimization</div>
+                        <div class="problem-statement">
+                            Logs are stacked in a triangular pile. The bottom row has 25 logs, the second row has 23 logs, 
+                            the third row has 21 logs, and so on, decreasing by 2 logs in each row until the top row has 
+                            only 1 log. Find:
+                            <br>a) How many rows are there?
+                            <br>b) Total number of logs in the pile
+                        </div>
+                        
+                        <div class="visual-aid">
+                            <div class="diagram" id="log-diagram">
+                                <div class="diagram-element">Top: 1</div>
+                                <div class="diagram-element">...</div>
+                                <div class="diagram-element">21</div>
+                                <div class="diagram-element">23</div>
+                                <div class="diagram-element highlight">Bottom: 25</div>
+                            </div>
+                        </div>
+                        
+                        <div class="solution-steps">
+                            <div class="step">
+                                <div class="step-label">Step 1: Identify the sequence</div>
+                                <div class="step-content">From bottom to top: 25, 23, 21, 19, ..., 3, 1</div>
+                                <div class="step-explanation">AP with a = 25, d = -2, last term l = 1</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Step 2: Find number of rows (part a)</div>
+                                <div class="step-content">l = a + (n-1)d → 1 = 25 + (n-1)(-2) → 1 = 25 - 2n + 2 → 2n = 26 → n = 13</div>
+                                <div class="step-explanation">Using the nth term formula to find n</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Step 3: Verify the sequence</div>
+                                <div class="step-content">13th term = 25 + (13-1)(-2) = 25 - 24 = 1 ✓</div>
+                                <div class="step-explanation">Confirmation that our calculation is correct</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Step 4: Total number of logs (part b)</div>
+                                <div class="step-content">S₁₃ = n/2(a + l) = 13/2(25 + 1) = 13/2 × 26 = 13 × 13 = 169</div>
+                                <div class="step-explanation">Using sum formula with first and last terms</div>
+                            </div>
+                        </div>
+                        
+                        <div class="final-answer">
+                            Answer: a) 13 rows &nbsp;&nbsp;&nbsp; b) 169 logs total
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Investment Problem -->
+            <div class="content-scene" id="investment-scene">
+                <div class="scene-title">Investment Analysis Problem</div>
+                <div class="scene-content">
+                    <div class="problem-container">
+                        <div class="problem-title">Financial Planning Strategy</div>
+                        <div class="problem-statement">
+                            A company invests ₹10,000 in the first year, ₹12,000 in the second year, ₹14,000 in the third year, 
+                            and so on, increasing by ₹2,000 each year. If they continue this pattern for 15 years:
+                            <br>a) How much will they invest in the 15th year?
+                            <br>b) What's the total investment over 15 years?
+                            <br>c) In which year will the annual investment first exceed ₹25,000?
+                        </div>
+                        
+                        <div class="comparison-grid">
+                            <div class="comparison-item">
+                                <div class="comparison-title">Investment Pattern</div>
+                                <div class="comparison-content">
+                                    Year 1: ₹10,000<br>
+                                    Year 2: ₹12,000<br>
+                                    Year 3: ₹14,000<br>
+                                    Year 4: ₹16,000<br>
+                                    ...continuing...
+                                </div>
+                            </div>
+                            <div class="comparison-item">
+                                <div class="comparison-title">Sequence Analysis</div>
+                                <div class="comparison-content">
+                                    First term a = 10,000<br>
+                                    Common difference d = 2,000<br>
+                                    Number of years n = 15
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="solution-steps">
+                            <div class="step">
+                                <div class="step-label">Part (a): Investment in 15th year</div>
+                                <div class="step-content">a₁₅ = a + (n-1)d = 10,000 + (15-1)×2,000 = 10,000 + 28,000 = ₹38,000</div>
+                                <div class="step-explanation">Using nth term formula</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Part (b): Total investment over 15 years</div>
+                                <div class="step-content">S₁₅ = n/2[2a + (n-1)d] = 15/2[20,000 + 28,000] = 15/2 × 48,000 = ₹3,60,000</div>
+                                <div class="step-explanation">Using sum formula for arithmetic progression</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Part (c): When investment exceeds ₹25,000</div>
+                                <div class="step-content">aₙ > 25,000 → 10,000 + (n-1)×2,000 > 25,000 → (n-1)×2,000 > 15,000 → n-1 > 7.5 → n > 8.5</div>
+                                <div class="step-explanation">Since n must be whole number, investment first exceeds ₹25,000 in year 9</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Verification for part (c)</div>
+                                <div class="step-content">Year 8: 10,000 + 7×2,000 = ₹24,000 &nbsp; Year 9: 10,000 + 8×2,000 = ₹26,000 ✓</div>
+                                <div class="step-explanation">Confirming our answer</div>
+                            </div>
+                        </div>
+                        
+                        <div class="final-answer">
+                            Answer: a) ₹38,000 &nbsp;&nbsp;&nbsp; b) ₹3,60,000 &nbsp;&nbsp;&nbsp; c) Year 9
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pattern Problem -->
+            <div class="content-scene" id="pattern-scene">
+                <div class="scene-title">Complex Pattern Problem</div>
+                <div class="scene-content">
+                    <div class="problem-container">
+                        <div class="problem-title">Multi-Level Sequence Analysis</div>
+                        <div class="problem-statement">
+                            Consider the sequence: 3, 7, 13, 21, 31, 43, ...
+                            The differences between consecutive terms are: 4, 6, 8, 10, 12, ...
+                            <br>a) Find the next two terms in the original sequence
+                            <br>b) Find a general formula for the nth term
+                            <br>c) Find the sum of first 10 terms
+                        </div>
+                        
+                        <div class="visual-aid">
+                            <div class="diagram" id="pattern-diagram">
+                                <div class="diagram-element">3</div>
+                                <div class="diagram-element">7</div>
+                                <div class="diagram-element">13</div>
+                                <div class="diagram-element">21</div>
+                                <div class="diagram-element">31</div>
+                                <div class="diagram-element">43</div>
+                                <div class="diagram-element">?</div>
+                                <div class="diagram-element">?</div>
+                            </div>
+                            <div style="margin-top: 10px; color: #fbbf24;">
+                                Differences: +4, +6, +8, +10, +12, ...
+                            </div>
+                        </div>
+                        
+                        <div class="solution-steps">
+                            <div class="step">
+                                <div class="step-label">Step 1: Analyze the pattern</div>
+                                <div class="step-content">First differences: 4, 6, 8, 10, 12, ... (AP with a = 4, d = 2)</div>
+                                <div class="step-explanation">The differences form an arithmetic progression</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Part (a): Find next two terms</div>
+                                <div class="step-content">Next differences: 14, 16 → Next terms: 43+14=57, 57+16=73</div>
+                                <div class="step-explanation">Continue the difference pattern</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Part (b): General formula derivation</div>
+                                <div class="step-content">Sum of first (n-1) differences = (n-1)/2[2×4 + (n-2)×2] = (n-1)(n+2)</div>
+                                <div class="step-explanation">Sum of arithmetic progression of differences</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Complete formula</div>
+                                <div class="step-content">aₙ = a₁ + sum of first (n-1) differences = 3 + (n-1)(n+2) = n² + n + 1</div>
+                                <div class="step-explanation">Adding first term to cumulative differences</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-label">Part (c): Sum of first 10 terms</div>
+                                <div class="step-content">S₁₀ = Σ(n² + n + 1) = Σn² + Σn + Σ1 = 385 + 55 + 10 = 450</div>
+                                <div class="step-explanation">Using formulas: Σn² = n(n+1)(2n+1)/6, Σn = n(n+1)/2</div>
+                            </div>
+                        </div>
+                        
+                        <div class="final-answer">
+                            Answer: a) 57, 73 &nbsp;&nbsp;&nbsp; b) aₙ = n² + n + 1 &nbsp;&nbsp;&nbsp; c) S₁₀ = 450
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="lesson-title">Explore Complex Applications</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="showCompleteLesson()">📚 Complete Lesson</button>
+                <button class="demo-btn" onclick="showStadium()">🏟️ Stadium Seating</button>
+                <button class="demo-btn" onclick="showSalary()">💼 Salary Progression</button>
+                <button class="demo-btn" onclick="showPotato()">🥔 Potato Race</button>
+                <button class="demo-btn" onclick="showLog()">🪵 Log Stacking</button>
+                <button class="demo-btn" onclick="showInvestment()">📈 Investment Analysis</button>
+                <button class="demo-btn" onclick="showPattern()">🧩 Pattern Problem</button>
+                <button class="demo-btn" onclick="resetAll()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Analysis Panel -->
+        <div class="analysis">
+            <div class="analysis-title">Problem-Solving Insights</div>
+            <div class="analysis-content" id="analysis-content">
+                Master complex real-world applications through systematic problem-solving approaches. 
+                Each problem demonstrates different aspects of arithmetic progressions in practical contexts.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice System
+        class AdvancedNarrator {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.85, pitch: 1.0, volume: 0.8 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+            }
+        }
+
+        // Global state
+        let globalAudioEnabled = true;
+        let currentNarrator = null;
+        let isAnimating = false;
+        // Controller state (similar to patterns intro)
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let animationTimeouts = [];
+        let currentRunId = 0;
+        let currentTaskId = null;
+
+        const sceneNarrations = {
+            'welcome-scene': 'Welcome to advanced applications of arithmetic progressions! We will solve complex real-world problems step by step, covering construction, finance, sports, and pattern recognition challenges.',
+            'stadium-scene': 'Let\'s solve the stadium seating problem. With 20 seats in the first row and 4 additional seats in each subsequent row, we need to find the seats in the 25th row and total capacity. Using the nth term formula, the 25th row has 116 seats. For total capacity, we use the sum formula to get 1,700 seats.',
+            'salary-scene': 'This salary progression problem involves a starting salary of 50,000 rupees with annual increments of 5,000 rupees. After 10 years, the salary reaches 95,000 rupees, with total earnings of 7,25,000 rupees. The salary first exceeds 75,000 rupees in year 7.',
+            'potato-scene': 'The potato race problem requires calculating total distance covered. With potatoes at distances 7, 10, 13 meters and so on, forming an arithmetic progression, the runner covers 410 meters total, going to each potato and returning to the start.',
+            'log-scene': 'In this log stacking problem, we have 25 logs in the bottom row, decreasing by 2 logs per row until reaching 1 log at the top. This creates 13 rows total with 169 logs in the entire pile.',
+            'investment-scene': 'The investment analysis shows a company investing 10,000 rupees in year 1, increasing by 2,000 rupees annually. After 15 years, they invest 38,000 rupees annually with total investment of 3,60,000 rupees. Annual investment first exceeds 25,000 rupees in year 9.',
+            'pattern-scene': 'This complex pattern problem involves second-order differences. The sequence 3, 7, 13, 21, 31, 43 has differences forming an arithmetic progression. The general formula is n squared plus n plus 1, and the sum of first 10 terms is 450.'
+        };
+
+        function createNewNarrator() {
+            if (currentNarrator) {
+                currentNarrator.destroy();
+            }
+            currentNarrator = new AdvancedNarrator();
+            return currentNarrator;
+        }
+
+        function showScene(sceneId, buttonIndex = -1) {
+            if (isAnimating) return;
+            
+            // Hide all scenes
+            document.querySelectorAll('.content-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            // Show selected scene
+            document.getElementById(sceneId).classList.add('visible');
+            
+            // Update active button
+            if (buttonIndex >= 0) {
+                document.querySelectorAll('.demo-btn').forEach((btn, index) => {
+                    btn.classList.toggle('active', index === buttonIndex);
+                });
+            }
+
+            // Trigger animations for the scene
+            setTimeout(() => {
+                animateSceneContent(sceneId);
+            }, 100);
+
+            // Narrate content
+            const narrator = createNewNarrator();
+            if (sceneNarrations[sceneId]) {
+                narrator.speak(sceneNarrations[sceneId]);
+            }
+
+            updateAnalysis(sceneId);
+        }
+
+        function animateSceneContent(sceneId) {
+            const scene = document.getElementById(sceneId);
+            
+            // Animate problem containers
+            const problemContainers = scene.querySelectorAll('.problem-container');
+            problemContainers.forEach((container, index) => {
+                setTimeout(() => {
+                    container.classList.add('visible');
+                }, index * 200);
+            });
+
+            // Animate solution steps
+            const steps = scene.querySelectorAll('.step');
+            steps.forEach((step, index) => {
+                setTimeout(() => {
+                    step.classList.add('visible');
+                }, 500 + (index * 300));
+            });
+
+            // Animate comparison items
+            const comparisonItems = scene.querySelectorAll('.comparison-item');
+            comparisonItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.classList.add('visible');
+                }, 300 + (index * 150));
+            });
+
+            // Animate diagram elements
+            const diagramElements = scene.querySelectorAll('.diagram-element');
+            diagramElements.forEach((element, index) => {
+                setTimeout(() => {
+                    element.classList.add('visible');
+                }, 800 + (index * 100));
+            });
+
+            // Special animations for specific scenes
+            if (sceneId === 'stadium-scene') {
+                setTimeout(() => {
+                    const elements = document.querySelectorAll('#stadium-diagram .diagram-element');
+                    elements.forEach(el => el.classList.add('highlight'));
+                }, 2000);
+            }
+
+            if (sceneId === 'log-scene') {
+                setTimeout(() => {
+                    document.querySelector('#log-diagram .diagram-element.highlight').style.background = 'rgba(245, 158, 11, 0.3)';
+                }, 1500);
+            }
+        }
+
+        function updateAnalysis(sceneId) {
+            const analysisTexts = {
+                'welcome-scene': 'Master complex real-world applications through systematic problem-solving approaches. Each problem demonstrates different aspects of arithmetic progressions in practical contexts.',
+                'stadium-scene': 'Stadium seating problems demonstrate practical applications in architecture and construction. The systematic increase in seats per row follows arithmetic progression principles.',
+                'salary-scene': 'Salary progression analysis helps in financial planning and career development. Understanding arithmetic growth patterns aids in long-term financial decision making.',
+                'potato-scene': 'Distance calculation problems require careful analysis of movement patterns. The potato race demonstrates how arithmetic progressions apply to physical movement and optimization.',
+                'log-scene': 'Stacking problems are common in warehouse management and construction. This problem shows how decreasing arithmetic progressions model real-world storage scenarios.',
+                'investment-scene': 'Investment analysis using arithmetic progressions helps in financial planning and budgeting. The systematic increase in annual investments demonstrates growth strategies.',
+                'pattern-scene': 'Complex patterns often involve higher-order differences. Understanding second-order arithmetic progressions expands problem-solving capabilities beyond basic sequences.'
+            };
+            
+            document.getElementById('analysis-content').textContent = analysisTexts[sceneId] || analysisTexts['welcome-scene'];
+        }
+
+        // Utilities (mirroring ap_patterns_intro controller style)
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            animationTimeouts.forEach(t => clearTimeout(t));
+            animationTimeouts = [];
+            document.querySelectorAll('.content-scene').forEach(scene => scene.classList.remove('visible'));
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) return false;
+            return !currentDemoAborted;
+        }
+
+        function createControllerNarrator(taskId = null) {
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentNarrator = createNewNarrator();
+            return currentNarrator;
+        }
+
+        function switchToScene(sceneId, taskId = null) {
+            if (!shouldContinue(taskId)) return;
+            document.querySelectorAll('.content-scene').forEach(scene => scene.classList.remove('visible'));
+            const timeout = setTimeout(() => {
+                if (!shouldContinue(taskId)) return;
+                document.getElementById(sceneId)?.classList.add('visible');
+                animateSceneContent(sceneId);
+                updateAnalysis(sceneId);
+            }, 200);
+            animationTimeouts.push(timeout);
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const t = setTimeout(resolve, ms);
+                animationTimeouts.push(t);
+            });
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
+        }
+
+        function updateTitle(text) {
+            const el = document.getElementById('lesson-title');
+            if (el) el.textContent = text;
+        }
+
+        // Button handlers (similar behavior to ap_patterns_intro)
+        async function showCompleteLesson() {
+            const taskId = `complete-lesson-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            updateTitle('📚 Complete Applications Lesson');
+            const narrator = createControllerNarrator(taskId);
+
+            // Welcome
+            switchToScene('welcome-scene', taskId);
+            await narrator.speak('Welcome to the complete journey through advanced applications of arithmetic progressions. We will explore stadium seating, salary progression, a potato race, log stacking, investment analysis, and a complex pattern.');
+            await wait(400);
+            if (!shouldContinue(taskId)) return;
+
+            // Stadium
+            switchToScene('stadium-scene', taskId);
+            await narrator.speak("Stadium seating: first row twenty seats, each row adds four. With twenty five rows, row twenty five has one hundred sixteen seats using the nth term formula, and total capacity is one thousand seven hundred using the sum formula.");
+            await wait(300);
+            if (!shouldContinue(taskId)) return;
+
+            // Salary
+            switchToScene('salary-scene', taskId);
+            await narrator.speak('Salary progression: starting fifty thousand rupees with increments of five thousand. Year ten salary is ninety five thousand. Total for ten years is seven lakh twenty five thousand. Salary first exceeds seventy five thousand in year seven.');
+            await wait(300);
+            if (!shouldContinue(taskId)) return;
+
+            // Potato
+            switchToScene('potato-scene', taskId);
+            await narrator.speak('Potato race: positions form an AP with seven meters then plus three. Sum of one way distances is two hundred five meters, doubling for the return trips gives four hundred ten meters total.');
+            await wait(300);
+            if (!shouldContinue(taskId)) return;
+
+            // Log
+            switchToScene('log-scene', taskId);
+            await narrator.speak('Log stacking: rows decrease by two from twenty five down to one. There are thirteen rows and a total of one hundred sixty nine logs using sum with first and last terms.');
+            await wait(300);
+            if (!shouldContinue(taskId)) return;
+
+            // Investment
+            switchToScene('investment-scene', taskId);
+            await narrator.speak('Investment: start at ten thousand rupees and increase by two thousand yearly for fifteen years. Year fifteen is thirty eight thousand and total investment is three lakh sixty thousand. It first exceeds twenty five thousand in year nine.');
+            await wait(300);
+            if (!shouldContinue(taskId)) return;
+
+            // Pattern
+            switchToScene('pattern-scene', taskId);
+            await narrator.speak('Complex pattern: three, seven, thirteen, twenty one, thirty one, forty three. Differences are four, six, eight, ten, twelve. Next terms are fifty seven and seventy three. The general term is n squared plus n plus one. The sum of the first ten terms is four hundred fifty.');
+
+            isPlaying = false;
+        }
+
+        async function showStadium() {
+            const taskId = 'stadium';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            updateTitle('🏟️ Stadium Seating Problem');
+            const narrator = createControllerNarrator(taskId);
+            switchToScene('stadium-scene', taskId);
+            await narrator.speak('First row twenty seats, adding four each row. Row twenty five equals one hundred sixteen seats, total seats one thousand seven hundred.');
+            isPlaying = false;
+        }
+
+        async function showSalary() {
+            const taskId = 'salary';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            updateTitle('💼 Salary Progression Analysis');
+            const narrator = createControllerNarrator(taskId);
+            switchToScene('salary-scene', taskId);
+            await narrator.speak('Salary starts at fifty thousand with five thousand increments. Year ten is ninety five thousand, total ten year earnings seven lakh twenty five thousand, first exceed seventy five thousand in year seven.');
+            isPlaying = false;
+        }
+
+        async function showPotato() {
+            const taskId = 'potato';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            updateTitle('🥔 Potato Race Distance');
+            const narrator = createControllerNarrator(taskId);
+            switchToScene('potato-scene', taskId);
+            await narrator.speak('Potatoes at seven, ten, thirteen meters, and so on. Total one way is two hundred five meters, round trip total four hundred ten meters.');
+            isPlaying = false;
+        }
+
+        async function showLog() {
+            const taskId = 'log';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(4);
+            updateTitle('🪵 Log Stacking Problem');
+            const narrator = createControllerNarrator(taskId);
+            switchToScene('log-scene', taskId);
+            await narrator.speak('Rows: twenty five, twenty three, down to one by minus two. Thirteen rows total and one hundred sixty nine logs.');
+            isPlaying = false;
+        }
+
+        async function showInvestment() {
+            const taskId = 'investment';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(5);
+            updateTitle('📈 Investment Analysis');
+            const narrator = createControllerNarrator(taskId);
+            switchToScene('investment-scene', taskId);
+            await narrator.speak('Investments increase by two thousand yearly from ten thousand. Year fifteen equals thirty eight thousand. Total over fifteen years is three lakh sixty thousand. First exceeding twenty five thousand is year nine.');
+            isPlaying = false;
+        }
+
+        async function showPattern() {
+            const taskId = 'pattern';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(6);
+            updateTitle('🧩 Complex Pattern Problem');
+            const narrator = createControllerNarrator(taskId);
+            switchToScene('pattern-scene', taskId);
+            await narrator.speak('Sequence three, seven, thirteen, twenty one, thirty one, forty three. Differences are four, six, eight, ten, twelve. Next terms are fifty seven and seventy three. General term n squared plus n plus one.');
+            isPlaying = false;
+        }
+
+        async function resetAll() {
+            stopCurrentDemo();
+            await wait(50);
+            setActiveButton(-1);
+            updateTitle('Explore Complex Applications');
+            document.getElementById('welcome-scene').classList.add('visible');
+            updateAnalysis('welcome-scene');
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            const narrator = createNewNarrator();
+            narrator.speak('Welcome to advanced applications of arithmetic progressions! Let\'s master complex real-world problems with detailed step-by-step solutions.');
+            updateAnalysis('welcome-scene');
+        });
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            if (currentNarrator) {
+                currentNarrator.isEnabled = globalAudioEnabled;
+                if (!globalAudioEnabled) {
+                    currentNarrator.stop();
+                }
+            }
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+        });
+    </script>
+</body>
+</html>

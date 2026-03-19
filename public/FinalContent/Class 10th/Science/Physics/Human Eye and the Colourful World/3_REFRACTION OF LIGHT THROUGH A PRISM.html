@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Light Refraction Through Prism - Complete Automated Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 20px 40px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 25px 50px rgba(0, 0, 0, 0.4);
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            border: 5px solid rgba(79, 172, 254, 0.3);
+            border-top: 5px solid #4facfe;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            font-weight: 600;
+            animation: fadeInOut 2s ease-in-out infinite;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 50px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            backdrop-filter: blur(20px);
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--primary-gradient);
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: var(--accent-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: 800;
+            animation: titleFloat 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleFloat {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-10px); }
+        }
+
+        .main-display {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 40px;
+            margin-bottom: 40px;
+            min-height: 600px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+        }
+
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            min-width: 180px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .control-btn.active {
+            background: var(--warning-gradient);
+            transform: translateY(-2px);
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            margin-top: 20px;
+        }
+
+        .display-section {
+            display: none;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .display-section.active {
+            display: block;
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Demo Stage Styles */
+        .demo-stage {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(to bottom, #1a1a2e, #16213e);
+            border-radius: 20px;
+            border: 2px solid var(--glass-border);
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .prism-3d {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 0;
+            height: 0;
+            border-left: 100px solid transparent;
+            border-right: 100px solid transparent;
+            border-bottom: 173px solid rgba(144, 202, 249, 0.8);
+            filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
+            animation: prismGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes prismGlow {
+            0% { filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3)); }
+            100% { filter: drop-shadow(0 15px 30px rgba(79, 172, 254, 0.6)); }
+        }
+
+        .light-ray {
+            position: absolute;
+            height: 4px;
+            transform-origin: left center;
+            animation: rayPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes rayPulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; box-shadow: 0 0 20px currentColor; }
+        }
+
+        .incident-ray {
+            background: linear-gradient(90deg, #ff6b6b, rgba(255, 107, 107, 0.3));
+            width: 200px;
+            top: 50%;
+            left: 10%;
+            transform: translateY(-50%) rotate(-30deg);
+        }
+
+        .refracted-ray {
+            background: linear-gradient(90deg, #4ecdc4, rgba(78, 205, 196, 0.3));
+            width: 120px;
+            top: 50%;
+            left: 40%;
+            transform: translateY(-50%) rotate(-15deg);
+            animation-delay: 0.3s;
+        }
+
+        .emergent-ray {
+            background: linear-gradient(90deg, #45b7d1, rgba(69, 183, 209, 0.3));
+            width: 200px;
+            top: 50%;
+            left: 55%;
+            transform: translateY(-50%) rotate(25deg);
+            animation-delay: 0.6s;
+        }
+
+        /* Spectrum Display */
+        .spectrum-container {
+            position: absolute;
+            top: 50%;
+            right: 10%;
+            transform: translateY(-50%);
+            width: 250px;
+            height: 200px;
+        }
+
+        .spectrum-ray {
+            position: absolute;
+            width: 150px;
+            height: 3px;
+            transform-origin: left center;
+            animation: spectrumPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes spectrumPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        /* Chart Container */
+        .chart-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            height: 400px;
+            position: relative;
+        }
+
+        /* Data Table */
+        .data-table {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .data-table th {
+            background: var(--accent-gradient);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Info Panel */
+        .info-panel {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            border-radius: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #4facfe;
+        }
+
+        .info-title {
+            color: #4facfe;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .formula-box {
+            background: var(--accent-gradient);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        .lesson-content {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            border-radius: 20px;
+            margin: 20px 0;
+            line-height: 1.8;
+            font-size: 1.1rem;
+        }
+
+        .lesson-content h3 {
+            color: #4facfe;
+            margin: 20px 0;
+            font-size: 1.5rem;
+        }
+
+        .lesson-content p {
+            margin-bottom: 15px;
+        }
+
+        /* Audio Control */
+        #audio-toggle {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+        }
+
+        #audio-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .control-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Initializing Prism Physics Lab...</div>
+        </div>
+    </div>
+
+    <!-- Audio Control -->
+    <button id="audio-toggle" title="Toggle Audio Narration">🔊</button>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Light Refraction Through a Prism</h1>
+            <p>Experience an automated journey through the fascinating physics of prisms, dispersion, and the creation of rainbows</p>
+        </div>
+
+        <!-- Main Display Area -->
+        <div class="main-display">
+            <!-- Complete Lesson Section -->
+            <div class="display-section active" id="lesson-section">
+                <div class="info-panel">
+                    <div class="info-title">📚 Complete Lesson: Light Refraction Through Prisms</div>
+                </div>
+                <div class="demo-stage" id="lessonStage">
+                    <div class="prism-3d"></div>
+                    <div class="light-ray incident-ray"></div>
+                    <div class="light-ray refracted-ray"></div>
+                    <div class="light-ray emergent-ray"></div>
+                    <div class="spectrum-container" id="spectrumContainer"></div>
+                </div>
+                <div class="lesson-content" id="lessonContent">
+                    <h3>Introduction to Prisms</h3>
+                    <p>A prism is a transparent optical element with flat, polished surfaces that refract light. The triangular prism, which we study today, has two triangular bases and three rectangular surfaces. Unlike parallel-sided glass slabs, prisms have inclined surfaces that cause light to deviate from its original path.</p>
+                    
+                    <h3>Basic Principles</h3>
+                    <p>When light travels from one medium to another, it changes direction - a phenomenon called refraction. This happens because light travels at different speeds in different media. The relationship between incident and refracted rays is governed by Snell's Law: n₁ sin θ₁ = n₂ sin θ₂, where n represents the refractive index and θ represents the angle with the normal.</p>
+                    
+                    <h3>Path of Light Through a Prism</h3>
+                    <p>As light enters the prism at the first surface, it bends toward the normal (since glass is denser than air). Inside the prism, light travels in a straight line. When it reaches the second surface and exits into air, it bends away from the normal. The overall effect is that the emergent ray is deviated from the incident ray's direction.</p>
+                    
+                    <h3>Important Angles and Terms</h3>
+                    <p>The angle of prism (A) is the angle between the two refracting surfaces. The angle of incidence (i) is formed between the incident ray and the normal at the first surface. Similarly, we have angles of refraction (r₁ and r₂) at both surfaces, and the angle of emergence (e) at the second surface. The angle of deviation (δ) measures how much the light has been bent from its original path.</p>
+                    
+                    <h3>The Prism Formula</h3>
+                    <p>The relationship between these angles follows specific mathematical relationships. The prism formula states that A = r₁ + r₂, and the deviation is given by δ = i + e - A. These formulas help us predict and calculate light behavior through prisms.</p>
+                    
+                    <h3>Dispersion of Light</h3>
+                    <p>White light is actually a mixture of all colors. When white light passes through a prism, something magical happens - it splits into its constituent colors, forming a spectrum. This happens because different colors have different wavelengths, and each wavelength refracts by a different amount. Violet light, with the shortest wavelength, bends the most, while red light, with the longest wavelength, bends the least.</p>
+                    
+                    <h3>Applications and Phenomena</h3>
+                    <p>This principle of dispersion explains many natural phenomena, including rainbows. Rainbows form when sunlight passes through water droplets in the air, which act like tiny prisms. The same principle is used in spectroscopes to analyze the composition of light from stars, helping us understand what elements they contain.</p>
+                    
+                    <h3>Minimum Deviation</h3>
+                    <p>There's a special angle of incidence at which the deviation is minimum. This occurs when the light ray passes symmetrically through the prism, meaning the angle of incidence equals the angle of emergence. At minimum deviation, we can determine the refractive index of the prism material using the formula: n = sin((A + δₘ)/2) / sin(A/2).</p>
+                </div>
+            </div>
+
+            <!-- Theory Section -->
+            <div class="display-section" id="theory-section">
+                <div class="info-panel">
+                    <div class="info-title">Fundamental Principles</div>
+                    <p>A triangular prism is a transparent optical element with flat, polished surfaces that refract light. Unlike parallel-sided glass slabs, prisms have inclined surfaces that cause light deviation.</p>
+                </div>
+                
+                <h3 style="color: #4facfe; margin: 20px 0;">Key Concepts</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Concept</th>
+                            <th>Symbol</th>
+                            <th>Definition</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Angle of Prism</td>
+                            <td>A</td>
+                            <td>Angle between two refracting surfaces</td>
+                        </tr>
+                        <tr>
+                            <td>Angle of Incidence</td>
+                            <td>i</td>
+                            <td>Angle between incident ray and normal at first surface</td>
+                        </tr>
+                        <tr>
+                            <td>Angle of Refraction</td>
+                            <td>r₁, r₂</td>
+                            <td>Angles of refraction at first and second surfaces</td>
+                        </tr>
+                        <tr>
+                            <td>Angle of Emergence</td>
+                            <td>e</td>
+                            <td>Angle between emergent ray and normal at second surface</td>
+                        </tr>
+                        <tr>
+                            <td>Angle of Deviation</td>
+                            <td>δ</td>
+                            <td>Angle between incident and emergent rays</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="formula-box">
+                    <div>Snell's Law: n₁ sin θ₁ = n₂ sin θ₂</div>
+                </div>
+                <div class="formula-box">
+                    <div>Prism Formula: A = r₁ + r₂</div>
+                </div>
+                <div class="formula-box">
+                    <div>Deviation: δ = i + e - A</div>
+                </div>
+                <div class="formula-box">
+                    <div>Minimum Deviation: n = sin((A + δₘ)/2) / sin(A/2)</div>
+                </div>
+            </div>
+
+            <!-- Experiment Section -->
+            <div class="display-section" id="experiment-section">
+                <div class="info-panel">
+                    <div class="info-title">Activity 10.1: Prism Experiment</div>
+                    <p>This activity demonstrates how to trace the path of light through a prism using the pin method.</p>
+                </div>
+                <div class="demo-stage">
+                    <canvas id="experimentCanvas" width="800" height="500"></canvas>
+                </div>
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #4facfe;">Procedure:</h3>
+                    <ol style="margin-left: 20px; line-height: 2;">
+                        <li>Place the prism on drawing board with outline ABC</li>
+                        <li>Draw incident ray PE at angle to surface AB</li>
+                        <li>Fix pins P and Q on incident ray</li>
+                        <li>Look through face AC to see images of P and Q</li>
+                        <li>Fix pins R and S aligned with P and Q images</li>
+                        <li>Remove prism and draw emergent ray FS</li>
+                        <li>The path PEFS shows complete light trajectory</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Dispersion Section -->
+            <div class="display-section" id="dispersion-section">
+                <div class="info-panel">
+                    <div class="info-title">🌈 Dispersion of White Light</div>
+                    <p>When white light passes through a prism, it splits into its component colors due to wavelength-dependent refraction.</p>
+                </div>
+                <div class="demo-stage" id="dispersionStage">
+                    <canvas id="dispersionCanvas" width="800" height="500"></canvas>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Color</th>
+                            <th>Wavelength (nm)</th>
+                            <th>Refractive Index</th>
+                            <th>Deviation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="color: #ff0000;"><td>Red</td><td>700</td><td>1.514</td><td>35.2°</td></tr>
+                        <tr style="color: #ffa500;"><td>Orange</td><td>620</td><td>1.516</td><td>35.4°</td></tr>
+                        <tr style="color: #ffff00;"><td>Yellow</td><td>580</td><td>1.518</td><td>35.6°</td></tr>
+                        <tr style="color: #00ff00;"><td>Green</td><td>530</td><td>1.521</td><td>35.9°</td></tr>
+                        <tr style="color: #0000ff;"><td>Blue</td><td>470</td><td>1.526</td><td>36.4°</td></tr>
+                        <tr style="color: #4b0082;"><td>Indigo</td><td>440</td><td>1.530</td><td>36.8°</td></tr>
+                        <tr style="color: #8b00ff;"><td>Violet</td><td>400</td><td>1.535</td><td>37.3°</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Data Analysis Section -->
+            <div class="display-section" id="data-section">
+                <div class="info-panel">
+                    <div class="info-title">📊 Experimental Data & Analysis</div>
+                    <p>Analyzing the relationship between incident angle and deviation through experimental measurements.</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="deviationChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="dispersionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel (moved below display) -->
+        <div class="control-panel">
+            <button class="control-btn active" data-mode="lesson">📚 Complete Lesson</button>
+            <button class="control-btn" data-mode="theory">📖 Theory</button>
+            <button class="control-btn" data-mode="experiment">🔬 Experiment</button>
+            <button class="control-btn" data-mode="dispersion">🌈 Dispersion</button>
+            <button class="control-btn" data-mode="data">📊 Data Analysis</button>
+        </div>
+        
+        <!-- Reset Button -->
+        <div style="text-align: center;">
+            <button class="control-btn reset-btn" id="resetBtn">🔄 Reset Everything</button>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let audioEnabled = true;
+        let currentMode = 'lesson';
+        let lessonSequence = null;
+        let charts = {};
+        let animationFrames = {};
+
+        // Audio System
+        class AudioNarrator {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.enabled = true;
+                this.queue = [];
+                this.speaking = false;
+                this.currentUtterance = null;
+            }
+
+            speak(text, priority = false) {
+                if (!this.enabled) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    if (priority) {
+                        this.stop();
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.9;
+                    
+                    utterance.onend = () => {
+                        this.speaking = false;
+                        this.currentUtterance = null;
+                        resolve();
+                        this.processQueue();
+                    };
+                    
+                    utterance.onerror = () => {
+                        this.speaking = false;
+                        this.currentUtterance = null;
+                        resolve();
+                        this.processQueue();
+                    };
+                    
+                    if (!this.speaking) {
+                        this.speaking = true;
+                        this.currentUtterance = utterance;
+                        this.synth.speak(utterance);
+                    } else {
+                        this.queue.push({ utterance, resolve });
+                    }
+                });
+            }
+
+            processQueue() {
+                if (this.queue.length > 0 && !this.speaking) {
+                    const item = this.queue.shift();
+                    this.speaking = true;
+                    this.currentUtterance = item.utterance;
+                    this.synth.speak(item.utterance);
+                }
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.queue = [];
+                this.speaking = false;
+                this.currentUtterance = null;
+            }
+
+            toggle() {
+                this.enabled = !this.enabled;
+                if (!this.enabled) this.stop();
+                return this.enabled;
+            }
+        }
+
+        const narrator = new AudioNarrator();
+
+        // Animation Functions
+        function animateSpectrum() {
+            const container = document.getElementById('spectrumContainer');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            const colors = [
+                { name: 'red', color: '#ff0000', angle: 10 },
+                { name: 'orange', color: '#ff8c00', angle: 5 },
+                { name: 'yellow', color: '#ffff00', angle: 0 },
+                { name: 'green', color: '#00ff00', angle: -5 },
+                { name: 'blue', color: '#0000ff', angle: -10 },
+                { name: 'indigo', color: '#4b0082', angle: -15 },
+                { name: 'violet', color: '#8b00ff', angle: -20 }
+            ];
+            
+            colors.forEach((c, i) => {
+                setTimeout(() => {
+                    const ray = document.createElement('div');
+                    ray.className = 'spectrum-ray';
+                    ray.style.background = `linear-gradient(90deg, ${c.color}, transparent)`;
+                    ray.style.top = `${80 + i * 20}px`;
+                    ray.style.transform = `rotate(${c.angle}deg)`;
+                    ray.style.animationDelay = `${i * 0.2}s`;
+                    container.appendChild(ray);
+                }, i * 100);
+            });
+        }
+
+        // Canvas Drawing Functions
+        function drawPrism(ctx, x, y, size) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.beginPath();
+            ctx.moveTo(0, -size);
+            ctx.lineTo(-size * 0.866, size * 0.5);
+            ctx.lineTo(size * 0.866, size * 0.5);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(144, 202, 249, 0.3)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(144, 202, 249, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawRay(ctx, x1, y1, x2, y2, color, label) {
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            
+            // Arrow head
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            ctx.translate(x2, y2);
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-10, -5);
+            ctx.lineTo(-10, 5);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.restore();
+            
+            // Label
+            if (label) {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px Arial';
+                // Move incident ray and emergent ray labels up a bit more
+                let labelOffset = -10;
+                if (label === 'Incident Ray') {
+                    labelOffset = -25;
+                } else if (label === 'Emergent Ray') {
+                    labelOffset = 10;
+                }
+                ctx.fillText(label, (x1 + x2) / 2, (y1 + y2) / 2 + labelOffset);
+            }
+        }
+
+        // Experiment Animation
+        function animateExperiment() {
+            const canvas = document.getElementById('experimentCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let step = 0;
+            const steps = [
+                { pins: ['P', 'Q'], description: "Pins P and Q on incident ray" },
+                { pins: ['P', 'Q', 'R', 'S'], description: "All pins aligned" }
+            ];
+            
+            function drawStep() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw prism
+                drawPrism(ctx, 400, 250, 100);
+                
+                // Draw rays
+                drawRay(ctx, 100, 200, 350, 250, '#ff6b6b', 'Incident Ray');
+                drawRay(ctx, 350, 250, 450, 250, '#4ecdc4', 'Refracted Ray');
+                drawRay(ctx, 450, 250, 700, 200, '#45b7d1', 'Emergent Ray');
+                
+                // Draw pins
+                const pinPositions = {
+                    P: [150, 204],
+                    Q: [250, 225],
+                    R: [550, 225],
+                    S: [650, 204]
+                };
+                
+                steps[step].pins.forEach(pin => {
+                    const [x, y] = pinPositions[pin];
+                    ctx.fillStyle = '#ff6b6b';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(pin, x - 5, y - 10);
+                });
+                
+                // Description
+                ctx.fillStyle = '#4facfe';
+                ctx.font = '16px Arial';
+                ctx.fillText(steps[step].description, 300, 50);
+                
+                step = (step + 1) % steps.length;
+            }
+            
+            drawStep();
+            animationFrames.experiment = setInterval(drawStep, 2000);
+        }
+
+        // Dispersion Animation
+        function animateDispersion() {
+            const canvas = document.getElementById('dispersionCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let time = 0;
+            
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // White light source
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(100, 250, 20, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // White beam
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.moveTo(120, 250);
+                ctx.lineTo(350, 250);
+                ctx.stroke();
+                
+                // Prism
+                drawPrism(ctx, 400, 250, 100);
+                
+                // Spectrum
+                const colors = ['#ff0000', '#ff8c00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#8b00ff'];
+                colors.forEach((color, i) => {
+                    const angle = -20 + i * 6;
+                    const rad = angle * Math.PI / 180;
+                    const endX = 450 + 200 * Math.cos(rad);
+                    const endY = 250 + 200 * Math.sin(rad);
+                    
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 4;
+                    ctx.globalAlpha = 0.6 + 0.4 * Math.sin(time * 0.05 + i * 0.5);
+                    ctx.beginPath();
+                    ctx.moveTo(450, 250);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                });
+                
+                ctx.globalAlpha = 1;
+                time++;
+                animationFrames.dispersion = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+
+        // Chart Setup
+        function setupCharts() {
+            // Deviation vs Incident Angle Chart
+            const ctx1 = document.getElementById('deviationChart');
+            if (ctx1) {
+                const incidentAngles = [30, 35, 40, 45, 50, 55, 60, 65, 70];
+                const deviations = [44.2, 38.7, 36.1, 35.6, 36.4, 38.2, 40.7, 44.5, 49.2];
+                
+                charts.deviation = new Chart(ctx1.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: incidentAngles,
+                        datasets: [{
+                            label: 'Angle of Deviation',
+                            data: deviations,
+                            borderColor: '#4facfe',
+                            backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Deviation vs Incident Angle',
+                                color: '#ffffff',
+                                font: { size: 16 }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Incident Angle (°)', color: '#ffffff' },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Deviation (°)', color: '#ffffff' },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Dispersion Chart
+            const ctx2 = document.getElementById('dispersionChart');
+            if (ctx2) {
+                charts.dispersion = new Chart(ctx2.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Indigo', 'Violet'],
+                        datasets: [{
+                            label: 'Refractive Index',
+                            data: [1.514, 1.516, 1.518, 1.521, 1.526, 1.530, 1.535],
+                            backgroundColor: [
+                                '#ff0000', '#ff8c00', '#ffff00', '#00ff00',
+                                '#0000ff', '#4b0082', '#8b00ff'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Wavelength-Dependent Refractive Index',
+                                color: '#ffffff',
+                                font: { size: 16 }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: { display: true, text: 'Refractive Index', color: '#ffffff' },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' },
+                                min: 1.51
+                            },
+                            x: {
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Complete Lesson Sequence
+        class LessonSequence {
+            constructor() {
+                this.sections = ['theory', 'experiment', 'dispersion', 'data'];
+                this.currentSection = 0;
+                this.timeout = null;
+                this.running = false;
+            }
+
+            async start() {
+                this.stop();
+                this.running = true;
+                this.currentSection = 0;
+                
+                // Start with lesson introduction
+                
+                if (!this.running) return;
+                
+                // Cycle through sections
+                await this.runNextSection();
+            }
+
+            async runNextSection() {
+                if (!this.running || this.currentSection >= this.sections.length) {
+                    if (this.running) {
+                        // Lesson completed, stop the sequence
+                        await narrator.speak("We have completed our comprehensive study of prism optics. The lesson is now complete.");
+                        this.stop();
+                    }
+                    return;
+                }
+
+                const section = this.sections[this.currentSection];
+                this.showSection(section);
+
+                switch(section) {
+                    case 'theory':
+                        await narrator.speak("Let's begin with the theoretical foundations. A prism is a transparent optical element that refracts light according to Snell's law. The key formula is n₁ sin θ₁ equals n₂ sin θ₂, where n represents the refractive index.");
+                        await this.wait(5000);
+                        await narrator.speak("The deviation of light depends on the angle of incidence, the prism angle, and the refractive index. The deviation formula is δ equals i plus e minus A.");
+                        await this.wait(5000);
+                        break;
+                        
+                    case 'experiment':
+                        animateExperiment();
+                        await narrator.speak("Now let's trace the path of light through a prism using the pin method. We place pins P and Q on the incident ray, then look through the prism to align pins R and S.");
+                        await this.wait(5000);
+                        await narrator.speak("By connecting these points, we can visualize the complete path of light: incident ray, refracted ray inside the prism, and emergent ray.");
+                        await this.wait(5000);
+                        break;
+                        
+                    case 'dispersion':
+                        animateDispersion();
+                        await narrator.speak("When white light passes through a prism, it separates into its component colors. This phenomenon is called dispersion. Violet light, with the shortest wavelength, bends the most.");
+                        await this.wait(5000);
+                        await narrator.speak("Red light, with the longest wavelength, bends the least. This creates the beautiful spectrum we see in rainbows and through prisms.");
+                        await this.wait(5000);
+                        break;
+                        
+                    case 'data':
+                        setupCharts();
+                        await narrator.speak("Let's analyze the experimental data. The graph shows how the angle of deviation varies with the incident angle. Notice the minimum deviation point at around 45 degrees.");
+                        await this.wait(5000);
+                        await narrator.speak("The bar chart displays how refractive index varies with wavelength. Shorter wavelengths have higher refractive indices, explaining why violet light bends more than red.");
+                        await this.wait(5000);
+                        break;
+                }
+
+                if (this.running) {
+                    this.currentSection++;
+                    await this.runNextSection();
+                }
+            }
+
+            showSection(section) {
+                // Hide all sections
+                document.querySelectorAll('.display-section').forEach(s => {
+                    s.classList.remove('active');
+                });
+                
+                // Clear animations
+                this.clearAnimations();
+                
+                // Show the appropriate section
+                document.getElementById(`${section}-section`).classList.add('active');
+            }
+
+            wait(ms) {
+                return new Promise(resolve => {
+                    this.timeout = setTimeout(resolve, ms);
+                });
+            }
+
+            stop() {
+                this.running = false;
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                    this.timeout = null;
+                }
+                narrator.stop();
+                this.clearAnimations();
+            }
+
+            clearAnimations() {
+                Object.values(animationFrames).forEach(frame => {
+                    if (typeof frame === 'number') {
+                        cancelAnimationFrame(frame);
+                    } else {
+                        clearInterval(frame);
+                    }
+                });
+                animationFrames = {};
+            }
+        }
+
+        // Reset Function
+        function resetEverything() {
+            // Stop all sequences and animations
+            if (lessonSequence) {
+                lessonSequence.stop();
+            }
+            narrator.stop();
+            
+            // Clear all animations
+            Object.values(animationFrames).forEach(frame => {
+                if (typeof frame === 'number') {
+                    cancelAnimationFrame(frame);
+                } else {
+                    clearInterval(frame);
+                }
+            });
+            animationFrames = {};
+            
+            // Clear charts
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            charts = {};
+            
+            // Reset to complete lesson
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('[data-mode="lesson"]').classList.add('active');
+            
+            document.querySelectorAll('.display-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById('lesson-section').classList.add('active');
+            
+            currentMode = 'lesson';
+            
+            // Restart lesson sequence
+            setTimeout(() => {
+                lessonSequence.start();
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }, 1500);
+
+            // Initialize lesson sequence
+            lessonSequence = new LessonSequence();
+            
+            // Start complete lesson after loading
+            setTimeout(() => {
+                if (currentMode === 'lesson') {
+                    lessonSequence.start();
+                }
+            }, 2000);
+
+            // Control buttons
+            document.querySelectorAll('.control-btn:not(.reset-btn)').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const mode = this.getAttribute('data-mode');
+                    
+                    // Stop current animations and narration
+                    if (lessonSequence) lessonSequence.stop();
+                    narrator.stop();
+                    Object.values(animationFrames).forEach(frame => {
+                        if (typeof frame === 'number') {
+                            cancelAnimationFrame(frame);
+                        } else {
+                            clearInterval(frame);
+                        }
+                    });
+                    animationFrames = {};
+                    
+                    // Update active button
+                    document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Hide all sections
+                    document.querySelectorAll('.display-section').forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    
+                    currentMode = mode;
+                    
+                    // Show appropriate section and start its content
+                    switch(mode) {
+                        case 'lesson':
+                            document.getElementById('lesson-section').classList.add('active');
+                            animateSpectrum();
+                            lessonSequence.start();
+                            break;
+                            
+                        case 'theory':
+                            document.getElementById('theory-section').classList.add('active');
+                            narrator.speak("Exploring the theoretical foundations of prism optics. Study the key concepts and formulas that govern light refraction through prisms.", true);
+                            break;
+                            
+                        case 'experiment':
+                            document.getElementById('experiment-section').classList.add('active');
+                            animateExperiment();
+                            narrator.speak("Let's trace the path of light through a prism using the pin method. Observe how we can experimentally determine the light's path.", true);
+                            break;
+                            
+                        case 'dispersion':
+                            document.getElementById('dispersion-section').classList.add('active');
+                            animateDispersion();
+                            narrator.speak("Watch how white light separates into a beautiful spectrum of colors. Each wavelength refracts differently, creating the rainbow effect.", true);
+                            break;
+                            
+                        case 'data':
+                            document.getElementById('data-section').classList.add('active');
+                            setupCharts();
+                            narrator.speak("Analyzing experimental data reveals important relationships. The deviation curve shows a minimum point, while the dispersion chart illustrates wavelength-dependent refraction.", true);
+                            break;
+                    }
+                });
+            });
+
+            // Reset button
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                narrator.speak("Resetting everything and restarting the complete lesson.", true);
+                resetEverything();
+            });
+
+            // Audio toggle
+            document.getElementById('audio-toggle').addEventListener('click', function() {
+                audioEnabled = narrator.toggle();
+                this.textContent = audioEnabled ? '🔊' : '🔇';
+            });
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            narrator.stop();
+            if (lessonSequence) lessonSequence.stop();
+        });
+    </script>
+</body>
+</html>

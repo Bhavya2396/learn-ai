@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uniform Circular Motion - Physics in Motion</title>
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(16, 185, 129, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(16, 185, 129, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(45deg, #10b981, #34d399, #6ee7b7);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Demo Stage */
+        .demo-stage {
+            background: linear-gradient(to bottom, #1e293b, #334155, #475569);
+            border-radius: 25px;
+            min-height: 500px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            border: 3px solid rgba(16, 185, 129, 0.4);
+            padding: 40px;
+        }
+
+        /* Introduction Demo */
+        .intro-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 500px;
+        }
+
+        .intro-demo.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .intro-content {
+            text-align: center;
+            max-width: 800px;
+        }
+
+        .intro-title {
+            color: #10b981;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        .intro-description {
+            font-size: 1.3rem;
+            line-height: 1.8;
+            color: #e2e8f0;
+            margin-bottom: 40px;
+        }
+
+        .key-question {
+            background: rgba(16, 185, 129, 0.2);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 4px solid #10b981;
+            font-size: 1.2rem;
+            font-style: italic;
+            color: #34d399;
+            margin: 20px 0;
+        }
+
+        /* Track Evolution Demo */
+        .track-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 500px;
+        }
+
+        .track-demo.active {
+            display: block;
+        }
+
+        .tracks-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            height: 100%;
+        }
+
+        .track-section {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .track-title {
+            color: #10b981;
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .track-canvas {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            margin: 20px 0;
+        }
+
+        .track-shape {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 3px solid #10b981;
+            background: transparent;
+        }
+
+        .rectangular-track {
+            width: 160px;
+            height: 120px;
+            border-radius: 5px;
+        }
+
+        .hexagonal-track {
+            width: 140px;
+            height: 140px;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            border: none;
+            background: linear-gradient(45deg, transparent 49%, #10b981 49%, #10b981 51%, transparent 51%);
+        }
+
+        .octagonal-track {
+            width: 140px;
+            height: 140px;
+            clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+            border: none;
+            background: linear-gradient(22.5deg, transparent 49%, #10b981 49%, #10b981 51%, transparent 51%);
+        }
+
+        .circular-track {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+        }
+
+        .athlete {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #f59e0b;
+            border-radius: 50%;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .direction-changes {
+            color: #34d399;
+            font-size: 1.1rem;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .track-explanation {
+            color: #e2e8f0;
+            font-size: 1rem;
+            line-height: 1.5;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        /* Stone and Thread Demo (Activity 7.11) */
+        .activity-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 500px;
+        }
+
+        .activity-demo.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .activity-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+        }
+
+        .circular-path {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            border: 2px dashed rgba(16, 185, 129, 0.5);
+            border-radius: 50%;
+        }
+
+        .center-point {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            background: #f59e0b;
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+            z-index: 10;
+        }
+
+        .thread {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 150px;
+            height: 2px;
+            background: #9ca3af;
+            transform-origin: left center;
+            transform: translateY(-50%);
+            z-index: 5;
+        }
+
+        .stone {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            border-radius: 50%;
+            top: -12.5px;
+            right: -12.5px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+            z-index: 15;
+        }
+
+        .velocity-arrow {
+            position: absolute;
+            width: 60px;
+            height: 3px;
+            background: #ef4444;
+            opacity: 0;
+            transform-origin: left center;
+            z-index: 8;
+        }
+
+        .velocity-arrow::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: -4px;
+            width: 0;
+            height: 0;
+            border-left: 10px solid #ef4444;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+        }
+
+        .tangent-line {
+            position: absolute;
+            width: 200px;
+            height: 2px;
+            background: #34d399;
+            opacity: 0;
+            transform-origin: left center;
+            z-index: 6;
+        }
+
+        .activity-instructions {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 25px;
+            border-radius: 15px;
+            border: 2px solid rgba(16, 185, 129, 0.4);
+            text-align: center;
+            max-width: 350px;
+        }
+
+        .activity-title {
+            color: #10b981;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .activity-text {
+            color: #e2e8f0;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        /* Formula Demo */
+        .formula-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 500px;
+        }
+
+        .formula-demo.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .formula-container {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 20px;
+            padding: 40px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .formula-title {
+            color: #10b981;
+            font-size: 2rem;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        .main-formula {
+            font-family: 'Courier New', monospace;
+            font-size: 3rem;
+            color: #fbbf24;
+            margin: 30px 0;
+            padding: 25px;
+            background: rgba(251, 191, 36, 0.1);
+            border-radius: 15px;
+            border: 2px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .formula-explanation {
+            color: #e2e8f0;
+            font-size: 1.2rem;
+            line-height: 1.8;
+            margin: 20px 0;
+        }
+
+        .variable-definitions {
+            background: rgba(16, 185, 129, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            margin-top: 25px;
+        }
+
+        .variable-title {
+            color: #10b981;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .variable-list {
+            color: #e2e8f0;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        /* Real World Examples Demo */
+        .examples-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 500px;
+        }
+
+        .examples-demo.active {
+            display: block;
+        }
+
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            height: 100%;
+        }
+
+        .example-card {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .example-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .example-title {
+            color: #10b981;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .example-description {
+            color: #e2e8f0;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            flex-grow: 1;
+        }
+
+        .example-highlight {
+            background: rgba(16, 185, 129, 0.2);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            color: #34d399;
+            font-weight: 600;
+        }
+
+        /* Interactive Circular Motion Demo */
+        .interactive-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 500px;
+        }
+
+        .interactive-demo.active {
+            display: flex;
+            gap: 30px;
+        }
+
+        .motion-display {
+            flex: 2;
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            position: relative;
+        }
+
+        .controls-panel {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .controls-title {
+            color: #10b981;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .control-group {
+            margin: 20px 0;
+        }
+
+        .control-label {
+            display: block;
+            color: #34d399;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .control-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid rgba(16, 185, 129, 0.4);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+        }
+
+        .control-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 0;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .info-display {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            color: #e2e8f0;
+        }
+
+        .info-label {
+            color: #34d399;
+            font-weight: 600;
+        }
+
+        .info-value {
+            color: #fbbf24;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Interactive motion elements */
+        .interactive-circular-path {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px dashed rgba(16, 185, 129, 0.5);
+            border-radius: 50%;
+        }
+
+        .interactive-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 15px;
+            height: 15px;
+            background: #f59e0b;
+            border-radius: 50%;
+            z-index: 10;
+        }
+
+        .interactive-object {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #ef4444;
+            border-radius: 50%;
+            z-index: 15;
+        }
+
+        .interactive-velocity {
+            position: absolute;
+            height: 3px;
+            background: #34d399;
+            opacity: 0.8;
+            transform-origin: left center;
+            z-index: 8;
+        }
+
+        .interactive-velocity::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: -3px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid #34d399;
+            border-top: 3px solid transparent;
+            border-bottom: 3px solid transparent;
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+            min-width: 150px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
+        }
+
+        /* Theory Section */
+        .theory-section {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(16, 185, 129, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .concept-box {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(52, 211, 153, 0.2));
+            padding: 25px;
+            border-radius: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .concept-title {
+            font-size: 1.5rem;
+            color: #10b981;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .concept-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #e2e8f0;
+        }
+
+        .activity-box {
+            background: rgba(245, 158, 11, 0.1);
+            padding: 25px;
+            border-radius: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .activity-box-title {
+            color: #f59e0b;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .activity-steps {
+            list-style: none;
+            padding: 0;
+        }
+
+        .activity-steps li {
+            padding: 8px 0;
+            padding-left: 20px;
+            position: relative;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        .activity-steps li:before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #f59e0b;
+            font-size: 1.2rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2.2rem; }
+            .demo-stage { padding: 30px 20px; min-height: 400px; }
+            .demo-buttons { flex-direction: column; align-items: center; }
+            .tracks-container { grid-template-columns: 1fr; }
+            .examples-grid { grid-template-columns: 1fr; }
+            .interactive-demo { flex-direction: column; }
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 20px 15px; }
+            .header h1 { font-size: 1.8rem; }
+            .demo-stage { padding: 20px 15px; }
+            .theory-section { padding: 20px; }
+            .main-formula { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Uniform Circular Motion</h1>
+            <p>Explore how objects can accelerate even when moving at constant speed! Discover the fascinating world of circular motion and understand why direction matters as much as speed.</p>
+        </div>
+
+        <!-- Demo Stage -->
+        <div class="demo-stage" id="stage">
+            <!-- Introduction Demo -->
+            <div class="intro-demo" id="intro-demo">
+                <div class="intro-content">
+                    <div class="intro-title">What is Uniform Circular Motion?</div>
+                    <div class="intro-description">
+                        When the velocity of an object changes, we say that the object is accelerating. 
+                        The change in velocity could be due to change in its magnitude or the direction of motion or both.
+                    </div>
+                    <div class="key-question">
+                        Can you think of an example when an object does not change its magnitude of velocity 
+                        but only its direction of motion?
+                    </div>
+                    <div class="intro-description">
+                        When an object moves in a circular path with uniform speed, its motion is called 
+                        <strong>uniform circular motion</strong>. Even though the speed remains constant, 
+                        the object is still accelerating because its direction is continuously changing!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Track Evolution Demo -->
+            <div class="track-demo" id="track-demo">
+                <div class="tracks-container">
+                    <div class="track-section">
+                        <div class="track-title">Rectangular Track</div>
+                        <div class="track-canvas">
+                            <div class="track-shape rectangular-track"></div>
+                            <div class="athlete" id="rect-athlete">🏃</div>
+                        </div>
+                        <div class="direction-changes">Direction changes: 4 times</div>
+                        <div class="track-explanation">
+                            The athlete changes direction at each corner (A→B→C→D→A)
+                        </div>
+                    </div>
+
+                    <div class="track-section">
+                        <div class="track-title">Hexagonal Track</div>
+                        <div class="track-canvas">
+                            <div class="track-shape hexagonal-track"></div>
+                            <div class="athlete" id="hex-athlete">🏃</div>
+                        </div>
+                        <div class="direction-changes">Direction changes: 6 times</div>
+                        <div class="track-explanation">
+                            More sides mean more frequent direction changes
+                        </div>
+                    </div>
+
+                    <div class="track-section">
+                        <div class="track-title">Octagonal Track</div>
+                        <div class="track-canvas">
+                            <div class="track-shape octagonal-track"></div>
+                            <div class="athlete" id="oct-athlete">🏃</div>
+                        </div>
+                        <div class="direction-changes">Direction changes: 8 times</div>
+                        <div class="track-explanation">
+                            Even more sides, even more direction changes
+                        </div>
+                    </div>
+
+                    <div class="track-section">
+                        <div class="track-title">Circular Track</div>
+                        <div class="track-canvas">
+                            <div class="track-shape circular-track"></div>
+                            <div class="athlete" id="circ-athlete">🏃</div>
+                        </div>
+                        <div class="direction-changes">Direction changes: Continuously!</div>
+                        <div class="track-explanation">
+                            Infinite sides → continuous direction change → uniform circular motion
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity 7.11 Demo -->
+            <div class="activity-demo" id="activity-demo">
+                <div class="activity-instructions">
+                    <div class="activity-title">Activity 7.11</div>
+                    <div class="activity-text">
+                        Stone tied to thread moving in circular path. 
+                        Watch what happens when released!
+                    </div>
+                </div>
+                
+                <div class="activity-container">
+                    <div class="circular-path"></div>
+                    <div class="center-point"></div>
+                    <div class="thread" id="thread">
+                        <div class="stone" id="stone"></div>
+                    </div>
+                    <div class="velocity-arrow" id="velocity-arrow"></div>
+                    <div class="tangent-line" id="tangent-line"></div>
+                </div>
+            </div>
+
+            <!-- Formula Demo -->
+            <div class="formula-demo" id="formula-demo">
+                <div class="formula-container">
+                    <div class="formula-title">Speed in Circular Motion</div>
+                    <div class="formula-explanation">
+                        We know that the circumference of a circle of radius r is given by 2πr. 
+                        If an object takes t seconds to complete one circular path, the speed v is:
+                    </div>
+                    <div class="main-formula">v = 2πr/t</div>
+                    <div class="variable-definitions">
+                        <div class="variable-title">Where:</div>
+                        <div class="variable-list">
+                            <strong>v</strong> = speed of the object (m/s)<br>
+                            <strong>r</strong> = radius of the circular path (m)<br>
+                            <strong>t</strong> = time period for one complete revolution (s)<br>
+                            <strong>2πr</strong> = circumference of the circle (m)
+                        </div>
+                    </div>
+                    <div class="formula-explanation">
+                        This formula shows that even though the object moves at constant speed, 
+                        it's continuously changing direction, making it an accelerated motion!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Real World Examples Demo -->
+            <div class="examples-demo" id="examples-demo">
+                <div class="examples-grid">
+                    <div class="example-card">
+                        <div class="example-icon">🌍</div>
+                        <div class="example-title">Earth and Moon</div>
+                        <div class="example-description">
+                            The Moon orbits Earth in a nearly circular path. Despite moving at constant speed, 
+                            it's continuously accelerating toward Earth due to gravitational force.
+                        </div>
+                        <div class="example-highlight">Natural Circular Motion</div>
+                    </div>
+
+                    <div class="example-card">
+                        <div class="example-icon">🛰️</div>
+                        <div class="example-title">Satellites</div>
+                        <div class="example-description">
+                            Artificial satellites in circular orbits around Earth maintain constant speed 
+                            but continuously change direction, demonstrating uniform circular motion.
+                        </div>
+                        <div class="example-highlight">Technological Application</div>
+                    </div>
+
+                    <div class="example-card">
+                        <div class="example-icon">🚴</div>
+                        <div class="example-title">Cyclist on Circular Track</div>
+                        <div class="example-description">
+                            A cyclist moving at constant speed on a circular track experiences uniform circular motion. 
+                            The track provides the centripetal force needed to change direction.
+                        </div>
+                        <div class="example-highlight">Sports Example</div>
+                    </div>
+
+                    <div class="example-card">
+                        <div class="example-icon">🥏</div>
+                        <div class="example-title">Hammer/Discus Throw</div>
+                        <div class="example-description">
+                            Athletes rotate their body to give circular motion to hammer or discus. 
+                            When released, the object moves tangentially in the direction it was moving at that instant.
+                        </div>
+                        <div class="example-highlight">Athletic Application</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Demo -->
+            <div class="interactive-demo" id="interactive-demo">
+                <div class="motion-display">
+                    <div class="interactive-circular-path" id="interactive-path"></div>
+                    <div class="interactive-center"></div>
+                    <div class="interactive-object" id="interactive-object"></div>
+                    <div class="interactive-velocity" id="interactive-velocity"></div>
+                </div>
+
+                <div class="controls-panel">
+                    <div class="controls-title">Motion Controls</div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Radius (m):</label>
+                        <input type="range" class="control-input" id="radius-slider" min="50" max="150" value="100">
+                        <span id="radius-value">100</span>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Speed (m/s):</label>
+                        <input type="range" class="control-input" id="speed-slider" min="1" max="10" value="5">
+                        <span id="speed-value">5</span>
+                    </div>
+
+                    <button class="control-btn" onclick="startMotion()">Start Motion</button>
+                    <button class="control-btn" onclick="stopMotion()">Stop Motion</button>
+                    <button class="control-btn" onclick="showVelocity()">Show Velocity Vector</button>
+
+                    <div class="info-display">
+                        <div class="info-item">
+                            <span class="info-label">Circumference:</span>
+                            <span class="info-value" id="circumference-display">628 m</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Time Period:</span>
+                            <span class="info-value" id="period-display">125.6 s</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Angular Velocity:</span>
+                            <span class="info-value" id="angular-velocity-display">0.05 rad/s</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="demo-title">Explore Uniform Circular Motion</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playCompleteLesson()">📚 Complete Lesson</button>
+                <button class="demo-btn" onclick="showIntroduction()">🎯 Introduction</button>
+                <button class="demo-btn" onclick="showTrackEvolution()">🏃 Track Evolution</button>
+                <button class="demo-btn" onclick="showActivity()">🪨 Activity 7.11</button>
+                <button class="demo-btn" onclick="showFormula()">📐 Speed Formula</button>
+                <button class="demo-btn" onclick="showExamples()">🌍 Real World Examples</button>
+                <button class="demo-btn" onclick="showInteractive()">🎮 Interactive Demo</button>
+                <button class="demo-btn" onclick="resetAllClick()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Theory Section -->
+        <div class="theory-section">
+            <div class="concept-box">
+                <div class="concept-title">Key Concept: Uniform Circular Motion</div>
+                <div class="concept-text">
+                    When an object moves in a circular path with uniform speed, its motion is called uniform circular motion. 
+                    Even though the speed (magnitude of velocity) remains constant, the velocity is continuously changing 
+                    because the direction of motion is continuously changing. This makes uniform circular motion an example 
+                    of accelerated motion.
+                </div>
+            </div>
+
+            <div class="concept-box">
+                <div class="concept-title">From Polygons to Circles</div>
+                <div class="concept-text">
+                    Consider an athlete running on tracks of different shapes:<br><br>
+                    • <strong>Rectangular track:</strong> 4 direction changes per lap<br>
+                    • <strong>Hexagonal track:</strong> 6 direction changes per lap<br>
+                    • <strong>Octagonal track:</strong> 8 direction changes per lap<br><br>
+                    As the number of sides increases, the athlete has to change direction more frequently. 
+                    When the number of sides approaches infinity, the track becomes circular, and the direction 
+                    changes continuously at every point.
+                </div>
+            </div>
+
+            <div class="activity-box">
+                <div class="activity-box-title">Activity 7.11: Stone and Thread Experiment</div>
+                <ul class="activity-steps">
+                    <li>Take a piece of thread and tie a small stone at one end</li>
+                    <li>Hold the other end and move the stone in a circular path with constant speed</li>
+                    <li>Observe the motion of the stone - it follows a circular path</li>
+                    <li>Release the thread and observe what happens</li>
+                    <li>The stone moves along a straight line tangential to the circular path</li>
+                    <li>This shows that the direction of motion was changing at every point during circular motion</li>
+                </ul>
+            </div>
+
+            <div class="concept-box">
+                <div class="concept-title">Speed in Circular Motion</div>
+                <div class="concept-text">
+                    For an object moving in a circular path of radius r, if it takes time t to complete one full revolution:<br><br>
+                    <strong>Distance covered = Circumference = 2πr</strong><br>
+                    <strong>Speed = Distance ÷ Time = 2πr ÷ t</strong><br><br>
+                    Therefore: <strong>v = 2πr/t</strong><br><br>
+                    This formula gives us the constant speed of the object, but remember that the velocity 
+                    (which includes direction) is continuously changing.
+                </div>
+            </div>
+
+            <div class="concept-box">
+                <div class="concept-title">Real World Applications</div>
+                <div class="concept-text">
+                    Uniform circular motion is observed in many natural and artificial systems:<br><br>
+                    • <strong>Celestial Motion:</strong> Moon orbiting Earth, planets orbiting the Sun<br>
+                    • <strong>Technology:</strong> Satellites in circular orbits, wheels of vehicles<br>
+                    • <strong>Sports:</strong> Hammer throw, discus throw, cycling on circular tracks<br>
+                    • <strong>Everyday Life:</strong> Hands of a clock, washing machine drum, ceiling fans<br><br>
+                    In all these cases, the objects maintain constant speed but continuously change direction, 
+                    making them examples of accelerated motion despite constant speed.
+                </div>
+            </div>
+
+            <div class="concept-box">
+                <div class="concept-title">Important Points to Remember</div>
+                <div class="concept-text">
+                    • Uniform circular motion is accelerated motion even though speed is constant<br>
+                    • The acceleration is due to continuous change in direction, not speed<br>
+                    • When released, objects in circular motion move tangentially<br>
+                    • The centripetal force is required to maintain circular motion<br>
+                    • Speed = 2πr/t, where r is radius and t is time period<br>
+                    • Velocity and speed are different - velocity includes direction
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice Teacher System
+        class PhysicsTeacher {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.9, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+        }
+
+        // Global state management
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let isPlaying = false;
+        let animationTimeline = null;
+        let currentDemoAborted = false;
+        let activeAnimations = [];
+        let currentRunId = 0;
+        let motionAnimation = null;
+        let isMotionRunning = false;
+
+        // State management functions
+        function createNewTimeline() {
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            gsap.killTweensOf("*");
+            
+            const newTimeline = gsap.timeline();
+            animationTimeline = newTimeline;
+            return newTimeline;
+        }
+
+        function trackAnimation(animation) {
+            if (animation) {
+                activeAnimations.push(animation);
+            }
+            return animation;
+        }
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            
+            // Stop teacher
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            // Kill all animations
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            
+            gsap.killTweensOf("*");
+            
+            // Stop interactive motion
+            if (motionAnimation) {
+                motionAnimation.kill();
+                motionAnimation = null;
+            }
+            isMotionRunning = false;
+            
+            // Hide all demos
+            document.querySelectorAll('.intro-demo, .track-demo, .activity-demo, .formula-demo, .examples-demo, .interactive-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            isPlaying = false;
+        }
+
+        function shouldContinue() {
+            return !currentDemoAborted;
+        }
+
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTeacher = new PhysicsTeacher();
+            return currentTeacher;
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            const teacher = createNewTeacher();
+            teacher.speak("Welcome to Uniform Circular Motion! Let's explore how objects can accelerate even when moving at constant speed by continuously changing direction!");
+            
+            // Initialize interactive controls
+            updateInteractiveValues();
+        });
+
+        // Complete Lesson
+        async function playCompleteLesson() {
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            const teacher = createNewTeacher();
+            
+            await resetAll();
+            await wait(100);
+            if (!shouldContinue()) return;
+            
+            updateTitle("📚 Complete Uniform Circular Motion Lesson");
+            
+            await teacher.speak("Let's begin our complete lesson on Uniform Circular Motion. We'll understand how constant speed can still mean acceleration!");
+            if (!shouldContinue()) return;
+            
+            // Start with introduction
+            await showIntroductionInternal(teacher);
+            if (!shouldContinue()) return;
+            
+            await wait(2000);
+            
+            // Show track evolution
+            await teacher.speak("Let's see how different track shapes lead us to understand circular motion.");
+            if (!shouldContinue()) return;
+            await showTrackEvolutionInternal(teacher);
+            if (!shouldContinue()) return;
+            
+            await wait(2000);
+            
+            // Show Activity 7.11
+            await teacher.speak("Now let's perform Activity 7.11 to see circular motion in action.");
+            if (!shouldContinue()) return;
+            await showActivityInternal(teacher);
+            if (!shouldContinue()) return;
+            
+            await wait(2000);
+            
+            // Show formula
+            await teacher.speak("Let's derive the formula for speed in circular motion.");
+            if (!shouldContinue()) return;
+            await showFormulaInternal(teacher);
+            if (!shouldContinue()) return;
+            
+            await wait(2000);
+            
+            // Show examples
+            await teacher.speak("Finally, let's see how uniform circular motion appears in the real world around us.");
+            if (!shouldContinue()) return;
+            await showExamplesInternal(teacher);
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("Excellent! You now understand that uniform circular motion is accelerated motion because direction continuously changes, even when speed remains constant!");
+            
+            isPlaying = false;
+        }
+
+        // Introduction Demo
+        async function showIntroduction() {
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            const teacher = createNewTeacher();
+            await showIntroductionInternal(teacher);
+            
+            isPlaying = false;
+        }
+
+        async function showIntroductionInternal(teacher) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue()) return;
+            
+            updateTitle("🎯 Understanding Circular Motion");
+            
+            document.getElementById('intro-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("When an object's velocity changes, we say it's accelerating. This change can be in magnitude, direction, or both.");
+            if (!shouldContinue()) return;
+            
+            await wait(3000);
+            
+            await teacher.speak("Can you think of an example where speed stays constant but direction keeps changing? That's exactly what happens in uniform circular motion!");
+            if (!shouldContinue()) return;
+            
+            await wait(3000);
+            
+            await teacher.speak("Even though the speed is constant, the object is still accelerating because its direction is continuously changing. This is a key insight in physics!");
+        }
+
+        // Track Evolution Demo
+        async function showTrackEvolution() {
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            const teacher = createNewTeacher();
+            await showTrackEvolutionInternal(teacher);
+            
+            isPlaying = false;
+        }
+
+        async function showTrackEvolutionInternal(teacher) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue()) return;
+            
+            updateTitle("🏃 From Polygons to Circles");
+            
+            document.getElementById('track-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("Let's see how an athlete's motion changes as we go from rectangular to circular tracks.");
+            if (!shouldContinue()) return;
+            
+            // Animate athletes on different tracks
+            await animateAthleteOnTrack('rect-athlete', 'rectangular');
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("On a rectangular track, the athlete changes direction 4 times per lap - at each corner.");
+            if (!shouldContinue()) return;
+            
+            await wait(2000);
+            
+            await animateAthleteOnTrack('hex-athlete', 'hexagonal');
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("On a hexagonal track, direction changes 6 times per lap. More sides mean more frequent direction changes.");
+            if (!shouldContinue()) return;
+            
+            await wait(2000);
+            
+            await animateAthleteOnTrack('oct-athlete', 'octagonal');
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("On an octagonal track, 8 direction changes per lap. Notice the pattern?");
+            if (!shouldContinue()) return;
+            
+            await wait(2000);
+            
+            await animateAthleteOnTrack('circ-athlete', 'circular');
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("On a circular track, the direction changes continuously at every point! This is uniform circular motion - constant speed but continuous acceleration due to changing direction.");
+        }
+
+        async function animateAthleteOnTrack(athleteId, trackType) {
+            const athlete = document.getElementById(athleteId);
+            if (!athlete) return;
+            
+            let path, duration;
+            
+            switch(trackType) {
+                case 'rectangular':
+                    path = [
+                        { x: -60, y: -40 }, { x: 60, y: -40 }, 
+                        { x: 60, y: 40 }, { x: -60, y: 40 }, { x: -60, y: -40 }
+                    ];
+                    duration = 4;
+                    break;
+                case 'hexagonal':
+                    path = [
+                        { x: 0, y: -60 }, { x: 52, y: -30 }, { x: 52, y: 30 },
+                        { x: 0, y: 60 }, { x: -52, y: 30 }, { x: -52, y: -30 }, { x: 0, y: -60 }
+                    ];
+                    duration = 4;
+                    break;
+                case 'octagonal':
+                    path = [
+                        { x: 0, y: -60 }, { x: 42, y: -42 }, { x: 60, y: 0 }, { x: 42, y: 42 },
+                        { x: 0, y: 60 }, { x: -42, y: 42 }, { x: -60, y: 0 }, { x: -42, y: -42 }, { x: 0, y: -60 }
+                    ];
+                    duration = 4;
+                    break;
+                case 'circular':
+                    trackAnimation(gsap.to(athlete, {
+                        rotation: 360,
+                        duration: 4,
+                        ease: "none",
+                        repeat: 1,
+                        motionPath: {
+                            path: "M0,-60 A60,60 0 1,1 0,60 A60,60 0 1,1 0,-60",
+                            autoRotate: false
+                        }
+                    }));
+                    return;
+            }
+            
+            trackAnimation(gsap.to(athlete, {
+                motionPath: { path: path, autoRotate: false },
+                duration: duration,
+                ease: "none",
+                repeat: 1
+            }));
+        }
+
+        // Activity 7.11 Demo
+        async function showActivity() {
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            const teacher = createNewTeacher();
+            await showActivityInternal(teacher);
+            
+            isPlaying = false;
+        }
+
+        async function showActivityInternal(teacher) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue()) return;
+            
+            updateTitle("🪨 Activity 7.11: Stone and Thread");
+            
+            document.getElementById('activity-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("Let's perform Activity 7.11. Take a stone tied to a thread and move it in a circular path with constant speed.");
+            if (!shouldContinue()) return;
+            
+            // Start circular motion animation
+            const thread = document.getElementById('thread');
+            const stone = document.getElementById('stone');
+            const velocityArrow = document.getElementById('velocity-arrow');
+            
+            animationTimeline = createNewTimeline();
+            
+            // Rotate thread and stone together
+            animationTimeline.to(thread, {
+                rotation: 360,
+                duration: 3,
+                ease: "none",
+                repeat: 2,
+                onUpdate: function() {
+                    const angle = this.progress() * 360;
+                    const radius = 150;
+                    const centerX = 200; // Center of activity container
+                    const centerY = 200;
+                    
+                    // Calculate stone position
+                    const stoneX = Math.cos((angle - 90) * Math.PI / 180) * radius;
+                    const stoneY = Math.sin((angle - 90) * Math.PI / 180) * radius;
+                    
+                    // Position velocity arrow tangent to circle
+                    gsap.set(velocityArrow, {
+                        opacity: 0.8,
+                        left: centerX + stoneX,
+                        top: centerY + stoneY,
+                        rotation: angle,
+                        transformOrigin: "left center"
+                    });
+                }
+            });
+            
+            await wait(2000);
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("Notice how the red arrow shows the velocity direction - it's always tangent to the circular path and continuously changing direction.");
+            if (!shouldContinue()) return;
+            
+            await wait(4000);
+            if (!shouldContinue()) return;
+            
+            // Stop circular motion and show tangential release
+            if (animationTimeline) {
+                animationTimeline.kill();
+            }
+            
+            await teacher.speak("Now watch what happens when we release the thread!");
+            if (!shouldContinue()) return;
+            
+            // Show tangent line and stone flying off
+            const tangentLine = document.getElementById('tangent-line');
+            gsap.set(tangentLine, { opacity: 1 });
+            
+            trackAnimation(gsap.to(stone, {
+                x: 200,
+                y: -100,
+                duration: 2,
+                ease: "none"
+            }));
+            
+            await wait(2500);
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("The stone moves along a straight line tangential to the circular path! This proves that the direction was changing at every point during circular motion.");
+        }
+
+        // Formula Demo
+        async function showFormula() {
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(4);
+            
+            const teacher = createNewTeacher();
+            await showFormulaInternal(teacher);
+            
+            isPlaying = false;
+        }
+
+        async function showFormulaInternal(teacher) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue()) return;
+            
+            updateTitle("📐 Speed Formula for Circular Motion");
+            
+            document.getElementById('formula-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("Let's derive the formula for speed in circular motion.");
+            if (!shouldContinue()) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("We know that the circumference of a circle with radius r is 2 pi r. If an object takes t seconds to complete one revolution, then speed equals distance divided by time.");
+            if (!shouldContinue()) return;
+            
+            await wait(4000);
+            
+            await teacher.speak("Therefore, speed v equals 2 pi r divided by t. This gives us the constant speed, but remember - the velocity is continuously changing due to changing direction!");
+        }
+
+        // Real World Examples Demo
+        async function showExamples() {
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(5);
+            
+            const teacher = createNewTeacher();
+            await showExamplesInternal(teacher);
+            
+            isPlaying = false;
+        }
+
+        async function showExamplesInternal(teacher) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue()) return;
+            
+            updateTitle("🌍 Real World Examples");
+            
+            document.getElementById('examples-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("Uniform circular motion is everywhere around us! Let's explore some fascinating examples.");
+            if (!shouldContinue()) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("The Moon orbits Earth in nearly circular motion. Despite constant speed, it's continuously accelerating toward Earth due to gravity.");
+            if (!shouldContinue()) return;
+            
+            await wait(3000);
+            
+            await teacher.speak("Satellites maintain circular orbits, cyclists on circular tracks, and even athletes throwing hammer or discus - all demonstrate uniform circular motion!");
+            if (!shouldContinue()) return;
+            
+            await wait(3000);
+            
+            await teacher.speak("In hammer throw, the athlete gives circular motion to the hammer. When released, it moves tangentially - just like our stone and thread experiment!");
+        }
+
+        // Interactive Demo
+        async function showInteractive() {
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(6);
+            
+            const teacher = createNewTeacher();
+            await showInteractiveInternal(teacher);
+            
+            isPlaying = false;
+        }
+
+        async function showInteractiveInternal(teacher) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue()) return;
+            
+            updateTitle("🎮 Interactive Circular Motion");
+            
+            document.getElementById('interactive-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue()) return;
+            
+            updateInteractiveValues();
+            
+            await teacher.speak("Use the interactive controls to experiment with circular motion. Change the radius and speed to see how they affect the motion!");
+            if (!shouldContinue()) return;
+        }
+
+        // Interactive motion functions
+        function updateInteractiveValues() {
+            const radiusSlider = document.getElementById('radius-slider');
+            const speedSlider = document.getElementById('speed-slider');
+            const radiusValue = document.getElementById('radius-value');
+            const speedValue = document.getElementById('speed-value');
+            const circumferenceDisplay = document.getElementById('circumference-display');
+            const periodDisplay = document.getElementById('period-display');
+            const angularVelocityDisplay = document.getElementById('angular-velocity-display');
+            const interactivePath = document.getElementById('interactive-path');
+            
+            if (!radiusSlider || !speedSlider) return;
+            
+            const radius = parseFloat(radiusSlider.value);
+            const speed = parseFloat(speedSlider.value);
+            
+            // Update display values
+            if (radiusValue) radiusValue.textContent = radius;
+            if (speedValue) speedValue.textContent = speed;
+            
+            // Calculate derived values
+            const circumference = 2 * Math.PI * radius;
+            const period = circumference / speed;
+            const angularVelocity = speed / radius;
+            
+            if (circumferenceDisplay) circumferenceDisplay.textContent = circumference.toFixed(1) + ' m';
+            if (periodDisplay) periodDisplay.textContent = period.toFixed(1) + ' s';
+            if (angularVelocityDisplay) angularVelocityDisplay.textContent = angularVelocity.toFixed(2) + ' rad/s';
+            
+            // Update visual path
+            if (interactivePath) {
+                interactivePath.style.width = (radius * 2) + 'px';
+                interactivePath.style.height = (radius * 2) + 'px';
+            }
+        }
+
+        function startMotion() {
+            if (isMotionRunning) return;
+            
+            const radiusSlider = document.getElementById('radius-slider');
+            const speedSlider = document.getElementById('speed-slider');
+            const interactiveObject = document.getElementById('interactive-object');
+            
+            if (!radiusSlider || !speedSlider || !interactiveObject) return;
+            
+            const radius = parseFloat(radiusSlider.value);
+            const speed = parseFloat(speedSlider.value);
+            const circumference = 2 * Math.PI * radius;
+            const period = circumference / speed;
+            
+            isMotionRunning = true;
+            
+            motionAnimation = gsap.to(interactiveObject, {
+                rotation: 360,
+                duration: period,
+                ease: "none",
+                repeat: -1,
+                transformOrigin: `${-radius}px center`,
+                onUpdate: function() {
+                    const angle = this.progress() * 360;
+                    const velocityArrow = document.getElementById('interactive-velocity');
+                    
+                    if (velocityArrow && velocityArrow.style.opacity > 0) {
+                        gsap.set(velocityArrow, {
+                            rotation: angle,
+                            width: speed * 10 + 'px'
+                        });
+                    }
+                }
+            });
+            
+            // Position object on circle
+            gsap.set(interactiveObject, {
+                left: '50%',
+                top: '50%',
+                x: radius,
+                y: 0
+            });
+            
+            if (currentTeacher) {
+                currentTeacher.speak(`Motion started with radius ${radius} meters and speed ${speed} meters per second.`);
+            }
+        }
+
+        function stopMotion() {
+            if (motionAnimation) {
+                motionAnimation.kill();
+                motionAnimation = null;
+            }
+            isMotionRunning = false;
+            
+            // Hide velocity arrow
+            const velocityArrow = document.getElementById('interactive-velocity');
+            if (velocityArrow) {
+                gsap.set(velocityArrow, { opacity: 0 });
+            }
+            
+            if (currentTeacher) {
+                currentTeacher.speak("Motion stopped.");
+            }
+        }
+
+        function showVelocity() {
+            const velocityArrow = document.getElementById('interactive-velocity');
+            const interactiveObject = document.getElementById('interactive-object');
+            
+            if (velocityArrow && interactiveObject) {
+                gsap.set(velocityArrow, {
+                    opacity: 0.8,
+                    left: interactiveObject.offsetLeft + 10,
+                    top: interactiveObject.offsetTop + 10
+                });
+                
+                if (currentTeacher) {
+                    currentTeacher.speak("Velocity vector shown in green. Notice how it's always tangent to the circular path!");
+                }
+            }
+        }
+
+        // Event listeners for interactive controls
+        document.addEventListener('DOMContentLoaded', () => {
+            const radiusSlider = document.getElementById('radius-slider');
+            const speedSlider = document.getElementById('speed-slider');
+            
+            if (radiusSlider) {
+                radiusSlider.addEventListener('input', updateInteractiveValues);
+            }
+            
+            if (speedSlider) {
+                speedSlider.addEventListener('input', updateInteractiveValues);
+            }
+        });
+
+        // Helper Functions
+        async function resetAll() {
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            gsap.killTweensOf("*");
+            
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            
+            // Stop interactive motion
+            if (motionAnimation) {
+                motionAnimation.kill();
+                motionAnimation = null;
+            }
+            isMotionRunning = false;
+            
+            // Hide all demos
+            document.querySelectorAll('.intro-demo, .track-demo, .activity-demo, .formula-demo, .examples-demo, .interactive-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            updateTitle("Explore Uniform Circular Motion");
+            
+            // Reset athletes positions
+            const athletes = ['rect-athlete', 'hex-athlete', 'oct-athlete', 'circ-athlete'];
+            athletes.forEach(id => {
+                const athlete = document.getElementById(id);
+                if (athlete) {
+                    gsap.set(athlete, { x: 0, y: 0, rotation: 0 });
+                }
+            });
+            
+            // Reset activity elements
+            gsap.set('#thread', { rotation: 0 });
+            gsap.set('#stone', { x: 0, y: 0 });
+            gsap.set('#velocity-arrow', { opacity: 0 });
+            gsap.set('#tangent-line', { opacity: 0 });
+            
+            // Reset interactive elements
+            gsap.set('#interactive-object', { 
+                left: '50%', 
+                top: '50%', 
+                x: 100, 
+                y: 0, 
+                rotation: 0 
+            });
+            gsap.set('#interactive-velocity', { opacity: 0 });
+            
+            updateInteractiveValues();
+            
+            await wait(500);
+        }
+
+        function updateTitle(title) {
+            document.getElementById('demo-title').textContent = title;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Reset Button Handler
+        async function resetAllClick() {
+            stopCurrentDemo();
+            isPlaying = false;
+            await resetAll();
+        }
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+            
+            if (!globalAudioEnabled && currentTeacher) {
+                currentTeacher.stop();
+            }
+        });
+    </script>
+</body>
+</html>

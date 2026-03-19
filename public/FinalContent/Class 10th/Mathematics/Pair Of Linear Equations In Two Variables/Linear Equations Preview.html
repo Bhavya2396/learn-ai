@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear Equations - From Words to Mathematics</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(126, 87, 194, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(126, 87, 194, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3.2rem;
+            background: linear-gradient(45deg, #00ff88, #00bbff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Main Animation Stage */
+        .animation-stage {
+            background: linear-gradient(to bottom, #1a1a2e 0%, #16213e 100%);
+            border-radius: 25px;
+            height: 600px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            border: 4px solid rgba(0, 255, 136, 0.4);
+        }
+
+        /* Grid Background */
+        .grid-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.3;
+        }
+
+        /* Coordinate System */
+        .axis {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .axis.visible {
+            opacity: 1;
+        }
+
+        .x-axis {
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            transform: translateY(-50%);
+        }
+
+        .y-axis {
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            transform: translateX(-50%);
+        }
+
+        .axis-label {
+            position: absolute;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #00bbff;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .axis-label.visible {
+            opacity: 1;
+        }
+
+        .x-label {
+            right: 10px;
+            top: 52%;
+        }
+
+        .y-label {
+            left: 52%;
+            top: 10px;
+        }
+
+        /* Content Container inside stage */
+        .stage-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        /* Animation Scenes */
+        .animation-scene {
+            display: none;
+            opacity: 0;
+            transition: opacity 1s ease;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 40px;
+        }
+
+        .animation-scene.visible {
+            display: flex;
+            opacity: 1;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Welcome Scene */
+        .welcome-scene {
+            text-align: center;
+        }
+
+        .welcome-title {
+            font-size: 2.5rem;
+            color: #00ff88;
+            margin-bottom: 20px;
+            animation: titleGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+            50% { text-shadow: 0 0 20px rgba(0, 255, 136, 0.8); }
+        }
+
+        /* Fair Scene */
+        .fair-content {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .game-cards {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .game-card {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(254, 202, 87, 0.2));
+            border: 2px solid rgba(255, 215, 0, 0.5);
+            border-radius: 20px;
+            padding: 30px;
+            flex: 1;
+            text-align: center;
+            transform: scale(0);
+            animation: cardAppear 0.5s ease forwards;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-card:nth-child(1) { animation-delay: 0.2s; }
+        .game-card:nth-child(2) { animation-delay: 0.4s; }
+
+        @keyframes cardAppear {
+            to { transform: scale(1); }
+        }
+
+        .game-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .game-name {
+            font-size: 1.3rem;
+            color: #00ff88;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .game-value {
+            font-size: 2rem;
+            color: #ffff00;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .game-value.solved {
+            animation: valuePulse 1s ease;
+        }
+
+        @keyframes valuePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); color: #00ff88; }
+        }
+
+        /* Equation Scene */
+        .equation-content {
+            width: 100%;
+            max-width: 700px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .equation-box {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 187, 255, 0.1));
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            font-size: 2rem;
+            font-family: 'Courier New', monospace;
+            color: #00ff88;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: equationSlide 0.5s ease forwards;
+        }
+
+        .equation-box:nth-child(2) { animation-delay: 0.3s; }
+        .equation-box:nth-child(3) { animation-delay: 0.6s; }
+
+        @keyframes equationSlide {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .variable-highlight {
+            color: #ffff00;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+        }
+
+        /* Graph Scene */
+        .graph-content {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .graph-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Line animation */
+        .equation-line {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: drawLine 2s ease forwards;
+        }
+
+        @keyframes drawLine {
+            to { stroke-dashoffset: 0; }
+        }
+
+        .intersection-point {
+            opacity: 0;
+            animation: pointAppear 0.5s ease forwards;
+            animation-delay: 2s;
+        }
+
+        @keyframes pointAppear {
+            to { opacity: 1; }
+        }
+
+        /* Solution Scene */
+        .solution-content {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .solution-box {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 105, 180, 0.2));
+            border: 3px solid rgba(255, 215, 0, 0.5);
+            border-radius: 25px;
+            padding: 40px;
+            margin: 20px 0;
+            transform: scale(0);
+            animation: solutionPop 0.5s ease forwards;
+        }
+
+        @keyframes solutionPop {
+            to { transform: scale(1); }
+        }
+
+        .solution-title {
+            font-size: 1.8rem;
+            color: #ffd700;
+            margin-bottom: 20px;
+        }
+
+        .solution-values {
+            font-size: 2.5rem;
+            color: #ff69b4;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .verification {
+            font-size: 1.2rem;
+            color: #00ff88;
+            margin-top: 20px;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards;
+            animation-delay: 0.5s;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        /* Info Display */
+        .info-display {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 15px 20px;
+            text-align: center;
+            font-size: 1.1rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .info-display.visible {
+            opacity: 1;
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            color: #00ff88;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #764ba2, #667eea);
+            border: none;
+            color: white;
+            padding: 16px 28px;
+            border-radius: 35px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(118, 75, 162, 0.3);
+            min-width: 180px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(118, 75, 162, 0.4);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #00ff88, #00bbff);
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.4);
+        }
+
+        /* Analysis Panel */
+        .analysis {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(0, 255, 136, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .analysis-title {
+            font-size: 1.6rem;
+            color: #00ff88;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .analysis-content {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            text-align: center;
+            color: #e2e8f0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .animation-stage {
+                height: 500px;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .game-cards {
+                flex-direction: column;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Linear Equations</h1>
+            <p>Transform real-world problems into mathematical equations and discover the power of algebraic thinking!</p>
+        </div>
+
+        <!-- Main Animation Stage -->
+        <div class="animation-stage" id="animation-stage">
+            <div class="grid-background"></div>
+            
+            <!-- Coordinate System (for graph scene) -->
+            <div class="axis x-axis" id="x-axis"></div>
+            <div class="axis y-axis" id="y-axis"></div>
+            <div class="axis-label x-label" id="x-label">x</div>
+            <div class="axis-label y-label" id="y-label">y</div>
+            
+            <!-- Stage Content Container -->
+            <div class="stage-content">
+                <!-- Welcome Scene -->
+                <div class="animation-scene visible" id="welcome-scene">
+                    <div class="welcome-scene">
+                        <h2 class="welcome-title">Welcome to Linear Equations!</h2>
+                        <p style="font-size: 1.3rem; color: #00bbff;">
+                            Let's learn how to transform everyday problems<br>
+                            into powerful mathematical equations
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Fair Problem Scene -->
+                <div class="animation-scene" id="fair-scene">
+                    <div class="fair-content">
+                        <h2 style="font-size: 2rem; color: #ffd700; margin-bottom: 20px; text-align: center;">
+                            🎪 Akhila's Fun Fair Adventure
+                        </h2>
+                        <div class="game-cards">
+                            <div class="game-card">
+                                <div class="game-icon">🎯</div>
+                                <div class="game-name">Ring Toss</div>
+                                <div class="game-value" id="ring-value">x plays</div>
+                            </div>
+                            <div class="game-card">
+                                <div class="game-icon">🎲</div>
+                                <div class="game-name">Lucky 7</div>
+                                <div class="game-value" id="lucky-value">y plays</div>
+                            </div>
+                        </div>
+                        <div style="text-align: center; font-size: 1.3rem; margin-top: 30px;">
+                            <div style="margin: 10px;">Total plays: <span style="color: #ffff00; font-weight: bold;">10 games</span></div>
+                            <div style="margin: 10px;">Lucky 7 = Ring Toss + <span style="color: #00ff88; font-weight: bold;">2</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Equation Building Scene -->
+                <div class="animation-scene" id="equation-scene">
+                    <div class="equation-content">
+                        <h2 style="font-size: 2rem; color: #00ff88; margin-bottom: 30px;">
+                            Converting to Equations
+                        </h2>
+                        <div class="equation-box" id="eq1">
+                            <span class="variable-highlight">x</span> + <span class="variable-highlight">y</span> = 10
+                        </div>
+                        <div class="equation-box" id="eq2">
+                            <span class="variable-highlight">y</span> = <span class="variable-highlight">x</span> + 2
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Graph Scene -->
+                <div class="animation-scene" id="graph-scene">
+                    <div class="graph-content" style="padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                        <canvas id="graph-canvas" style="width: 100%; max-width: 500px; height: 400px; background: rgba(22, 33, 62, 0.9); border-radius: 10px;"></canvas>
+                        <div style="margin-top: 15px; text-align: center; font-size: 0.9rem;">
+                            <span style="color: #00ff88; font-weight: bold; margin-right: 20px;">─ x + y = 10</span>
+                            <span style="color: #00bbff; font-weight: bold; margin-right: 20px;">─ y = x + 2</span>
+                            <span style="color: #ffff00; font-weight: bold;">● Solution (4, 6)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Solution Scene -->
+                <div class="animation-scene" id="solution-scene">
+                    <div class="solution-content">
+                        <div class="solution-box">
+                            <div class="solution-title">✨ Solution Found!</div>
+                            <div class="solution-values">
+                                x = 4<br>
+                                y = 6
+                            </div>
+                            <div class="verification">
+                                ✓ Ring Toss: 4 plays<br>
+                                ✓ Lucky 7: 6 plays<br>
+                                ✓ Total: 4 + 6 = 10 ✔️<br>
+                                ✓ Difference: 6 - 4 = 2 ✔️
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shopping Scene -->
+                <div class="animation-scene" id="shopping-scene">
+                    <div class="fair-content">
+                        <h2 style="font-size: 2rem; color: #00d1b2; margin-bottom: 20px; text-align: center;">
+                            🛍️ Shopping Problem
+                        </h2>
+                        <div class="game-cards">
+                            <div class="game-card">
+                                <div class="game-icon">✏️</div>
+                                <div class="game-name">Pencils</div>
+                                <div class="game-value" id="pencil-value">p items</div>
+                                <div style="color: #00bbff; margin-top: 10px;">₹3 each</div>
+                            </div>
+                            <div class="game-card">
+                                <div class="game-icon">🖊️</div>
+                                <div class="game-name">Pens</div>
+                                <div class="game-value" id="pen-value">q items</div>
+                                <div style="color: #00bbff; margin-top: 10px;">₹5 each</div>
+                            </div>
+                        </div>
+                        <div style="text-align: center; font-size: 1.3rem; margin-top: 30px;">
+                            Total cost: <span style="color: #ffff00; font-weight: bold;">₹50</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Display -->
+            <div class="info-display visible" id="info-display">
+                Click any button below to start exploring!
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="lesson-title">Choose Your Learning Path</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playCompleteStory()">📚 Complete Lesson</button>
+                <button class="demo-btn" onclick="showFairProblem()">🎪 Fair Problem</button>
+                <button class="demo-btn" onclick="showShoppingProblem()">🛍️ Shopping Problem</button>
+                <button class="demo-btn" onclick="showEquationBuilder()">🔨 Build Equations</button>
+                <button class="demo-btn" onclick="showGraphSolution()">📊 Graph Solution</button>
+                <button class="demo-btn" onclick="resetAll()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Analysis Panel -->
+        <div class="analysis">
+            <div class="analysis-title">📊 Understanding Linear Equations</div>
+            <div class="analysis-content" id="analysis-content">
+                Linear equations help us solve real-world problems by representing relationships between unknown quantities.
+                Select a demonstration above to begin your mathematical journey!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice System
+        class LinearEquationsNarrator {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.95, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+        }
+
+        // Global state management
+        let globalAudioEnabled = true;
+        let currentNarrator = null;
+        let isPlaying = false;
+        let currentDemo = null;
+        let currentDemoAborted = false;
+        let currentRunId = Date.now();
+        let currentTaskId = null;
+        let animationTimeouts = [];
+        let currentChart = null;
+
+        // Function to stop current demo
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId = Date.now(); // Use Date.now() for unique run ID
+            
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            document.querySelectorAll('.solved, .highlight').forEach(el => {
+                el.classList.remove('solved', 'highlight');
+            });
+            
+            document.getElementById('ring-value').textContent = 'x plays';
+            document.getElementById('lucky-value').textContent = 'y plays';
+            document.getElementById('pencil-value').textContent = 'p items';
+            document.getElementById('pen-value').textContent = 'q items';
+            
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+            
+            hideAxes();
+            updateInfo("Click any button below to start exploring!");
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null, runId = null) {
+            // Check if task ID matches (for same task)
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            // Check if run ID matches (for same execution)
+            if (runId && currentRunId && runId !== currentRunId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewNarrator(taskId = null, runId = null) {
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            if (runId) {
+                currentRunId = runId;
+            }
+            currentNarrator = new LinearEquationsNarrator();
+            return currentNarrator;
+        }
+
+        function switchToScene(sceneId, taskId = null, runId = null) {
+            if (!shouldContinue(taskId, runId)) return;
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            document.querySelectorAll('.game-card, .equation-box').forEach(el => {
+                el.style.animation = 'none';
+                el.offsetHeight;
+            });
+            
+            const timeout = setTimeout(() => {
+                if (!shouldContinue(taskId, runId)) return;
+                const scene = document.getElementById(sceneId);
+                if (scene) {
+                    scene.classList.add('visible');
+                    
+                    scene.querySelectorAll('.game-card').forEach((card, index) => {
+                        card.style.animation = `cardAppear 0.5s ease forwards`;
+                        card.style.animationDelay = `${index * 0.2}s`;
+                    });
+                    
+                    scene.querySelectorAll('.equation-box').forEach((box, index) => {
+                        box.style.animation = `equationSlide 0.5s ease forwards`;
+                        box.style.animationDelay = `${index * 0.3}s`;
+                    });
+                }
+            }, 300);
+            
+            animationTimeouts.push(timeout);
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            document.getElementById('welcome-scene').classList.add('visible');
+            const narrator = createNewNarrator('initialization');
+            narrator.speak("Welcome to Linear Equations! Let's discover how mathematics helps us solve real-world problems.");
+            updateInfo("Click any button below to start exploring!");
+        });
+
+        // Complete Story - Includes all individual lessons sequentially
+        async function playCompleteStory() {
+            const runId = Date.now();
+            const taskId = 'complete-story';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("📚 Complete Linear Equations Journey");
+            updateInfo("Starting complete lesson - exploring all concepts...");
+            updateAnalysis("Beginning our comprehensive journey through linear equations mathematics...");
+            
+            await narrator.speak("Welcome to the complete lesson on linear equations! We'll explore how to transform real-world problems into mathematical equations.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            // ========== PART 1: Fair Problem (Complete) ==========
+            updateInfo("Part 1: Akhila's Fair Problem");
+            await narrator.speak("Let's start with Akhila's adventure at the fun fair.");
+            await wait(1500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('fair-scene', taskId, runId);
+            await wait(500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            document.getElementById('ring-value').textContent = '? plays';
+            document.getElementById('lucky-value').textContent = '? plays';
+            
+            await narrator.speak("Akhila played 10 games total. She played Lucky 7 two more times than Ring Toss.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            document.getElementById('ring-value').textContent = 'x plays';
+            document.getElementById('lucky-value').textContent = 'y plays';
+            await narrator.speak("We use variables! Let x represent Ring Toss plays and y represent Lucky 7 plays.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('equation-scene', taskId, runId);
+            await wait(500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("Converting the problem to equations");
+            await narrator.speak("Now we create our first equation.");
+            await wait(1500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("First equation: x plus y equals 10.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("Second equation: y equals x plus 2.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("Solving by substitution: x + (x + 2) = 10");
+            await narrator.speak("By substitution: if y equals x plus 2, then x plus x plus 2 equals 10.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("This gives us 2x equals 8, so x equals 4 and y equals 6!");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('solution-scene', taskId, runId);
+            await wait(500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("Solution: Ring Toss = 4, Lucky 7 = 6");
+            updateAnalysis("Problem solved! Ring Toss: 4 plays, Lucky 7: 6 plays. Total: 10 games, and 6 is indeed 2 more than 4!");
+            await narrator.speak("Perfect! Akhila played Ring Toss 4 times and Lucky 7 six times.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            // ========== PART 2: Shopping Problem (Complete) ==========
+            updateInfo("Part 2: Shopping Problem");
+            await narrator.speak("Now let's tackle a different type of problem - shopping!");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('shopping-scene', taskId, runId);
+            await wait(500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            document.getElementById('pencil-value').textContent = 'p items';
+            document.getElementById('pen-value').textContent = 'q items';
+            
+            await narrator.speak("You buy pencils at 3 rupees each and pens at 5 rupees each. Total cost is 50 rupees.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("Let p = number of pencils, q = number of pens");
+            await narrator.speak("Using variables: p for pencils and q for pens. The equation becomes 3p plus 5q equals 50.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("Finding possible combinations...");
+            await narrator.speak("Unlike our first problem, this has multiple solutions!");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("One solution: 5 pencils, 7 pens");
+            document.getElementById('pencil-value').textContent = '5 items';
+            document.getElementById('pen-value').textContent = '7 items';
+            await narrator.speak("For example: 5 pencils and 7 pens. Let's verify: 3 times 5 plus 5 times 7 equals 50!");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateAnalysis("3(5) + 5(7) = 15 + 35 = 50 ✓ One possible solution found!");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            // ========== PART 3: Equation Builder (Complete) ==========
+            updateInfo("Part 3: Building Equations Step-by-Step");
+            await narrator.speak("Now let's learn how to build equations step by step from word problems.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('fair-scene', taskId, runId);
+            await wait(500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("Step 1: Identify the unknowns");
+            document.getElementById('ring-value').textContent = '? plays';
+            document.getElementById('lucky-value').textContent = '? plays';
+            await narrator.speak("Step 1: Identify what we don't know. Here, it's the number of times each game was played.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("Step 2: Assign variables to unknowns");
+            document.getElementById('ring-value').textContent = 'x';
+            document.getElementById('lucky-value').textContent = 'y';
+            await narrator.speak("Step 2: Assign variables. We use x and y for our unknowns.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('equation-scene', taskId, runId);
+            await wait(500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("Step 3: Translate words to mathematics");
+            await narrator.speak("Step 3: Convert the words to equations.");
+            await wait(1500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("First equation: 'Total 10 games' becomes x plus y equals 10.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("Second equation: 'Lucky 7 is 2 more than Ring Toss' becomes y equals x plus 2.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("Step 4: Write all equations");
+            await narrator.speak("Step 4: We have our system of linear equations ready to solve!");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateAnalysis("Equation building complete! We've successfully converted a word problem into a system of linear equations.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            // ========== PART 4: Graphical Solution Method (Complete) ==========
+            updateInfo("Part 4: Graphical Solution Method");
+            await narrator.speak("Finally, let's see how to solve equations graphically.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('graph-scene', taskId, runId);
+            await wait(500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            plotGraph(taskId, runId);
+            
+            updateInfo("Plotting the equations on a coordinate plane");
+            await narrator.speak("We can solve linear equations by graphing them. Each equation becomes a line.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("The green line represents x + y = 10");
+            await narrator.speak("The green line shows x plus y equals 10.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("The blue line represents y = x + 2");
+            await narrator.speak("The blue line shows y equals x plus 2.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("The intersection point (4, 6) is our solution!");
+            await narrator.speak("Where the lines meet is our solution: x equals 4, y equals 6!");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateAnalysis("Graphical method complete! The intersection point gives us the unique solution to our system of equations.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            // ========== Conclusion ==========
+            updateInfo("Lesson Complete! You've mastered linear equations!");
+            await narrator.speak("Congratulations! You've learned to identify variables, build equations from word problems, and solve them using different methods!");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateAnalysis("Complete lesson finished! You've explored: 1) Converting word problems to equations (Fair Problem), 2) Using variables to represent unknowns (Shopping Problem), 3) Building equations step-by-step (Equation Builder), and 4) Graphical solution methods (Graph Solution).");
+            await narrator.speak("Remember: linear equations help us solve real-world problems by representing relationships mathematically!");
+            
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+            
+            await wait(300);
+            if (!shouldContinue(taskId, runId)) return;
+            document.getElementById('welcome-scene').classList.add('visible');
+            
+            updateInfo("Ready to practice more? Try the individual demos!");
+            isPlaying = false;
+        }
+
+        // Fair Problem
+        async function showFairProblem() {
+            const runId = Date.now();
+            const taskId = 'fair-problem';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("🎪 Akhila's Fair Adventure");
+            switchToScene('fair-scene', taskId, runId);
+            updateInfo("Setting up the fair problem...");
+            
+            document.getElementById('ring-value').textContent = 'x plays';
+            document.getElementById('lucky-value').textContent = 'y plays';
+            
+            await narrator.speak("Akhila played 10 games total at the fair. She played Lucky 7 two more times than Ring Toss.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('equation-scene', taskId, runId);
+            updateInfo("Building equations from the problem");
+            await narrator.speak("Let's build our equations.");
+            await wait(1500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("First equation: x plus y equals 10.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("Second equation: y equals x plus 2.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("Solving: If y = x + 2, then x + (x + 2) = 10");
+            await narrator.speak("By substitution: x plus x plus 2 equals 10, so 2x equals 8, therefore x equals 4!");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('solution-scene', taskId, runId);
+            updateInfo("Solution: Ring Toss = 4 plays, Lucky 7 = 6 plays");
+            updateAnalysis("Problem solved! Ring Toss: 4 plays, Lucky 7: 6 plays. Total: 10 games, and 6 is indeed 2 more than 4!");
+            
+            isPlaying = false;
+        }
+
+        // Shopping Problem
+        async function showShoppingProblem() {
+            const runId = Date.now();
+            const taskId = 'shopping-problem';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("🛍️ Shopping Mathematics");
+            switchToScene('shopping-scene', taskId, runId);
+            updateInfo("Setting up the shopping problem...");
+            
+            await narrator.speak("You buy pencils at 3 rupees each and pens at 5 rupees each. Total cost is 50 rupees.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("Let p = number of pencils, q = number of pens");
+            await narrator.speak("Using variables: p for pencils and q for pens. The equation becomes 3p plus 5q equals 50.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("Finding possible combinations...");
+            await narrator.speak("There are multiple solutions! For example: 5 pencils and 7 pens, or 10 pencils and 4 pens.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            document.getElementById('pencil-value').textContent = '5 items';
+            document.getElementById('pen-value').textContent = '7 items';
+            
+            updateAnalysis("3(5) + 5(7) = 15 + 35 = 50 ✓ One possible solution found!");
+            
+            isPlaying = false;
+        }
+
+        // Equation Builder
+        async function showEquationBuilder() {
+            const runId = Date.now();
+            const taskId = 'equation-builder';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("🔨 Building Equations Step-by-Step");
+            switchToScene('fair-scene', taskId, runId);
+            updateInfo("Step 1: Identify the unknowns");
+            
+            await narrator.speak("Step 1: Identify what we don't know. Here, it's the number of times each game was played.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("Step 2: Assign variables to unknowns");
+            document.getElementById('ring-value').textContent = 'x';
+            document.getElementById('lucky-value').textContent = 'y';
+            await narrator.speak("Step 2: Assign variables. We use x and y for our unknowns.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('equation-scene', taskId, runId);
+            updateInfo("Step 3: Translate words to mathematics");
+            await narrator.speak("Step 3: Convert the words to equations.");
+            await wait(1500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("First equation: 'Total 10 games' becomes x plus y equals 10.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("Second equation: 'Lucky 7 is 2 more than Ring Toss' becomes y equals x plus 2.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("Step 4: Write all equations");
+            await narrator.speak("Step 4: We have our system of linear equations ready to solve!");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateAnalysis("Equation building complete! We've successfully converted a word problem into a system of linear equations.");
+            
+            isPlaying = false;
+        }
+
+        // Graph Solution
+        async function showGraphSolution() {
+            const runId = Date.now();
+            const taskId = 'graph-solution';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(4);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("📊 Graphical Solution Method");
+            switchToScene('graph-scene', taskId, runId);
+            
+            await wait(500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            plotGraph(taskId, runId);
+            
+            updateInfo("Plotting the equations on a coordinate plane");
+            
+            await narrator.speak("We can solve linear equations by graphing them. Each equation becomes a line.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("The green line represents x + y = 10");
+            await narrator.speak("The green line shows x plus y equals 10.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("The blue line represents y = x + 2");
+            await narrator.speak("The blue line shows y equals x plus 2.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("The intersection point (4, 6) is our solution!");
+            await narrator.speak("Where the lines meet is our solution: x equals 4, y equals 6!");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateAnalysis("Graphical method complete! The intersection point gives us the unique solution to our system of equations.");
+            
+            isPlaying = false;
+        }
+
+        // Reset
+        async function resetAll() {
+            if (currentNarrator) currentNarrator.stop();
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            document.querySelectorAll('.solved, .highlight').forEach(el => {
+                el.classList.remove('solved', 'highlight');
+            });
+            
+            document.querySelectorAll('.game-card, .equation-box').forEach(el => {
+                el.style.animation = 'none';
+                el.offsetHeight;
+            });
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+            
+            await wait(50);
+            document.getElementById('welcome-scene').classList.add('visible');
+            
+            updateTitle("Choose Your Learning Path");
+            updateInfo("Click any button below to start exploring!");
+            updateAnalysis("Linear equations help us solve real-world problems by representing relationships between unknown quantities. Select a demonstration above to begin your mathematical journey!");
+            
+            document.getElementById('ring-value').textContent = 'x plays';
+            document.getElementById('lucky-value').textContent = 'y plays';
+            document.getElementById('pencil-value').textContent = 'p items';
+            document.getElementById('pen-value').textContent = 'q items';
+            
+            setActiveButton(-1);
+            
+            await wait(50);
+        }
+
+        // Graph plotting function
+        function plotGraph(taskId = null, runId = null) {
+            if (taskId !== null && runId !== null && !shouldContinue(taskId, runId)) return;
+            
+            const canvas = document.getElementById('graph-canvas');
+            if (!canvas) return;
+            
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+            
+            const line1Data = [
+                {x: 0, y: 10},
+                {x: 2, y: 8},
+                {x: 4, y: 6},
+                {x: 6, y: 4},
+                {x: 8, y: 2},
+                {x: 10, y: 0}
+            ];
+            
+            const line2Data = [
+                {x: 0, y: 2},
+                {x: 1, y: 3},
+                {x: 2, y: 4},
+                {x: 3, y: 5},
+                {x: 4, y: 6},
+                {x: 5, y: 7},
+                {x: 6, y: 8},
+                {x: 7, y: 9},
+                {x: 8, y: 10}
+            ];
+            
+            currentChart = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {
+                            label: 'x + y = 10',
+                            data: line1Data,
+                            borderColor: '#00ff88',
+                            backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#00ff88',
+                            pointBorderColor: '#00ff88',
+                            pointHoverRadius: 6,
+                            showLine: true
+                        },
+                        {
+                            label: 'y = x + 2',
+                            data: line2Data,
+                            borderColor: '#00bbff',
+                            backgroundColor: 'rgba(0, 187, 255, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#00bbff',
+                            pointBorderColor: '#00bbff',
+                            pointHoverRadius: 6,
+                            showLine: true
+                        },
+                        {
+                            label: 'Solution',
+                            data: [{x: 4, y: 6}],
+                            borderColor: '#ffff00',
+                            backgroundColor: '#ffff00',
+                            borderWidth: 4,
+                            pointRadius: 12,
+                            pointHoverRadius: 15,
+                            pointStyle: 'circle',
+                            showLine: false,
+                            type: 'scatter'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Graphical Solution of Linear Equations',
+                            color: '#ffffff',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const x = context.parsed.x;
+                                    const y = context.parsed.y;
+                                    if (context.datasetIndex === 2) {
+                                        return `Solution: (${x}, ${y})`;
+                                    }
+                                    return `${context.dataset.label}: (${x}, ${y})`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            min: -1,
+                            max: 11,
+                            title: {
+                                display: true,
+                                text: 'x',
+                                color: '#00bbff',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                drawBorder: true,
+                                borderColor: 'rgba(255, 255, 255, 0.3)'
+                            },
+                            ticks: {
+                                color: '#ffffff',
+                                stepSize: 1
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            min: -1,
+                            max: 13,
+                            title: {
+                                display: true,
+                                text: 'y',
+                                color: '#00bbff',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                drawBorder: true,
+                                borderColor: 'rgba(255, 255, 255, 0.3)'
+                            },
+                            ticks: {
+                                color: '#ffffff',
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeInOutQuart'
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
+        function hideAxes() {
+            document.getElementById('x-axis').classList.remove('visible');
+            document.getElementById('y-axis').classList.remove('visible');
+            document.getElementById('x-label').classList.remove('visible');
+            document.getElementById('y-label').classList.remove('visible');
+            
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+        }
+
+        function updateTitle(title) {
+            document.getElementById('lesson-title').textContent = title;
+        }
+
+        function updateInfo(text) {
+            const info = document.getElementById('info-display');
+            info.textContent = text;
+            info.classList.add('visible');
+        }
+
+        function updateAnalysis(text) {
+            document.getElementById('analysis-content').textContent = text;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            if (currentNarrator) {
+                currentNarrator.isEnabled = globalAudioEnabled;
+                if (!globalAudioEnabled) {
+                    currentNarrator.stop();
+                }
+            }
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+        });
+    </script>
+</body>
+</html>

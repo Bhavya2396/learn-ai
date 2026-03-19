@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domestic Electric Circuits - Automated Physics Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --electric-gradient: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+            --live-wire-gradient: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+            --neutral-wire-gradient: linear-gradient(135deg, #333333 0%, #000000 100%);
+            --earth-wire-gradient: linear-gradient(135deg, #22cc22 0%, #008800 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --text-dark: #1a202c;
+            --text-light: #f8fafc;
+            --shadow-primary: 0 20px 40px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 25px 50px rgba(0, 0, 0, 0.4);
+            --border-radius: 20px;
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.15) rotate(10deg);
+            box-shadow: 0 0 30px rgba(79, 172, 254, 0.6);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 30px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: var(--accent-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 800;
+            letter-spacing: -2px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 900px;
+            margin: 0 auto;
+            font-weight: 300;
+        }
+
+        .demo-stage {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            height: 600px;
+            position: relative;
+            margin: 30px 0;
+            box-shadow: var(--shadow-primary);
+            overflow: hidden;
+            border: 2px solid var(--glass-border);
+            padding: 30px;
+        }
+
+        .physics-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(79, 172, 254, 0.5) transparent;
+        }
+
+        .physics-demo::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .physics-demo::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .physics-demo::-webkit-scrollbar-thumb {
+            background: var(--accent-gradient);
+            border-radius: 3px;
+        }
+
+        .physics-demo.active {
+            display: block;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .intro-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            height: 100%;
+            align-items: center;
+        }
+
+        .intro-text {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 25px;
+            border-radius: 20px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            color: var(--text-light);
+        }
+
+        .intro-visual {
+            position: relative;
+            height: 400px;
+            background: linear-gradient(to bottom, #1a1a2e, #16213e);
+            border-radius: 20px;
+            border: 2px solid var(--glass-border);
+            overflow: hidden;
+        }
+
+        .house-circuit {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #2c3e50, #34495e);
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        .circuit-board {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 70px;
+            height: 50px;
+            background: var(--glass-bg);
+            border-radius: 8px;
+            border: 2px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            animation: boardGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes boardGlow {
+            0% { box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3); }
+            100% { box-shadow: 0 8px 20px rgba(79, 172, 254, 0.6); }
+        }
+
+        .live-wire {
+            position: absolute;
+            width: 4px;
+            background: var(--live-wire-gradient);
+            border-radius: 2px;
+            animation: wireGlow 1.5s ease-in-out infinite;
+        }
+
+        .neutral-wire {
+            position: absolute;
+            width: 4px;
+            background: var(--neutral-wire-gradient);
+            border-radius: 2px;
+        }
+
+        .earth-wire {
+            position: absolute;
+            width: 4px;
+            background: var(--earth-wire-gradient);
+            border-radius: 2px;
+        }
+
+        @keyframes wireGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(255, 68, 68, 0.8); }
+            50% { box-shadow: 0 0 20px rgba(255, 68, 68, 1); }
+        }
+
+        .current-flow {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #ffff00;
+            border-radius: 50%;
+            animation: currentMove 2s linear infinite;
+            box-shadow: 0 0 8px #ffff00;
+        }
+
+        @keyframes currentMove {
+            0% { transform: translateX(0); opacity: 1; }
+            100% { transform: translateX(150px); opacity: 0; }
+        }
+
+        .appliance {
+            position: absolute;
+            width: 50px;
+            height: 35px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .appliance:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(79, 172, 254, 0.6);
+        }
+
+        .appliance.on {
+            background: var(--success-gradient);
+            animation: applianceActive 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes applianceActive {
+            0% { box-shadow: 0 0 12px rgba(67, 233, 123, 0.6); }
+            100% { box-shadow: 0 0 20px rgba(67, 233, 123, 1); }
+        }
+
+        .fuse {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: #fbbf24;
+            border-radius: 50%;
+            border: 2px solid #f59e0b;
+            animation: fuseProtection 2s ease-in-out infinite;
+        }
+
+        @keyframes fuseProtection {
+            0%, 100% { box-shadow: 0 0 8px rgba(251, 191, 36, 0.6); }
+            50% { box-shadow: 0 0 15px rgba(251, 191, 36, 1); }
+        }
+
+        .formula-display {
+            background: var(--glass-bg);
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            margin: 15px 0;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .formula-box {
+            background: var(--accent-gradient);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 15px 0;
+            box-shadow: var(--shadow-primary);
+        }
+
+        .formula-title {
+            color: #ffffff;
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+
+        .formula-equation {
+            color: #ffffff;
+            font-size: 2rem;
+            font-weight: 900;
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+            margin: 15px 0;
+        }
+
+        .graph-container {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 2px solid var(--glass-border);
+            height: 250px;
+        }
+
+        .chart-canvas {
+            width: 100% !important;
+            height: 200px !important;
+            max-height: 200px !important;
+        }
+
+        .types-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 20px;
+            margin: 15px 0;
+            height: 100%;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .type-card {
+            background: var(--glass-bg);
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+            min-height: 200px;
+        }
+
+        .type-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .type-card.active {
+            background: var(--warning-gradient);
+            transform: translateY(-3px);
+        }
+
+        .type-title {
+            color: #4facfe;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(79, 172, 254, 0.3);
+        }
+
+        .visual-demo-area {
+            position: relative;
+            height: 400px;
+            background: linear-gradient(to bottom, #1a1a2e, #16213e);
+            border-radius: 20px;
+            border: 2px solid var(--glass-border);
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .power-calculation {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--glass-bg);
+            padding: 12px;
+            border-radius: 12px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            font-size: 0.8rem;
+        }
+
+        .example-container {
+            background: var(--glass-bg);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .example-problem {
+            background: var(--warning-gradient);
+            padding: 15px;
+            border-radius: 12px;
+            margin: 15px 0;
+            color: white;
+            font-weight: 600;
+        }
+
+        .solution-step {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 12px;
+            margin: 12px 0;
+            border-left: 4px solid #4facfe;
+            opacity: 0;
+            transform: translateX(-20px);
+            animation: stepReveal 1s ease-out forwards;
+        }
+
+        .solution-step:nth-child(2) { animation-delay: 0.5s; }
+        .solution-step:nth-child(3) { animation-delay: 1s; }
+        .solution-step:nth-child(4) { animation-delay: 1.5s; }
+        .solution-step:nth-child(5) { animation-delay: 2s; }
+
+        @keyframes stepReveal {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .step-number {
+            color: #4facfe;
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .activity-container {
+            background: var(--glass-bg);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .activity-card {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+
+        .activity-title {
+            color: #43e97b;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .activity-steps {
+            margin-top: 15px;
+        }
+
+        .activity-step {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            border-left: 3px solid #43e97b;
+        }
+
+        .activity-demo {
+            background: linear-gradient(to bottom, #1a1a2e, #16213e);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 2px solid var(--glass-border);
+            height: 200px;
+            position: relative;
+            overflow: hidden;
+            min-width: 200px;
+        }
+
+        .wire-demo {
+            position: absolute;
+            width: 4px;
+            height: 100px;
+            border-radius: 2px;
+            top: 20px;
+            animation: wireGlow 2s ease-in-out infinite;
+        }
+
+        .wire-demo.live {
+            background: var(--live-wire-gradient);
+            left: 30px;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.8);
+        }
+
+        .wire-demo.neutral {
+            background: var(--neutral-wire-gradient);
+            left: 100px;
+        }
+
+        .wire-demo.earth {
+            background: var(--earth-wire-gradient);
+            left: 170px;
+            box-shadow: 0 0 8px rgba(34, 204, 34, 0.6);
+        }
+
+        .wire-label {
+            position: absolute;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 600;
+            top: 130px;
+            text-align: center;
+            width: 40px;
+        }
+
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+            padding: 30px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .controls-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            color: #4facfe;
+            font-weight: 800;
+            text-shadow: 0 0 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+            min-width: 180px;
+            border: 2px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .demo-btn.active {
+            background: var(--warning-gradient);
+            box-shadow: 0 8px 25px rgba(250, 112, 154, 0.4);
+            transform: translateY(-2px);
+        }
+
+
+        @media (max-width: 1024px) {
+            .intro-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .types-grid {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 1fr 1fr;
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .demo-btn {
+                min-width: 250px;
+            }
+            
+            .types-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(4, 1fr);
+                gap: 15px;
+            }
+            
+            .type-card {
+                min-height: 150px;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+
+    <div class="container">
+        <div class="header">
+            <h1>Domestic Electric Circuits</h1>
+            <p>Explore the electrical systems that power our homes! Learn about live wires, neutral wires, earth connections, safety measures, and how electricity flows safely through household circuits.</p>
+        </div>
+
+        <div class="demo-stage" id="stage">
+            <div class="physics-demo active" id="intro-demo">
+                <div class="intro-content">
+                    <div class="intro-text">
+                        <h2 style="color: #4facfe; font-size: 1.8rem; margin-bottom: 15px;">Domestic Electric Circuits</h2>
+                        <p style="margin-bottom: 12px;">Domestic electric circuits supply electrical power to our homes through a main supply with multiple wires and safety systems.</p>
+                        <p style="margin-bottom: 12px;"><strong>Key Components:</strong></p>
+                        <ul style="margin-left: 15px; color: var(--text-accent);">
+                            <li>Live wire (Red insulation) - Positive terminal</li>
+                            <li>Neutral wire (Black insulation) - Negative terminal</li>
+                            <li>Earth wire (Green insulation) - Safety ground</li>
+                            <li>Electric fuse - Protection device</li>
+                            <li>Main switch - Circuit control</li>
+                        </ul>
+                        <div class="formula-box" style="margin-top: 15px;">
+                            <div style="color: white; font-size: 1rem;">Standard Voltage:</div>
+                            <div style="color: white; font-size: 1.5rem; font-weight: 800;">220 V</div>
+                        </div>
+                    </div>
+                    <div class="intro-visual">
+                        <div class="house-circuit" id="house-circuit">
+                            <div class="circuit-board">Meter</div>
+                            
+                            <!-- Live Wire -->
+                            <div class="live-wire" style="top: 40px; left: 90px; width: 150px; height: 4px;"></div>
+                            <div class="current-flow" style="top: 36px; left: 90px;" id="current1"></div>
+                            
+                            <!-- Neutral Wire -->
+                            <div class="neutral-wire" style="top: 50px; left: 90px; width: 150px; height: 4px;"></div>
+                            
+                            <!-- Earth Wire -->
+                            <div class="earth-wire" style="top: 60px; left: 90px; width: 150px; height: 4px;"></div>
+                            
+                            <!-- Appliances -->
+                            <div class="appliance on" style="top: 100px; left: 250px;">Bulb</div>
+                            <div class="appliance" style="top: 150px; left: 250px;">Fan</div>
+                            <div class="appliance" style="top: 200px; left: 250px;">Geyser</div>
+                            
+                            <!-- Fuses -->
+                            <div class="fuse" style="top: 110px; left: 220px;"></div>
+                            <div class="fuse" style="top: 160px; left: 220px;"></div>
+                            <div class="fuse" style="top: 210px; left: 220px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="physics-demo" id="formula-demo">
+                <div class="formula-display">
+                    <h2 style="color: #4facfe; font-size: 2rem; margin-bottom: 20px;">Electric Circuit Formulas</h2>
+                    
+                    <div class="formula-box">
+                        <div class="formula-title">Electric Power</div>
+                        <div class="formula-equation">P = V × I</div>
+                        <div style="color: white; margin-top: 10px;">Where P = Power (Watts), V = Voltage (Volts), I = Current (Amperes)</div>
+                    </div>
+
+                    <div class="formula-box">
+                        <div class="formula-title">Current Rating</div>
+                        <div class="formula-equation">I = P / V</div>
+                        <div style="color: white; margin-top: 10px;">Current needed for given power and voltage</div>
+                    </div>
+
+                    <div class="graph-container">
+                        <h3 style="color: #4facfe; margin-bottom: 15px;">Voltage Waveform (AC Supply)</h3>
+                        <canvas id="voltageChart" class="chart-canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="physics-demo" id="types-demo">
+                <h2 style="color: #4facfe; font-size: 2rem; margin-bottom: 20px; text-align: center;">Circuit Components</h2>
+                
+                <div class="types-grid">
+                    <div class="type-card active">
+                        <div class="type-title">🔴 Live Wire</div>
+                        <p style="color: var(--text-secondary); line-height: 1.5;">Carries current from power source to appliances. Has red insulation. Potential difference of 220V with neutral.</p>
+                        <div style="margin-top: 10px; font-size: 0.9rem; color: #ff4444; font-weight: 600;">⚠️ High Voltage</div>
+                    </div>
+                    
+                    <div class="type-card">
+                        <div class="type-title">⚫ Neutral Wire</div>
+                        <p style="color: var(--text-secondary); line-height: 1.5;">Completes the circuit back to power source. Has black insulation. At zero potential relative to ground.</p>
+                        <div style="margin-top: 10px; font-size: 0.9rem; color: #666; font-weight: 600;">0V Reference</div>
+                    </div>
+                    
+                    <div class="type-card">
+                        <div class="type-title">🟢 Earth Wire</div>
+                        <p style="color: var(--text-secondary); line-height: 1.5;">Safety wire with green insulation. Connected to metal plate in ground. Prevents electric shock.</p>
+                        <div style="margin-top: 10px; font-size: 0.9rem; color: #22cc22; font-weight: 600;">🛡️ Safety First</div>
+                    </div>
+                    
+                    <div class="type-card">
+                        <div class="type-title">🟡 Electric Fuse</div>
+                        <p style="color: var(--text-secondary); line-height: 1.5;">Safety device that melts during overcurrent. Prevents damage from short circuits and overloading.</p>
+                        <div style="margin-top: 10px; font-size: 0.9rem; color: #fbbf24; font-weight: 600;">⚡ Circuit Breaker</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="physics-demo" id="visual-demo">
+                <h2 style="color: #4facfe; font-size: 2rem; margin-bottom: 20px; text-align: center;">Circuit Simulation</h2>
+                
+                <div class="visual-demo-area">
+                    <canvas id="circuit-canvas" width="600" height="300" style="width: 100%; height: 100%; border-radius: 20px;"></canvas>
+                    
+                    <div class="power-calculation" id="power-display">
+                        <h4 style="color: #4facfe; margin-bottom: 8px;">Power Consumption</h4>
+                        <div id="total-power">Total: 2135 W</div>
+                        <div id="current-load">Current: 9.7 A</div>
+                        <div id="safety-status" style="margin-top: 8px; font-weight: bold; color: #ff4444;">Circuit: OVERLOADED!</div>
+                    </div>
+                </div>
+
+                <div class="graph-container">
+                    <h3 style="color: #4facfe; margin-bottom: 15px;">Power vs Current Graph</h3>
+                    <canvas id="powerChart" class="chart-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="physics-demo" id="example-demo">
+                <div class="example-container">
+                    <h2 style="color: #4facfe; font-size: 2rem; margin-bottom: 20px; text-align: center;">NCERT Example - Automated Solution</h2>
+                    
+                    <div class="example-problem">
+                        <strong>Problem:</strong> An electric oven of 2 kW power rating is operated in a domestic electric circuit (220 V) that has a current rating of 5 A. What result do you expect? Explain.
+                    </div>
+
+                    <div class="solution-step">
+                        <div class="step-number">Step 1: Given Information</div>
+                        <p>• Power of electric oven (P) = 2 kW = 2000 W</p>
+                        <p>• Voltage of domestic circuit (V) = 220 V</p>
+                        <p>• Current rating of circuit = 5 A</p>
+                    </div>
+
+                    <div class="solution-step">
+                        <div class="step-number">Step 2: Calculate Current Required</div>
+                        <p>Using the formula: I = P / V</p>
+                        <p>Current required = 2000 W ÷ 220 V = 9.09 A</p>
+                    </div>
+
+                    <div class="solution-step">
+                        <div class="step-number">Step 3: Compare with Circuit Rating</div>
+                        <p>Current required by oven = 9.09 A</p>
+                        <p>Circuit current rating = 5 A</p>
+                        <p><strong>9.09 A > 5 A</strong></p>
+                    </div>
+
+                    <div class="solution-step">
+                        <div class="step-number">Step 4: Result</div>
+                        <p><strong>The circuit will be overloaded!</strong></p>
+                        <p>• The fuse will melt and break the circuit</p>
+                        <p>• This prevents damage to wiring and fire hazard</p>
+                        <p>• The oven cannot operate on this 5A circuit</p>
+                        <p>• A higher capacity circuit (15A) would be needed</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="physics-demo" id="activity-demo">
+                <div class="activity-container">
+                    <h2 style="color: #4facfe; font-size: 2rem; margin-bottom: 20px; text-align: center;">Wire Identification Activity</h2>
+                    
+                    <div class="activity-card">
+                        <div class="activity-title">🔬 Activity: Identify Different Wires in Domestic Circuits</div>
+                        
+                        <div style="background: rgba(0,0,0,0.1); padding: 15px; border-radius: 10px; margin: 15px 0;">
+                            <p><strong>Objective:</strong> Learn to identify different types of wires used in household electrical circuits by their color coding and understand their functions.</p>
+                        </div>
+
+                        <div class="activity-demo">
+                            <div class="wire-demo live"></div>
+                            <div class="wire-demo neutral"></div>
+                            <div class="wire-demo earth"></div>
+                            
+                            <div class="wire-label" style="left: 10px; color: #ff4444;"><strong>LIVE</strong><br>Red Wire<br>220V</div>
+                            <div class="wire-label" style="left: 80px; color: #666;"><strong>NEUTRAL</strong><br>Black Wire<br>0V</div>
+                            <div class="wire-label" style="left: 150px; color: #22cc22;"><strong>EARTH</strong><br>Green Wire<br>Safety</div>
+                        </div>
+
+                        <div class="activity-steps">
+                            <h4 style="color: #43e97b; margin-bottom: 10px;">Procedure & Observations:</h4>
+                            
+                            <div class="activity-step">
+                                <strong>Step 1:</strong> Observe the insulation colors in the demonstration above. Note the three different wire types.
+                            </div>
+                            
+                            <div class="activity-step">
+                                <strong>Step 2:</strong> RED wire is the LIVE wire - carries current at 220V potential. This is the "hot" wire that brings electricity to appliances.
+                            </div>
+                            
+                            <div class="activity-step">
+                                <strong>Step 3:</strong> BLACK wire is the NEUTRAL wire - completes the circuit back to source at 0V potential relative to ground.
+                            </div>
+                            
+                            <div class="activity-step">
+                                <strong>Step 4:</strong> GREEN wire is the EARTH wire - provides safety path to ground. Connected to metal appliance bodies to prevent shock.
+                            </div>
+                            
+                            <div class="activity-step" style="background: rgba(255, 68, 68, 0.1); border-left-color: #ff4444;">
+                                <strong>⚠️ SAFETY WARNING:</strong> Never touch bare wires when current is flowing! Always turn off main switch before examining electrical connections.
+                            </div>
+                        </div>
+
+                        <div style="background: var(--success-gradient); padding: 15px; border-radius: 10px; margin-top: 15px; color: white;">
+                            <strong>Key Learning:</strong> Wire color coding is international standard for safety. Always verify wire function with proper instruments before working with electrical systems.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="controls-title" id="demo-title">Automated Physics Learning</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" data-demo="complete">📚 Complete Lesson</button>
+                <button class="demo-btn active" data-demo="intro">🏠 Introduction</button>
+                <button class="demo-btn" data-demo="formula">🧮 Formulas</button>
+                <button class="demo-btn" data-demo="types">🔌 Components</button>
+                <button class="demo-btn" data-demo="visual">👁️ Circuit Simulation</button>
+                <button class="demo-btn" data-demo="example">📖 NCERT Example</button>
+                <button class="demo-btn" data-demo="activity">🔬 Activity</button>
+                <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Animation and Teacher System
+        class AnimationManager {
+            constructor() {
+                this.activeAnimations = new Set();
+                this.animationTimeouts = new Set();
+                this.animationIntervals = new Set();
+                this.canvasAnimations = new Map();
+                this.charts = new Map();
+            }
+
+            addTimeout(timeoutId) {
+                this.animationTimeouts.add(timeoutId);
+                return timeoutId;
+            }
+
+            addInterval(intervalId) {
+                this.animationIntervals.add(intervalId);
+                return intervalId;
+            }
+
+            addCanvasAnimation(key, animationId) {
+                if (this.canvasAnimations.has(key)) {
+                    cancelAnimationFrame(this.canvasAnimations.get(key));
+                }
+                this.canvasAnimations.set(key, animationId);
+                return animationId;
+            }
+
+            addChart(key, chart) {
+                if (this.charts.has(key)) {
+                    this.charts.get(key).destroy();
+                }
+                this.charts.set(key, chart);
+                return chart;
+            }
+
+            cleanup() {
+                gsap.killTweensOf("*");
+                this.animationTimeouts.forEach(id => clearTimeout(id));
+                this.animationTimeouts.clear();
+                this.animationIntervals.forEach(id => clearInterval(id));
+                this.animationIntervals.clear();
+                this.canvasAnimations.forEach(id => cancelAnimationFrame(id));
+                this.canvasAnimations.clear();
+                this.charts.forEach(chart => chart.destroy());
+                this.charts.clear();
+                this.activeAnimations.clear();
+            }
+        }
+
+        class PhysicsTeacher {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.isDestroyed = false;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.85, pitch: 1.0, volume: 0.9 };
+                this.currentContext = null;
+                this.queue = [];
+                this.isProcessingQueue = false;
+                this.onComplete = null;
+            }
+
+            async speak(text, delay = 0, context = null) {
+                if (!this.isEnabled || !text || this.isDestroyed) return Promise.resolve();
+                
+                if (context) {
+                    this.currentContext = context;
+                }
+                
+                return new Promise((resolve) => {
+                    this.queue.push({
+                        text,
+                        delay,
+                        resolve,
+                        context: context || this.currentContext
+                    });
+                    
+                    if (!this.isProcessingQueue) {
+                        this.processQueue();
+                    }
+                });
+            }
+            
+            async processQueue() {
+                if (this.isProcessingQueue || this.queue.length === 0) return;
+                
+                this.isProcessingQueue = true;
+                
+                while (this.queue.length > 0) {
+                    const item = this.queue.shift();
+                    
+                    if (item.context && item.context !== this.currentContext) {
+                        item.resolve();
+                        continue;
+                    }
+                    
+                    await this.speakImmediate(item.text, item.delay);
+                    item.resolve();
+                }
+                
+                this.isProcessingQueue = false;
+                
+                if (this.onComplete) {
+                    this.onComplete();
+                    this.onComplete = null;
+                }
+            }
+            
+            async speakImmediate(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    const timeoutId = setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                    
+                    animationManager.addTimeout(timeoutId);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+                this.queue = [];
+                this.isProcessingQueue = false;
+                this.onComplete = null;
+            }
+            
+            setContext(context) {
+                this.currentContext = context;
+                this.queue = this.queue.filter(item => !item.context || item.context === context);
+            }
+
+            toggle() {
+                this.isEnabled = !this.isEnabled;
+                if (!this.isEnabled) this.stop();
+                return this.isEnabled;
+            }
+            
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+                this.queue = [];
+                this.currentContext = null;
+                this.onComplete = null;
+            }
+        }
+
+        // Global Variables
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let currentDemo = null;
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let animationManager = new AnimationManager();
+
+        // Circuit simulation variables
+        let circuitLoads = [
+            { name: 'Bulb', power: 60 },
+            { name: 'Fan', power: 75 },
+            { name: 'Geyser', power: 2000 }
+        ];
+        let totalPower = 2135;
+        let totalCurrent = 9.7;
+        const VOLTAGE = 220;
+        const FUSE_RATING = 5; // Amperes
+
+        // Utility Functions
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+            }
+            currentTeacher = new PhysicsTeacher();
+            return currentTeacher;
+        }
+
+
+        function hideAllDemos() {
+            document.querySelectorAll('.physics-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+        }
+
+        function setActiveButton(activeBtn) {
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+        }
+
+        function updateTitle(title) {
+            document.getElementById('demo-title').textContent = title;
+        }
+        
+        function shouldContinue() {
+            return !currentDemoAborted;
+        }
+
+        function resetAll() {
+            animationManager.cleanup();
+            hideAllDemos();
+            updateTitle("Automated Physics Learning");
+            currentDemoAborted = false;
+            document.getElementById('intro-demo').classList.add('active');
+        }
+        
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeoutId = setTimeout(resolve, ms);
+                animationManager.addTimeout(timeoutId);
+            });
+        }
+
+        // Chart creation functions
+        function createVoltageChart() {
+            const canvas = document.getElementById('voltageChart');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            const data = {
+                labels: Array.from({length: 50}, (_, i) => i),
+                datasets: [{
+                    label: 'AC Voltage (V)',
+                    data: Array.from({length: 50}, (_, i) => 220 * Math.sin(i * 0.2)),
+                    borderColor: '#4facfe',
+                    backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4
+                }]
+            };
+
+            const config = {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: 'white' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            min: -250,
+                            max: 250
+                        }
+                    },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            };
+
+            const chart = new Chart(ctx, config);
+            animationManager.addChart('voltage', chart);
+
+            // Animate the wave
+            let frame = 0;
+            function animateWave() {
+                if (!shouldContinue()) return;
+                
+                chart.data.datasets[0].data = Array.from({length: 50}, (_, i) => 
+                    220 * Math.sin((i + frame) * 0.2)
+                );
+                chart.update('none');
+                frame += 1;
+                
+                const animId = requestAnimationFrame(animateWave);
+                animationManager.addCanvasAnimation('voltage-wave', animId);
+            }
+            
+            setTimeout(animateWave, 1000);
+        }
+
+        function createPowerChart() {
+            const canvas = document.getElementById('powerChart');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            const applianceData = [
+                { name: 'Bulb', power: 60, current: 0.27 },
+                { name: 'Fan', power: 75, current: 0.34 },
+                { name: 'TV', power: 150, current: 0.68 },
+                { name: 'Geyser', power: 2000, current: 9.09 }
+            ];
+
+            const data = {
+                labels: applianceData.map(item => item.name),
+                datasets: [{
+                    label: 'Power (W)',
+                    data: applianceData.map(item => item.power),
+                    backgroundColor: 'rgba(79, 172, 254, 0.8)',
+                    borderColor: '#4facfe',
+                    borderWidth: 2,
+                    yAxisID: 'y'
+                }, {
+                    label: 'Current (A)',
+                    data: applianceData.map(item => item.current),
+                    backgroundColor: 'rgba(255, 107, 107, 0.8)',
+                    borderColor: '#ff6b6b',
+                    borderWidth: 2,
+                    yAxisID: 'y1'
+                }]
+            };
+
+            const config = {
+                type: 'bar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: 'white' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            ticks: { color: 'white' },
+                            grid: { drawOnChartArea: false }
+                        }
+                    },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            };
+
+            const chart = new Chart(ctx, config);
+            animationManager.addChart('power', chart);
+        }
+
+        function drawCircuitDiagram() {
+            const canvas = document.getElementById('circuit-canvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw main circuit lines
+            const liveGradient = ctx.createLinearGradient(50, 0, width - 50, 0);
+            liveGradient.addColorStop(0, '#ff4444');
+            liveGradient.addColorStop(1, '#cc0000');
+            
+            ctx.strokeStyle = liveGradient;
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(50, 80);
+            ctx.lineTo(width - 50, 80);
+            ctx.stroke();
+            
+            ctx.shadowColor = '#ff4444';
+            ctx.shadowBlur = 10;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            
+            // Neutral wire
+            ctx.strokeStyle = '#333333';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(50, 120);
+            ctx.lineTo(width - 50, 120);
+            ctx.stroke();
+            
+            // Draw power source
+            ctx.fillStyle = '#4facfe';
+            ctx.fillRect(20, 60, 40, 80);
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('220V', 40, 105);
+            
+            // Draw loads
+            let x = 150;
+            circuitLoads.forEach((load, index) => {
+                ctx.fillStyle = totalCurrent > FUSE_RATING ? '#ff6b6b' : '#43e97b';
+                ctx.fillRect(x, 90, 30, 20);
+                
+                // Connections
+                ctx.strokeStyle = '#4facfe';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x + 15, 80);
+                ctx.lineTo(x + 15, 90);
+                ctx.moveTo(x + 15, 110);
+                ctx.lineTo(x + 15, 120);
+                ctx.stroke();
+                
+                // Labels
+                ctx.fillStyle = 'white';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(load.name, x + 15, 140);
+                ctx.fillText(`${load.power}W`, x + 15, 152);
+                
+                x += 80;
+            });
+            
+            // Draw fuse
+            ctx.fillStyle = totalCurrent > FUSE_RATING ? '#ff4444' : '#fbbf24';
+            ctx.beginPath();
+            ctx.arc(100, 80, 12, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            ctx.fillStyle = 'white';
+            ctx.font = '8px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('FUSE', 100, 98);
+            ctx.fillText('5A', 100, 108);
+            
+            // Animate current flow
+            if (totalCurrent <= FUSE_RATING) {
+                const currentTime = Date.now() * 0.003;
+                for (let i = 0; i < 5; i++) {
+                    const x = 70 + (currentTime + i * 20) % (width - 140);
+                    ctx.fillStyle = '#ffff00';
+                    ctx.beginPath();
+                    ctx.arc(x, 80, 2, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+                
+                const animId = requestAnimationFrame(drawCircuitDiagram);
+                animationManager.addCanvasAnimation('circuit', animId);
+            }
+        }
+
+        // Interactive Functions
+        function animateCurrentFlow() {
+            const currentElements = document.querySelectorAll('.current-flow');
+            currentElements.forEach((current, index) => {
+                gsap.fromTo(current, 
+                    { x: 0, opacity: 1 }, 
+                    { 
+                        x: 150, 
+                        opacity: 0, 
+                        duration: 2, 
+                        repeat: -1, 
+                        ease: "none",
+                        delay: index * 0.3
+                    }
+                );
+            });
+        }
+
+        function automateApplianceToggle() {
+            const appliances = document.querySelectorAll('.appliance');
+            let currentIndex = 0;
+            
+            function toggleNext() {
+                if (!shouldContinue()) return;
+                
+                appliances.forEach(app => app.classList.remove('on'));
+                
+                if (appliances[currentIndex]) {
+                    appliances[currentIndex].classList.add('on');
+                }
+                
+                currentIndex = (currentIndex + 1) % appliances.length;
+                
+                const timeoutId = setTimeout(toggleNext, 2500);
+                animationManager.addTimeout(timeoutId);
+            }
+            
+            const timeoutId = setTimeout(toggleNext, 1000);
+            animationManager.addTimeout(timeoutId);
+        }
+
+        function animateTypeCards() {
+            const cards = document.querySelectorAll('.type-card');
+            let currentCard = 0;
+            
+            function highlightNext() {
+                if (!shouldContinue()) return;
+                
+                cards.forEach(card => card.classList.remove('active'));
+                
+                if (cards[currentCard]) {
+                    cards[currentCard].classList.add('active');
+                }
+                
+                currentCard = (currentCard + 1) % cards.length;
+                
+                const timeoutId = setTimeout(highlightNext, 3000);
+                animationManager.addTimeout(timeoutId);
+            }
+            
+            highlightNext();
+        }
+
+        // Demo Functions
+        async function showIntro() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            const teacher = createNewTeacher();
+            teacher.setContext('intro');
+            
+            hideAllDemos();
+            updateTitle("🏠 Domestic Electric Circuits");
+            document.getElementById('intro-demo').classList.add('active');
+            
+            await teacher.speak("Welcome to domestic electric circuits! Every home receives electrical power through a main supply system with three important wires. The live wire carries current to appliances, the neutral wire completes the circuit, and the earth wire provides safety protection. Let's explore how electricity flows safely through our homes!", 0, 'intro');
+            
+            animateCurrentFlow();
+            automateApplianceToggle();
+            isPlaying = false;
+        }
+
+        async function showFormula() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            const teacher = createNewTeacher();
+            teacher.setContext('formula');
+            
+            hideAllDemos();
+            updateTitle("🧮 Electric Circuit Formulas");
+            document.getElementById('formula-demo').classList.add('active');
+            
+            await teacher.speak("The key formulas for domestic circuits are power equals voltage times current, and current equals power divided by voltage. These help us calculate how much current appliances draw and whether our circuits can handle the load safely. Watch the voltage waveform showing how AC current alternates!", 0, 'formula');
+            
+            setTimeout(() => {
+                if (shouldContinue()) createVoltageChart();
+            }, 1500);
+            
+            isPlaying = false;
+        }
+
+        async function showTypes() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            const teacher = createNewTeacher();
+            teacher.setContext('types');
+            
+            hideAllDemos();
+            updateTitle("🔌 Circuit Components");
+            document.getElementById('types-demo').classList.add('active');
+            
+            await teacher.speak("Domestic circuits have four main components. The red live wire carries current at 220 volts. The black neutral wire completes the circuit at zero potential. The green earth wire provides safety by grounding metallic appliances. Electric fuses protect against overcurrent by melting when current exceeds their rating!", 0, 'types');
+            
+            animateTypeCards();
+            isPlaying = false;
+        }
+
+        async function showVisual() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            const teacher = createNewTeacher();
+            teacher.setContext('visual');
+            
+            hideAllDemos();
+            updateTitle("👁️ Circuit Simulation");
+            document.getElementById('visual-demo').classList.add('active');
+            
+            await teacher.speak("This circuit simulation shows how different appliances affect the total current. The demonstration shows an overloaded circuit where multiple appliances draw more current than the fuse rating allows. Notice how the fuse provides protection by breaking the circuit when the total current exceeds 5 amperes!", 0, 'visual');
+            
+            setTimeout(() => {
+                if (shouldContinue()) {
+                    drawCircuitDiagram();
+                    createPowerChart();
+                }
+            }, 1000);
+            
+            isPlaying = false;
+        }
+
+        async function showExample() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            const teacher = createNewTeacher();
+            teacher.setContext('example');
+            
+            hideAllDemos();
+            updateTitle("📖 NCERT Example");
+            document.getElementById('example-demo').classList.add('active');
+            
+            await teacher.speak("Let's solve an important NCERT example. A 2000 watt electric oven needs to operate on a 220 volt domestic circuit with 5 ampere rating. The solution unfolds automatically, showing each step. The current required is 9.09 amperes, which exceeds the 5 ampere circuit rating, so the fuse will blow for protection!", 0, 'example');
+            
+            isPlaying = false;
+        }
+
+        async function showActivity() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            const teacher = createNewTeacher();
+            teacher.setContext('activity');
+            
+            hideAllDemos();
+            updateTitle("🔬 Wire Identification Activity");
+            document.getElementById('activity-demo').classList.add('active');
+            
+            await teacher.speak("This hands-on activity helps you understand wire identification in domestic circuits. Learn to identify the red live wire, black neutral wire, and green earth wire by their color coding. The demonstration shows each wire type with its voltage and safety function. Always remember - safety first when working with electricity!", 0, 'activity');
+            
+            isPlaying = false;
+        }
+
+        async function showCompleteLesson() {
+            currentDemoAborted = true;
+            await wait(300);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            const teacher = createNewTeacher();
+            const lessonContext = 'complete-lesson';
+            teacher.setContext(lessonContext);
+            
+            updateTitle("📚 Complete Domestic Electric Circuits Lesson");
+            
+            await teacher.speak("Welcome to our comprehensive lesson on domestic electric circuits! We'll explore how electrical power safely reaches our homes through live, neutral, and earth wires, understand circuit protection, and learn to calculate power requirements!", 0, lessonContext);
+            if (!shouldContinue()) return;
+            
+            await showIntroInternal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            await wait(2000);
+            await showFormulaInternal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            await wait(6000);
+            await showTypesInternal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            await wait(2000);
+            await showVisualInternal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            await wait(5000);
+            await showExampleInternal(lessonContext);
+            if (!shouldContinue()) return;
+
+            await wait(5000);
+            await showActivityInternal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("Congratulations! You've completed the comprehensive lesson on domestic electric circuits. You now understand how electricity flows safely through homes, the importance of proper circuit ratings, and how safety devices protect us from electrical hazards!", 0, lessonContext);
+            
+            isPlaying = false;
+        }
+
+        // Internal lesson functions
+        async function showIntroInternal(parentContext) {
+            const teacher = currentTeacher || createNewTeacher();
+            hideAllDemos();
+            document.getElementById('intro-demo').classList.add('active');
+            
+            await teacher.speak("Domestic electric circuits supply power to our homes through three main wires. The red live wire carries current at 220 volts, the black neutral wire completes the circuit, and the green earth wire provides safety protection.", 0, parentContext);
+            
+            animateCurrentFlow();
+            automateApplianceToggle();
+            return true;
+        }
+
+        async function showFormulaInternal(parentContext) {
+            const teacher = currentTeacher || createNewTeacher();
+            hideAllDemos();
+            document.getElementById('formula-demo').classList.add('active');
+            
+            await teacher.speak("The fundamental formulas are power equals voltage times current, and current equals power divided by voltage. These calculations help us determine if our circuits can safely handle different appliances.", 0, parentContext);
+            
+            setTimeout(() => {
+                if (shouldContinue()) createVoltageChart();
+            }, 1000);
+            
+            return true;
+        }
+
+        async function showTypesInternal(parentContext) {
+            const teacher = currentTeacher || createNewTeacher();
+            hideAllDemos();
+            document.getElementById('types-demo').classList.add('active');
+            
+            await teacher.speak("Circuit components include live wire for current supply, neutral wire for circuit completion, earth wire for safety, and fuses for protection against overcurrent conditions.", 0, parentContext);
+            
+            animateTypeCards();
+            return true;
+        }
+
+        async function showVisualInternal(parentContext) {
+            const teacher = currentTeacher || createNewTeacher();
+            hideAllDemos();
+            document.getElementById('visual-demo').classList.add('active');
+            
+            await teacher.speak("Circuit simulation shows how adding appliances increases total current. When current exceeds the fuse rating, the circuit becomes overloaded and the fuse provides protection.", 0, parentContext);
+            
+            setTimeout(() => {
+                if (shouldContinue()) {
+                    drawCircuitDiagram();
+                    createPowerChart();
+                }
+            }, 500);
+            
+            return true;
+        }
+
+        async function showExampleInternal(parentContext) {
+            const teacher = currentTeacher || createNewTeacher();
+            hideAllDemos();
+            document.getElementById('example-demo').classList.add('active');
+            
+            await teacher.speak("A 2000 watt oven on a 220 volt supply requires 9.09 amperes, which exceeds a 5 ampere circuit rating, causing the fuse to blow for protection.", 0, parentContext);
+            
+            return true;
+        }
+
+        async function showActivityInternal(parentContext) {
+            const teacher = currentTeacher || createNewTeacher();
+            hideAllDemos();
+            document.getElementById('activity-demo').classList.add('active');
+            
+            await teacher.speak("This hands-on activity helps you understand wire identification in domestic circuits. Learn to identify the red live wire, black neutral wire, and green earth wire by their color coding. The demonstration shows each wire type with its voltage and safety function. Always remember - safety first when working with electricity!", 0, parentContext);
+            
+            return true;
+        }
+
+        // Event Listeners and Initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            // Button click handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const demo = this.getAttribute('data-demo');
+                    setActiveButton(this);
+                    
+                    currentDemoAborted = true;
+                    if (currentTeacher) {
+                        currentTeacher.stop();
+                    }
+                    
+                    animationManager.cleanup();
+                    
+                    await wait(300);
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'intro':
+                            showIntro();
+                            break;
+                        case 'formula':
+                            showFormula();
+                            break;
+                        case 'types':
+                            showTypes();
+                            break;
+                        case 'visual':
+                            showVisual();
+                            break;
+                        case 'example':
+                            showExample();
+                            break;
+                        case 'activity':
+                            showActivity();
+                            break;
+                        case 'reset':
+                            resetAll();
+                            setActiveButton(null);
+                            break;
+                    }
+                });
+            });
+
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+
+            // Initialize
+            const teacher = createNewTeacher();
+            const welcomeContext = 'initial-welcome';
+            teacher.setContext(welcomeContext);
+            
+            setTimeout(() => {
+                teacher.speak("Welcome to domestic electric circuits! Discover how electrical power safely reaches our homes through live, neutral, and earth wires. Learn about circuit protection, power calculations, and electrical safety through interactive demonstrations!", 0, welcomeContext);
+                
+                animateCurrentFlow();
+                automateApplianceToggle();
+            }, 1500);
+        });
+    </script>
+</body>
+</html>

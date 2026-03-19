@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balanced & Unbalanced Forces - Physics in Motion</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e8ba3 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(59, 130, 246, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(59, 130, 246, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3.2rem;
+            background: linear-gradient(45deg, #3b82f6, #10b981, #f59e0b);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Physics Stage */
+        .physics-stage {
+            background: linear-gradient(to bottom, 
+                #e0f2fe 0%,
+                #bae6fd 50%,
+                #d4d4d8 80%,
+                #a1a1aa 100%);
+            border-radius: 25px;
+            height: 500px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            border: 4px solid rgba(59, 130, 246, 0.4);
+        }
+
+        /* Floor */
+        .floor {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 15%;
+            background: linear-gradient(to bottom, #78716c, #57534e);
+            border-top: 3px solid #44403c;
+        }
+
+        .floor.rough {
+            background: repeating-linear-gradient(
+                90deg,
+                #78716c,
+                #78716c 10px,
+                #57534e 10px,
+                #57534e 20px
+            );
+        }
+
+        /* Wooden Block */
+        .wooden-block {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #92400e, #78350f, #451a03);
+            border: 3px solid #1c0a00;
+            border-radius: 10px;
+            left: 50%;
+            bottom: 15%;
+            transform: translateX(-50%);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 
+                0 10px 25px rgba(0, 0, 0, 0.4),
+                inset 2px 2px 5px rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            z-index: 10;
+        }
+
+        .wooden-block::before {
+            content: '';
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* String Attachments */
+        .string {
+            position: absolute;
+            height: 3px;
+            background: #6b7280;
+            top: 70%;
+            transform: translateY(-50%);
+            transition: all 0.3s ease;
+        }
+
+        .string-left {
+           left: 0;
+    right: 50%;
+  
+        }
+
+        .string-right {
+            left: 50%;
+    right: 0;
+        }
+
+        .string.pulling {
+            background: #ef4444;
+            height: 5px;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+
+        /* Force Arrows */
+        .force-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .force-arrow.visible {
+            opacity: 1;
+        }
+
+        .force-arrow.left {
+            left: 10%;
+        }
+
+        .force-arrow.right {
+            right: 10%;
+        }
+
+        .arrow-body {
+            height: 8px;
+            background: #ef4444;
+            position: relative;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+            border-radius: 4px;
+        }
+
+        .arrow-head {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 15px solid transparent;
+            border-bottom: 15px solid transparent;
+        }
+
+        .force-arrow.left .arrow-head {
+            left: -20px;
+            border-right: 25px solid #ef4444;
+        }
+        .force-arrow.left.flip-head .arrow-head {
+    right: -20px;
+    border-left: 25px solid #ef4444;
+    border-right: none;
+    left: auto; /* reset */
+}
+
+        .force-arrow.right .arrow-head {
+            right: -20px;
+            border-left: 25px solid #ef4444;
+        }
+
+        .force-label {
+            position: absolute;
+            top: -40px;
+            background: #ef4444;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .force-arrow.left .force-label {
+            right: 0;
+        }
+
+        .force-arrow.right .force-label {
+            left: 0;
+        }
+
+        /* Force Magnitudes */
+        .force-small .arrow-body { width: 60px; }
+        .force-medium .arrow-body { width: 100px; }
+        .force-large .arrow-body { width: 140px; }
+
+        /* Children Pushing Box */
+        .children-group {
+            position: absolute;
+            bottom: 15%;
+            transition: all 0.5s ease;
+        }
+
+        .child {
+            width: 40px;
+            height: 80px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 20px 20px 10px 10px;
+            position: absolute;
+            bottom: 0;
+        }
+
+        .child::before {
+            content: '😊';
+            font-size: 1.5rem;
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Friction Indicator */
+        .friction-indicator {
+            position: absolute;
+            bottom: 14%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+
+        .friction-indicator.visible {
+            opacity: 1;
+        }
+
+        .friction-arrow {
+            width: 80px;
+            height: 4px;
+            background: #f59e0b;
+            position: relative;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+        }
+
+        .friction-arrow::before {
+            content: '';
+            position: absolute;
+            left: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-right: 15px solid #f59e0b;
+        }
+
+        .friction-label {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f59e0b;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Bicycle Demo with Rider */
+        .bicycle {
+            position: absolute;
+            bottom: 15%;
+            left: 20%;
+            width: 150px;
+            height: 100px;
+            transition: all 3s linear;
+        }
+
+        /* Rider */
+        .rider {
+            position: absolute;
+            bottom: 35px;
+            left: 45px;
+            width: 50px;
+            height: 70px;
+        }
+
+        .rider-head {
+            width: 25px;
+            height: 25px;
+            background: #fbbf24;
+            border-radius: 50%;
+            margin: 0 auto 3px;
+            position: relative;
+        }
+
+        .rider-head::after {
+            content: '😊';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+        }
+
+        .rider-body {
+            width: 30px;
+            height: 35px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 10px 10px 5px 5px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .rider-arms {
+            position: absolute;
+            width: 40px;
+            height: 3px;
+            background: #3b82f6;
+            top: 8px;
+            left: -5px;
+            transform: rotate(-15deg);
+        }
+
+        .rider-legs {
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .leg {
+            width: 8px;
+            height: 20px;
+            background: #1e40af;
+            position: absolute;
+            border-radius: 0 0 5px 5px;
+        }
+
+        .leg-left {
+            left: -10px;
+            transform: rotate(-10deg);
+        }
+
+        .leg-right {
+            right: -10px;
+            transform: rotate(10deg);
+        }
+
+        .leg.pedaling-left {
+            animation: pedal-left 0.5s ease-in-out infinite;
+        }
+
+        .leg.pedaling-right {
+            animation: pedal-right 0.5s ease-in-out infinite;
+        }
+
+        @keyframes pedal-left {
+            0%, 100% { transform: rotate(-10deg); }
+            50% { transform: rotate(10deg); }
+        }
+
+        @keyframes pedal-right {
+            0%, 100% { transform: rotate(10deg); }
+            50% { transform: rotate(-10deg); }
+        }
+
+        .bicycle-body {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 90px;
+            height: 3px;
+            background: #3b82f6;
+        }
+
+        .wheel {
+            position: absolute;
+            bottom: 0;
+            width: 35px;
+            height: 35px;
+            border: 3px solid #1f2937;
+            border-radius: 50%;
+            background: radial-gradient(circle, #e5e7eb, #9ca3af);
+        }
+
+        .wheel-front { right: 0; }
+        .wheel-rear { left: 0; }
+
+        .wheel.spinning {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .bicycle.moving {
+            left: 70%;
+        }
+        
+        .bicycle.stopped {
+            left: 70%;
+        }
+
+        /* Motion States */
+        .wooden-block.moving-right {
+            transform: translateX(calc(-50% + 200px));
+        }
+
+        .wooden-block.moving-left {
+            transform: translateX(calc(-50% - 200px));
+        }
+
+        .wooden-block.vibrating {
+            animation: vibrate 0.3s ease-in-out infinite;
+        }
+
+        @keyframes vibrate {
+            0%, 100% { transform: translateX(-50%); }
+            25% { transform: translateX(calc(-50% - 2px)); }
+            75% { transform: translateX(calc(-50% + 2px)); }
+        }
+
+        /* Control Panel */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+            min-width: 160px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(59, 130, 246, 0.4);
+        }
+
+        .demo-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+        }
+        .force-arrow.rotate-left {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+/* Pointing up (↑) */
+.force-arrow.rotate-up {
+    transform: translateY(-50%) rotate(-90deg);
+}
+
+/* Pointing down (↓) */
+.force-arrow.rotate-down {
+    transform: translateY(-50%) rotate(90deg);
+}
+
+        /* Concept Cards */
+        .concept-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 40px 0;
+        }
+
+        .concept-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .concept-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            color: #3b82f6;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .card-content {
+            font-size: 1rem;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        .card-example {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            font-size: 0.95rem;
+        }
+
+        /* Info Panel */
+        .info-panel {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            padding: 25px;
+            margin: 30px 0;
+            border: 2px solid rgba(59, 130, 246, 0.4);
+            backdrop-filter: blur(10px);
+        }
+
+        .info-title {
+            font-size: 1.5rem;
+            color: #3b82f6;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .status-display {
+            text-align: center;
+            font-size: 1.2rem;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 15px;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .physics-stage {
+                height: 400px;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .concept-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Balanced & Unbalanced Forces</h1>
+            <p>Explore how forces interact to create motion or maintain equilibrium. Discover the fundamental principles that govern movement in our world.</p>
+        </div>
+
+        <!-- Physics Stage -->
+        <div class="physics-stage" id="stage">
+            <div class="floor" id="floor"></div>
+            
+            <!-- Wooden Block with Strings -->
+            <div class="wooden-block" id="block">BLOCK</div>
+            <div class="string string-left" id="string-left"></div>
+            <div class="string string-right" id="string-right"></div>
+            
+            <!-- Force Arrows -->
+            <div class="force-arrow left" id="force-left">
+                <div class="arrow-body"></div>
+                <div class="arrow-head"></div>
+                <div class="force-label">Force X</div>
+            </div>
+            
+            <div class="force-arrow right" id="force-right">
+                <div class="arrow-body"></div>
+                <div class="arrow-head"></div>
+                <div class="force-label">Force Y</div>
+            </div>
+            
+            <!-- Friction Indicator -->
+            <div class="friction-indicator" id="friction">
+                <div class="friction-arrow"></div>
+                <div class="friction-label">Friction</div>
+            </div>
+            
+            <!-- Children Group (for pushing demo) -->
+            <div class="children-group" id="children" style="display: none;">
+                <div class="child" style="left: -50px;"></div>
+                <div class="child" style="left: -90px;"></div>
+                <div class="child" style="left: -130px;"></div>
+            </div>
+            
+            <!-- Bicycle with Rider (for motion demo) -->
+            <div class="bicycle" id="bicycle" style="display: none;">
+                <div class="rider">
+                    <div class="rider-head"></div>
+                    <div class="rider-body">
+                        <div class="rider-arms"></div>
+                    </div>
+                    <div class="rider-legs">
+                        <div class="leg leg-left"></div>
+                        <div class="leg leg-right"></div>
+                    </div>
+                </div>
+                <div class="bicycle-body"></div>
+                <div class="wheel wheel-front"></div>
+                <div class="wheel wheel-rear"></div>
+            </div>
+        </div>
+
+        <!-- Status Display -->
+        <div class="status-display" id="status">
+            Ready to explore forces! Select a demonstration below.
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="lesson-title">Interactive Force Demonstrations</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playCompleteStory()">📖 Complete Lesson</button>
+                <button class="demo-btn" onclick="demoSingleForce()">➡️ Single Force</button>
+                <button class="demo-btn" onclick="demoBalancedForces()">⚖️ Balanced Forces</button>
+                <button class="demo-btn" onclick="demoUnbalancedForces()">💨 Unbalanced Forces</button>
+                <button class="demo-btn" onclick="demoFriction()">📦 Friction Demo</button>
+                <button class="demo-btn" onclick="demoBicycle()">🚴 Bicycle Motion</button>
+                <button class="demo-btn" onclick="resetDemoClick()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Concept Cards -->
+        <div class="concept-cards">
+            <div class="concept-card">
+                <div class="card-title">⚖️ Balanced Forces</div>
+                <div class="card-content">
+                    When two or more forces acting on an object are equal in magnitude but opposite in direction, they cancel each other out. The object remains at rest or continues moving at constant velocity.
+                </div>
+                <div class="card-example">
+                    <strong>Example:</strong> A book resting on a table - gravity pulls down, table pushes up with equal force.
+                </div>
+            </div>
+            
+            <div class="concept-card">
+                <div class="card-title">💨 Unbalanced Forces</div>
+                <div class="card-content">
+                    When forces acting on an object don't cancel out, there's a net force. This causes the object to accelerate in the direction of the stronger force.
+                </div>
+                <div class="card-example">
+                    <strong>Example:</strong> Kicking a soccer ball - your foot applies more force than air resistance.
+                </div>
+            </div>
+            
+            <div class="concept-card">
+                <div class="card-title">🎯 Friction Force</div>
+                <div class="card-content">
+                    A force that opposes motion between two surfaces in contact. It can balance other forces to prevent motion or slow down moving objects.
+                </div>
+                <div class="card-example">
+                    <strong>Example:</strong> Car brakes work by increasing friction to slow the wheels.
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Panel -->
+        <div class="info-panel">
+            <div class="info-title">🔬 Understanding Forces</div>
+            <div id="explanation">
+                Forces are pushes or pulls that can change an object's motion. When multiple forces act on an object, the result depends on whether they balance out or not. This fundamental principle explains everything from why objects fall to how rockets fly!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice System
+        class ForceNarrator {
+            constructor() {
+                this.isEnabled = true;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.9, pitch: 1.0, volume: 0.85 };
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            toggle() {
+                this.isEnabled = !this.isEnabled;
+                if (!this.isEnabled) this.stop();
+                return this.isEnabled;
+            }
+        }
+
+        // Global state
+        const narrator = new ForceNarrator();
+        let isPlaying = false;
+        let currentRunId = 0; // increments on every button click/demo start to guard UI updates
+        let currentDemoAborted = false;
+        let activeAnimations = [];
+        let currentTaskId = null; // Track current task ID
+
+        // Function to stop current demo
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++; // invalidate any pending UI updates from previous demos
+            
+            // Clear current task context
+            currentTaskId = null;
+            
+            // Immediately hide all UI elements synchronously
+            updateStatus("", currentRunId);
+            updateExplanation("", currentRunId);
+            
+            // Stop narrator
+            if (narrator) {
+                narrator.stop();
+            }
+            
+            // Kill all animations
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            
+            isPlaying = false;
+        }
+
+        // Function to check if demo should continue
+        function shouldContinue(taskId = null) {
+            // If a specific task ID is provided, check if it matches current task
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        // Function to create new narrator instance
+        function createNewNarrator(taskId = null) {
+            // Reset abort flag
+            currentDemoAborted = false;
+            // Set current task ID
+            currentTaskId = taskId;
+            // Create new narrator instance
+            return new ForceNarrator();
+        }
+
+        // Helper functions for UI updates with runId safety
+        function updateStatus(text, runId) {
+            if (runId !== currentRunId || !shouldContinue()) return;
+            document.getElementById('status').textContent = text;
+        }
+
+        function updateExplanation(text, runId) {
+            if (runId !== currentRunId || !shouldContinue()) return;
+            document.getElementById('explanation').textContent = text;
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            const newNarrator = createNewNarrator('initialization');
+            newNarrator.speak("Welcome to Balanced and Unbalanced Forces! Let's explore how forces interact to create motion or maintain equilibrium. Click any demonstration to begin!");
+            updateStatus("Ready to explore forces! Select a demonstration below.", currentRunId);
+        });
+
+        // Complete Story
+        async function playCompleteStory() {
+            const taskId = 'complete-story';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            // Reset abort flag for new demo
+            currentDemoAborted = false;
+            
+            const runId = currentRunId;
+            updateStatus("Complete Lesson - Starting...", runId);
+            await resetDemo();
+            updateStatus("Starting complete force lesson...", runId);
+            
+            const newNarrator = createNewNarrator(taskId);
+            
+            await newNarrator.speak("Welcome to our complete journey through balanced and unbalanced forces! We'll explore all the key concepts in sequence.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Chapter 1: Single Force
+            updateStatus("Chapter 1: Single Forces", runId);
+            await newNarrator.speak("Chapter 1: Single Forces. Let's start with the basics - when one force acts alone.");
+            if (!shouldContinue(taskId)) return;
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Call the full single force demo
+            await demoSingleForce(true, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Chapter 2: Balanced Forces
+            updateStatus("Chapter 2: Balanced Forces", runId);
+            await newNarrator.speak("Chapter 2: Balanced Forces. Now let's see what happens with equal opposing forces.");
+            if (!shouldContinue(taskId)) return;
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Call the full balanced forces demo
+            await demoBalancedForces(true, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Chapter 3: Unbalanced Forces
+            updateStatus("Chapter 3: Unbalanced Forces", runId);
+            await newNarrator.speak("Chapter 3: Unbalanced Forces. In reality, forces are rarely perfectly balanced.");
+            if (!shouldContinue(taskId)) return;
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Call the full unbalanced forces demo
+            await demoUnbalancedForces(true, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Chapter 4: Friction
+            updateStatus("Chapter 4: Friction Forces", runId);
+            await newNarrator.speak("Chapter 4: Friction - The hidden force that affects everything.");
+            if (!shouldContinue(taskId)) return;
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Call the full friction demo
+            await demoFriction(true, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Chapter 5: Bicycle Example
+            updateStatus("Chapter 5: Bicycle Motion", runId);
+            await newNarrator.speak("Chapter 5: Real World Application - A bicycle in motion.");
+            if (!shouldContinue(taskId)) return;
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Call the full bicycle demo
+            await demoBicycle(true, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            updateStatus("Complete! You've mastered balanced and unbalanced forces!", runId);
+            await newNarrator.speak("Congratulations! You've experienced all the fundamental principles of balanced and unbalanced forces. These laws govern everything from atoms to galaxies!");
+            
+            isPlaying = false;
+        }
+
+        // Single Force Demo
+        async function demoSingleForce(fromCompleteLesson = false, parentTaskId = null) {
+            const taskId = fromCompleteLesson && parentTaskId ? parentTaskId : 'single-force';
+            if (!fromCompleteLesson) {
+                stopCurrentDemo();
+                isPlaying = true;
+                setActiveButton(1);
+                
+                // Reset abort flag for new demo
+                currentDemoAborted = false;
+            }
+            
+            const runId = currentRunId;
+            updateStatus("Single Force Demo - Starting...", runId);
+            await resetDemo();
+            updateStatus("Demonstrating single force application", runId);
+            
+            const newNarrator = createNewNarrator(taskId);
+            
+            await newNarrator.speak("Welcome to Single Forces! When only one force acts on an object, it causes acceleration in that direction. This is Newton's Second Law in action!");
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("Let's pull the block from the left side with String X. Watch how the block accelerates left when pulled from the left side only.");
+            if (!shouldContinue(taskId)) return;
+            await demonstrateSinglePull('left', runId, taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("Notice how the block accelerates left when pulled from the left side only. The acceleration is proportional to the force applied!");
+            if (!shouldContinue(taskId)) return;
+            
+            await resetDemo();
+            if (!shouldContinue(taskId)) return;
+            await newNarrator.speak("Now let's pull from the right side with String Y. Similarly, pulling from the right causes rightward acceleration.");
+            if (!shouldContinue(taskId)) return;
+            await demonstrateSinglePull('right', runId, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("The acceleration is proportional to the force applied! This demonstrates Newton's Second Law: Force equals mass times acceleration, or F equals ma.");
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("In real life, think of kicking a soccer ball - your foot applies a single force that accelerates the ball in the direction of the kick!");
+            if (!shouldContinue(taskId)) return;
+            
+            updateExplanation("A single unbalanced force causes an object to accelerate in the direction of that force. This is Newton's Second Law: F = ma", runId);
+            
+            if (!fromCompleteLesson) {
+                isPlaying = false;
+            }
+        }
+
+        // Balanced Forces Demo
+        async function demoBalancedForces(fromCompleteLesson = false, parentTaskId = null) {
+            const taskId = fromCompleteLesson && parentTaskId ? parentTaskId : 'balanced-forces';
+            if (!fromCompleteLesson) {
+                stopCurrentDemo();
+                isPlaying = true;
+                setActiveButton(2);
+                
+                // Reset abort flag for new demo
+                currentDemoAborted = false;
+            }
+            
+            const runId = currentRunId;
+            updateStatus("Balanced Forces Demo - Starting...", runId);
+            await resetDemo();
+            updateStatus("Demonstrating balanced forces - Equal and opposite", runId);
+            
+            const newNarrator = createNewNarrator(taskId);
+            
+            await newNarrator.speak("Welcome to Balanced Forces! What happens when two equal forces oppose each other? Let's find out!");
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("Watch what happens when we pull with equal forces from both sides. The forces are equal in magnitude but opposite in direction.");
+            if (!shouldContinue(taskId)) return;
+            await demonstrateBalanced(runId, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("Amazing! The block vibrates but doesn't move. The forces cancel each other perfectly, creating zero net force. This is equilibrium!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("This principle keeps buildings standing and bridges stable - balanced forces maintain stability. When forces are balanced, they cancel out completely.");
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("Think of a book resting on a table - gravity pulls down, but the table pushes up with equal force, keeping the book stationary!");
+            if (!shouldContinue(taskId)) return;
+            
+            updateExplanation("When forces are balanced, they cancel out. The net force is zero, so the object remains at rest or continues at constant velocity.", runId);
+            
+            if (!fromCompleteLesson) {
+                isPlaying = false;
+            }
+        }
+
+        // Unbalanced Forces Demo
+        async function demoUnbalancedForces(fromCompleteLesson = false, parentTaskId = null) {
+            const taskId = fromCompleteLesson && parentTaskId ? parentTaskId : 'unbalanced-forces';
+            if (!fromCompleteLesson) {
+                stopCurrentDemo();
+                isPlaying = true;
+                setActiveButton(3);
+                
+                // Reset abort flag for new demo
+                currentDemoAborted = false;
+            }
+            
+            const runId = currentRunId;
+            updateStatus("Unbalanced Forces Demo - Starting...", runId);
+            await resetDemo();
+            updateStatus("Demonstrating unbalanced forces - Different magnitudes", runId);
+            
+            const newNarrator = createNewNarrator(taskId);
+            
+            await newNarrator.speak("Welcome to Unbalanced Forces! In the real world, forces are rarely perfectly balanced. Let's see what happens with different strengths!");
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("Now one force is stronger than the other. Watch which way the block moves! We have 5 newtons on the left and 10 newtons on the right.");
+            if (!shouldContinue(taskId)) return;
+            await demonstrateUnbalanced(runId, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("The block moves toward the stronger force! The net force equals 10 newtons minus 5 newtons, giving us 5 newtons to the right.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("This is how rockets launch - their thrust force must exceed gravity to accelerate upward! Unbalanced forces create acceleration in the direction of the stronger force.");
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("Think of a tug-of-war where one team is stronger - the rope moves toward the stronger team, just like our block moves toward the stronger force!");
+            if (!shouldContinue(taskId)) return;
+            
+            updateExplanation("Unbalanced forces create a net force in one direction, causing acceleration. The object moves in the direction of the stronger force.", runId);
+            
+            if (!fromCompleteLesson) {
+                isPlaying = false;
+            }
+        }
+
+        // Friction Demo
+        async function demoFriction(fromCompleteLesson = false, parentTaskId = null) {
+            const taskId = fromCompleteLesson && parentTaskId ? parentTaskId : 'friction-demo';
+            if (!fromCompleteLesson) {
+                stopCurrentDemo();
+                isPlaying = true;
+                setActiveButton(4);
+                
+                // Reset abort flag for new demo
+                currentDemoAborted = false;
+            }
+            
+            const runId = currentRunId;
+            updateStatus("Friction Demo - Starting...", runId);
+            await resetDemo();
+            updateStatus("Demonstrating friction forces", runId);
+            
+            const newNarrator = createNewNarrator(taskId);
+            
+            await newNarrator.speak("Welcome to Friction Forces! This is the hidden force that opposes motion between surfaces and plays a crucial role in our daily lives.");
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("Children are trying to push a heavy box. Let's see how friction affects their efforts! Watch how this invisible force can be both helpful and challenging.");
+            if (!shouldContinue(taskId)) return;
+            await demonstrateFriction(runId, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(4000);
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("Friction can be helpful - it lets us walk without slipping! But it can also be a challenge, requiring more energy to overcome.");
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("Car brakes work by increasing friction to slow the wheels. Without friction, we couldn't stop our cars or even walk properly!");
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("Remember: static friction is stronger than kinetic friction - that's why it's harder to start pushing than to keep pushing!");
+            if (!shouldContinue(taskId)) return;
+            
+            updateExplanation("Friction opposes motion between surfaces. A force must overcome friction before motion begins. Once moving, friction continues to oppose the motion.", runId);
+            
+            if (!fromCompleteLesson) {
+                isPlaying = false;
+            }
+        }
+
+        // Bicycle Demo
+        async function demoBicycle(fromCompleteLesson = false, parentTaskId = null) {
+            const taskId = fromCompleteLesson && parentTaskId ? parentTaskId : 'bicycle-demo';
+            if (!fromCompleteLesson) {
+                stopCurrentDemo();
+                isPlaying = true;
+                setActiveButton(5);
+                
+                // Reset abort flag for new demo
+                currentDemoAborted = false;
+            }
+            
+            const runId = currentRunId;
+            updateStatus("Bicycle Demo - Starting...", runId);
+            await resetDemo();
+            updateStatus("Demonstrating forces in bicycle motion", runId);
+            
+            const newNarrator = createNewNarrator(taskId);
+            
+            await newNarrator.speak("Welcome to Bicycle Motion! Let's see how multiple forces interact in a familiar real-world situation.");
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("Watch how a bicycle maintains motion and what happens when we stop pedaling. This demonstrates Newton's First Law in action!");
+            if (!shouldContinue(taskId)) return;
+            await demonstrateBicycleMotion(runId, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("This demonstrates Newton's First Law - objects in motion stay in motion unless acted upon by an unbalanced force!");
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("To maintain constant speed, cyclists must continuously pedal to balance the opposing forces. No pedaling means deceleration!");
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("In real life, think of coasting on a bike - you gradually slow down due to friction and air resistance, which are the unbalanced forces acting against your motion!");
+            if (!shouldContinue(taskId)) return;
+            
+            updateExplanation("Objects in motion stay in motion unless acted upon by an unbalanced force. Friction and air resistance slow the bicycle when pedaling stops.", runId);
+            
+            if (!fromCompleteLesson) {
+                isPlaying = false;
+            }
+        }
+
+        // Demo Functions with runId safety
+        async function demonstrateSinglePull(direction, runId, taskId) {
+            if (!shouldContinue(taskId)) return;
+            
+            const block = document.getElementById('block');
+            const forceArrow = document.getElementById(`force-${direction}`);
+            const string = document.getElementById(`string-${direction}`);
+            
+            string.classList.add('pulling');
+            forceArrow.classList.add('visible', 'force-medium');
+            
+            updateStatus(`Single Force Demo: Pulling ${direction}`, runId);
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            if (direction === 'left') {
+                block.classList.add('moving-left');
+                updateStatus("Block accelerates to the left!", runId);
+                await createNewNarrator(taskId).speak("The block moves to the left!");
+            } else {
+                block.classList.add('moving-right');
+                updateStatus("Block accelerates to the right!", runId);
+                await createNewNarrator(taskId).speak("The block moves to the right!");
+            }
+        }
+
+        async function demonstrateBalanced(runId, taskId) {
+            if (!shouldContinue(taskId)) return;
+            
+            const block = document.getElementById('block');
+            const leftForce = document.getElementById('force-left');
+            const rightForce = document.getElementById('force-right');
+            const leftString = document.getElementById('string-left');
+            const rightString = document.getElementById('string-right');
+            
+            leftString.classList.add('pulling');
+            rightString.classList.add('pulling');
+            leftForce.classList.add('visible', 'force-medium');
+            rightForce.classList.add('visible', 'force-medium');
+            
+            updateStatus("Balanced Forces Demo: Equal forces from both sides", runId);
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            block.classList.add('vibrating');
+            
+            updateStatus("Forces are balanced - Block remains stationary!", runId);
+        }
+
+        async function demonstrateUnbalanced(runId, taskId) {
+            if (!shouldContinue(taskId)) return;
+            
+            const block = document.getElementById('block');
+            const leftForce = document.getElementById('force-left');
+            const rightForce = document.getElementById('force-right');
+            const leftString = document.getElementById('string-left');
+            const rightString = document.getElementById('string-right');
+            
+            leftString.classList.add('pulling');
+            rightString.classList.add('pulling');
+            leftForce.classList.add('visible', 'force-small');
+            rightForce.classList.add('visible', 'force-large');
+            
+            leftForce.querySelector('.force-label').textContent = '5 N';
+            rightForce.querySelector('.force-label').textContent = '10 N';
+            
+            updateStatus("Unbalanced Forces Demo: 5N vs 10N forces", runId);
+            
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            block.classList.add('moving-right');
+            
+            updateStatus("Unbalanced forces - Block moves right (stronger force)!", runId);
+        }
+
+        async function demonstrateFriction(runId, taskId) {
+            if (!shouldContinue(taskId)) return;
+            
+            const block = document.getElementById('block');
+            const floor = document.getElementById('floor');
+            const children = document.getElementById('children');
+            const friction = document.getElementById('friction');
+            const leftForce = document.getElementById('force-left');
+            
+            const newNarrator = createNewNarrator(taskId);
+            
+            // Hide strings, show children
+            document.getElementById('string-left').style.display = 'none';
+            document.getElementById('force-right').style.display = 'none';
+            document.getElementById('string-right').style.display = 'none';
+            children.style.display = 'block';
+            children.style.left = '20%';
+            
+            floor.classList.add('rough');
+            
+            // Position friction indicator below and behind the block
+            friction.style.position = 'absolute';
+            friction.style.left = '45%';
+            friction.style.bottom = '8%';
+            friction.style.zIndex = '5';
+            
+            // Small push - friction balances
+            updateStatus("Friction Demo: Small push (3N) - Static friction", runId);
+            await newNarrator.speak("First, a small push. The applied force is weak, about 3 newtons. Watch what happens!");
+            leftForce.classList.add('visible', 'force-small');
+            leftForce.classList.add('flip-head');
+            leftForce.querySelector('.force-label').textContent = 'Small Push (3N)';
+            friction.classList.add('visible');
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await newNarrator.speak("The friction force automatically adjusts to match the applied force, keeping the box stationary. This is static friction!");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Medium push - still balanced
+            updateStatus("Friction Demo: Medium push (7N) - Still balanced", runId);
+            await newNarrator.speak("Now a harder push, about 7 newtons. But static friction can be strong!");
+            leftForce.classList.remove('force-small');
+            leftForce.classList.add('flip-head');
+            leftForce.classList.add('force-medium');
+            leftForce.querySelector('.force-label').textContent = 'Medium Push (7N)';
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await newNarrator.speak("Still no movement! Static friction increases to match the push, up to its maximum limit.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Large push - overcomes friction
+            updateStatus("Friction Demo: Strong push (12N) - Overcomes friction!", runId);
+            await newNarrator.speak("Finally, a very strong push of 12 newtons. This exceeds the maximum static friction!");
+            leftForce.classList.remove('force-medium');
+            leftForce.classList.add('force-large');
+            leftForce.classList.add('flip-head');
+            leftForce.querySelector('.force-label').textContent = 'Strong Push (12N)!';
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            block.classList.add('moving-right');
+            
+            // Move friction with the block
+            friction.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+            friction.style.left = '65%';
+            friction.style.opacity = '0.7';
+            
+            await newNarrator.speak("Success! Once moving, we deal with kinetic friction, which is usually weaker than static friction. That's why it's harder to start pushing than to keep pushing!");
+            
+            updateStatus("Strong push overcomes friction - motion begins!", runId);
+        }
+
+        async function demonstrateBicycleMotion(runId, taskId) {
+            if (!shouldContinue(taskId)) return;
+            
+            const bicycle = document.getElementById('bicycle');
+            const stage = document.getElementById('stage');
+            const friction = document.getElementById('friction');
+            const forceRight = document.getElementById('force-right');
+            
+            const newNarrator = createNewNarrator(taskId);
+            
+            // Hide block elements
+            document.getElementById('block').style.display = 'none';
+            document.getElementById('string-left').style.display = 'none';
+            document.getElementById('string-right').style.display = 'none';
+            document.getElementById('force-left').style.display = 'none';
+            
+            // Show bicycle
+            bicycle.style.display = 'block';
+            
+            // Position and show force arrow (pedaling force)
+            forceRight.style.display = 'block';
+            forceRight.style.position = 'absolute';
+            forceRight.style.left = '20%';
+            forceRight.style.right = 'auto';
+            forceRight.style.top = '60%';
+            forceRight.classList.add('visible', 'force-medium');
+            forceRight.querySelector('.force-label').textContent = 'Pedaling Force';
+            
+            // Position friction arrow below bicycle, not colliding - visible throughout
+            friction.style.display = 'block';
+            friction.style.position = 'absolute';
+            friction.style.left = '25%';
+            friction.style.bottom = '8%';
+            friction.style.transform = 'translateX(-50%)';
+            friction.classList.add('visible');
+            friction.style.opacity = '0.7'; // Slightly transparent while pedaling
+            friction.querySelector('.friction-label').textContent = 'Friction + Air Resistance';
+            
+            // Start pedaling animation
+            bicycle.querySelectorAll('.leg').forEach(leg => {
+                if (leg.classList.contains('leg-left')) {
+                    leg.classList.add('pedaling-left');
+                } else {
+                    leg.classList.add('pedaling-right');
+                }
+            });
+            
+            // Start pedaling
+            updateStatus("Bicycle Demo: Pedaling with forward force", runId);
+            await newNarrator.speak("When we pedal, we apply a forward force. But notice - friction and air resistance always oppose our motion!");
+            bicycle.querySelectorAll('.wheel').forEach(w => w.classList.add('spinning'));
+            bicycle.classList.add('moving');
+            
+            // Move forces with bicycle
+            forceRight.style.transition = 'all 3s linear';
+            friction.style.transition = 'all 3s linear';
+            forceRight.style.left = '70%';
+            friction.style.left = '75%';
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            updateStatus("Bicycle Demo: Accelerating forward (unbalanced forces)", runId);
+            await newNarrator.speak("Right now, the pedaling force is stronger than the opposing forces, so we accelerate forward. This is an unbalanced force situation!");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Stop pedaling - bicycle stays exactly where it is
+            updateStatus("Bicycle Demo: Stopping pedaling - only friction remains", runId);
+            await newNarrator.speak("Now watch carefully - when we stop pedaling, the forward force disappears!");
+            bicycle.querySelectorAll('.wheel').forEach(w => w.classList.remove('spinning'));
+            bicycle.querySelectorAll('.leg').forEach(leg => {
+                leg.classList.remove('pedaling-left', 'pedaling-right');
+            });
+            
+            // Keep bicycle at 70% position by adding stopped class
+            bicycle.classList.remove('moving');
+            bicycle.classList.add('stopped');
+            
+            // Hide pedaling force, make friction more prominent
+            forceRight.style.opacity = '0';
+            friction.style.opacity = '1'; // Full opacity when it's the only force
+            // Keep friction at same position - don't move it
+            friction.style.transition = 'opacity 0.5s ease';
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await newNarrator.speak("Only friction and air resistance remain, acting backward. In reality, these forces would gradually slow the bicycle to a complete stop.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            await newNarrator.speak("This demonstrates Newton's First Law - objects in motion stay in motion unless acted upon by an unbalanced force!");
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await newNarrator.speak("To maintain constant speed, cyclists must continuously pedal to balance the opposing forces. No pedaling means deceleration!");
+            
+            updateStatus("Continuous force needed to maintain motion against friction!", runId);
+        }
+
+        // Reset Button Handler - ensures same behavior as other buttons
+        async function resetDemoClick() {
+            // Stop any running demo and invalidate previous run
+            stopCurrentDemo();
+            isPlaying = false;
+            setActiveButton(6);
+            updateStatus("Resetting demonstration...", currentRunId);
+            // Perform full reset
+            await resetDemo();
+        }
+
+        // Helper Functions
+        async function resetDemo() {
+            const block = document.getElementById('block');
+            const bicycle = document.getElementById('bicycle');
+            const children = document.getElementById('children');
+            const floor = document.getElementById('floor');
+            const friction = document.getElementById('friction');
+            
+            // Reset block
+            block.className = 'wooden-block';
+            block.style.display = 'block';
+            
+            // Reset forces
+            document.querySelectorAll('.force-arrow').forEach(arrow => {
+                arrow.className = 'force-arrow ' + (arrow.id.includes('left') ? 'left' : 'right');
+                arrow.querySelector('.force-label').textContent = arrow.id.includes('left') ? 'Force X' : 'Force Y';
+                arrow.style.opacity = '';
+                arrow.style.display = '';
+                arrow.style.position = '';
+                arrow.style.left = '';
+                arrow.style.right = '';
+                arrow.style.top = '';
+                arrow.style.transition = '';
+            });
+            
+            // Reset strings
+            document.querySelectorAll('.string').forEach(string => {
+                string.classList.remove('pulling');
+                string.style.display = 'block';
+            });
+            
+            // Reset friction
+            friction.classList.remove('visible');
+            friction.style.position = '';
+            friction.style.left = '50%';
+            friction.style.bottom = '14%';
+            friction.style.transform = 'translateX(-50%)';
+            friction.style.opacity = '0';
+            friction.style.transition = '';
+            friction.style.display = '';
+            friction.style.zIndex = '';
+            
+            // Reset other elements
+            bicycle.style.display = 'none';
+            bicycle.className = 'bicycle';
+            bicycle.style.left = ''; // Reset left position
+            bicycle.querySelectorAll('.wheel').forEach(w => w.classList.remove('spinning'));
+            bicycle.querySelectorAll('.leg').forEach(leg => {
+                leg.classList.remove('pedaling-left', 'pedaling-right');
+            });
+            
+            children.style.display = 'none';
+            floor.classList.remove('rough');
+            
+            updateStatus("Ready for next demonstration", currentRunId);
+            
+            await wait(300);
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            const isEnabled = narrator.toggle();
+            document.getElementById('mute-btn').classList.toggle('muted', !isEnabled);
+        });
+    </script>
+</body>
+</html>
+</body>
+</html>
+</body>
+</html>

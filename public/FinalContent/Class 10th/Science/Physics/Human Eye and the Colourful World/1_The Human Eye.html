@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Human Eye - Interactive Learning Experience</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --eye-gradient: linear-gradient(180deg, #87CEEB 0%, #1E90FF 50%, #4169E1 100%);
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --vision-gradient: linear-gradient(135deg, #3498db 0%, #2ecc71 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #00bfff;
+            --shadow-primary: 0 20px 40px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 25px 50px rgba(0, 0, 0, 0.4);
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-particles {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            margin: 0 auto 30px;
+        }
+
+        .particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: scatter 3s ease-in-out infinite;
+        }
+
+        .particle:nth-child(1) { background: #87CEEB; left: 100px; top: 100px; animation-delay: 0s; }
+        .particle:nth-child(2) { background: #4169E1; left: 100px; top: 100px; animation-delay: 0.3s; }
+        .particle:nth-child(3) { background: #1E90FF; left: 100px; top: 100px; animation-delay: 0.6s; }
+        .particle:nth-child(4) { background: #00BFFF; left: 100px; top: 100px; animation-delay: 0.9s; }
+
+        @keyframes scatter {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(calc(var(--x) * 50px), calc(var(--y) * 50px)) scale(1.5);
+                opacity: 0.7;
+            }
+            100% {
+                transform: translate(calc(var(--x) * 100px), calc(var(--y) * 100px)) scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        .particle:nth-child(1) { --x: 1; --y: -1; }
+        .particle:nth-child(2) { --x: -1; --y: -1; }
+        .particle:nth-child(3) { --x: -1; --y: 1; }
+        .particle:nth-child(4) { --x: 1; --y: 1; }
+
+        .loading-text {
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            font-weight: 600;
+            background: var(--eye-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 2s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 50px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            backdrop-filter: blur(20px);
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: var(--eye-gradient);
+            opacity: 0.3;
+            z-index: -1;
+            border-radius: 30px;
+            animation: eyePulse 5s ease-in-out infinite;
+        }
+
+        @keyframes eyePulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.5; }
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: var(--eye-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: 800;
+            animation: titleFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes titleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .main-display {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+        }
+
+        .demo-container {
+            height: 500px;
+            overflow: hidden;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .content-container {
+            overflow-y: auto;
+            padding-right: 10px;
+            max-height: 600px;
+        }
+
+        .content-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .content-container::-webkit-scrollbar-thumb {
+            background: var(--eye-gradient);
+            border-radius: 4px;
+        }
+
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            min-width: 180px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn.reset-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .control-btn.active {
+            background: var(--eye-gradient);
+            transform: translateY(-2px);
+        }
+
+        .display-section {
+            display: none;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .display-section.active {
+            display: block;
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .demo-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            border: 2px solid var(--glass-border);
+            overflow: hidden;
+        }
+
+        .demo-stage canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .info-panel {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            border-radius: 20px;
+            margin: 20px 0;
+            border-left: 4px solid var(--text-accent);
+            box-shadow: 0 8px 25px rgba(0, 191, 255, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .info-title {
+            color: var(--text-accent);
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .phenomenon-box {
+            background: linear-gradient(135deg, rgba(135, 206, 235, 0.1), rgba(30, 144, 255, 0.1));
+            border-left: 4px solid #87CEEB;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(135, 206, 235, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .phenomenon-box h3 {
+            color: #87CEEB;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+
+        .data-table {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .data-table th {
+            background: var(--eye-gradient);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .interactive-controls {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .slider-container {
+            margin: 15px 0;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--eye-gradient);
+            cursor: pointer;
+        }
+
+        .chart-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            height: 400px;
+            position: relative;
+        }
+
+        .lesson-progress {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--eye-gradient);
+            transition: width 0.5s ease;
+            border-radius: 5px;
+        }
+
+        #audio-toggle {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--eye-gradient);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+        }
+
+        #audio-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .example-card {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 15px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .example-card:hover {
+            transform: translateX(5px);
+        }
+
+        .wavelength-indicator {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin: 0 5px;
+            font-weight: 600;
+        }
+
+        .near-vision {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+        }
+
+        .far-vision {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .start-message {
+            text-align: center;
+            padding: 60px 20px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .control-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-particles">
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+            </div>
+            <div class="loading-text">Preparing Vision Lab...</div>
+        </div>
+    </div>
+
+    <!-- Audio Control -->
+    <button id="audio-toggle" title="Toggle Audio Narration">🔊</button>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>👁️ The Human Eye</h1>
+            <p>Discover how our most valuable sense organ works like a natural camera</p>
+        </div>
+
+        <!-- Main Display Area -->
+        <div class="main-display">
+            <!-- Demo Container -->
+            <div class="demo-container">
+                <!-- Complete Lesson Section -->
+                <div class="display-section active" id="lesson-section">
+                    <div class="demo-stage">
+                        <div id="lessonContent"></div>
+                    </div>
+                </div>
+
+                <!-- Eye Structure Section -->
+                <div class="display-section" id="structure-section">
+                    <div class="demo-stage">
+                        <canvas id="structureCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Camera Comparison Section -->
+                <div class="display-section" id="camera-section">
+                    <div class="demo-stage">
+                        <canvas id="cameraCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Accommodation Section -->
+                <div class="display-section" id="accommodation-section">
+                    <div class="demo-stage">
+                        <canvas id="accommodationCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Vision Points Section -->
+                <div class="display-section" id="points-section">
+                    <div class="demo-stage">
+                        <canvas id="pointsCanvas" width="1200" height="500"></canvas>
+                    </div>
+                </div>
+
+                <!-- Data Section -->
+                <div class="display-section" id="data-section">
+                    <div class="demo-stage">
+                        <div class="chart-container">
+                            <canvas id="visionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Container -->
+            <div class="content-container">
+                <!-- Eye Structure Content -->
+                <div class="display-section" id="structure-content">
+                    <div class="info-panel">
+                        <div class="info-title">🔬 Structure of Human Eye</div>
+                        <p>The human eye is approximately spherical with a diameter of 2.3 cm</p>
+                    </div>
+                    
+                    <div class="phenomenon-box">
+                        <h3>Key Components</h3>
+                        <div class="example-card">
+                            <h4>👁️ Cornea</h4>
+                            <p>Transparent bulge on front surface where most refraction occurs</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>🟤 Iris</h4>
+                            <p>Dark muscular diaphragm that controls pupil size</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>⚫ Pupil</h4>
+                            <p>Regulates amount of light entering the eye</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>🔍 Crystalline Lens</h4>
+                            <p>Provides fine adjustment for focusing at different distances</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>📺 Retina</h4>
+                            <p>Light-sensitive screen with millions of cells</p>
+                        </div>
+                        <div class="example-card">
+                            <h4>🧠 Optic Nerve</h4>
+                            <p>Sends electrical signals to the brain</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Camera Comparison Content -->
+                <div class="display-section" id="camera-content">
+                    <div class="info-panel">
+                        <div class="info-title">📷 Eye vs Camera</div>
+                        <p>The human eye works remarkably like a camera</p>
+                    </div>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Camera Part</th>
+                                <th>Eye Part</th>
+                                <th>Function</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Lens</td>
+                                <td>Cornea + Crystalline Lens</td>
+                                <td>Focuses light</td>
+                            </tr>
+                            <tr>
+                                <td>Aperture</td>
+                                <td>Pupil</td>
+                                <td>Controls light entry</td>
+                            </tr>
+                            <tr>
+                                <td>Film/Sensor</td>
+                                <td>Retina</td>
+                                <td>Captures image</td>
+                            </tr>
+                            <tr>
+                                <td>Processor</td>
+                                <td>Brain</td>
+                                <td>Processes image</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="phenomenon-box">
+                        <h3>Image Formation</h3>
+                        <p>The eye lens forms an <strong>inverted real image</strong> on the retina. The brain interprets and processes this information so we perceive objects as they actually are.</p>
+                    </div>
+                </div>
+
+                <!-- Accommodation Content -->
+                <div class="display-section" id="accommodation-content">
+                    <div class="info-panel">
+                        <div class="info-title">🎯 Power of Accommodation</div>
+                        <p>The ability of the eye lens to adjust its focal length</p>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>How Accommodation Works</h3>
+                        <p>The eye lens is composed of a fibrous, jelly-like material. Ciliary muscles can modify its curvature:</p>
+                        <ul style="margin-left: 20px; line-height: 2;">
+                            <li><span class="wavelength-indicator far-vision">For Distant Objects</span> - Muscles relaxed, lens thin, focal length increases</li>
+                            <li><span class="wavelength-indicator near-vision">For Near Objects</span> - Muscles contract, lens thick, focal length decreases</li>
+                        </ul>
+                    </div>
+
+                    <div class="interactive-controls">
+                        <div class="slider-container">
+                            <label>Object Distance: <span id="distanceValue">Far</span></label>
+                            <!-- <input type="range" class="slider" id="distanceSlider" min="0" max="100" value="100"> -->
+                        </div>
+                        <!-- <p style="margin-top: 10px; color: var(--text-secondary);">Move the slider to see how the eye accommodates</p> -->
+                    </div>
+                </div>
+
+                <!-- Vision Points Content -->
+                <div class="display-section" id="points-content">
+                    <div class="info-panel">
+                        <div class="info-title">📏 Near Point and Far Point</div>
+                        <p>The range of clear vision for a normal eye</p>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Near Point (Least Distance of Distinct Vision)</h3>
+                        <p>The minimum distance at which objects can be seen most distinctly without strain:</p>
+                        <ul style="margin-left: 20px; line-height: 2;">
+                            <li>For a young adult with normal vision: <strong>25 cm</strong></li>
+                            <li>Below this distance, image becomes blurred</li>
+                            <li>Eye feels strain when trying to focus closer</li>
+                        </ul>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Far Point</h3>
+                        <p>The farthest point up to which the eye can see objects clearly:</p>
+                        <ul style="margin-left: 20px; line-height: 2;">
+                            <li>For a normal eye: <strong>Infinity</strong></li>
+                            <li>Normal eye sees clearly between 25 cm and infinity</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Data Analysis Content -->
+                <div class="display-section" id="data-content">
+                    <div class="info-panel">
+                        <div class="info-title">📊 Vision Analysis</div>
+                        <p>Understanding eye parameters and vision quality</p>
+                    </div>
+
+                    <div class="phenomenon-box">
+                        <h3>Eye Response Times</h3>
+                        <p style="text-align: center; font-size: 1.2rem; margin: 20px 0;">
+                            Accommodation Speed ≈ 0.3 - 0.5 seconds
+                        </p>
+                        <p>The time taken by the eye to adjust focus from far to near objects</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button class="control-btn active" data-mode="lesson">🎯 Complete Lesson</button>
+            <button class="control-btn" data-mode="structure">🔬 Eye Structure</button>
+            <button class="control-btn" data-mode="camera">📷 Camera Comparison</button>
+            <button class="control-btn" data-mode="accommodation">🎯 Accommodation</button>
+            <button class="control-btn" data-mode="points">📏 Vision Points</button>
+            <button class="control-btn" data-mode="data">📊 Data Analysis</button>
+            <button class="control-btn reset-btn" data-mode="reset">🔄 Reset Lesson</button>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let audioEnabled = true;
+        let currentMode = 'lesson';
+        let lessonSequence = null;
+        let charts = {};
+        let animationFrames = {};
+        let lessonStarted = false;
+
+        // Audio System
+        class AudioNarrator {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.enabled = true;
+                this.speaking = false;
+            }
+
+            speak(text, priority = false) {
+                if (!this.enabled) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    if (priority) {
+                        this.stop();
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.9;
+                    
+                    utterance.onend = () => {
+                        this.speaking = false;
+                        resolve();
+                    };
+                    
+                    this.synth.speak(utterance);
+                    this.speaking = true;
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.speaking = false;
+            }
+
+            toggle() {
+                this.enabled = !this.enabled;
+                if (!this.enabled) this.stop();
+                return this.enabled;
+            }
+        }
+
+        const narrator = new AudioNarrator();
+
+        // Animation Functions
+        function animateEyeStructure() {
+            const canvas = document.getElementById('structureCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            // Improve canvas text rendering
+            ctx.textBaseline = 'top';
+            ctx.textAlign = 'left';
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            let time = 0;
+            
+            function draw() {
+                // Clear canvas
+                ctx.fillStyle = 'rgba(10, 10, 20, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw eye shape
+                ctx.save();
+                ctx.translate(600, 250);
+                
+                // Eye outline
+                ctx.strokeStyle = '#87CEEB';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 200, 120, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Cornea
+                ctx.fillStyle = 'rgba(135, 206, 235, 0.3)';
+                ctx.beginPath();
+                ctx.arc(-180, 0, 40, -Math.PI/2, Math.PI/2);
+                ctx.fill();
+                ctx.strokeStyle = '#3498db';
+                ctx.stroke();
+                
+                // Iris
+                const irisSize = 30 + Math.sin(time * 0.05) * 5;
+                ctx.fillStyle = '#8B4513';
+                ctx.beginPath();
+                ctx.arc(-120, 0, irisSize, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Pupil
+                const pupilSize = 15 + Math.sin(time * 0.05) * 3;
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(-120, 0, pupilSize, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Lens
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.beginPath();
+                ctx.ellipse(-60, 0, 25, 40, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.stroke();
+                
+                // Retina
+                ctx.strokeStyle = '#e74c3c';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(0, 0, 195, Math.PI * 0.7, Math.PI * 1.3);
+                ctx.stroke();
+                
+                // Optic nerve
+                ctx.strokeStyle = '#f39c12';
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.moveTo(180, 40);
+                ctx.lineTo(250, 60);
+                ctx.stroke();
+                
+                // Light rays
+                ctx.strokeStyle = '#FFD700';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                
+                for (let i = -1; i <= 1; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(-400, i * 30);
+                    ctx.lineTo(-180, i * 10);
+                    ctx.lineTo(0, 0);
+                    ctx.stroke();
+                }
+                
+                ctx.restore();
+                
+                // Labels
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 18px Arial';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                ctx.shadowBlur = 3;
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 1;
+                ctx.fillText('Cornea', 350, 150);
+                ctx.fillText('Iris & Pupil', 440, 200);
+                ctx.fillText('Lens', 520, 250);
+                ctx.fillText('Retina', 750, 250);
+                ctx.fillText('Optic Nerve', 850, 320);
+                
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText('Light rays', 200, 250);
+                ctx.fillText('2.3 cm', 600, 400);
+                
+                // Reset shadow properties
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                
+                time++;
+                animationFrames.structure = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+
+        function animateCameraComparison() {
+            const canvas = document.getElementById('cameraCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let time = 0;
+            
+            function draw() {
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Camera side
+                ctx.save();
+                ctx.translate(300, 250);
+                
+                // Camera body
+                ctx.fillStyle = '#333';
+                ctx.fillRect(-100, -60, 200, 120);
+                
+                // Camera lens
+                ctx.fillStyle = '#555';
+                ctx.beginPath();
+                ctx.arc(-100, 0, 40, -Math.PI/2, Math.PI/2);
+                ctx.fill();
+                
+                // Aperture animation
+                const apertureSize = 20 + Math.sin(time * 0.03) * 10;
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(-100, 0, apertureSize, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Film/Sensor
+                ctx.fillStyle = '#2ecc71';
+                ctx.fillRect(80, -40, 10, 80);
+                
+                ctx.restore();
+                
+                // Eye side
+                ctx.save();
+                ctx.translate(900, 250);
+                
+                // Eye outline
+                ctx.strokeStyle = '#87CEEB';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 120, 80, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Eye components (simplified)
+                ctx.fillStyle = 'rgba(135, 206, 235, 0.3)';
+                ctx.beginPath();
+                ctx.arc(-90, 0, 30, -Math.PI/2, Math.PI/2);
+                ctx.fill();
+                
+                const pupilSize = 15 + Math.sin(time * 0.03) * 7;
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(-70, 0, pupilSize, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Retina
+                ctx.strokeStyle = '#e74c3c';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(0, 0, 115, Math.PI * 0.7, Math.PI * 1.3);
+                ctx.stroke();
+                
+                ctx.restore();
+                
+                // Comparison arrows
+                ctx.strokeStyle = '#f39c12';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([10, 5]);
+                
+                // Lens to Cornea+Lens
+                ctx.beginPath();
+                ctx.moveTo(200, 150);
+                ctx.lineTo(780, 150);
+                ctx.stroke();
+                
+                // Aperture to Pupil
+                ctx.beginPath();
+                ctx.moveTo(200, 250);
+                ctx.lineTo(830, 250);
+                ctx.stroke();
+                
+                // Film to Retina
+                ctx.beginPath();
+                ctx.moveTo(380, 350);
+                ctx.lineTo(1020, 350);
+                ctx.stroke();
+                
+                ctx.setLineDash([]);
+                
+                // Labels
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 18px Arial';
+                ctx.fillText('CAMERA', 250, 100);
+                ctx.fillText('HUMAN EYE', 850, 100);
+                
+                ctx.font = '14px Arial';
+                ctx.fillText('Lens', 150, 140);
+                ctx.fillText('Aperture', 150, 250);
+                ctx.fillText('Film/Sensor', 350, 340);
+                
+                ctx.fillText('Cornea + Lens', 750, 140);
+                ctx.fillText('Pupil', 820, 240);
+                ctx.fillText('Retina', 1020, 340);
+                
+                time++;
+                animationFrames.camera = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+
+        function animateAccommodation() {
+            const canvas = document.getElementById('accommodationCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let time = 0;
+            const slider = document.getElementById('distanceSlider');
+            
+            function draw() {
+                ctx.fillStyle = '#0a0a1a';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Get distance value
+                const distance = slider ? parseFloat(slider.value) : 100;
+                const isNear = distance < 50;
+                
+                ctx.save();
+                ctx.translate(600, 250);
+                
+                // Draw eye
+                ctx.strokeStyle = '#87CEEB';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 180, 100, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Ciliary muscles (animated based on distance)
+                const muscleContraction = isNear ? 1.2 : 0.8;
+                ctx.strokeStyle = isNear ? '#e74c3c' : '#2ecc71';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.ellipse(-60, 0, 35 * muscleContraction, 45, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Lens (changes shape based on distance)
+                const lensThickness = isNear ? 35 : 20;
+                const lensCurvature = isNear ? 45 : 35;
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.beginPath();
+                ctx.ellipse(-60, 0, lensThickness, lensCurvature, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Light rays from object
+                const objectX = -400 - (100 - distance) * 2;
+                
+                // Draw object
+                ctx.fillStyle = '#f39c12';
+                ctx.fillRect(objectX - 10, -30, 20, 60);
+                
+                // Draw light rays
+                ctx.strokeStyle = '#FFD700';
+                ctx.lineWidth = 2;
+                
+                for (let i = -1; i <= 1; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(objectX, i * 20);
+                    
+                    if (isNear) {
+                        // Diverging rays for near object
+                        ctx.quadraticCurveTo(-200, i * 30, 0, 0);
+                    } else {
+                        // Parallel rays for far object
+                        ctx.lineTo(-100, i * 5);
+                        ctx.lineTo(0, 0);
+                    }
+                    ctx.stroke();
+                }
+                
+                // Focus point on retina
+                ctx.fillStyle = '#2ecc71';
+                ctx.beginPath();
+                ctx.arc(175, 0, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+                
+                // Labels
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                ctx.shadowBlur = 2;
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 1;
+                
+                if (isNear) {
+                    ctx.fillText('Near Object', 100, 85);
+                    ctx.fillText('Ciliary Muscles: CONTRACTED', 450, 355);
+                    ctx.fillText('Lens: THICK (High Curvature)', 450, 385);
+                    ctx.fillStyle = '#2ecc71';
+                    ctx.fillText('Focal Length: DECREASED', 450, 415);
+                } else {
+                    ctx.fillText('Distant Object', 100, 85);
+                    ctx.fillText('Ciliary Muscles: RELAXED', 450, 355);
+                    ctx.fillText('Lens: THIN (Low Curvature)', 450, 385);
+                    ctx.fillStyle = '#3498db';
+                    ctx.fillText('Focal Length: INCREASED', 450, 415);
+                }
+                
+                // Reset shadow properties
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                
+                // Update slider label
+                if (slider) {
+                    document.getElementById('distanceValue').textContent = isNear ? 'Near' : 'Far';
+                }
+                
+                time++;
+                animationFrames.accommodation = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+
+        function animateVisionPoints() {
+            const canvas = document.getElementById('pointsCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let time = 0;
+            
+            function draw() {
+                ctx.fillStyle = '#0a0a1a';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw distance scale
+                ctx.strokeStyle = '#555';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(100, 400);
+                ctx.lineTo(1100, 400);
+                ctx.stroke();
+                
+                // Draw eye position
+                ctx.save();
+                ctx.translate(100, 250);
+                
+                ctx.fillStyle = '#87CEEB';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 60, 40, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Pupil
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(-20, 0, 15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+                
+                // Near point (25 cm)
+                const nearPointX = 300;
+                ctx.strokeStyle = '#2ecc71';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(nearPointX, 150);
+                ctx.lineTo(nearPointX, 400);
+                ctx.stroke();
+                
+                // Draw book at near point
+                ctx.fillStyle = '#2ecc71';
+                ctx.fillRect(nearPointX - 15, 200, 30, 40);
+                
+                // Far point (infinity)
+                ctx.strokeStyle = '#3498db';
+                ctx.beginPath();
+                ctx.moveTo(1050, 150);
+                ctx.lineTo(1050, 400);
+                ctx.stroke();
+                
+                // Draw mountains at far point
+                ctx.fillStyle = '#3498db';
+                ctx.beginPath();
+                ctx.moveTo(1020, 250);
+                ctx.lineTo(1040, 200);
+                ctx.lineTo(1060, 220);
+                ctx.lineTo(1080, 190);
+                ctx.lineTo(1080, 250);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Vision range indicator
+                ctx.setLineDash([]);
+                const gradient = ctx.createLinearGradient(nearPointX, 0, 1050, 0);
+                gradient.addColorStop(0, 'rgba(46, 204, 113, 0.3)');
+                gradient.addColorStop(1, 'rgba(52, 152, 219, 0.3)');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(nearPointX, 240, 1050 - nearPointX, 20);
+                
+                // Animated focus indicator
+                const focusX = nearPointX + (1050 - nearPointX) * (0.5 + 0.5 * Math.sin(time * 0.02));
+                ctx.strokeStyle = '#f39c12';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(100, 250);
+                ctx.lineTo(focusX, 250);
+                ctx.stroke();
+                
+                ctx.fillStyle = '#f39c12';
+                ctx.beginPath();
+                ctx.arc(focusX, 250, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Labels
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText('EYE', 85, 320);
+                
+                ctx.fillStyle = '#2ecc71';
+                ctx.fillText('NEAR POINT', nearPointX - 40, 140);
+                ctx.fillText('25 cm', nearPointX - 20, 430);
+                
+                ctx.fillStyle = '#3498db';
+                ctx.fillText('FAR POINT', 1010, 140);
+                ctx.fillText('∞ Infinity', 1020, 430);
+                
+                ctx.fillStyle = '#f39c12';
+                ctx.fillText('Range of Clear Vision', 550, 200);
+                
+                time++;
+                animationFrames.points = requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+
+        // Chart Setup
+        function setupCharts() {
+            const ctx1 = document.getElementById('visionChart');
+            if (ctx1) {
+                charts.vision = new Chart(ctx1.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['Newborn', '6 months', '1 year', '5 years', '10 years', '20 years', '40 years', '60 years', '80 years'],
+                        datasets: [{
+                            label: 'Near Point Distance (cm)',
+                            data: [5, 8, 10, 12, 15, 25, 40, 60, 100],
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4
+                        }, {
+                            label: 'Accommodation Power (Diopters)',
+                            data: [20, 16, 14, 12, 10, 8, 4, 2, 1],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Vision Changes with Age',
+                                color: '#ffffff',
+                                font: { size: 16 }
+                            },
+                            legend: {
+                                labels: { color: '#ffffff' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: { 
+                                    display: true, 
+                                    text: 'Distance (cm) / Power (D)', 
+                                    color: '#ffffff' 
+                                },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Age',
+                                    color: '#ffffff'
+                                },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Complete Lesson Sequence
+        class LessonSequence {
+            constructor() {
+                this.sections = [
+                    { id: 'structure', name: 'Eye Structure', duration: 8000 },
+                    { id: 'camera', name: 'Camera Comparison', duration: 8000 },
+                    { id: 'accommodation', name: 'Power of Accommodation', duration: 8000 },
+                    { id: 'points', name: 'Vision Points', duration: 8000 },
+                    { id: 'data', name: 'Data Analysis', duration: 8000 }
+                ];
+                this.currentSection = 0;
+                this.running = false;
+            }
+
+            async start() {
+                this.stop();
+                this.running = true;
+                this.currentSection = 0;
+                
+                this.showProgressBar();
+                
+                await narrator.speak("Welcome to the fascinating world of human vision! Let's explore how our most valuable sense organ works.");
+                
+                await this.runNextSection();
+            }
+
+            showStartMessage() {
+                const html = `
+                    <div class="start-message">
+                        <h2 style="color: #87CEEB; margin-bottom: 20px;">
+                            👁️ Ready to Explore Human Vision?
+                        </h2>
+                        <p style="font-size: 1.2rem; color: #e2e8f0; margin-bottom: 30px;">
+                            Click "Complete Lesson" to start your journey through the amazing world of the human eye!
+                        </p>
+                        <div style="color: #87CEEB;">
+                            <p>You'll learn about:</p>
+                            <ul style="list-style: none; margin-top: 10px;">
+                                <li>✓ Eye Structure and Components</li>
+                                <li>✓ How the Eye Works Like a Camera</li>
+                                <li>✓ Power of Accommodation</li>
+                                <li>✓ Vision Range and Points</li>
+                                <li>✓ Vision Changes with Age</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            showProgressBar() {
+                const html = `
+                    <div class="lesson-progress">
+                        <div class="section-indicator" style="color: #87CEEB;">
+                            Current Section: <span id="currentSectionName">Starting...</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                        </div>
+                        <p style="color: #e2e8f0; margin-top: 10px;">
+                            Section <span id="currentNum">1</span> of ${this.sections.length}
+                        </p>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            updateProgress() {
+                const progress = ((this.currentSection + 1) / this.sections.length) * 100;
+                const progressFill = document.getElementById('progressFill');
+                const currentSectionName = document.getElementById('currentSectionName');
+                const currentNum = document.getElementById('currentNum');
+                
+                if (progressFill) progressFill.style.width = `${progress}%`;
+                if (currentSectionName && this.sections[this.currentSection]) {
+                    currentSectionName.textContent = this.sections[this.currentSection].name;
+                }
+                if (currentNum) currentNum.textContent = this.currentSection + 1;
+            }
+
+            async runNextSection() {
+                if (!this.running || this.currentSection >= this.sections.length) {
+                    if (this.running) {
+                        await narrator.speak("Lesson complete! You now understand how the human eye works.");
+                        this.showCompletionMessage();
+                    }
+                    return;
+                }
+
+                const section = this.sections[this.currentSection];
+                this.updateProgress();
+                
+                // Clear all animations
+                this.clearAnimations();
+                
+                // Clear all sections
+                document.querySelectorAll('.demo-container .display-section').forEach(s => {
+                    s.classList.remove('active');
+                });
+                
+                document.querySelectorAll('.content-container .display-section').forEach(s => {
+                    s.classList.remove('active');
+                });
+                
+                // Activate current sections
+                document.getElementById(`${section.id}-section`).classList.add('active');
+                document.getElementById(`${section.id}-content`).classList.add('active');
+                
+                // Start animations and narration
+                switch(section.id) {
+                    case 'structure':
+                        animateEyeStructure();
+                        await narrator.speak("The human eye is a spherical organ about 2.3 centimeters in diameter. Light enters through the cornea, a transparent membrane that provides most of the refraction. The iris controls the pupil size, regulating light entry. The crystalline lens provides fine focusing adjustment. The retina contains millions of light-sensitive cells that convert light into electrical signals, which the optic nerve sends to the brain for processing.");
+                        break;
+                        
+                    case 'camera':
+                        animateCameraComparison();
+                        await narrator.speak("The human eye works remarkably like a camera! The cornea and lens act like the camera lens, focusing light. The pupil functions like an aperture, controlling light amount. The retina serves as the film or sensor, capturing the image. Just like a camera, the eye forms an inverted real image, but our brain processes it so we see things upright.");
+                        break;
+                        
+                    case 'accommodation':
+                        animateAccommodation();
+                        await narrator.speak("The power of accommodation is the eye's ability to adjust its focal length. The crystalline lens is made of flexible, jelly-like material. When viewing distant objects, ciliary muscles relax, the lens becomes thin, and focal length increases. For near objects, the muscles contract, making the lens thicker and decreasing focal length. This amazing ability allows us to see clearly at different distances!");
+                        break;
+                        
+                    case 'points':
+                        animateVisionPoints();
+                        await narrator.speak("A normal eye has two important vision points. The near point, or least distance of distinct vision, is about 25 centimeters for a young adult. Objects closer than this appear blurred and cause eye strain. The far point is infinity for a normal eye. This means we can see clearly from 25 centimeters to infinity!");
+                        break;
+                        
+                    case 'data':
+                        setupCharts();
+                        await narrator.speak("This chart shows how our vision changes with age. The near point distance increases as we get older, from about 5 centimeters in newborns to 100 centimeters in elderly people. The accommodation power decreases from 20 diopters in infants to just 1 diopter in old age. This explains why many people need reading glasses as they age.");
+                        break;
+                }
+                
+                await this.wait(section.duration);
+                
+                if (this.running) {
+                    this.currentSection++;
+                    await this.runNextSection();
+                }
+            }
+
+            showCompletionMessage() {
+                const html = `
+                    <div style="text-align: center; padding: 40px;">
+                        <h2 style="color: #87CEEB; margin-bottom: 20px;">
+                            🎉 Lesson Complete!
+                        </h2>
+                        <p style="font-size: 1.2rem;">You've mastered the concepts of human vision:</p>
+                        <ul style="margin: 20px auto; max-width: 400px; text-align: left; list-style: none;">
+                            ${this.sections.map(s => `
+                                <li style="margin: 10px 0; color: #87CEEB;">
+                                    ✓ ${s.name}
+                                </li>
+                            `).join('')}
+                        </ul>
+                        <p style="margin-top: 30px;">
+                            Explore individual sections or click Reset to start over.
+                        </p>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            wait(ms) {
+                return new Promise(resolve => {
+                    this.timeout = setTimeout(resolve, ms);
+                });
+            }
+
+            stop() {
+                this.running = false;
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                    this.timeout = null;
+                }
+                narrator.stop();
+                this.clearAnimations();
+            }
+
+            reset() {
+                this.stop();
+                lessonStarted = false;
+                this.showStartMessage();
+            }
+
+            clearAnimations() {
+                Object.values(animationFrames).forEach(frame => {
+                    if (typeof frame === 'number') {
+                        cancelAnimationFrame(frame);
+                    }
+                });
+                animationFrames = {};
+            }
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }, 1500);
+
+            lessonSequence = new LessonSequence();
+            lessonSequence.showStartMessage();
+
+            // Control buttons
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const mode = this.getAttribute('data-mode');
+                    
+                    // Handle reset button
+                    if (mode === 'reset') {
+                        lessonSequence.reset();
+                        // Reset active button to lesson
+                        document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+                        document.querySelector('[data-mode="lesson"]').classList.add('active');
+                        
+                        // Show lesson section
+                        document.querySelectorAll('.display-section').forEach(section => {
+                            section.classList.remove('active');
+                        });
+                        document.getElementById('lesson-section').classList.add('active');
+                        
+                        narrator.speak("Lesson has been reset. Click 'Complete Lesson' to start again!", true);
+                        return;
+                    }
+                    
+                    // Stop any running sequences
+                    if (lessonSequence) lessonSequence.stop();
+                    narrator.stop();
+                    
+                    // Clear animations
+                    Object.values(animationFrames).forEach(frame => {
+                        if (typeof frame === 'number') {
+                            cancelAnimationFrame(frame);
+                        }
+                    });
+                    animationFrames = {};
+                    
+                    // Update active states
+                    document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Clear all sections
+                    document.querySelectorAll('.display-section').forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    
+                    currentMode = mode;
+                    
+                    // Activate appropriate sections
+                    switch(mode) {
+                        case 'lesson':
+                            document.getElementById('lesson-section').classList.add('active');
+                            if (!lessonStarted) {
+                                lessonStarted = true;
+                                lessonSequence.start();
+                            }
+                            break;
+                            
+                        case 'structure':
+                            document.getElementById('structure-section').classList.add('active');
+                            document.getElementById('structure-content').classList.add('active');
+                            animateEyeStructure();
+                            narrator.speak("Let's explore the structure of the human eye. The cornea provides most refraction, the iris controls pupil size, the lens provides fine focusing, and the retina converts light to electrical signals sent via the optic nerve to the brain.", true);
+                            break;
+                            
+                        case 'camera':
+                            document.getElementById('camera-section').classList.add('active');
+                            document.getElementById('camera-content').classList.add('active');
+                            animateCameraComparison();
+                            narrator.speak("The eye works like a camera: the cornea and lens act as the camera lens, the pupil as aperture, and the retina as film or sensor. Both form inverted real images.", true);
+                            break;
+                            
+                        case 'accommodation':
+                            document.getElementById('accommodation-section').classList.add('active');
+                            document.getElementById('accommodation-content').classList.add('active');
+                            animateAccommodation();
+                            narrator.speak("Accommodation is the eye's ability to adjust focal length. Ciliary muscles modify the lens curvature - relaxed and thin for distant objects, contracted and thick for near objects.", true);
+                            break;
+                            
+                        case 'points':
+                            document.getElementById('points-section').classList.add('active');
+                            document.getElementById('points-content').classList.add('active');
+                            animateVisionPoints();
+                            narrator.speak("The near point is about 25 centimeters for normal vision - the minimum distance for clear sight without strain. The far point is infinity. We see clearly between these points.", true);
+                            break;
+                            
+                        case 'data':
+                            document.getElementById('data-section').classList.add('active');
+                            document.getElementById('data-content').classList.add('active');
+                            setupCharts();
+                            narrator.speak("This data shows how vision changes with age. Near point distance increases and accommodation power decreases, explaining why older people often need reading glasses.", true);
+                            break;
+                    }
+                });
+            });
+
+            // Audio toggle
+            document.getElementById('audio-toggle').addEventListener('click', function() {
+                audioEnabled = narrator.toggle();
+                this.textContent = audioEnabled ? '🔊' : '🔇';
+            });
+
+            // Distance slider
+            const slider = document.getElementById('distanceSlider');
+            if (slider) {
+                slider.addEventListener('input', function() {
+                    // Animation will update based on slider value
+                });
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            narrator.stop();
+            if (lessonSequence) lessonSequence.stop();
+        });
+    </script>
+</body>
+</html>

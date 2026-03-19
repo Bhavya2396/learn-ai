@@ -1,0 +1,2846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mean of Grouped Data - All Methods</title>
+    <style>
+        :root {
+            --primary-blue: #3b82f6;
+            --secondary-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --accent-yellow: #fbbf24;
+            --accent-green: #10b981;
+            --accent-orange: #f97316;
+            --text-light: #f8fafc;
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: var(--text-light);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-purple), var(--accent-pink));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .main-stage {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        #animationCanvas {
+            width: 100%;
+            height: 700px;
+            border-radius: 15px;
+            background: radial-gradient(circle at center, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
+            display: block;
+            cursor: crosshair;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-purple));
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+            min-width: 180px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(59, 130, 246, 0.4);
+        }
+
+        .control-btn.active {
+            background: linear-gradient(135deg, var(--accent-pink), #f43f5e);
+            box-shadow: 0 8px 25px rgba(236, 72, 153, 0.4);
+        }
+
+        /* Disabled buttons: prevent rapid clicks and overlaps */
+        .control-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            filter: grayscale(0.2);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-blue), var(--accent-pink));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        .narration-text {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin: 1rem 0;
+            border-left: 4px solid var(--accent-pink);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+        }
+
+        .concept-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .concept-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 15px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .concept-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-green);
+            box-shadow: 0 15px 30px rgba(16, 185, 129, 0.2);
+        }
+
+        .concept-title {
+            font-size: 1.4rem;
+            color: var(--accent-green);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .formula-display {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(236, 72, 153, 0.1));
+            border: 2px solid var(--primary-blue);
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .formula-text {
+            font-size: 1.1rem;
+            font-family: 'Courier New', monospace;
+            color: var(--primary-blue);
+            margin-bottom: 0.5rem;
+        }
+
+        .audio-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .audio-btn {
+            background: rgba(59, 130, 246, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .audio-btn1 {
+            background: rgba(59, 130, 246, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .audio-btn:hover {
+            transform: scale(1.1);
+            background: var(--primary-blue);
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .slide-in {
+            animation: slideIn 0.8s ease-out;
+        }
+
+        @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 10px currentColor); }
+            50% { filter: drop-shadow(0 0 20px currentColor) drop-shadow(0 0 30px currentColor); }
+        }
+
+        .glowing {
+            animation: glow 2s infinite;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .controls { flex-direction: column; align-items: center; }
+            .control-btn { width: 100%; max-width: 300px; }
+            #animationCanvas { height: 500px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="audio-controls">
+        <button class="audio-btn1" id="playPauseBtn" title="Play/Pause Audio">▶</button>
+        <button class="audio-btn" id="muteBtn" title="Mute/Unmute">🔊</button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Mean of Grouped Data - All Methods</h1>
+            <p class="subtitle">Master three essential methods through immersive visual storytelling</p>
+        </div>
+
+        <div class="main-stage">
+            <canvas id="animationCanvas"></canvas>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="narration-text" id="narrationText">
+            Welcome to the most comprehensive exploration of Mean for Grouped Data! Experience three powerful methods through cutting-edge visual animations.
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" onclick="AppManager.startCompleteLesson()">🎬 Complete Journey</button>
+            <button class="control-btn" onclick="AppManager.startMethod('direct')">🎯 Direct Method</button>
+            <button class="control-btn" onclick="AppManager.startMethod('assumed')">📊 Assumed Mean</button>
+            <button class="control-btn" onclick="AppManager.startMethod('step')">⚡ Step Deviation</button>
+            <button class="control-btn" onclick="AppManager.startMethod('comparison')">🔄 All Methods</button>
+            <button class="control-btn" onclick="AppManager.reset()">🔄 Reset</button>
+        </div>
+
+        <div class="concept-cards">
+            <div class="concept-card">
+                <div class="concept-title">🎯 Direct Method</div>
+                <p>The foundational approach using class marks and frequencies. Watch as we build the calculation step by step through animated visualizations.</p>
+                <div class="formula-display">
+                    <div class="formula-text">x̄ = Σfixi / Σfi</div>
+                </div>
+            </div>
+            
+            <div class="concept-card">
+                <div class="concept-title">📊 Assumed Mean Method</div>
+                <p>Simplify calculations with strategic deviation analysis. See how choosing the right assumed mean transforms complex problems.</p>
+                <div class="formula-display">
+                    <div class="formula-text">x̄ = a + Σfidi / Σfi</div>
+                </div>
+            </div>
+            
+            <div class="concept-card">
+                <div class="concept-title">⚡ Step Deviation Method</div>
+                <p>The most elegant solution for equal intervals. Experience the mathematical beauty of normalized deviations in action.</p>
+                <div class="formula-display">
+                    <div class="formula-text">x̄ = a + h(Σfiui / Σfi)</div>
+                </div>
+            </div>
+
+            <div class="concept-card">
+                <div class="concept-title">🔄 Method Mastery</div>
+                <p>Discover why all methods yield identical results and learn the strategic thinking behind choosing the optimal approach for any dataset.</p>
+                <div class="formula-display">
+                    <div class="formula-text">All paths → Same destination</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('animationCanvas');
+        const ctx = canvas.getContext('2d');
+        let center = { x: 0, y: 0 };
+
+        // Voice synthesis
+        let isMuted = false;
+
+        // Sample datasets
+        const mathsData = [
+            { interval: '10-25', frequency: 2, lowerLimit: 10, upperLimit: 25, classmark: 17.5 },
+            { interval: '25-40', frequency: 3, lowerLimit: 25, upperLimit: 40, classmark: 32.5 },
+            { interval: '40-55', frequency: 7, lowerLimit: 40, upperLimit: 55, classmark: 47.5 },
+            { interval: '55-70', frequency: 6, lowerLimit: 55, upperLimit: 70, classmark: 62.5 },
+            { interval: '70-85', frequency: 6, lowerLimit: 70, upperLimit: 85, classmark: 77.5 },
+            { interval: '85-100', frequency: 6, lowerLimit: 85, upperLimit: 100, classmark: 92.5 }
+        ];
+
+        const teachersData = [
+            { interval: '15-25', frequency: 12, lowerLimit: 15, upperLimit: 25, classmark: 20 },
+            { interval: '25-35', frequency: 18, lowerLimit: 25, upperLimit: 35, classmark: 30 },
+            { interval: '35-45', frequency: 15, lowerLimit: 35, upperLimit: 45, classmark: 40 },
+            { interval: '45-55', frequency: 8, lowerLimit: 45, upperLimit: 55, classmark: 50 },
+            { interval: '55-65', frequency: 5, lowerLimit: 55, upperLimit: 65, classmark: 60 },
+            { interval: '65-75', frequency: 2, lowerLimit: 65, upperLimit: 75, classmark: 70 }
+        ];
+
+        const cricketData = [
+            { interval: '0-6', frequency: 10, lowerLimit: 0, upperLimit: 6, classmark: 3 },
+            { interval: '6-12', frequency: 15, lowerLimit: 6, upperLimit: 12, classmark: 9 },
+            { interval: '12-20', frequency: 12, lowerLimit: 12, upperLimit: 20, classmark: 16 },
+            { interval: '20-30', frequency: 8, lowerLimit: 20, upperLimit: 30, classmark: 25 },
+            { interval: '30-50', frequency: 5, lowerLimit: 30, upperLimit: 50, classmark: 40 }
+        ];
+
+        // Animation state
+        let animationId = null;
+        let animationStep = 0;
+        let animationProgress = 0;
+
+        // Initialize canvas
+        function initCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            center = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 };
+        }
+
+        // Drawing utilities
+        class DrawingUtils {
+            static drawText(text, x, y, size = 16, color = '#f8fafc', font = 'Segoe UI', align = 'left', weight = 'normal') {
+                ctx.fillStyle = color;
+                ctx.font = `${weight} ${size}px ${font}`;
+                ctx.textAlign = align;
+                ctx.fillText(text, x, y);
+            }
+
+            static measureTextWidth(text, size = 16, font = 'Segoe UI', weight = 'normal') {
+                ctx.save();
+                ctx.font = `${weight} ${size}px ${font}`;
+                const width = ctx.measureText(text).width;
+                ctx.restore();
+                return width;
+            }
+
+            static drawFormula(formula, x, y, size = 24, color = '#3b82f6') {
+                this.drawText(formula, x, y, size, color, 'Courier New', 'center', 'bold');
+            }
+
+            static drawBox(x, y, width, height, fillColor = 'rgba(59, 130, 246, 0.2)', strokeColor = '#3b82f6', strokeWidth = 2) {
+                ctx.fillStyle = fillColor;
+                ctx.fillRect(x, y, width, height);
+                
+                if (strokeWidth > 0) {
+                    ctx.strokeStyle = strokeColor;
+                    ctx.lineWidth = strokeWidth;
+                    ctx.strokeRect(x, y, width, height);
+                }
+            }
+
+            static drawCircle(x, y, radius, fillColor = '#ec4899', strokeColor = '#ec4899', strokeWidth = 2) {
+                ctx.fillStyle = fillColor;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                if (strokeWidth > 0) {
+                    ctx.strokeStyle = strokeColor;
+                    ctx.lineWidth = strokeWidth;
+                    ctx.stroke();
+                }
+            }
+
+            static drawLine(x1, y1, x2, y2, color = '#10b981', width = 2, dash = []) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                ctx.setLineDash(dash);
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            static drawAnimatedBar(x, y, width, height, progress, color = '#3b82f6', label = '', value = '') {
+                const animatedHeight = height * progress;
+                const animatedY = y + height - animatedHeight;
+                
+                // Bar with gradient
+                const gradient = ctx.createLinearGradient(x, y, x, y + height);
+                gradient.addColorStop(0, color);
+                gradient.addColorStop(1, color + '80');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, animatedY, width, animatedHeight);
+                
+                // Bar outline
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, width, height);
+                
+                // Shimmer effect during animation
+                if (progress > 0 && progress < 1) {
+                    const shimmerY = animatedY + animatedHeight * 0.1;
+                    const shimmer = ctx.createLinearGradient(x, shimmerY, x + width, shimmerY);
+                    shimmer.addColorStop(0, 'rgba(255,255,255,0)');
+                    shimmer.addColorStop(0.5, 'rgba(255,255,255,0.4)');
+                    shimmer.addColorStop(1, 'rgba(255,255,255,0)');
+                    
+                    ctx.fillStyle = shimmer;
+                    ctx.fillRect(x, shimmerY, width, 6);
+                }
+                
+                // Labels
+                if (label && progress > 0.3) {
+                    this.drawText(label, x + width/2, y + height + 20, 12, '#f8fafc', 'Segoe UI', 'center');
+                }
+                
+                if (value && progress > 0.5) {
+                    this.drawText(value, x + width/2, y - 10, 14, '#fbbf24', 'Segoe UI', 'center', 'bold');
+                }
+            }
+
+            static drawHistogram(data, x, y, width, height, progress = 1, highlightIndex = -1) {
+                const maxFreq = Math.max(...data.map(d => d.frequency));
+                const barWidth = width / data.length;
+                const spacing = barWidth * 0.1;
+                const actualBarWidth = barWidth - spacing;
+                
+                data.forEach((item, index) => {
+                    const barX = x + index * barWidth + spacing / 2;
+                    const barHeight = (item.frequency / maxFreq) * height;
+                    const barProgress = Math.max(0, Math.min(1, (progress - index * 0.1) * 2));
+                    
+                    let color = '#3b82f6';
+                    if (index === highlightIndex) {
+                        color = '#ec4899';
+                    }
+                    
+                    this.drawAnimatedBar(
+                        barX, 
+                        y + height - barHeight, 
+                        actualBarWidth, 
+                        barHeight, 
+                        barProgress, 
+                        color, 
+                        item.interval, 
+                        item.frequency.toString()
+                    );
+                });
+                
+                // Axes
+                if (progress > 0.8) {
+                    this.drawLine(x - 10, y + height, x + width, y + height, '#8b5cf6', 2);
+                    this.drawLine(x - 10, y, x - 10, y + height, '#8b5cf6', 2);
+                    
+                    // Axis labels
+                    this.drawText('Frequency', x - 50, y + height/2, 14, '#8b5cf6', 'Segoe UI', 'center');
+                    this.drawText('Class Intervals', x + width/2, y + height + 50, 14, '#8b5cf6', 'Segoe UI', 'center');
+                }
+            }
+
+            static drawTable(data, x, y, cellWidth, cellHeight, headers, highlightColumn = -1, highlightRow = -1, progress = 1) {
+                // Draw headers
+                headers.forEach((header, i) => {
+                    const cellX = x + i * cellWidth;
+                    const headerColor = i === highlightColumn ? 'rgba(236, 72, 153, 0.5)' : 'rgba(59, 130, 246, 0.3)';
+                    
+                    if (progress > i * 0.1) {
+                        this.drawBox(cellX, y, cellWidth, cellHeight, headerColor, '#3b82f6');
+                        this.drawText(header, cellX + cellWidth/2, y + cellHeight/2 + 5, 11, '#f8fafc', 'Segoe UI', 'center', 'bold');
+                    }
+                });
+
+                // Draw data rows
+                data.forEach((row, rowIndex) => {
+                    const rowY = y + (rowIndex + 1) * cellHeight;
+                    const rowProgress = Math.max(0, Math.min(1, (progress - 0.3 - rowIndex * 0.1) * 3));
+                    
+                    if (rowProgress > 0) {
+                        Object.values(row).forEach((value, colIndex) => {
+                            if (colIndex < headers.length) {
+                                const cellX = x + colIndex * cellWidth;
+                                const isHighlighted = (colIndex === highlightColumn) || (rowIndex === highlightRow);
+                                const cellColor = isHighlighted ? 'rgba(236, 72, 153, 0.3)' : 'rgba(255, 255, 255, 0.05)';
+                                
+                                ctx.globalAlpha = rowProgress;
+                                this.drawBox(cellX, rowY, cellWidth, cellHeight, cellColor, 'rgba(255, 255, 255, 0.2)', 1);
+                                this.drawText(value.toString(), cellX + cellWidth/2, rowY + cellHeight/2 + 5, 10, '#f8fafc', 'Segoe UI', 'center');
+                                ctx.globalAlpha = 1;
+                            }
+                        });
+                    }
+                });
+            }
+
+            static animateNumber(startValue, endValue, progress, decimals = 2) {
+                const current = startValue + (endValue - startValue) * progress;
+                return current.toFixed(decimals);
+            }
+
+            static easeInOut(t) {
+                return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+            }
+
+            static easeOutBack(t) {
+                const c1 = 1.70158;
+                const c3 = c1 + 1;
+                return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+            }
+
+            static drawAnimatedEquation(equation, x, y, progress, size = 20, color = '#3b82f6') {
+                if (progress <= 0) return;
+                
+                // Measure text width for proper centering
+                ctx.font = `bold ${size}px Courier New`;
+                const textWidth = ctx.measureText(equation).width;
+                const startX = x - textWidth / 2;
+                
+                ctx.globalAlpha = Math.min(progress, 1);
+                this.drawText(equation, startX, y, size, color, 'Courier New', 'left', 'bold');
+                ctx.globalAlpha = 1;
+            }
+
+            static drawParticleEffect(x, y, progress, color = '#fbbf24') {
+                const particleCount = 15;
+                for (let i = 0; i < particleCount; i++) {
+                    const angle = (i / particleCount) * 2 * Math.PI;
+                    const distance = progress * 60;
+                    const particleX = x + Math.cos(angle) * distance;
+                    const particleY = y + Math.sin(angle) * distance;
+                    const size = 3 * (1 - progress);
+                    
+                    if (size > 0) {
+                        ctx.globalAlpha = 1 - progress;
+                        this.drawCircle(particleX, particleY, size, color, color, 0);
+                        ctx.globalAlpha = 1;
+                    }
+                }
+            }
+
+            static drawProgressIndicator(x, y, width, progress, label = '') {
+                // Background
+                this.drawBox(x, y, width, 20, 'rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.3)', 1);
+                
+                // Progress fill
+                const fillWidth = width * progress;
+                if (fillWidth > 0) {
+                    const gradient = ctx.createLinearGradient(x, y, x + fillWidth, y);
+                    gradient.addColorStop(0, '#3b82f6');
+                    gradient.addColorStop(1, '#ec4899');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(x, y, fillWidth, 20);
+                }
+                
+                // Label
+                if (label) {
+                    this.drawText(label, x + width / 2, y + 35, 12, '#f8fafc', 'Segoe UI', 'center');
+                }
+                
+                // Percentage
+                const percentage = Math.round(progress * 100);
+                this.drawText(`${percentage}%`, x + width / 2, y + 15, 12, '#f8fafc', 'Segoe UI', 'center', 'bold');
+            }
+        }
+
+        // Animation sequences
+        class AnimationSequence {
+            constructor(steps) {
+                this.steps = steps;
+                this.currentStep = 0;
+                this.stepProgress = 0;
+                this.isActive = true;
+                this.totalDuration = 0;
+                this.elapsedTime = 0;
+            }
+
+            update(deltaTime) {
+                if (!this.isActive || this.currentStep >= this.steps.length) return false;
+
+                this.elapsedTime += deltaTime;
+                this.stepProgress += deltaTime / this.steps[this.currentStep].duration;
+                
+                if (this.stepProgress >= 1) {
+                    this.stepProgress = 1;
+                    this.steps[this.currentStep].draw(1);
+                    this.currentStep++;
+                    this.stepProgress = 0;
+                } else {
+                    this.steps[this.currentStep].draw(this.stepProgress);
+                }
+
+                return this.currentStep < this.steps.length;
+            }
+
+            destroy() {
+                this.isActive = false;
+            }
+
+            getTotalProgress() {
+                if (this.steps.length === 0) return 1;
+                return (this.currentStep + this.stepProgress) / this.steps.length;
+            }
+        }
+
+        // Main Application Manager
+        class AppManager {
+            static currentSection = null;
+            static activeButton = -1;
+            static lastTime = 0;
+            static _timeouts = new Set(); // stores { id, kind, taskId, runId }
+            static currentTaskId = null; // which tab/method is active
+            static currentRunId = null;  // unique run for re-entrancy
+
+            static destroy() {
+                // Stop current section
+                if (this.currentSection) {
+                    try { this.currentSection.destroy(); } catch (_) {}
+                    this.currentSection = null;
+                }
+
+                // Cancel any ongoing animation frames
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+
+                // Cancel ALL queued timeouts (speech + timers)
+                if (this._timeouts && this._timeouts.size) {
+                    this._timeouts.forEach(t => { try { clearTimeout(t.id); } catch (_) {} });
+                    this._timeouts.clear();
+                }
+
+                // Stop any speech immediately
+                try { speechSynthesis.cancel(); } catch (_) {}
+
+                // Reset UI
+                this.clearCanvas();
+                this.updateProgress(0);
+                const narration = document.getElementById('narrationText');
+                if (narration) narration.textContent = '';
+
+                // Keep controls always interactive
+            }
+
+            static startMethod(type) {
+                // Cancel any running content, then immediately start the new one
+                this.destroy();
+                this.setActiveButton(this.getButtonIndex(type));
+                // Set task and run identifiers
+                this.currentTaskId = type;
+                this.currentRunId = Date.now();
+
+                switch(type) {
+                    case 'direct':
+                        this.currentSection = new DirectMethodSection();
+                        break;
+                    case 'assumed':
+                        this.currentSection = new AssumedMeanSection();
+                        break;
+                    case 'step':
+                        this.currentSection = new StepDeviationSection();
+                        break;
+                    case 'comparison':
+                        this.currentSection = new ComparisonSection();
+                        break;
+                    default:
+                        this.currentSection = null;
+                }
+
+                if (this.currentSection) {
+                    // Fire and forget, user can switch anytime (destroy will cancel cleanly)
+                    this.currentSection.start();
+                }
+            }
+
+            static startCompleteLesson() {
+                // Cancel any running content, then immediately start the full flow
+                this.destroy();
+                this.setActiveButton(0);
+                // New task/run for complete flow
+                this.currentTaskId = 'complete';
+                this.currentRunId = Date.now();
+                this.currentSection = new CompleteLessonFlow();
+                this.currentSection.start();
+            }
+
+            static reset() {
+                this.destroy();
+                this.setActiveButton(5);
+                this.clearCanvas();
+                document.getElementById('narrationText').textContent = 'Choose a method to begin your journey into the world of grouped data statistics.';
+                this.clearActiveButtons();
+            }
+
+            static getButtonIndex(type) {
+                const map = { 'direct': 1, 'assumed': 2, 'step': 3, 'comparison': 4 };
+                return map[type] || 0;
+            }
+
+            static setActiveButton(index) {
+                this.activeButton = index;
+                document.querySelectorAll('.control-btn').forEach((btn, i) => {
+                    btn.classList.toggle('active', i === index);
+                });
+            }
+
+            static clearActiveButtons() {
+                document.querySelectorAll('.control-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+            }
+
+            static clearCanvas() {
+                // Ensure full clear without being affected by current transforms
+                ctx.save();
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.restore();
+            }
+
+            static updateProgress(progress) {
+                document.getElementById('progressFill').style.width = `${progress}%`;
+            }
+
+            static startAnimation(sequence, ownerSection) {
+                // Stop any existing animation frame to prevent overlaps
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+
+                this.lastTime = performance.now();
+                
+                const animate = (currentTime) => {
+                    if (!this.currentSection || !this.currentSection.isActive) return;
+                    // Guard against stale animations using task/run ids (allow ownerSection to be optional)
+                    if (ownerSection && (ownerSection.runId !== AppManager.currentRunId || ownerSection.taskId !== AppManager.currentTaskId)) {
+                        return;
+                    }
+                    
+                    const deltaTime = currentTime - this.lastTime;
+                    this.lastTime = currentTime;
+                    
+                    const shouldContinue = sequence.update(deltaTime);
+                    
+                    // Update progress based on sequence progress
+                    if (sequence.getTotalProgress) {
+                        this.updateProgress(sequence.getTotalProgress() * 100);
+                    }
+                    
+                    if (shouldContinue) {
+                        animationId = requestAnimationFrame(animate);
+                    }
+                };
+                
+                animationId = requestAnimationFrame(animate);
+            }
+
+            static registerTimeout(id, kind, taskId, runId) {
+                AppManager._timeouts.add({ id, kind, taskId, runId });
+            }
+
+            static speak(text, delay = 0, taskId = AppManager.currentTaskId, runId = AppManager.currentRunId) {
+                if (isMuted || !text) {
+                    document.getElementById('narrationText').textContent = text || '';
+                    return Promise.resolve();
+                }
+                
+                return new Promise((resolve) => {
+                    // If run has changed before speaking, skip immediately
+                    if (taskId !== AppManager.currentTaskId || runId !== AppManager.currentRunId) {
+                        resolve();
+                        return;
+                    }
+                    const timeoutId = setTimeout(() => {
+                        if (taskId !== AppManager.currentTaskId || runId !== AppManager.currentRunId) { resolve(); return; }
+                        try {
+                            speechSynthesis.cancel();
+                            
+                            const utterance = new SpeechSynthesisUtterance(text);
+                            utterance.rate = 0.8;
+                            utterance.pitch = 1.0;
+                            utterance.volume = 0.9;
+                            
+                            utterance.onend = () => { resolve(); };
+                            utterance.onerror = () => { resolve(); };
+                            
+                            speechSynthesis.speak(utterance);
+                            document.getElementById('narrationText').textContent = text;
+                            
+                            const fallback = setTimeout(() => resolve(), Math.max(3000, text.length * 100));
+                            AppManager.registerTimeout(fallback, 'speak', taskId, runId);
+                            utterance.onend = () => { try { clearTimeout(fallback); } catch(_){} resolve(); };
+                            utterance.onerror = () => { try { clearTimeout(fallback); } catch(_){} resolve(); };
+                            
+                        } catch (error) {
+                            document.getElementById('narrationText').textContent = text;
+                            resolve();
+                        }
+                    }, delay);
+                    AppManager.registerTimeout(timeoutId, 'speak', taskId, runId);
+                });
+            }
+
+            // No control locking or queuing; rapid switches are supported via destroy()
+        }
+
+        // Base Section Class
+        class BaseSection {
+            constructor(name) {
+                this.name = name;
+                this.isActive = true;
+                this.destroyed = false;
+                this.taskId = null;
+                this.runId = null;
+            }
+
+            destroy() {
+                this.isActive = false;
+                this.destroyed = true;
+                speechSynthesis.cancel();
+            }
+
+            async start() {
+                if (this.destroyed || !this.isActive) return;
+                // Snapshot current task/run at start
+                this.taskId = AppManager.currentTaskId;
+                this.runId = AppManager.currentRunId;
+                
+                try {
+                    await this.executeSteps();
+                } catch (error) {
+                    console.error('Section execution error:', error);
+                    await AppManager.speak("There was an issue with the presentation. Please try again.");
+                }
+            }
+
+            async executeSteps() {
+                // Override in child classes
+            }
+
+            async safeSpeak(text, delay = 0) {
+                if (this.destroyed || !this.isActive) return;
+                // If not current run anymore, skip
+                if (this.taskId !== AppManager.currentTaskId || this.runId !== AppManager.currentRunId) return;
+                return await AppManager.speak(text, delay, this.taskId, this.runId);
+            }
+
+            async safePause(ms) {
+                if (this.destroyed || !this.isActive) return;
+                const myTask = this.taskId;
+                const myRun = this.runId;
+                return new Promise(resolve => {
+                    const id = setTimeout(() => {
+                        if (this.isActive && myTask === AppManager.currentTaskId && myRun === AppManager.currentRunId) {
+                            resolve();
+                        } else {
+                            resolve();
+                        }
+                    }, ms);
+                    AppManager.registerTimeout(id, 'timer', myTask, myRun);
+                });
+            }
+        }
+
+        // Direct Method Section
+        class DirectMethodSection extends BaseSection {
+            constructor() {
+                super('Direct Method');
+            }
+
+            async executeSteps() {
+                if (!this.isActive) return;
+                
+                await this.safeSpeak("Welcome to the Direct Method - the foundational approach to calculating the mean of grouped data. We'll build understanding through immersive visual storytelling.", 500);
+                
+                // Step 1: Introduction and formula
+                await this.showFormulaIntroduction();
+                
+                if (!this.isActive) return;
+                // Step 2: Data visualization
+                await this.showDataVisualization();
+                
+                if (!this.isActive) return;
+                // Step 3: Class mark calculation
+                await this.showClassMarkCalculation();
+                
+                if (!this.isActive) return;
+                // Step 4: fi × xi calculation
+                await this.showFiXiCalculation();
+                
+                if (!this.isActive) return;
+                // Step 5: Final calculation
+                await this.showFinalCalculation();
+                
+                if (!this.isActive) return;
+                await this.safeSpeak("The Direct Method gives us a mean of 62 marks. This fundamental approach forms the basis for all other methods we'll explore.", 2000);
+            }
+
+            async showFormulaIntroduction() {
+                AppManager.clearCanvas();
+                
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 2000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            // Title animation with bounce effect
+                            const titleY = 60 + (1 - DrawingUtils.easeOutBack(progress)) * 100;
+                            
+                            ctx.globalAlpha = DrawingUtils.easeInOut(progress);
+                            DrawingUtils.drawText('Direct Method for Grouped Data', center.x, titleY, 32, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                            ctx.globalAlpha = 1;
+                        }
+                    },
+                    {
+                        duration: 4000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Direct Method for Grouped Data', center.x, 60, 32, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                            
+                            // Animated formula box
+                            if (progress > 0.2) {
+                                const boxProgress = Math.max(0, Math.min(1, (progress - 0.2) * 1.5));
+                                const boxWidth = 400 * boxProgress;
+                                const boxX = center.x - boxWidth / 2;
+                                
+                                DrawingUtils.drawBox(boxX, center.y - 80, boxWidth, 80, 'rgba(59, 130, 246, 0.1)', '#3b82f6', 3);
+                                
+                                if (boxProgress > 0.5) {
+                                    const formulaProgress = (boxProgress - 0.5) * 2;
+                                    DrawingUtils.drawAnimatedEquation('x̄ = Σfixi / Σfi', center.x, center.y - 40, formulaProgress, 28, '#3b82f6');
+                                }
+                            }
+                            
+                            // Explanation components
+                            if (progress > 0.6) {
+                                const explanationProgress = (progress - 0.6) * 2.5;
+                                
+                                const startY = center.y + 40;
+                                const components = [
+                                    { symbol: 'x̄', description: 'Mean of grouped data', color: '#ec4899' },
+                                    { symbol: 'fi', description: 'Frequency of each class', color: '#10b981' },
+                                    { symbol: 'xi', description: 'Class mark (midpoint)', color: '#fbbf24' },
+                                    { symbol: 'Σfixi', description: 'Sum of (frequency × class mark)', color: '#8b5cf6' }
+                                ];
+                                
+                                components.forEach((comp, index) => {
+                                    const compProgress = Math.max(0, Math.min(1, (explanationProgress - index * 0.2) * 3));
+                                    if (compProgress > 0) {
+                                        const y = startY + index * 30;
+                                        ctx.globalAlpha = compProgress;
+                                        
+                                        DrawingUtils.drawBox(center.x - 200, y - 12, 400, 25, 'rgba(255, 255, 255, 0.05)', comp.color, 1);
+                                        DrawingUtils.drawText(comp.symbol, center.x - 180, y, 16, comp.color, 'Courier New', 'left', 'bold');
+                                        DrawingUtils.drawText('=', center.x - 140, y, 16, '#f8fafc', 'Segoe UI', 'left');
+                                        DrawingUtils.drawText(comp.description, center.x - 120, y, 14, '#f8fafc', 'Segoe UI', 'left');
+                                        
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("The Direct Method uses the fundamental formula: x-bar equals the sum of frequency times class mark, divided by the sum of frequencies. This represents the weighted average where each class mark is weighted by its frequency.", 6000);
+            }
+
+            async showDataVisualization() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 5000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Sample Data: Mathematics Marks of 30 Students', center.x, 40, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Animated histogram
+                            const chartY = 80;
+                            const chartWidth = canvas.clientWidth - 100;
+                            const chartHeight = 300;
+                            const chartX = 50;
+                            
+                            DrawingUtils.drawHistogram(mathsData, chartX, chartY, chartWidth, chartHeight, progress);
+                            
+                            // Data insights animation
+                            if (progress > 0.8) {
+                                const insightProgress = (progress - 0.8) * 5;
+                                ctx.globalAlpha = insightProgress;
+                                
+                                const totalStudents = mathsData.reduce((sum, item) => sum + item.frequency, 0);
+                                const modalClass = mathsData.reduce((max, current) => current.frequency > max.frequency ? current : max);
+                                
+                                DrawingUtils.drawBox(center.x - 200, chartY + chartHeight + 60, 400, 80, 'rgba(16, 185, 129, 0.1)', '#10b981', 2);
+                                DrawingUtils.drawText('Dataset Insights:', center.x, chartY + chartHeight + 85, 16, '#10b981', 'Segoe UI', 'center', 'bold');
+                                DrawingUtils.drawText(`Total Students: ${totalStudents}`, center.x, chartY + chartHeight + 110, 14, '#f8fafc', 'Segoe UI', 'center');
+                                DrawingUtils.drawText(`Modal Class: ${modalClass.interval} (${modalClass.frequency} students)`, center.x, chartY + chartHeight + 130, 14, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("Here's our dataset: mathematics marks of 30 students organized into six class intervals. Notice the distribution - most students scored in the middle ranges, with the modal class being 40-55 marks containing 7 students.", 5000);
+            }
+
+            async showClassMarkCalculation() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 8000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Step 1: Calculate Class Marks (xi)', center.x, 40, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Formula with animation
+                            DrawingUtils.drawBox(center.x - 200, 70, 400, 50, 'rgba(59, 130, 246, 0.1)', '#3b82f6', 2);
+                            if (progress > 0.1) {
+                                DrawingUtils.drawAnimatedEquation('xi = (Lower Limit + Upper Limit) / 2', center.x, 95, Math.min(1, (progress - 0.1) * 2), 18, '#3b82f6');
+                            }
+                            
+                            // Visual demonstration
+                            const startY = 140;
+                            const currentExample = Math.min(Math.floor(progress * mathsData.length), mathsData.length - 1);
+                            
+                            mathsData.forEach((data, index) => {
+                                if (index <= currentExample) {
+                                    const y = startY + index * 50;
+                                    const exampleProgress = Math.max(0, Math.min(1, (progress - index * 0.12) * 4));
+                                    
+                                    if (exampleProgress > 0) {
+                                        // Highlight current calculation
+                                        if (index === currentExample && progress < 0.9) {
+                                            DrawingUtils.drawBox(60, y - 20, canvas.clientWidth - 120, 45, 'rgba(236, 72, 153, 0.2)', '#ec4899', 2);
+                                            DrawingUtils.drawParticleEffect(center.x, y, (progress * 10) % 1, '#ec4899');
+                                        }
+                                        
+                                        ctx.globalAlpha = exampleProgress;
+                                        
+                                        // Interval display
+                                        DrawingUtils.drawText(`${data.interval}:`, 100, y, 18, '#f8fafc', 'Segoe UI', 'left', 'bold');
+                                        
+                                        // Calculation steps
+                                        if (exampleProgress > 0.3) {
+                                            DrawingUtils.drawText(`(${data.lowerLimit} + ${data.upperLimit})`, 220, y, 16, '#10b981', 'Courier New', 'left');
+                                        }
+                                        if (exampleProgress > 0.6) {
+                                            DrawingUtils.drawText('/ 2 =', 350, y, 16, '#10b981', 'Courier New', 'left');
+                                        }
+                                        if (exampleProgress > 0.8) {
+                                            DrawingUtils.drawText(`${data.classmark}`, 400, y, 18, '#fbbf24', 'Courier New', 'left', 'bold');
+                                        }
+                                        
+                                        ctx.globalAlpha = 1;
+                                    }
+                                }
+                            });
+                            
+                            // Progress indicator
+                            if (progress < 0.9) {
+                                DrawingUtils.drawProgressIndicator(
+                                    center.x - 150, 
+                                    canvas.clientHeight - 80, 
+                                    300, 
+                                    (currentExample + 1) / mathsData.length,
+                                    `Calculating Class Marks: ${currentExample + 1}/${mathsData.length}`
+                                );
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("Step 1: Calculate class marks. The class mark is the arithmetic mean of the class boundaries. For each interval, we add the lower and upper limits, then divide by 2. Watch as we calculate each class mark systematically.", 8000);
+            }
+
+            async showFiXiCalculation() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 10000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Step 2: Calculate fi × xi for each class', center.x, 40, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Enhanced table visualization
+                            const tableX = 30;
+                            const tableY = 80;
+                            const cellWidth = (canvas.clientWidth - 60) / 4;
+                            const cellHeight = 40;
+                            
+                            const headers = ['Class Interval', 'Frequency (fi)', 'Class Mark (xi)', 'fi × xi'];
+                            
+                            // Animated headers
+                            headers.forEach((header, i) => {
+                                const headerProgress = Math.max(0, Math.min(1, (progress - i * 0.05) * 5));
+                                if (headerProgress > 0) {
+                                    const headerColor = i === 3 ? 'rgba(236, 72, 153, 0.5)' : 'rgba(59, 130, 246, 0.3)';
+                                    ctx.globalAlpha = headerProgress;
+                                    DrawingUtils.drawBox(tableX + i * cellWidth, tableY, cellWidth, cellHeight, headerColor, '#3b82f6', 2);
+                                    DrawingUtils.drawText(header, tableX + i * cellWidth + cellWidth/2, tableY + cellHeight/2 + 5, 12, '#f8fafc', 'Segoe UI', 'center', 'bold');
+                                    ctx.globalAlpha = 1;
+                                }
+                            });
+                            
+                            // Animated data rows with calculations
+                            const currentRow = Math.min(Math.floor((progress - 0.3) * mathsData.length), mathsData.length - 1);
+                            let runningSum = 0;
+                            
+                            mathsData.forEach((data, rowIndex) => {
+                                if (rowIndex <= currentRow && progress > 0.3) {
+                                    const rowY = tableY + (rowIndex + 1) * cellHeight;
+                                    const rowProgress = Math.max(0, Math.min(1, (progress - 0.3 - rowIndex * 0.08) * 4));
+                                    const fixi = data.frequency * data.classmark;
+                                    
+                                    if (rowIndex < currentRow) runningSum += fixi;
+                                    
+                                    const values = [data.interval, data.frequency, data.classmark, fixi.toFixed(1)];
+                                    
+                                    values.forEach((value, colIndex) => {
+                                        const cellX = tableX + colIndex * cellWidth;
+                                        const isCalculationColumn = colIndex === 3;
+                                        
+                                        let cellColor = 'rgba(255, 255, 255, 0.05)';
+                                        if (isCalculationColumn && rowIndex === currentRow) {
+                                            cellColor = 'rgba(236, 72, 153, 0.4)';
+                                        }
+                                        
+                                        ctx.globalAlpha = rowProgress;
+                                        DrawingUtils.drawBox(cellX, rowY, cellWidth, cellHeight, cellColor, 'rgba(255, 255, 255, 0.3)', 1);
+                                        
+                                        if (isCalculationColumn && rowProgress > 0.5) {
+                                            // Animate the calculation
+                                            const calcProgress = (rowProgress - 0.5) * 2;
+                                            const animatedValue = DrawingUtils.animateNumber(0, parseFloat(value), calcProgress, 1);
+                                            DrawingUtils.drawText(animatedValue, cellX + cellWidth/2, rowY + cellHeight/2 + 5, 12, '#fbbf24', 'Courier New', 'center', 'bold');
+                                            
+                                            // Show multiplication visually
+                                            if (rowIndex === currentRow && calcProgress > 0.2) {
+                                                DrawingUtils.drawText(`${data.frequency} × ${data.classmark}`, center.x, canvas.clientHeight - 100, 16, '#10b981', 'Courier New', 'center');
+                                            }
+                                        } else {
+                                            const textColor = colIndex === 1 ? '#10b981' : colIndex === 2 ? '#8b5cf6' : '#f8fafc';
+                                            DrawingUtils.drawText(value.toString(), cellX + cellWidth/2, rowY + cellHeight/2 + 5, 12, textColor, 'Segoe UI', 'center');
+                                        }
+                                        
+                                        ctx.globalAlpha = 1;
+                                    });
+                                }
+                            });
+                            
+                            // Running sum display
+                            if (progress > 0.7) {
+                                const sumProgress = (progress - 0.7) * 3.33;
+                                ctx.globalAlpha = sumProgress;
+                                
+                                const totalFiXi = mathsData.reduce((sum, item) => sum + (item.frequency * item.classmark), 0);
+                                const currentSum = runningSum + (currentRow >= 0 ? mathsData[currentRow].frequency * mathsData[currentRow].classmark : 0);
+                                
+                                DrawingUtils.drawBox(center.x - 150, canvas.clientHeight - 60, 300, 40, 'rgba(16, 185, 129, 0.2)', '#10b981', 2);
+                                DrawingUtils.drawText(`Running Sum: ${currentSum.toFixed(1)}`, center.x, canvas.clientHeight - 35, 16, '#10b981', 'Courier New', 'center', 'bold');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("Step 2: Calculate fi times xi for each class. We multiply the frequency by the corresponding class mark. Watch how each calculation builds our sum systematically - this weighted approach ensures higher frequencies have greater influence on the final mean.", 10000);
+            }
+
+            async showFinalCalculation() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 8000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Step 3: Apply the Direct Method Formula', center.x, 40, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Calculate values
+                            const totalFreq = mathsData.reduce((sum, item) => sum + item.frequency, 0);
+                            const totalFiXi = mathsData.reduce((sum, item) => sum + (item.frequency * item.classmark), 0);
+                            const finalMean = totalFiXi / totalFreq;
+                            
+                            const calcY = 100;
+                            
+                            // Step by step calculation with dramatic effect
+                            if (progress > 0.1) {
+                                const step1Progress = Math.max(0, Math.min(1, (progress - 0.1) * 2));
+                                ctx.globalAlpha = step1Progress;
+                                
+                                DrawingUtils.drawBox(80, calcY, 300, 40, 'rgba(59, 130, 246, 0.1)', '#3b82f6', 2);
+                                DrawingUtils.drawText('Sum of frequencies (Σfi):', 100, calcY + 25, 18, '#f8fafc', 'Segoe UI', 'left', 'bold');
+                                
+                                const animatedFreqSum = DrawingUtils.animateNumber(0, totalFreq, step1Progress, 0);
+                                DrawingUtils.drawText(`${animatedFreqSum}`, 400, calcY + 25, 20, '#10b981', 'Courier New', 'left', 'bold');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            if (progress > 0.3) {
+                                const step2Progress = Math.max(0, Math.min(1, (progress - 0.3) * 2));
+                                ctx.globalAlpha = step2Progress;
+                                
+                                DrawingUtils.drawBox(80, calcY + 60, 300, 40, 'rgba(139, 92, 246, 0.1)', '#8b5cf6', 2);
+                                DrawingUtils.drawText('Sum of fi × xi (Σfixi):', 100, calcY + 85, 18, '#f8fafc', 'Segoe UI', 'left', 'bold');
+                                
+                                const animatedFiXiSum = DrawingUtils.animateNumber(0, totalFiXi, step2Progress, 1);
+                                DrawingUtils.drawText(`${animatedFiXiSum}`, 400, calcY + 85, 20, '#8b5cf6', 'Courier New', 'left', 'bold');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            if (progress > 0.5) {
+                                const formulaProgress = Math.max(0, Math.min(1, (progress - 0.5) * 2));
+                                
+                                DrawingUtils.drawBox(center.x - 200, calcY + 130, 400, 60, 'rgba(59, 130, 246, 0.2)', '#3b82f6', 3);
+                                DrawingUtils.drawAnimatedEquation('x̄ = Σfixi / Σfi', center.x, calcY + 160, formulaProgress, 24, '#3b82f6');
+                            }
+                            
+                            if (progress > 0.7) {
+                                const substitutionProgress = Math.max(0, Math.min(1, (progress - 0.7) * 2));
+                                ctx.globalAlpha = substitutionProgress;
+                                
+                                DrawingUtils.drawText(`x̄ = ${totalFiXi} ÷ ${totalFreq}`, center.x, calcY + 220, 20, '#f8fafc', 'Courier New', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            if (progress > 0.85) {
+                                const resultProgress = Math.max(0, Math.min(1, (progress - 0.85) * 6.67));
+                                
+                                // Dramatic result reveal
+                                const scale = 1 + Math.sin(resultProgress * Math.PI) * 0.2;
+                                ctx.save();
+                                ctx.translate(center.x, calcY + 280);
+                                ctx.scale(scale, scale);
+                                
+                                ctx.globalAlpha = resultProgress;
+                                DrawingUtils.drawBox(-80, -25, 160, 50, 'rgba(236, 72, 153, 0.3)', '#ec4899', 4);
+                                const animatedMean = DrawingUtils.animateNumber(0, finalMean, resultProgress, 1);
+                                DrawingUtils.drawText(`x̄ = ${animatedMean}`, 0, 5, 28, '#ec4899', 'Courier New', 'center', 'bold');
+                                
+                                ctx.restore();
+                                ctx.globalAlpha = 1;
+                                
+                                // Celebration particles
+                                if (resultProgress > 0.8) {
+                                    DrawingUtils.drawParticleEffect(center.x, calcY + 280, (resultProgress - 0.8) * 5, '#fbbf24');
+                                }
+                            }
+                            
+                            // Interpretation
+                            if (progress > 0.9) {
+                                const interpretProgress = (progress - 0.9) * 10;
+                                ctx.globalAlpha = interpretProgress;
+                                
+                                DrawingUtils.drawBox(center.x - 250, calcY + 340, 500, 60, 'rgba(16, 185, 129, 0.1)', '#10b981', 2);
+                                DrawingUtils.drawText('Interpretation: The average mathematics mark is 62', center.x, calcY + 365, 16, '#10b981', 'Segoe UI', 'center', 'bold');
+                                DrawingUtils.drawText('This means most students performed at this level', center.x, calcY + 385, 14, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("Step 3: Apply the formula. Sum of frequencies equals 30, sum of fi xi equals 1860. Therefore, x-bar equals 1860 divided by 30, which equals 62 marks. This means the average mathematics performance is 62 marks.", 8000);
+            }
+        }
+
+        // Assumed Mean Section
+        class AssumedMeanSection extends BaseSection {
+            constructor() {
+                super('Assumed Mean Method');
+            }
+
+            async executeSteps() {
+                if (!this.isActive) return;
+                
+                await this.safeSpeak("Welcome to the Assumed Mean Method - a powerful technique that simplifies calculations by working with deviations from a strategically chosen assumed mean.", 500);
+                
+                // Step 1: Method introduction
+                await this.showMethodIntroduction();
+                
+                if (!this.isActive) return;
+                // Step 2: Choosing assumed mean
+                await this.showAssumedMeanSelection();
+                
+                if (!this.isActive) return;
+                // Step 3: Deviation calculation
+                await this.showDeviationCalculation();
+                
+                if (!this.isActive) return;
+                // Step 4: Final calculation
+                await this.showAssumedMeanFinalCalculation();
+                
+                if (!this.isActive) return;
+                await this.safeSpeak("The Assumed Mean Method gives us exactly the same result: 62 marks. The strategic choice of assumed mean transforms complex calculations into manageable ones without changing the final answer.", 3000);
+            }
+
+            async showMethodIntroduction() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 6000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Assumed Mean Method: Strategic Simplification', center.x, 50, 28, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                            
+                            // Formula development with explanation
+                            if (progress > 0.2) {
+                                const formulaProgress = Math.max(0, Math.min(1, (progress - 0.2) * 1.5));
+                                
+                                DrawingUtils.drawBox(center.x - 250, 100, 500, 80, 'rgba(59, 130, 246, 0.1)', '#3b82f6', 2);
+                                DrawingUtils.drawAnimatedEquation('x̄ = a + Σfidi / Σfi', center.x, 140, formulaProgress, 32, '#3b82f6');
+                            }
+                            
+                            // Interactive variable explanations
+                            if (progress > 0.4) {
+                                const explanationProgress = (progress - 0.4) * 1.67;
+                                
+                                const variables = [
+                                    { symbol: 'a', desc: 'Assumed mean (strategically chosen)', color: '#ec4899' },
+                                    { symbol: 'di', desc: 'Deviation: di = xi - a', color: '#10b981' },
+                                    { symbol: 'fi', desc: 'Frequency of each class', color: '#fbbf24' },
+                                    { symbol: 'Σfidi', desc: 'Sum of frequency × deviation', color: '#8b5cf6' }
+                                ];
+                                
+                                variables.forEach((variable, index) => {
+                                    const varProgress = Math.max(0, Math.min(1, (explanationProgress - index * 0.2) * 3));
+                                    if (varProgress > 0) {
+                                        const y = 220 + index * 40;
+                                        const x = center.x - 220;
+                                        
+                                        ctx.globalAlpha = varProgress;
+                                        DrawingUtils.drawBox(x, y - 15, 440, 30, 'rgba(255, 255, 255, 0.05)', variable.color, 1);
+                                        const symbolX = x + 20;
+                                        const symbolSize = 16;
+                                        const symbolWidth = DrawingUtils.measureTextWidth(variable.symbol, symbolSize, 'Courier New', 'bold');
+                                        const equalsX = symbolX + symbolWidth + 12;
+                                        const descX = equalsX + 16;
+                                        DrawingUtils.drawText(variable.symbol, symbolX, y, symbolSize, variable.color, 'Courier New', 'left', 'bold');
+                                        DrawingUtils.drawText('=', equalsX, y, 16, '#f8fafc', 'Segoe UI', 'left');
+                                        DrawingUtils.drawText(variable.desc, descX, y, 14, '#f8fafc', 'Segoe UI', 'left');
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                            }
+                            
+                            // Key advantage highlight
+                            if (progress > 0.8) {
+                                const advantageProgress = (progress - 0.8) * 5;
+                                ctx.globalAlpha = advantageProgress;
+                                
+                                DrawingUtils.drawBox(center.x - 300, 380, 600, 80, 'rgba(236, 72, 153, 0.2)', '#ec4899', 3);
+                                DrawingUtils.drawText('Key Advantage: Smaller Numbers = Easier Mental Math!', center.x, 405, 18, '#ec4899', 'Segoe UI', 'center', 'bold');
+                                DrawingUtils.drawText('Instead of working with large class marks, we work with small deviations', center.x, 430, 14, '#f8fafc', 'Segoe UI', 'center');
+                                DrawingUtils.drawText('Perfect for calculations without calculator!', center.x, 450, 14, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("The Assumed Mean Method transforms the calculation by introducing deviations. Instead of working with large class marks, we calculate small deviations from our assumed mean, making mental calculations much easier while achieving the same accurate result.", 6000);
+            }
+
+            async showAssumedMeanSelection() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 8000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Strategic Selection of Assumed Mean', center.x, 40, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Show distribution with selection process
+                            const chartY = 80;
+                            const chartHeight = 220;
+                            const chartWidth = canvas.clientWidth - 100;
+                            const chartX = 50;
+                            
+                            // Draw histogram with selection animation
+                            DrawingUtils.drawHistogram(mathsData, chartX, chartY, chartWidth, chartHeight, Math.min(progress * 1.5, 1));
+                            
+                            // Selection strategy animation
+                            if (progress > 0.4) {
+                                const selectionProgress = (progress - 0.4) * 1.67;
+                                
+                                // Highlight central tendency
+                                const centralIndex = 2; // 40-55 interval
+                                const barWidth = chartWidth / mathsData.length;
+                                const selectedX = chartX + centralIndex * barWidth;
+                                
+                                // Animated selection indicator
+                                const pulseScale = 1 + Math.sin(selectionProgress * Math.PI * 4) * 0.1;
+                                ctx.save();
+                                ctx.translate(selectedX + barWidth/2, chartY + chartHeight/2);
+                                ctx.scale(pulseScale, pulseScale);
+                                
+                                ctx.globalAlpha = selectionProgress;
+                                DrawingUtils.drawBox(-barWidth/2 - 10, -chartHeight/2 - 10, barWidth + 20, chartHeight + 20, 'rgba(236, 72, 153, 0.1)', '#ec4899', 4);
+                                
+                                ctx.restore();
+                                ctx.globalAlpha = 1;
+                                
+                                // Selection rationale
+                                if (selectionProgress > 0.3) {
+                                    const reasonProgress = (selectionProgress - 0.3) * 1.43;
+                                    ctx.globalAlpha = reasonProgress;
+                                    
+                                    DrawingUtils.drawText('Why choose 47.5?', selectedX + barWidth/2, chartY - 30, 14, '#ec4899', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawLine(selectedX + barWidth/2, chartY - 15, selectedX + barWidth/2, chartY, '#ec4899', 3);
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                            
+                            // Strategy explanation with visual aids
+                            if (progress > 0.6) {
+                                const strategyProgress = (progress - 0.6) * 2.5;
+                                
+                                const strategies = [
+                                    'Central Location: Minimizes deviation magnitudes',
+                                    'Modal Class: Represents highest concentration',
+                                    'Simple Number: Easy for mental calculations',
+                                    'Balanced Choice: Equal positive/negative deviations'
+                                ];
+                                
+                                strategies.forEach((strategy, index) => {
+                                    const stratProgress = Math.max(0, Math.min(1, (strategyProgress - index * 0.2) * 3));
+                                    if (stratProgress > 0) {
+                                        const y = chartY + chartHeight + 60 + index * 25;
+                                        ctx.globalAlpha = stratProgress;
+                                        
+                                        DrawingUtils.drawCircle(center.x - 250, y - 5, 4, '#10b981');
+                                        DrawingUtils.drawText(strategy, center.x - 230, y, 14, '#f8fafc', 'Segoe UI', 'left');
+                                        
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                            }
+                            
+                            // Final selection highlight
+                            if (progress > 0.9) {
+                                const finalProgress = (progress - 0.9) * 10;
+                                ctx.globalAlpha = finalProgress;
+                                
+                                const assumedMean = 47.5;
+                                DrawingUtils.drawBox(center.x - 200, canvas.clientHeight - 80, 400, 60, 'rgba(16, 185, 129, 0.2)', '#10b981', 3);
+                                DrawingUtils.drawText(`Selected Assumed Mean: a = ${assumedMean}`, center.x, canvas.clientHeight - 60, 18, '#10b981', 'Courier New', 'center', 'bold');
+                                DrawingUtils.drawText('Perfect choice for our calculation!', center.x, canvas.clientHeight - 35, 14, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("Strategic selection is crucial. We choose 47.5 as our assumed mean because it's centrally located in the modal class, minimizes deviation sizes, and is a simple number for calculations. This strategic choice will make our arithmetic much easier.", 8000);
+            }
+
+            async showDeviationCalculation() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 12000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Calculate Deviations: di = xi - a', center.x, 40, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            const assumedMean = 47.5;
+                            
+                            // Enhanced table with visual calculations
+                            const tableX = 20;
+                            const tableY = 80;
+                            const cellWidth = (canvas.clientWidth - 40) / 5;
+                            const cellHeight = 35;
+                            
+                            // Headers with icons
+                            const headers = ['Class Interval', 'fi', 'xi', 'di = xi - a', 'fi × di'];
+                            headers.forEach((header, i) => {
+                                const headerProgress = Math.max(0, Math.min(1, (progress - i * 0.03) * 10));
+                                if (headerProgress > 0) {
+                                    ctx.globalAlpha = headerProgress;
+                                    const headerColor = i >= 3 ? 'rgba(236, 72, 153, 0.4)' : 'rgba(59, 130, 246, 0.3)';
+                                    DrawingUtils.drawBox(tableX + i * cellWidth, tableY, cellWidth, cellHeight, headerColor, '#3b82f6', 2);
+                                    DrawingUtils.drawText(header, tableX + i * cellWidth + cellWidth/2, tableY + cellHeight/2 + 3, 11, '#f8fafc', 'Segoe UI', 'center', 'bold');
+                                    ctx.globalAlpha = 1;
+                                }
+                            });
+                            
+                            // Animated calculations with visual feedback
+                            const currentRow = Math.min(Math.floor((progress - 0.2) * mathsData.length), mathsData.length - 1);
+                            let runningSum = 0;
+                            
+                            mathsData.forEach((data, rowIndex) => {
+                                if (rowIndex <= currentRow && progress > 0.2) {
+                                    const rowY = tableY + (rowIndex + 1) * cellHeight;
+                                    const deviation = data.classmark - assumedMean;
+                                    const fiDi = data.frequency * deviation;
+                                    
+                                    if (rowIndex < currentRow) runningSum += fiDi;
+                                    
+                                    const rowProgress = Math.max(0, Math.min(1, (progress - 0.2 - rowIndex * 0.1) * 4));
+                                    
+                                    const values = [data.interval, data.frequency, data.classmark, deviation, fiDi];
+                                    
+                                    values.forEach((value, colIndex) => {
+                                        const cellX = tableX + colIndex * cellWidth;
+                                        const isDeviationColumn = colIndex === 3;
+                                        const isProductColumn = colIndex === 4;
+                                        
+                                        let cellColor = 'rgba(255, 255, 255, 0.05)';
+                                        if ((isDeviationColumn || isProductColumn) && rowIndex === currentRow) {
+                                            cellColor = 'rgba(236, 72, 153, 0.3)';
+                                        }
+                                        
+                                        ctx.globalAlpha = rowProgress;
+                                        DrawingUtils.drawBox(cellX, rowY, cellWidth, cellHeight, cellColor, 'rgba(255, 255, 255, 0.2)', 1);
+                                        
+                                        let displayValue = value.toString();
+                                        let textColor = '#f8fafc';
+                                        
+                                        if (isDeviationColumn) {
+                                            textColor = deviation >= 0 ? '#10b981' : '#ec4899';
+                                            if (deviation > 0) displayValue = '+' + displayValue;
+                                            
+                                            // Visual indicator for positive/negative
+                                            if (rowProgress > 0.5) {
+                                                const indicatorColor = deviation >= 0 ? '#10b981' : '#ec4899';
+                                                DrawingUtils.drawCircle(cellX + 15, rowY + cellHeight/2, 3, indicatorColor);
+                                            }
+                                        } else if (isProductColumn) {
+                                            textColor = '#fbbf24';
+                                            
+                                            // Animate the multiplication
+                                            if (rowProgress > 0.7) {
+                                                const animatedValue = DrawingUtils.animateNumber(0, fiDi, (rowProgress - 0.7) * 3.33, 1);
+                                                displayValue = animatedValue;
+                                            }
+                                        }
+                                        
+                                        DrawingUtils.drawText(displayValue, cellX + cellWidth/2, rowY + cellHeight/2 + 3, 10, textColor, 'Courier New', 'center');
+                                        ctx.globalAlpha = 1;
+                                    });
+                                }
+                            });
+                            
+                            // Show calculation process for current row
+                            if (progress > 0.3 && currentRow >= 0 && currentRow < mathsData.length) {
+                                const data = mathsData[currentRow];
+                                const calcY = tableY + (mathsData.length + 2) * cellHeight;
+                                const calcProgress = Math.max(0, Math.min(1, (progress - 0.3 - currentRow * 0.1) * 5));
+                                
+                                if (calcProgress > 0) {
+                                    ctx.globalAlpha = calcProgress;
+                                    
+                                    DrawingUtils.drawBox(center.x - 250, calcY, 500, 40, 'rgba(16, 185, 129, 0.1)', '#10b981', 2);
+                                    DrawingUtils.drawText(`Current: ${data.classmark} - ${assumedMean} = ${(data.classmark - assumedMean)}`, 
+                                        center.x, calcY + 25, 16, '#10b981', 'Courier New', 'center', 'bold');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                            
+                            // Running totals and insights
+                            if (progress > 0.7) {
+                                const summaryProgress = (progress - 0.7) * 3.33;
+                                ctx.globalAlpha = summaryProgress;
+                                
+                                const totalFiDi = mathsData.reduce((sum, item) => sum + (item.frequency * (item.classmark - assumedMean)), 0);
+                                const currentSum = runningSum + (currentRow >= 0 ? mathsData[currentRow].frequency * (mathsData[currentRow].classmark - assumedMean) : 0);
+                                
+                                DrawingUtils.drawBox(center.x - 200, canvas.clientHeight - 80, 400, 60, 'rgba(251, 191, 36, 0.2)', '#fbbf24', 2);
+                                DrawingUtils.drawText(`Running Σfi×di = ${currentSum.toFixed(1)}`, center.x, canvas.clientHeight - 60, 16, '#fbbf24', 'Courier New', 'center', 'bold');
+                                DrawingUtils.drawText('Notice: Positive and negative deviations balance!', center.x, canvas.clientHeight - 35, 14, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("Now we calculate deviations systematically. Each class mark minus the assumed mean gives us positive or negative deviations. Watch how some deviations are positive and others negative - this balance is what makes the method so elegant and computationally efficient.", 12000);
+            }
+
+            async showAssumedMeanFinalCalculation() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 10000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Final Calculation: Assumed Mean Method', center.x, 40, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            const assumedMean = 47.5;
+                            const totalFreq = mathsData.reduce((sum, item) => sum + item.frequency, 0);
+                            const totalFiDi = mathsData.reduce((sum, item) => sum + (item.frequency * (item.classmark - assumedMean)), 0);
+                            const finalMean = assumedMean + (totalFiDi / totalFreq);
+                            
+                            // Step-by-step dramatic calculation
+                            const startY = 100;
+                            
+                            if (progress > 0.1) {
+                                const step1Progress = Math.max(0, Math.min(1, (progress - 0.1) * 2));
+                                ctx.globalAlpha = step1Progress;
+                                
+                                DrawingUtils.drawBox(80, startY, 350, 120, 'rgba(59, 130, 246, 0.1)', '#3b82f6', 2);
+                                DrawingUtils.drawText('Given Values:', 100, startY + 25, 18, '#3b82f6', 'Segoe UI', 'left', 'bold');
+                                
+                                const animatedAssumed = DrawingUtils.animateNumber(0, assumedMean, step1Progress, 1);
+                                const animatedFreq = DrawingUtils.animateNumber(0, totalFreq, step1Progress, 0);
+                                const animatedFiDi = DrawingUtils.animateNumber(0, totalFiDi, step1Progress, 1);
+                                
+                                DrawingUtils.drawText(`Assumed mean (a) = ${animatedAssumed}`, 120, startY + 50, 16, '#10b981', 'Courier New', 'left');
+                                DrawingUtils.drawText(`Sum of fi = ${animatedFreq}`, 120, startY + 75, 16, '#10b981', 'Courier New', 'left');
+                                DrawingUtils.drawText(`Sum of fi × di = ${animatedFiDi}`, 120, startY + 100, 16, '#10b981', 'Courier New', 'left');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            if (progress > 0.3) {
+                                const formulaProgress = Math.max(0, Math.min(1, (progress - 0.3) * 2));
+                                
+                                DrawingUtils.drawBox(center.x - 200, startY + 140, 400, 60, 'rgba(59, 130, 246, 0.2)', '#3b82f6', 3);
+                                DrawingUtils.drawAnimatedEquation('x̄ = a + Σfidi / Σfi', center.x, startY + 170, formulaProgress, 22, '#3b82f6');
+                            }
+                            
+                            if (progress > 0.5) {
+                                const substitutionProgress = Math.max(0, Math.min(1, (progress - 0.5) * 2));
+                                ctx.globalAlpha = substitutionProgress;
+                                
+                                DrawingUtils.drawText(`x̄ = ${assumedMean} + (${totalFiDi}) / ${totalFreq}`, center.x, startY + 230, 18, '#f8fafc', 'Courier New', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            if (progress > 0.7) {
+                                const calculationProgress = Math.max(0, Math.min(1, (progress - 0.7) * 2));
+                                ctx.globalAlpha = calculationProgress;
+                                
+                                const deviation = totalFiDi / totalFreq;
+                                DrawingUtils.drawText(`x̄ = ${assumedMean} + ${deviation.toFixed(1)}`, center.x, startY + 260, 18, '#f8fafc', 'Courier New', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            if (progress > 0.85) {
+                                const resultProgress = Math.max(0, Math.min(1, (progress - 0.85) * 6.67));
+                                
+                                // Dramatic result with animation
+                                const bounce = 1 + Math.sin(resultProgress * Math.PI * 2) * 0.1;
+                                ctx.save();
+                                ctx.translate(center.x, startY + 320);
+                                ctx.scale(bounce, bounce);
+                                
+                                const animatedMean = DrawingUtils.animateNumber(assumedMean, finalMean, resultProgress, 1);
+                                
+                                ctx.globalAlpha = resultProgress;
+                                DrawingUtils.drawBox(-100, -30, 200, 60, 'rgba(236, 72, 153, 0.3)', '#ec4899', 4);
+                                DrawingUtils.drawText(`x̄ = ${animatedMean}`, 0, 5, 32, '#ec4899', 'Courier New', 'center', 'bold');
+                                
+                                ctx.restore();
+                                ctx.globalAlpha = 1;
+                                
+                                // Success particles
+                                if (resultProgress > 0.7) {
+                                    DrawingUtils.drawParticleEffect(center.x, startY + 320, (resultProgress - 0.7) * 3.33, '#fbbf24');
+                                }
+                            }
+                            
+                            // Method comparison
+                            if (progress > 0.9) {
+                                const comparisonProgress = (progress - 0.9) * 10;
+                                ctx.globalAlpha = comparisonProgress;
+                                
+                                DrawingUtils.drawBox(center.x - 300, startY + 380, 600, 80, 'rgba(16, 185, 129, 0.2)', '#10b981', 2);
+                                DrawingUtils.drawText('Method Validation: Same Result as Direct Method!', center.x, startY + 405, 16, '#10b981', 'Segoe UI', 'center', 'bold');
+                                DrawingUtils.drawText('Assumed Mean Method: Elegant simplification without accuracy loss', center.x, startY + 430, 14, '#f8fafc', 'Segoe UI', 'center');
+                                DrawingUtils.drawText('Perfect for manual calculations and exam situations', center.x, startY + 450, 14, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("Final calculation: x-bar equals 47.5 plus 14.5 divided by 30, which gives us 47.5 plus 0.48, equaling 62 marks exactly! The assumed mean method produces identical results while using much simpler arithmetic throughout the process.", 10000);
+            }
+        }
+
+        // Step Deviation Section
+        class StepDeviationSection extends BaseSection {
+            constructor() {
+                super('Step Deviation Method');
+            }
+
+            async executeSteps() {
+                if (!this.isActive) return;
+                
+                await this.safeSpeak("Welcome to the Step Deviation Method - the most elegant approach for data with equal class intervals. This method combines the simplicity of assumed mean with the power of normalization.", 500);
+                
+                // Step 1: Method introduction
+                await this.showStepMethodIntroduction();
+                
+                if (!this.isActive) return;
+                // Step 2: Understanding step deviation
+                await this.showStepDeviationConcept();
+                
+                if (!this.isActive) return;
+                // Step 3: Calculate ui values
+                await this.showUiCalculation();
+                
+                if (!this.isActive) return;
+                // Step 4: Final calculation
+                await this.showStepDeviationFinalCalculation();
+                
+                if (!this.isActive) return;
+                await this.safeSpeak("The Step Deviation Method achieves the same result: 62 marks, but with the simplest arithmetic possible. This method is ideal when class intervals are equal and you want maximum computational efficiency.", 3000);
+            }
+
+            async showStepMethodIntroduction() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 7000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Step Deviation Method: Maximum Elegance', center.x, 50, 28, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                            
+                            // Formula introduction with beautiful animation
+                            if (progress > 0.2) {
+                                const formulaProgress = Math.max(0, Math.min(1, (progress - 0.2) * 1.5));
+                                
+                                DrawingUtils.drawBox(center.x - 280, 100, 560, 80, 'rgba(59, 130, 246, 0.1)', '#3b82f6', 3);
+                                DrawingUtils.drawAnimatedEquation('x̄ = a + h(Σfiui / Σfi)', center.x, 140, formulaProgress, 30, '#3b82f6');
+                            }
+                            
+                            // Variable explanations with visual elements
+                            if (progress > 0.4) {
+                                const explanationProgress = (progress - 0.4) * 1.67;
+                                
+                                const variables = [
+                                    { symbol: 'a', desc: 'Assumed mean (same strategy as before)', color: '#ec4899' },
+                                    { symbol: 'h', desc: 'Class interval width (constant for equal intervals)', color: '#10b981' },
+                                    { symbol: 'ui', desc: 'Step deviation: ui = (xi - a) / h', color: '#fbbf24' },
+                                    { symbol: 'Σfiui', desc: 'Sum of frequency × step deviation', color: '#8b5cf6' }
+                                ];
+                                
+                                variables.forEach((variable, index) => {
+                                    const varProgress = Math.max(0, Math.min(1, (explanationProgress - index * 0.15) * 3));
+                                    if (varProgress > 0) {
+                                        const y = 220 + index * 45;
+                                        const x = center.x - 250;
+                                        
+                                        ctx.globalAlpha = varProgress;
+                                        
+                                        // Animated variable box
+                                        const boxWidth = 500 * varProgress;
+                                        DrawingUtils.drawBox(x, y - 18, boxWidth, 36, 'rgba(255, 255, 255, 0.05)', variable.color, 2);
+                                        
+                                        if (varProgress > 0.5) {
+                                            const symbolX = x + 25;
+                                            const symbolSize = 18;
+                                            const symbolWidth = DrawingUtils.measureTextWidth(variable.symbol, symbolSize, 'Courier New', 'bold');
+                                            const equalsX = symbolX + symbolWidth + 14;
+                                            const descX = equalsX + 18;
+                                            DrawingUtils.drawText(variable.symbol, symbolX, y, symbolSize, variable.color, 'Courier New', 'left', 'bold');
+                                            DrawingUtils.drawText('=', equalsX, y, 18, '#f8fafc', 'Segoe UI', 'left');
+                                            DrawingUtils.drawText(variable.desc, descX, y, 15, '#f8fafc', 'Segoe UI', 'left');
+                                        }
+                                        
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                            }
+                            
+                            // Key insight highlight
+                            if (progress > 0.7) {
+                                const insightProgress = (progress - 0.7) * 3.33;
+                                
+                                const glow = Math.sin(insightProgress * Math.PI * 2) * 0.3 + 0.7;
+                                ctx.globalAlpha = insightProgress * glow;
+                                
+                                DrawingUtils.drawBox(center.x - 320, 400, 640, 100, 'rgba(251, 191, 36, 0.2)', '#fbbf24', 3);
+                                DrawingUtils.drawText('Revolutionary Insight: Normalize deviations by class width!', center.x, 430, 18, '#fbbf24', 'Segoe UI', 'center', 'bold');
+                                DrawingUtils.drawText('This transforms all deviations into simple integers: -2, -1, 0, +1, +2...', center.x, 455, 15, '#f8fafc', 'Segoe UI', 'center');
+                                DrawingUtils.drawText('Perfect for mental arithmetic and error-free calculations!', center.x, 480, 15, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("The Step Deviation Method introduces the concept of normalization. By dividing deviations by the class interval width, we transform all calculations into simple integers, making this the most computation-friendly method available.", 7000);
+            }
+
+            async showStepDeviationConcept() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 9000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Understanding Step Deviation Concept', center.x, 40, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Visual representation of equal intervals
+                            const intervalY = 80;
+                            const intervalWidth = 80;
+                            const startX = center.x - (mathsData.length * intervalWidth) / 2;
+                            
+                            // Draw intervals as connected blocks
+                            mathsData.forEach((data, index) => {
+                                const x = startX + index * intervalWidth;
+                                const animProgress = Math.max(0, Math.min(1, (progress - index * 0.1) * 3));
+                                
+                                if (animProgress > 0) {
+                                    ctx.globalAlpha = animProgress;
+                                    
+                                    // Interval block
+                                    const blockColor = index === 2 ? '#ec4899' : '#3b82f6'; // Highlight assumed mean class
+                                    DrawingUtils.drawBox(x, intervalY, intervalWidth, 60, 
+                                        index === 2 ? 'rgba(236, 72, 153, 0.3)' : 'rgba(59, 130, 246, 0.2)', 
+                                        blockColor, 2);
+                                    
+                                    // Interval label
+                                    DrawingUtils.drawText(data.interval, x + intervalWidth/2, intervalY + 30, 12, '#f8fafc', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText(`xi = ${data.classmark}`, x + intervalWidth/2, intervalY + 50, 10, '#fbbf24', 'Courier New', 'center');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            });
+                            
+                            // Show equal width concept
+                            if (progress > 0.4) {
+                                const widthProgress = (progress - 0.4) * 2.5;
+                                ctx.globalAlpha = widthProgress;
+                                
+                                // Draw width indicators
+                                const h = mathsData[1].lowerLimit - mathsData[0].lowerLimit;
+                                DrawingUtils.drawLine(startX, intervalY + 80, startX + intervalWidth, intervalY + 80, '#10b981', 3);
+                                DrawingUtils.drawText(`h = ${h}`, startX + intervalWidth/2, intervalY + 100, 14, '#10b981', 'Courier New', 'center', 'bold');
+                                
+                                DrawingUtils.drawText('All intervals have equal width!', center.x, intervalY + 130, 16, '#10b981', 'Segoe UI', 'center', 'bold');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            // Step deviation calculation demonstration
+                            if (progress > 0.6) {
+                                const stepProgress = (progress - 0.6) * 2.5;
+                                
+                                const assumedMean = 47.5;
+                                const h = 15;
+                                const demoY = intervalY + 180;
+                                
+                                // Show transformation formula
+                                DrawingUtils.drawBox(center.x - 200, demoY, 400, 60, 'rgba(139, 92, 246, 0.1)', '#8b5cf6', 2);
+                                DrawingUtils.drawAnimatedEquation('ui = (xi - a) / h', center.x, demoY + 30, stepProgress, 20, '#8b5cf6');
+                                
+                                // Example calculations
+                                if (stepProgress > 0.5) {
+                                    const exampleProgress = (stepProgress - 0.5) * 2;
+                                    
+                                    const examples = [
+                                        { xi: 17.5, ui: (17.5 - assumedMean) / h },
+                                        { xi: 32.5, ui: (32.5 - assumedMean) / h },
+                                        { xi: 47.5, ui: (47.5 - assumedMean) / h },
+                                        { xi: 62.5, ui: (62.5 - assumedMean) / h }
+                                    ];
+                                    
+                                    examples.forEach((example, index) => {
+                                        const exProgress = Math.max(0, Math.min(1, (exampleProgress - index * 0.2) * 2));
+                                        if (exProgress > 0) {
+                                            const y = demoY + 80 + index * 30;
+                                            ctx.globalAlpha = exProgress;
+                                            
+                                            DrawingUtils.drawText(
+                                                `xi = ${example.xi} → ui = (${example.xi} - ${assumedMean})/${h} = ${example.ui}`,
+                                                center.x, y, 14, '#f8fafc', 'Courier New', 'center'
+                                            );
+                                            
+                                            ctx.globalAlpha = 1;
+                                        }
+                                    });
+                                }
+                            }
+                            
+                            // Magic result highlight
+                            if (progress > 0.85) {
+                                const magicProgress = (progress - 0.85) * 6.67;
+                                
+                                const pulse = 1 + Math.sin(magicProgress * Math.PI * 4) * 0.1;
+                                ctx.save();
+                                ctx.translate(center.x, canvas.clientHeight - 60);
+                                ctx.scale(pulse, pulse);
+                                
+                                ctx.globalAlpha = magicProgress;
+                                DrawingUtils.drawBox(-250, -30, 500, 60, 'rgba(251, 191, 36, 0.3)', '#fbbf24', 3);
+                                DrawingUtils.drawText('Magic Result: All ui values are integers!', 0, 0, 16, '#fbbf24', 'Segoe UI', 'center', 'bold');
+                                DrawingUtils.drawText('ui = -2, -1, 0, +1, +2, +3', 0, 20, 14, '#f8fafc', 'Courier New', 'center');
+                                
+                                ctx.restore();
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("The key insight is normalization. When we divide each deviation by the constant class width, we get beautiful integer values. This transforms complex decimal arithmetic into simple integer operations - the mathematical equivalent of finding the perfect gear ratio.", 9000);
+            }
+
+            async showUiCalculation() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 10000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Calculate Step Deviations: ui = (xi - a) / h', center.x, 40, 24, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            const assumedMean = 47.5;
+                            const h = 15;
+                            
+                            // Enhanced table with step deviation focus
+                            const tableX = 15;
+                            const tableY = 80;
+                            const cellWidth = (canvas.clientWidth - 30) / 6;
+                            const cellHeight = 32;
+                            
+                            // Headers
+                            const headers = ['Class', 'fi', 'xi', 'xi - a', 'ui = (xi-a)/h', 'fi × ui'];
+                            headers.forEach((header, i) => {
+                                const headerProgress = Math.max(0, Math.min(1, (progress - i * 0.02) * 15));
+                                if (headerProgress > 0) {
+                                    ctx.globalAlpha = headerProgress;
+                                    const headerColor = i >= 4 ? 'rgba(251, 191, 36, 0.4)' : 'rgba(59, 130, 246, 0.3)';
+                                    DrawingUtils.drawBox(tableX + i * cellWidth, tableY, cellWidth, cellHeight, headerColor, '#3b82f6', 2);
+                                    DrawingUtils.drawText(header, tableX + i * cellWidth + cellWidth/2, tableY + cellHeight/2 + 2, 10, '#f8fafc', 'Segoe UI', 'center', 'bold');
+                                    ctx.globalAlpha = 1;
+                                }
+                            });
+                            
+                            // Animated step deviation calculations
+                            const currentRow = Math.min(Math.floor((progress - 0.2) * mathsData.length), mathsData.length - 1);
+                            let runningSum = 0;
+                            
+                            mathsData.forEach((data, rowIndex) => {
+                                if (rowIndex <= currentRow && progress > 0.2) {
+                                    const rowY = tableY + (rowIndex + 1) * cellHeight;
+                                    const deviation = data.classmark - assumedMean;
+                                    const ui = deviation / h;
+                                    const fiUi = data.frequency * ui;
+                                    
+                                    if (rowIndex < currentRow) runningSum += fiUi;
+                                    
+                                    const rowProgress = Math.max(0, Math.min(1, (progress - 0.2 - rowIndex * 0.08) * 5));
+                                    
+                                    const values = [data.interval, data.frequency, data.classmark, deviation, ui, fiUi];
+                                    
+                                    values.forEach((value, colIndex) => {
+                                        const cellX = tableX + colIndex * cellWidth;
+                                        const isUiColumn = colIndex === 4;
+                                        const isProductColumn = colIndex === 5;
+                                        
+                                        let cellColor = 'rgba(255, 255, 255, 0.05)';
+                                        if ((isUiColumn || isProductColumn) && rowIndex === currentRow) {
+                                            cellColor = 'rgba(251, 191, 36, 0.3)';
+                                        }
+                                        
+                                        ctx.globalAlpha = rowProgress;
+                                        DrawingUtils.drawBox(cellX, rowY, cellWidth, cellHeight, cellColor, 'rgba(255, 255, 255, 0.2)', 1);
+                                        
+                                        let displayValue = value.toString();
+                                        let textColor = '#f8fafc';
+                                        
+                                        if (isUiColumn) {
+                                            textColor = '#fbbf24';
+                                            displayValue = value > 0 ? '+' + value : value.toString();
+                                            
+                                            // Highlight integer nature
+                                            if (rowProgress > 0.5) {
+                                                DrawingUtils.drawCircle(cellX + cellWidth - 10, rowY + cellHeight/2, 3, '#fbbf24');
+                                            }
+                                        } else if (isProductColumn) {
+                                            textColor = '#8b5cf6';
+                                            
+                                            // Animate the multiplication
+                                            if (rowProgress > 0.7) {
+                                                const animatedValue = DrawingUtils.animateNumber(0, fiUi, (rowProgress - 0.7) * 3.33, 0);
+                                                displayValue = animatedValue;
+                                            }
+                                        } else if (colIndex === 3) {
+                                            textColor = deviation >= 0 ? '#10b981' : '#ec4899';
+                                            if (deviation > 0) displayValue = '+' + displayValue;
+                                        }
+                                        
+                                        DrawingUtils.drawText(displayValue, cellX + cellWidth/2, rowY + cellHeight/2 + 2, 9, textColor, 'Courier New', 'center');
+                                        ctx.globalAlpha = 1;
+                                    });
+                                }
+                            });
+                            
+                            // Show detailed calculation for current row
+                            if (progress > 0.3 && currentRow >= 0 && currentRow < mathsData.length) {
+                                const data = mathsData[currentRow];
+                                const calcY = tableY + (mathsData.length + 2) * cellHeight;
+                                const calcProgress = Math.max(0, Math.min(1, (progress - 0.3 - currentRow * 0.08) * 6));
+                                
+                                if (calcProgress > 0) {
+                                    ctx.globalAlpha = calcProgress;
+                                    
+                                    const deviation = data.classmark - assumedMean;
+                                    const ui = deviation / h;
+                                    
+                                    DrawingUtils.drawBox(center.x - 300, calcY, 600, 50, 'rgba(251, 191, 36, 0.1)', '#fbbf24', 2);
+                                    DrawingUtils.drawText(
+                                        `Step: ui = (${data.classmark} - ${assumedMean}) / ${h} = ${deviation} / ${h} = ${ui}`,
+                                        center.x, calcY + 25, 14, '#fbbf24', 'Courier New', 'center', 'bold'
+                                    );
+                                    DrawingUtils.drawText('Beautiful integer result!', center.x, calcY + 40, 12, '#f8fafc', 'Segoe UI', 'center');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                            
+                            // Running totals with integer emphasis
+                            if (progress > 0.7) {
+                                const summaryProgress = (progress - 0.7) * 3.33;
+                                ctx.globalAlpha = summaryProgress;
+                                
+                                const totalFiUi = mathsData.reduce((sum, item) => sum + (item.frequency * ((item.classmark - assumedMean) / h)), 0);
+                                const currentSum = runningSum + (currentRow >= 0 ? mathsData[currentRow].frequency * ((mathsData[currentRow].classmark - assumedMean) / h) : 0);
+                                
+                                DrawingUtils.drawBox(center.x - 200, canvas.clientHeight - 80, 400, 60, 'rgba(139, 92, 246, 0.2)', '#8b5cf6', 2);
+                                DrawingUtils.drawText(`Running Σfi×ui = ${currentSum}`, center.x, canvas.clientHeight - 60, 16, '#8b5cf6', 'Courier New', 'center', 'bold');
+                                DrawingUtils.drawText('All calculations use simple integers!', center.x, canvas.clientHeight - 35, 14, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("Watch the magic unfold! Each step deviation is a simple integer. The calculation (xi minus a) divided by h transforms every deviation into integers like minus 2, minus 1, zero, plus 1, plus 2, plus 3. This makes all subsequent arithmetic trivially easy.", 10000);
+            }
+
+            async showStepDeviationFinalCalculation() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 12000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Final Calculation: Step Deviation Method', center.x, 40, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            const assumedMean = 47.5;
+                            const h = 15;
+                            const totalFreq = mathsData.reduce((sum, item) => sum + item.frequency, 0);
+                            const totalFiUi = mathsData.reduce((sum, item) => sum + (item.frequency * ((item.classmark - assumedMean) / h)), 0);
+                            const finalMean = assumedMean + h * (totalFiUi / totalFreq);
+                            
+                            // Multi-stage calculation with dramatic effects
+                            const startY = 90;
+                            
+                            if (progress > 0.1) {
+                                const step1Progress = Math.max(0, Math.min(1, (progress - 0.1) * 2));
+                                ctx.globalAlpha = step1Progress;
+                                
+                                DrawingUtils.drawBox(60, startY, 380, 140, 'rgba(59, 130, 246, 0.1)', '#3b82f6', 2);
+                                DrawingUtils.drawText('Given Values (All Simple!):', 80, startY + 25, 18, '#3b82f6', 'Segoe UI', 'left', 'bold');
+                                
+                                const animatedAssumed = DrawingUtils.animateNumber(0, assumedMean, step1Progress, 1);
+                                const animatedH = DrawingUtils.animateNumber(0, h, step1Progress, 0);
+                                const animatedFreq = DrawingUtils.animateNumber(0, totalFreq, step1Progress, 0);
+                                const animatedFiUi = DrawingUtils.animateNumber(0, totalFiUi, step1Progress, 0);
+                                
+                                DrawingUtils.drawText(`Assumed mean (a) = ${animatedAssumed}`, 100, startY + 55, 16, '#10b981', 'Courier New', 'left');
+                                DrawingUtils.drawText(`Class width (h) = ${animatedH}`, 100, startY + 80, 16, '#10b981', 'Courier New', 'left');
+                                DrawingUtils.drawText(`Sum of fi = ${animatedFreq}`, 100, startY + 105, 16, '#10b981', 'Courier New', 'left');
+                                DrawingUtils.drawText(`Sum of fi × ui = ${animatedFiUi}`, 100, startY + 130, 16, '#10b981', 'Courier New', 'left');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            if (progress > 0.3) {
+                                const formulaProgress = Math.max(0, Math.min(1, (progress - 0.3) * 2));
+                                
+                                DrawingUtils.drawBox(center.x - 220, startY + 160, 440, 70, 'rgba(59, 130, 246, 0.2)', '#3b82f6', 3);
+                                DrawingUtils.drawAnimatedEquation('x̄ = a + h(Σfiui / Σfi)', center.x, startY + 195, formulaProgress, 24, '#3b82f6');
+                            }
+                            
+                            if (progress > 0.5) {
+                                const substitutionProgress = Math.max(0, Math.min(1, (progress - 0.5) * 2));
+                                ctx.globalAlpha = substitutionProgress;
+                                
+                                DrawingUtils.drawText(`x̄ = ${assumedMean} + ${h} × (${totalFiUi} / ${totalFreq})`, center.x, startY + 260, 18, '#f8fafc', 'Courier New', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            if (progress > 0.65) {
+                                const step1CalcProgress = Math.max(0, Math.min(1, (progress - 0.65) * 2));
+                                ctx.globalAlpha = step1CalcProgress;
+                                
+                                const ratio = totalFiUi / totalFreq;
+                                DrawingUtils.drawText(`x̄ = ${assumedMean} + ${h} × ${ratio.toFixed(2)}`, center.x, startY + 290, 18, '#f8fafc', 'Courier New', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            if (progress > 0.8) {
+                                const step2CalcProgress = Math.max(0, Math.min(1, (progress - 0.8) * 2));
+                                ctx.globalAlpha = step2CalcProgress;
+                                
+                                const adjustment = h * (totalFiUi / totalFreq);
+                                DrawingUtils.drawText(`x̄ = ${assumedMean} + ${adjustment.toFixed(1)}`, center.x, startY + 320, 18, '#f8fafc', 'Courier New', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            if (progress > 0.9) {
+                                const resultProgress = Math.max(0, Math.min(1, (progress - 0.9) * 10));
+                                
+                                // Epic result reveal with multiple effects
+                                const scale = 1 + Math.sin(resultProgress * Math.PI * 3) * 0.15;
+                                const rotation = Math.sin(resultProgress * Math.PI * 2) * 0.05;
+                                
+                                ctx.save();
+                                ctx.translate(center.x, startY + 380);
+                                ctx.rotate(rotation);
+                                ctx.scale(scale, scale);
+                                
+                                const animatedMean = DrawingUtils.animateNumber(assumedMean, finalMean, resultProgress, 1);
+                                
+                                ctx.globalAlpha = resultProgress;
+                                DrawingUtils.drawBox(-120, -35, 240, 70, 'rgba(236, 72, 153, 0.4)', '#ec4899', 5);
+                                DrawingUtils.drawText(`x̄ = ${animatedMean}`, 0, 5, 36, '#ec4899', 'Courier New', 'center', 'bold');
+                                
+                                ctx.restore();
+                                ctx.globalAlpha = 1;
+                                
+                                // Multiple particle effects
+                                if (resultProgress > 0.5) {
+                                    DrawingUtils.drawParticleEffect(center.x, startY + 380, (resultProgress - 0.5) * 2, '#fbbf24');
+                                    DrawingUtils.drawParticleEffect(center.x - 50, startY + 350, (resultProgress - 0.3) * 1.43, '#10b981');
+                                    DrawingUtils.drawParticleEffect(center.x + 50, startY + 410, (resultProgress - 0.7) * 3.33, '#8b5cf6');
+                                }
+                            }
+                            
+                            // Method superiority highlight
+                            if (progress > 0.95) {
+                                const superiorityProgress = (progress - 0.95) * 20;
+                                ctx.globalAlpha = superiorityProgress;
+                                
+                                DrawingUtils.drawBox(center.x - 350, startY + 460, 700, 100, 'rgba(16, 185, 129, 0.2)', '#10b981', 3);
+                                DrawingUtils.drawText('Step Deviation Method: The Ultimate Elegance!', center.x, startY + 485, 18, '#10b981', 'Segoe UI', 'center', 'bold');
+                                DrawingUtils.drawText('✓ Same accurate result: 62 marks', center.x, startY + 510, 14, '#f8fafc', 'Segoe UI', 'center');
+                                DrawingUtils.drawText('✓ Simplest arithmetic: Only integers used', center.x, startY + 530, 14, '#f8fafc', 'Segoe UI', 'center');
+                                DrawingUtils.drawText('✓ Fastest calculation: Ideal for exams and mental math', center.x, startY + 550, 14, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("Final step: x-bar equals 47.5 plus 15 times 0.967, which equals 47.5 plus 14.5, giving us 62 marks exactly! The Step Deviation Method achieves perfect accuracy using only simple integer arithmetic throughout the entire process.", 12000);
+            }
+        }
+
+        // Comparison Section
+        class ComparisonSection extends BaseSection {
+            constructor() {
+                super('Method Comparison');
+            }
+
+            async executeSteps() {
+                if (!this.isActive) return;
+                
+                await this.safeSpeak("Now for the grand finale - a comprehensive comparison of all three methods. Watch as we demonstrate that different paths lead to the same mathematical destination.", 500);
+                
+                // Step 1: Side-by-side comparison
+                await this.showSideBySideComparison();
+                
+                if (!this.isActive) return;
+                // Step 2: Different datasets
+                await this.showDifferentDatasets();
+                
+                if (!this.isActive) return;
+                // Step 3: Method selection guide
+                await this.showMethodSelectionGuide();
+                
+                if (!this.isActive) return;
+                await this.safeSpeak("Mastery achieved! You now understand all three methods for calculating the mean of grouped data. Each method has its place - choose based on your data characteristics and computational preferences.", 3000);
+            }
+
+            async showSideBySideComparison() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 15000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('All Methods: Same Data, Same Result', center.x, 30, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Three-column layout
+                            const colWidth = (canvas.clientWidth - 60) / 3;
+                            const colHeight = 500;
+                            const startX = 30;
+                            const startY = 70;
+                            
+                            const methods = [
+                                { name: 'Direct Method', color: '#3b82f6', formula: 'x̄ = Σfixi / Σfi' },
+                                { name: 'Assumed Mean', color: '#10b981', formula: 'x̄ = a + Σfidi / Σfi' },
+                                { name: 'Step Deviation', color: '#fbbf24', formula: 'x̄ = a + h(Σfiui / Σfi)' }
+                            ];
+                            
+                            methods.forEach((method, methodIndex) => {
+                                const colX = startX + methodIndex * colWidth;
+                                const methodProgress = Math.max(0, Math.min(1, (progress - methodIndex * 0.1) * 2));
+                                
+                                if (methodProgress > 0) {
+                                    ctx.globalAlpha = methodProgress;
+                                    
+                                    // Method header
+                                    DrawingUtils.drawBox(colX, startY, colWidth - 10, 60, `rgba(${method.color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, 0.2)`, method.color, 2);
+                                    DrawingUtils.drawText(method.name, colX + colWidth/2 - 5, startY + 25, 16, method.color, 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText(method.formula, colX + colWidth/2 - 5, startY + 45, 10, '#f8fafc', 'Courier New', 'center');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                                
+                                // Animated calculations for each method
+                                if (progress > 0.3 + methodIndex * 0.1) {
+                                    const calcProgress = Math.max(0, Math.min(1, (progress - 0.3 - methodIndex * 0.1) * 3));
+                                    
+                                    // Sample calculations (simplified for visualization)
+                                    const calculations = this.getMethodCalculations(methodIndex);
+                                    
+                                    calculations.forEach((calc, calcIndex) => {
+                                        const calcItemProgress = Math.max(0, Math.min(1, (calcProgress - calcIndex * 0.15) * 4));
+                                        if (calcItemProgress > 0) {
+                                            const y = startY + 80 + calcIndex * 25;
+                                            ctx.globalAlpha = calcItemProgress;
+                                            
+                                            DrawingUtils.drawText(calc.label, colX + 10, y, 11, '#f8fafc', 'Segoe UI', 'left');
+                                            DrawingUtils.drawText(calc.value, colX + colWidth - 60, y, 11, method.color, 'Courier New', 'left', 'bold');
+                                            
+                                            ctx.globalAlpha = 1;
+                                        }
+                                    });
+                                }
+                            });
+                            
+                            // Final result comparison
+                            if (progress > 0.8) {
+                                const resultProgress = (progress - 0.8) * 5;
+                                
+                                const resultY = startY + colHeight - 100;
+                                methods.forEach((method, index) => {
+                                    const colX = startX + index * colWidth;
+                                    const methodResultProgress = Math.max(0, Math.min(1, (resultProgress - index * 0.1) * 3));
+                                    
+                                    if (methodResultProgress > 0) {
+                                        const scale = 1 + Math.sin(methodResultProgress * Math.PI) * 0.2;
+                                        ctx.save();
+                                        ctx.translate(colX + colWidth/2 - 5, resultY + 30);
+                                        ctx.scale(scale, scale);
+                                        
+                                        ctx.globalAlpha = methodResultProgress;
+                                        DrawingUtils.drawBox(-50, -25, 100, 50, 'rgba(236, 72, 153, 0.3)', '#ec4899', 3);
+                                        DrawingUtils.drawText('62', 0, 5, 24, '#ec4899', 'Courier New', 'center', 'bold');
+                                        
+                                        ctx.restore();
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                                
+                                // Unity message
+                                if (resultProgress > 0.7) {
+                                    const unityProgress = (resultProgress - 0.7) * 3.33;
+                                    ctx.globalAlpha = unityProgress;
+                                    
+                                    DrawingUtils.drawBox(center.x - 200, resultY + 80, 400, 50, 'rgba(139, 92, 246, 0.2)', '#8b5cf6', 3);
+                                    DrawingUtils.drawText('All methods yield identical results!', center.x, resultY + 105, 16, '#8b5cf6', 'Segoe UI', 'center', 'bold');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("Here's the beautiful truth: all three methods yield exactly the same result of 62 marks. Each approach represents a different computational strategy, but the mathematical destination remains constant. This demonstrates the robust nature of statistical measures.", 15000);
+            }
+
+            getMethodCalculations(methodIndex) {
+                switch(methodIndex) {
+                    case 0: // Direct Method
+                        return [
+                            { label: 'Σfi', value: '30' },
+                            { label: 'Σfixi', value: '1860' },
+                            { label: 'x̄', value: '1860/30' },
+                            { label: 'Result', value: '62' }
+                        ];
+                    case 1: // Assumed Mean
+                        return [
+                            { label: 'a', value: '47.5' },
+                            { label: 'Σfidi', value: '435' },
+                            { label: 'Σfidi/Σfi', value: '14.5' },
+                            { label: 'Result', value: '62' }
+                        ];
+                    case 2: // Step Deviation
+                        return [
+                            { label: 'a', value: '47.5' },
+                            { label: 'h', value: '15' },
+                            { label: 'Σfiui', value: '29' },
+                            { label: 'Result', value: '62' }
+                        ];
+                    default:
+                        return [];
+                }
+            }
+
+            async showDifferentDatasets() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 12000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Method Validation: Different Datasets', center.x, 30, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Dataset carousel
+                            const datasets = [
+                                { name: 'Mathematics Marks', data: mathsData, color: '#3b82f6' },
+                                { name: 'Female Teachers %', data: teachersData, color: '#10b981' },
+                                { name: 'Cricket Wickets', data: cricketData, color: '#fbbf24' }
+                            ];
+                            
+                            const currentDataset = Math.floor(progress * datasets.length);
+                            const datasetProgress = (progress * datasets.length) % 1;
+                            
+                            if (currentDataset < datasets.length) {
+                                const dataset = datasets[currentDataset];
+                                
+                                // Dataset header
+                                DrawingUtils.drawBox(center.x - 250, 70, 500, 50, `rgba(${dataset.color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, 0.2)`, dataset.color, 2);
+                                DrawingUtils.drawText(dataset.name, center.x, 95, 20, dataset.color, 'Segoe UI', 'center', 'bold');
+                                
+                                // Animated histogram for current dataset
+                                const chartY = 140;
+                                const chartHeight = 200;
+                                const chartWidth = 600;
+                                const chartX = center.x - chartWidth / 2;
+                                
+                                DrawingUtils.drawHistogram(dataset.data, chartX, chartY, chartWidth, chartHeight, datasetProgress, -1);
+                                
+                                // Method calculations (abbreviated)
+                                if (datasetProgress > 0.6) {
+                                    const calcProgress = (datasetProgress - 0.6) * 2.5;
+                                    
+                                    const mean = this.calculateMean(dataset.data);
+                                    const results = [
+                                        { method: 'Direct', result: mean.toFixed(1) },
+                                        { method: 'Assumed', result: mean.toFixed(1) },
+                                        { method: 'Step Dev', result: mean.toFixed(1) }
+                                    ];
+                                    
+                                    results.forEach((result, index) => {
+                                        const resultProgress = Math.max(0, Math.min(1, (calcProgress - index * 0.2) * 3));
+                                        if (resultProgress > 0) {
+                                            const x = center.x - 150 + index * 150;
+                                            const y = chartY + chartHeight + 60;
+                                            
+                                            ctx.globalAlpha = resultProgress;
+                                            DrawingUtils.drawBox(x - 50, y - 20, 100, 40, 'rgba(236, 72, 153, 0.2)', '#ec4899', 2);
+                                            DrawingUtils.drawText(result.method, x, y - 5, 12, '#f8fafc', 'Segoe UI', 'center');
+                                            DrawingUtils.drawText(result.result, x, y + 10, 14, '#ec4899', 'Courier New', 'center', 'bold');
+                                            ctx.globalAlpha = 1;
+                                        }
+                                    });
+                                }
+                                
+                                // Universal truth message
+                                if (datasetProgress > 0.8) {
+                                    const truthProgress = (datasetProgress - 0.8) * 5;
+                                    ctx.globalAlpha = truthProgress;
+                                    
+                                    DrawingUtils.drawBox(center.x - 300, canvas.clientHeight - 80, 600, 60, 'rgba(139, 92, 246, 0.2)', '#8b5cf6', 2);
+                                    DrawingUtils.drawText('Universal Truth: All methods always agree!', center.x, canvas.clientHeight - 60, 16, '#8b5cf6', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('Mathematical consistency across all datasets', center.x, canvas.clientHeight - 35, 14, '#f8fafc', 'Segoe UI', 'center');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("Let's validate our methods across different datasets. Whether we analyze mathematics marks, teacher demographics, or cricket statistics, all three methods consistently produce identical results. This universal agreement proves the mathematical robustness of our approaches.", 12000);
+            }
+
+            calculateMean(data) {
+                const totalFreq = data.reduce((sum, item) => sum + item.frequency, 0);
+                const totalFiXi = data.reduce((sum, item) => sum + (item.frequency * item.classmark), 0);
+                return totalFiXi / totalFreq;
+            }
+
+            async showMethodSelectionGuide() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 14000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Method Selection Guide: Choose Your Path', center.x, 30, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Decision tree visualization
+                            const treeY = 80;
+                            const treeHeight = 400;
+                            
+                            // Root node
+                            if (progress > 0.1) {
+                                const rootProgress = Math.max(0, Math.min(1, (progress - 0.1) * 3));
+                                ctx.globalAlpha = rootProgress;
+                                
+                                DrawingUtils.drawBox(center.x - 120, treeY, 240, 60, 'rgba(59, 130, 246, 0.2)', '#3b82f6', 3);
+                                DrawingUtils.drawText('Calculate Mean of', center.x, treeY + 20, 16, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                                DrawingUtils.drawText('Grouped Data', center.x, treeY + 40, 16, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            // Decision branches
+                            const branches = [
+                                {
+                                    condition: 'Need basic understanding?',
+                                    method: 'Direct Method',
+                                    pros: ['Conceptually clear', 'Foundation method', 'Easy to understand'],
+                                    cons: ['Larger numbers', 'More calculations'],
+                                    color: '#3b82f6',
+                                    x: center.x - 300
+                                },
+                                {
+                                    condition: 'Want simpler arithmetic?',
+                                    method: 'Assumed Mean',
+                                    pros: ['Smaller numbers', 'Strategic choice', 'Good balance'],
+                                    cons: ['Need good assumption', 'Extra step'],
+                                    color: '#10b981',
+                                    x: center.x
+                                },
+                                {
+                                    condition: 'Equal intervals + Speed?',
+                                    method: 'Step Deviation',
+                                    pros: ['Integer arithmetic', 'Fastest method', 'Exam perfect'],
+                                    cons: ['Only for equal intervals', 'Most abstract'],
+                                    color: '#fbbf24',
+                                    x: center.x + 300
+                                }
+                            ];
+                            
+                            branches.forEach((branch, index) => {
+                                const branchProgress = Math.max(0, Math.min(1, (progress - 0.3 - index * 0.1) * 2));
+                                if (branchProgress > 0) {
+                                    const branchY = treeY + 120;
+                                    
+                                    ctx.globalAlpha = branchProgress;
+                                    
+                                    // Connection line
+                                    DrawingUtils.drawLine(center.x, treeY + 60, branch.x, branchY, branch.color, 3);
+                                    
+                                    // Branch condition
+                                    DrawingUtils.drawBox(branch.x - 80, branchY, 160, 40, `rgba(${branch.color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, 0.1)`, branch.color, 2);
+                                    DrawingUtils.drawText(branch.condition, branch.x, branchY + 20, 12, branch.color, 'Segoe UI', 'center', 'bold');
+                                    
+                                    // Method box
+                                    if (branchProgress > 0.5) {
+                                        const methodProgress = (branchProgress - 0.5) * 2;
+                                        ctx.globalAlpha = methodProgress;
+                                        
+                                        DrawingUtils.drawBox(branch.x - 100, branchY + 60, 200, 50, `rgba(${branch.color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, 0.3)`, branch.color, 3);
+                                        DrawingUtils.drawText(branch.method, branch.x, branchY + 85, 16, branch.color, 'Segoe UI', 'center', 'bold');
+                                        
+                                        ctx.globalAlpha = 1;
+                                    }
+                                    
+                                    // Pros and cons
+                                    if (branchProgress > 0.7) {
+                                        const detailProgress = (branchProgress - 0.7) * 3.33;
+                                        
+                                        // Pros
+                                        branch.pros.forEach((pro, proIndex) => {
+                                            const proProgress = Math.max(0, Math.min(1, (detailProgress - proIndex * 0.1) * 3));
+                                            if (proProgress > 0) {
+                                                const y = branchY + 130 + proIndex * 20;
+                                                ctx.globalAlpha = proProgress;
+                                                
+                                                DrawingUtils.drawCircle(branch.x - 90, y - 5, 3, '#10b981');
+                                                DrawingUtils.drawText(pro, branch.x - 80, y, 10, '#f8fafc', 'Segoe UI', 'left');
+                                                
+                                                ctx.globalAlpha = 1;
+                                            }
+                                        });
+                                        
+                                        // Cons
+                                        branch.cons.forEach((con, conIndex) => {
+                                            const conProgress = Math.max(0, Math.min(1, (detailProgress - 0.3 - conIndex * 0.1) * 3));
+                                            if (conProgress > 0) {
+                                                const y = branchY + 190 + conIndex * 20;
+                                                ctx.globalAlpha = conProgress;
+                                                
+                                                DrawingUtils.drawCircle(branch.x - 90, y - 5, 3, '#ec4899');
+                                                DrawingUtils.drawText(con, branch.x - 80, y, 10, '#f8fafc', 'Segoe UI', 'left');
+                                                
+                                                ctx.globalAlpha = 1;
+                                            }
+                                        });
+                                    }
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            });
+                            
+                            // Master advice
+                            if (progress > 0.85) {
+                                const adviceProgress = (progress - 0.85) * 6.67;
+                                ctx.globalAlpha = adviceProgress;
+                                
+                                DrawingUtils.drawBox(center.x - 350, canvas.clientHeight - 120, 700, 100, 'rgba(139, 92, 246, 0.2)', '#8b5cf6', 3);
+                                DrawingUtils.drawText('Master\'s Advice: Learn all three methods!', center.x, canvas.clientHeight - 95, 18, '#8b5cf6', 'Segoe UI', 'center', 'bold');
+                                DrawingUtils.drawText('Understanding multiple approaches deepens mathematical insight', center.x, canvas.clientHeight - 70, 14, '#f8fafc', 'Segoe UI', 'center');
+                                DrawingUtils.drawText('Choose the method that best fits your situation and comfort level', center.x, canvas.clientHeight - 50, 14, '#f8fafc', 'Segoe UI', 'center');
+                                DrawingUtils.drawText('All roads lead to the same accurate destination!', center.x, canvas.clientHeight - 30, 14, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("Choose your method based on the situation. Direct method for learning fundamentals, Assumed mean for balanced simplicity, Step deviation for equal intervals and maximum efficiency. The beauty lies in having multiple tools for the same mathematical challenge.", 14000);
+            }
+        }
+
+        // Complete Lesson Flow
+        class CompleteLessonFlow extends BaseSection {
+            constructor() {
+                super('Complete Lesson');
+            }
+
+            async executeSteps() {
+                if (!this.isActive) return;
+                
+                await this.safeSpeak("Welcome to the complete journey through Mean of Grouped Data. We'll explore all three methods in one comprehensive experience, building understanding progressively.", 500);
+                
+                AppManager.updateProgress(5);
+                
+                // Introduction
+                await this.showLessonIntroduction();
+                
+                if (!this.isActive) return;
+                AppManager.updateProgress(15);
+                
+                // Direct Method
+                const directMethod = new DirectMethodSection();
+                await directMethod.start();
+                directMethod.destroy();
+                
+                if (!this.isActive) return;
+                AppManager.updateProgress(40);
+                
+                // Assumed Mean Method
+                const assumedMethod = new AssumedMeanSection();
+                await assumedMethod.start();
+                assumedMethod.destroy();
+                
+                if (!this.isActive) return;
+                AppManager.updateProgress(65);
+                
+                // Step Deviation Method
+                const stepMethod = new StepDeviationSection();
+                await stepMethod.start();
+                stepMethod.destroy();
+                
+                if (!this.isActive) return;
+                AppManager.updateProgress(90);
+                
+                // Final Comparison
+                const comparison = new ComparisonSection();
+                await comparison.start();
+                comparison.destroy();
+                
+                if (!this.isActive) return;
+                AppManager.updateProgress(100);
+                
+                await this.safeSpeak("Congratulations! You have mastered all three methods for calculating the mean of grouped data. You now possess a complete toolkit for statistical analysis with the wisdom to choose the right tool for each situation.", 3000);
+            }
+
+            async showLessonIntroduction() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 8000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            // Epic title animation
+                            const titleY = 60 + Math.sin(progress * Math.PI) * 20;
+                            const titleScale = 1 + Math.sin(progress * Math.PI * 2) * 0.1;
+                            
+                            ctx.save();
+                            ctx.translate(center.x, titleY);
+                            ctx.scale(titleScale, titleScale);
+                            
+                            DrawingUtils.drawText('Mean of Grouped Data', 0, 0, 36, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                            DrawingUtils.drawText('Complete Mastery Journey', 0, 40, 24, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            ctx.restore();
+                            
+                            // Method preview
+                            if (progress > 0.3) {
+                                const previewProgress = (progress - 0.3) * 1.43;
+                                
+                                const methods = [
+                                    { name: 'Direct Method', icon: '🎯', color: '#3b82f6' },
+                                    { name: 'Assumed Mean', icon: '📊', color: '#10b981' },
+                                    { name: 'Step Deviation', icon: '⚡', color: '#fbbf24' }
+                                ];
+                                
+                                methods.forEach((method, index) => {
+                                    const methodProgress = Math.max(0, Math.min(1, (previewProgress - index * 0.2) * 2));
+                                    if (methodProgress > 0) {
+                                        const x = center.x - 200 + index * 200;
+                                        const y = 180;
+                                        
+                                        const bounce = 1 + Math.sin(methodProgress * Math.PI) * 0.2;
+                                        ctx.save();
+                                        ctx.translate(x, y);
+                                        ctx.scale(bounce, bounce);
+                                        
+                                        ctx.globalAlpha = methodProgress;
+                                        DrawingUtils.drawBox(-60, -30, 120, 60, `rgba(${method.color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, 0.2)`, method.color, 2);
+                                        DrawingUtils.drawText(method.name, 0, 0, 14, method.color, 'Segoe UI', 'center', 'bold');
+                                        
+                                        ctx.restore();
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                            }
+                            
+                            // Learning objectives
+                            if (progress > 0.6) {
+                                const objectiveProgress = (progress - 0.6) * 2.5;
+                                
+                                const objectives = [
+                                    'Master three calculation methods',
+                                    'Understand when to use each approach',
+                                    'Gain computational confidence',
+                                    'Appreciate mathematical elegance'
+                                ];
+                                
+                                objectives.forEach((objective, index) => {
+                                    const objProgress = Math.max(0, Math.min(1, (objectiveProgress - index * 0.2) * 3));
+                                    if (objProgress > 0) {
+                                        const y = 280 + index * 30;
+                                        ctx.globalAlpha = objProgress;
+                                        
+                                        DrawingUtils.drawCircle(center.x - 200, y - 5, 4, '#8b5cf6');
+                                        DrawingUtils.drawText(objective, center.x - 180, y, 16, '#f8fafc', 'Segoe UI', 'left');
+                                        
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                            }
+                            
+                            // Ready message
+                            if (progress > 0.85) {
+                                const readyProgress = (progress - 0.85) * 6.67;
+                                
+                                const glow = Math.sin(readyProgress * Math.PI * 4) * 0.3 + 0.7;
+                                ctx.globalAlpha = readyProgress * glow;
+                                
+                                DrawingUtils.drawBox(center.x - 200, 420, 400, 60, 'rgba(236, 72, 153, 0.3)', '#ec4899', 3);
+                                DrawingUtils.drawText('Ready to begin your statistical journey?', center.x, 450, 18, '#ec4899', 'Segoe UI', 'center', 'bold');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+
+                AppManager.startAnimation(sequence, this);
+                await this.safeSpeak("Prepare for an extraordinary journey through the world of statistical calculations. We'll master three powerful methods, each offering unique insights into the art and science of finding the mean of grouped data.", 8000);
+            }
+        }
+
+        // Audio controls
+        document.getElementById('playPauseBtn').addEventListener('click', () => {
+            if (speechSynthesis.speaking) {
+                speechSynthesis.pause();
+                document.getElementById('playPauseBtn').textContent = '▶';
+            } else {
+                speechSynthesis.resume();
+                document.getElementById('playPauseBtn').textContent = '⏸';
+            }
+        });
+
+        document.getElementById('muteBtn').addEventListener('click', () => {
+            isMuted = !isMuted;
+            document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊';
+            if (isMuted) {
+                speechSynthesis.cancel();
+            }
+        });
+
+        // Initialize
+        window.addEventListener('load', () => {
+            initCanvas();
+            AppManager.clearCanvas();
+            
+            // Welcome animation
+            const welcomeSequence = new AnimationSequence([
+                {
+                    duration: 3000,
+                    draw: (progress) => {
+                        AppManager.clearCanvas();
+                        
+                        const titleProgress = DrawingUtils.easeOutBack(progress);
+                        DrawingUtils.drawText('Welcome to Mean of Grouped Data', center.x, center.y - 50, 28 * titleProgress, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                        
+                        if (progress > 0.5) {
+                            const subtitleProgress = (progress - 0.5) * 2;
+                            ctx.globalAlpha = subtitleProgress;
+                            DrawingUtils.drawText('Choose your learning path below', center.x, center.y + 20, 16, '#ec4899', 'Segoe UI', 'center');
+                            ctx.globalAlpha = 1;
+                        }
+                    }
+                }
+            ]);
+            
+            AppManager.startAnimation(welcomeSequence);
+            AppManager.speak("Welcome to the most comprehensive exploration of Mean for Grouped Data! Choose your learning adventure and experience statistical mastery through cutting-edge visual animations.");
+        });
+
+        window.addEventListener('resize', () => {
+            initCanvas();
+            AppManager.clearCanvas();
+        });
+    </script>
+</body>
+</html>

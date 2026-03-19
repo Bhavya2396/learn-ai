@@ -1,0 +1,1973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Range of Hearing - Interactive Physics Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --text-dark: #1a202c;
+            --shadow-primary: 0 20px 40px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 25px 50px rgba(0, 0, 0, 0.4);
+            --border-radius: 20px;
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Glassmorphism utility classes */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .glass-hover:hover {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-5px);
+        }
+
+        /* Enhanced Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.15) rotate(10deg);
+            box-shadow: 0 0 30px rgba(79, 172, 254, 0.6);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 30px;
+        }
+
+        /* Enhanced Header */
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding: 40px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--primary-gradient);
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        .header h1 {
+            font-size: 4rem;
+            background: var(--accent-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: 800;
+            letter-spacing: -2px;
+            animation: titleFloat 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleFloat {
+            0% { 
+                transform: translateY(0);
+                filter: drop-shadow(0 5px 15px rgba(79, 172, 254, 0.3));
+            }
+            100% { 
+                transform: translateY(-10px);
+                filter: drop-shadow(0 15px 30px rgba(79, 172, 254, 0.5));
+            }
+        }
+
+        .header p {
+            font-size: 1.4rem;
+            color: var(--text-secondary);
+            max-width: 900px;
+            margin: 0 auto;
+            font-weight: 300;
+        }
+
+        /* Demo Stage - Fixed container height and overflow */
+        .demo-stage {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            min-height: 800px;
+            max-height: 800px;
+            position: relative;
+            margin: 50px 0;
+            box-shadow: var(--shadow-primary);
+            overflow: hidden;
+            border: 2px solid var(--glass-border);
+            padding: 30px;
+        }
+
+        .demo-stage::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--dark-gradient);
+            opacity: 0.05;
+            z-index: -1;
+        }
+
+        /* Individual Demo Sections - Fixed overflow */
+        .human-hearing-demo, .infrasound-demo, .ultrasound-demo, .hearing-aid-demo, .applications-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .human-hearing-demo.active, .infrasound-demo.active, .ultrasound-demo.active, .hearing-aid-demo.active, .applications-demo.active {
+            display: block;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Frequency Range Visualization - Fixed positioning */
+        .frequency-range {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(to bottom, #e3f2fd 0%, #bbdefb 30%, #90caf9 70%, #64b5f6 100%);
+            border-radius: 25px;
+            overflow: hidden;
+            border: 3px solid var(--glass-border);
+            box-shadow: inset 0 5px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .frequency-scale {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background: var(--dark-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .frequency-marker {
+            position: absolute;
+            top: 10px;
+            width: 3px;
+            height: calc(100% - 60px);
+            background: rgba(255, 255, 255, 0.5);
+            transform-origin: bottom;
+            animation: markerPulse 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes markerPulse {
+            0% { transform: scaleY(0.8); opacity: 0.6; }
+            100% { transform: scaleY(1); opacity: 1; }
+        }
+
+        .hearing-range-bar {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 35px;
+            background: var(--success-gradient);
+            border-radius: 20px;
+            border: 2px solid var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-dark);
+            font-weight: 800;
+            font-size: 1rem;
+            box-shadow: 0 10px 30px rgba(67, 233, 123, 0.4);
+            animation: rangeGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes rangeGlow {
+            0% { box-shadow: 0 10px 30px rgba(67, 233, 123, 0.4); }
+            100% { box-shadow: 0 15px 40px rgba(67, 233, 123, 0.7); }
+        }
+
+        /* Animal Cards - Fixed grid layout */
+        .animal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .animal-card {
+            background: rgba(0, 0, 0, 0.25);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .animal-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--success-gradient);
+            opacity: 0;
+            transition: var(--transition);
+            z-index: -1;
+        }
+
+        .animal-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .animal-card:hover::before {
+            opacity: 0.15;
+        }
+
+        .animal-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            animation: animalFloat 2.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes animalFloat {
+            0% { transform: scale(1) rotate(-2deg); }
+            100% { transform: scale(1.08) rotate(2deg); }
+        }
+
+        .animal-name {
+            color: #43e97b;
+            font-size: 1.3rem;
+            font-weight: 800;
+            margin-bottom: 5px;
+        }
+
+        .animal-frequency {
+            color: var(--text-accent);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .animal-description {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.4;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Hearing Aid Diagram - Fixed positioning and sizing */
+        .hearing-aid-diagram {
+            position: relative;
+            width: 100%;
+            height: 280px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 25px;
+            overflow: hidden;
+            border: 3px solid var(--glass-border);
+            box-shadow: inset 0 5px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .hearing-aid-component {
+            position: absolute;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 10px;
+            backdrop-filter: blur(20px);
+            color: var(--text-dark);
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+            font-size: 0.85rem;
+            width: 100px;
+            height: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hearing-aid-component:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-hover);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .component-arrow {
+            position: absolute;
+            color: var(--text-accent);
+            font-size: 1.5rem;
+            font-weight: bold;
+            animation: arrowPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes arrowPulse {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+
+        /* Content sections - Fixed overflow */
+        .content-section {
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            margin-bottom: 15px;
+            max-height: none;
+            overflow: visible;
+        }
+
+        .section-title {
+            color: #4facfe;
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .section-content {
+            color: var(--text-dark);
+            font-size: 1rem;
+            line-height: 1.6;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .section-content p {
+            margin-bottom: 12px;
+        }
+
+        .section-content strong {
+            color: #2563eb;
+            font-weight: 700;
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 50px 0;
+            padding: 40px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .controls-title {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            color: #4facfe;
+            font-weight: 800;
+            text-shadow: 0 0 25px rgba(79, 172, 254, 0.4);
+            animation: titleGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            0% { text-shadow: 0 0 25px rgba(79, 172, 254, 0.4); }
+            100% { text-shadow: 0 0 40px rgba(79, 172, 254, 0.7); }
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+
+        .demo-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 18px 32px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+            min-width: 200px;
+            border: 2px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .demo-btn:hover::before {
+            left: 100%;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .demo-btn:active {
+            transform: translateY(-2px) scale(1.02);
+        }
+
+        .demo-btn.active {
+            background: var(--warning-gradient);
+            box-shadow: 0 10px 30px rgba(250, 112, 154, 0.4);
+            transform: translateY(-3px);
+        }
+
+        /* Theory Section Styles */
+        .theory-section {
+            margin: 60px 0;
+            padding: 40px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theory-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--secondary-gradient);
+            opacity: 0.05;
+            z-index: -1;
+        }
+
+        .theory-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .theory-title {
+            font-size: 2.8rem;
+            background: var(--secondary-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            animation: theoryTitleFloat 3.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes theoryTitleFloat {
+            0% { 
+                transform: translateY(0);
+                filter: drop-shadow(0 5px 15px rgba(240, 147, 251, 0.3));
+            }
+            100% { 
+                transform: translateY(-8px);
+                filter: drop-shadow(0 12px 25px rgba(240, 147, 251, 0.5));
+            }
+        }
+
+        .theory-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .theory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .theory-card {
+            background: rgba(0, 0, 0, 0.25);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theory-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--accent-gradient);
+            opacity: 0;
+            transition: var(--transition);
+            z-index: -1;
+        }
+
+        .theory-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--shadow-hover);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .theory-card:hover::before {
+            opacity: 0.1;
+        }
+
+        .theory-card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--glass-border);
+        }
+
+        .theory-icon {
+            font-size: 2.2rem;
+            margin-right: 15px;
+            animation: theoryIconFloat 2.8s ease-in-out infinite alternate;
+        }
+
+        @keyframes theoryIconFloat {
+            0% { transform: scale(1) rotate(-1deg); }
+            100% { transform: scale(1.05) rotate(1deg); }
+        }
+
+        .theory-card-title {
+            color: #f093fb;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .theory-card-content {
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .theory-card-content p {
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+
+        .theory-card-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .theory-card-content strong {
+            color: #4facfe;
+            font-weight: 700;
+        }
+
+        /* Progress Indicator */
+        .progress-indicator {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px 20px;
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .progress-indicator.visible {
+            opacity: 1;
+        }
+
+        .progress-text {
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            width: 200px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-gradient);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 3px;
+        }
+
+        /* Canvas styles - Fixed sizing */
+        .visualization-canvas {
+            width: 100%;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 2px solid var(--glass-border);
+            margin: 15px 0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .animal-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .hearing-aid-component {
+                width: 80px;
+                height: 60px;
+                font-size: 0.75rem;
+            }
+
+            .theory-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.8rem;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .demo-btn {
+                min-width: 280px;
+            }
+            
+            .animal-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .hearing-aid-diagram {
+                height: 220px;
+            }
+            
+            .hearing-aid-component {
+                width: 70px;
+                height: 50px;
+                font-size: 0.7rem;
+            }
+            
+            .component-arrow {
+                font-size: 1.2rem;
+            }
+
+            .theory-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .theory-title {
+                font-size: 2.2rem;
+            }
+
+            .theory-card {
+                padding: 20px;
+            }
+        }
+
+        /* Loading Animation */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.8s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 5px solid rgba(79, 172, 254, 0.3);
+            border-top: 5px solid #4facfe;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            position: absolute;
+            bottom: 100px;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            font-weight: 600;
+            animation: fadeInOut 2s ease-in-out infinite;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div>
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading Range of Hearing Module...</div>
+        </div>
+    </div>
+
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="progress-indicator" id="progress-indicator">
+        <div class="progress-text">Lesson Progress</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Range of Hearing</h1>
+            <p>Explore the fascinating world of human hearing, from the frequencies we can perceive to the amazing abilities of animals. Discover how technology helps us hear better and how sound is used in various applications.</p>
+        </div>
+
+        <!-- Demo Stage -->
+        <div class="demo-stage" id="stage">
+            <!-- Human Hearing Demo -->
+            <div class="human-hearing-demo active" id="human-hearing-demo">
+                <div class="section-title">👂 Human Audible Range</div>
+                
+                <div class="frequency-range">
+                    <div class="frequency-marker" style="left: 10%; background: #ff6b6b;"></div>
+                    <div class="frequency-marker" style="left: 90%; background: #ff6b6b;"></div>
+                    
+                    <div class="hearing-range-bar" style="left: 10%; width: 80%;">
+                        Human Hearing: 20 Hz - 20,000 Hz
+                    </div>
+                    
+                    <div class="frequency-scale">
+                        <span>0 Hz</span>
+                        <span>20 Hz</span>
+                        <span>1000 Hz</span>
+                        <span>20,000 Hz</span>
+                        <span>40,000 Hz</span>
+                    </div>
+                </div>
+                
+                <div class="content-section">
+                    <div class="section-content">
+                        <p><strong>The audible range of sound for human beings extends from about 20 Hz to 20,000 Hz (one Hz = one cycle/s).</strong></p>
+                        
+                        <p><strong>Children under the age of five</strong> and some animals, such as dogs can hear up to <strong>25 kHz (1 kHz = 1000 Hz)</strong>.</p>
+                        
+                        <p><strong>As people grow older</strong> their ears become less sensitive to higher frequencies. This is why elderly people often have difficulty hearing high-pitched sounds.</p>
+                        
+                        <p>The human ear is most sensitive to frequencies between <strong>1000 Hz to 4000 Hz</strong>, which includes the range of human speech.</p>
+                    </div>
+                </div>
+
+                <canvas id="hearing-range-canvas" class="visualization-canvas" width="800" height="150"></canvas>
+            </div>
+
+            <!-- Infrasound Demo -->
+            <div class="infrasound-demo" id="infrasound-demo">
+                <div class="section-title">📉 Infrasound - Below Human Hearing</div>
+                
+                <div class="content-section">
+                    <div class="section-content">
+                        <p><strong>Sounds of frequencies below 20 Hz are called infrasonic sound or infrasound.</strong></p>
+                        
+                        <p><strong>If we could hear infrasound</strong> we would hear the vibrations of a pendulum just as we hear the vibrations of the wings of a bee.</p>
+                        
+                        <p><strong>Earthquakes produce low-frequency infrasound</strong> before the main shock waves begin which possibly alert the animals. This is why some animals get disturbed before earthquakes.</p>
+                    </div>
+                </div>
+
+                <div class="animal-grid">
+                    <div class="animal-card" onclick="playAnimalSound('rhinoceros')">
+                        <div class="animal-icon">🦏</div>
+                        <div class="animal-name">Rhinoceros</div>
+                        <div class="animal-frequency">5 Hz</div>
+                        
+                    </div>
+
+                    <div class="animal-card" onclick="playAnimalSound('elephant')">
+                        <div class="animal-icon">🐘</div>
+                        <div class="animal-name">Elephants</div>
+                        <div class="animal-frequency">1-20 Hz</div>
+                        
+                    </div>
+
+                    <div class="animal-card" onclick="playAnimalSound('whale')">
+                        <div class="animal-icon">🐋</div>
+                        <div class="animal-name">Whales</div>
+                        <div class="animal-frequency">10-40 Hz</div>
+                       
+                    </div>
+                </div>
+
+                <canvas id="infrasound-canvas" class="visualization-canvas" width="800" height="150"></canvas>
+            </div>
+
+            <!-- Ultrasound Demo -->
+            <div class="ultrasound-demo" id="ultrasound-demo">
+                <div class="section-title">📈 Ultrasound - Above Human Hearing</div>
+                
+                <div class="content-section">
+                    <div class="section-content">
+                        <p><strong>Frequencies higher than 20 kHz are called ultrasonic sound or ultrasound.</strong></p>
+                        
+                        <p><strong>Ultrasound is produced by animals such as dolphins, bats and porpoises</strong> for navigation and hunting purposes.</p>
+                        
+                        <p><strong>Moths of certain families have very sensitive hearing equipment.</strong> These moths can hear the high frequency squeaks of the bat and know when a bat is flying nearby, and are able to escape capture.</p>
+                        
+                        <p><strong>Rats also play games by producing ultrasound</strong> that humans cannot hear.</p>
+                    </div>
+                </div>
+
+                <div class="animal-grid">
+                    <div class="animal-card" onclick="playAnimalSound('bat')">
+                        <div class="animal-icon">🦇</div>
+                        <div class="animal-name">Bats</div>
+                        <div class="animal-frequency">20-200 kHz</div>
+                        
+                    </div>
+
+                    <div class="animal-card" onclick="playAnimalSound('dolphin')">
+                        <div class="animal-icon">🐬</div>
+                        <div class="animal-name">Dolphins</div>
+                        <div class="animal-frequency">40-150 kHz</div>
+                        
+                    </div>
+
+                    <div class="animal-card" onclick="playAnimalSound('porpoise')">
+                        <div class="animal-icon">🐋</div>
+                        <div class="animal-name">Porpoises</div>
+                        <div class="animal-frequency">110-150 kHz</div>
+                        
+                    </div>
+                </div>
+
+                <canvas id="ultrasound-canvas" class="visualization-canvas" width="800" height="150"></canvas>
+            </div>
+
+            <!-- Hearing Aid Demo -->
+            <div class="hearing-aid-demo" id="hearing-aid-demo">
+                <div class="section-title">🔧 Hearing Aid Technology</div>
+                
+                <div class="hearing-aid-diagram">
+                    <div class="hearing-aid-component" style="top: 80px; left: 40px;" onclick="explainComponent('microphone')">
+                        <div>🎤</div>
+                        <div>Microphone</div>
+                    </div>
+                    
+                    <div class="component-arrow" style="top: 105px; left: 150px;">→</div>
+                    
+                    <div class="hearing-aid-component" style="top: 80px; left: 180px;" onclick="explainComponent('amplifier')">
+                        <div>📡</div>
+                        <div>Amplifier</div>
+                    </div>
+                    
+                    <div class="component-arrow" style="top: 105px; left: 290px;">→</div>
+                    
+                    <div class="hearing-aid-component" style="top: 80px; left: 320px;" onclick="explainComponent('speaker')">
+                        <div>🔊</div>
+                        <div>Speaker</div>
+                    </div>
+                    
+                    <div class="component-arrow" style="top: 105px; left: 430px;">→</div>
+                    
+                    <div class="hearing-aid-component" style="top: 80px; left: 460px;" onclick="explainComponent('ear')">
+                        <div>👂</div>
+                        <div>Ear</div>
+                    </div>
+                    
+                    <div class="hearing-aid-component" style="top: 180px; left: 40px;" onclick="explainComponent('battery')">
+                        <div>🔋</div>
+                        <div>Battery</div>
+                    </div>
+                </div>
+                
+                <div class="content-section">
+                    <div class="section-content">
+                        <p><strong>People with hearing loss may need a hearing aid.</strong> A hearing aid is an electronic, battery operated device.</p>
+                        
+                        <p><strong>The hearing aid receives sound through a microphone.</strong> The microphone converts the sound waves to electrical signals.</p>
+                        
+                        <p><strong>These electrical signals are amplified by an amplifier.</strong> The amplified electrical signals are given to a speaker of the hearing aid.</p>
+                        
+                        <p><strong>The speaker converts the amplified electrical signal to sound</strong> and sends to the ear for clear hearing.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Applications Demo -->
+            <div class="applications-demo" id="applications-demo">
+                <div class="section-title">🏗️ Ultrasound Applications</div>
+                
+                <div class="content-section">
+                    <div class="section-content">
+                        <p><strong>Metallic components are generally used in construction of big structures</strong> like buildings, bridges, machines and also scientific equipment.</p>
+                        
+                        <p><strong>The cracks or holes inside the metal blocks, which are invisible from outside</strong> reduces the strength of the structure.</p>
+                        
+                        <p><strong>Ultrasonic waves are allowed to pass through the metal block</strong> and detectors are used to detect the transmitted waves.</p>
+                        
+                        <p><strong>If there is even a small defect, the ultrasound gets reflected back</strong> indicating the presence of the flaw or defect.</p>
+                    </div>
+                </div>
+
+                <canvas id="ultrasound-detection-canvas" class="visualization-canvas" width="800" height="200"></canvas>
+                
+                <div class="content-section">
+                    <div class="section-content">
+                        <p><strong>Other Applications of Ultrasound:</strong></p>
+                        <p>• <strong>Medical Imaging:</strong> Used to create images of internal body structures</p>
+                        <p>• <strong>Cleaning:</strong> Ultrasonic cleaners remove dirt and contaminants</p>
+                        <p>• <strong>Sonar:</strong> Ships and submarines use ultrasound for navigation</p>
+                        <p>• <strong>Thickness Measurement:</strong> Measuring thickness of materials without damaging them</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="demo-title">Interactive Range of Hearing Learning</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn active" data-demo="complete">📚 Complete Lesson</button>
+                <button class="demo-btn" data-demo="human-hearing">👂 Human Hearing</button>
+                <button class="demo-btn" data-demo="infrasound">📉 Infrasound</button>
+                <button class="demo-btn" data-demo="ultrasound">📈 Ultrasound</button>
+                <button class="demo-btn" data-demo="hearing-aid">🔧 Hearing Aid</button>
+                <button class="demo-btn" data-demo="applications">🏗️ Applications</button>
+                <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Theory Section -->
+        <div class="theory-section">
+            <div class="theory-header">
+                <h2 class="theory-title">📖 Theoretical Foundation</h2>
+                <p class="theory-subtitle">Understanding the Science Behind Sound Frequencies</p>
+            </div>
+            
+            <div class="theory-grid">
+                <div class="theory-card">
+                    <div class="theory-card-header">
+                        <div class="theory-icon">🌊</div>
+                        <h3 class="theory-card-title">Sound Waves & Frequency</h3>
+                    </div>
+                    <div class="theory-card-content">
+                        <p><strong>Sound is a mechanical wave</strong> that travels through air, water, or solid materials by vibrating particles.</p>
+                        <p><strong>Frequency (Hz)</strong> determines the pitch - higher frequencies produce higher pitches, lower frequencies produce lower pitches.</p>
+                        <p><strong>The human ear</strong> contains specialized structures that convert sound waves into electrical signals the brain can interpret.</p>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-card-header">
+                        <div class="theory-icon">👂</div>
+                        <h3 class="theory-card-title">Anatomy of Hearing</h3>
+                    </div>
+                    <div class="theory-card-content">
+                        <p><strong>Outer ear</strong> collects sound waves and funnels them into the ear canal toward the eardrum.</p>
+                        <p><strong>Middle ear</strong> amplifies vibrations through three tiny bones: hammer, anvil, and stirrup.</p>
+                        <p><strong>Inner ear</strong> contains the cochlea with thousands of hair cells that convert vibrations to nerve signals.</p>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-card-header">
+                        <div class="theory-icon">🔬</div>
+                        <h3 class="theory-card-title">Physics of Sound</h3>
+                    </div>
+                    <div class="theory-card-content">
+                        <p><strong>Wavelength and frequency</strong> have an inverse relationship - as frequency increases, wavelength decreases.</p>
+                        <p><strong>Sound speed</strong> in air is approximately 343 m/s at room temperature and varies with medium density.</p>
+                        <p><strong>Amplitude</strong> determines loudness (decibels), while frequency determines pitch (Hz).</p>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-card-header">
+                        <div class="theory-icon">🦇</div>
+                        <h3 class="theory-card-title">Echolocation Principles</h3>
+                    </div>
+                    <div class="theory-card-content">
+                        <p><strong>Animals like bats and dolphins</strong> emit high-frequency sounds and analyze returning echoes.</p>
+                        <p><strong>Time delay</strong> between call and echo reveals distance to objects in the environment.</p>
+                        <p><strong>Echo characteristics</strong> provide information about object size, texture, density, and movement.</p>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-card-header">
+                        <div class="theory-icon">⚡</div>
+                        <h3 class="theory-card-title">Hearing Aid Technology</h3>
+                    </div>
+                    <div class="theory-card-content">
+                        <p><strong>Digital signal processing</strong> allows modern hearing aids to filter noise and enhance speech frequencies.</p>
+                        <p><strong>Directional microphones</strong> focus on sounds from specific directions while reducing background noise.</p>
+                        <p><strong>Frequency shaping</strong> amplifies specific frequency ranges based on individual hearing loss patterns.</p>
+                    </div>
+                </div>
+
+                <div class="theory-card">
+                    <div class="theory-card-header">
+                        <div class="theory-icon">🏥</div>
+                        <h3 class="theory-card-title">Ultrasound Applications</h3>
+                    </div>
+                    <div class="theory-card-content">
+                        <p><strong>Medical ultrasound</strong> uses frequencies between 1-20 MHz to create images of internal body structures.</p>
+                        <p><strong>Industrial testing</strong> employs ultrasound to detect flaws in materials without causing damage.</p>
+                        <p><strong>Sonar technology</strong> uses sound waves for underwater navigation, mapping, and object detection.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced Animation Management System
+        class AnimationManager {
+            constructor() {
+                this.activeAnimations = new Set();
+                this.animationTimeouts = new Set();
+                this.animationIntervals = new Set();
+                this.canvasAnimations = new Map();
+            }
+
+            addTimeout(timeoutId) {
+                this.animationTimeouts.add(timeoutId);
+                return timeoutId;
+            }
+
+            addInterval(intervalId) {
+                this.animationIntervals.add(intervalId);
+                return intervalId;
+            }
+
+            addCanvasAnimation(key, animationId) {
+                if (this.canvasAnimations.has(key)) {
+                    cancelAnimationFrame(this.canvasAnimations.get(key));
+                }
+                this.canvasAnimations.set(key, animationId);
+                return animationId;
+            }
+
+            cleanup() {
+                gsap.killTweensOf("*");
+                this.animationTimeouts.forEach(id => clearTimeout(id));
+                this.animationTimeouts.clear();
+                this.animationIntervals.forEach(id => clearInterval(id));
+                this.animationIntervals.clear();
+                this.canvasAnimations.forEach(id => cancelAnimationFrame(id));
+                this.canvasAnimations.clear();
+                this.activeAnimations.clear();
+            }
+        }
+
+        // Enhanced Voice Teacher System
+        class HearingTeacher {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.isDestroyed = false;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.85, pitch: 1.0, volume: 0.9 };
+                this.currentContext = null;
+                this.queue = [];
+                this.isProcessingQueue = false;
+                this.onComplete = null;
+            }
+
+            async speak(text, delay = 0, context = null) {
+                if (!this.isEnabled || !text || this.isDestroyed) return Promise.resolve();
+                
+                if (context) {
+                    this.currentContext = context;
+                }
+                
+                return new Promise((resolve) => {
+                    this.queue.push({
+                        text,
+                        delay,
+                        resolve,
+                        context: context || this.currentContext
+                    });
+                    
+                    if (!this.isProcessingQueue) {
+                        this.processQueue();
+                    }
+                });
+            }
+            
+            async processQueue() {
+                if (this.isProcessingQueue || this.queue.length === 0) return;
+                
+                this.isProcessingQueue = true;
+                
+                while (this.queue.length > 0) {
+                    const item = this.queue.shift();
+                    
+                    if (item.context && item.context !== this.currentContext) {
+                        item.resolve();
+                        continue;
+                    }
+                    
+                    await this.speakImmediate(item.text, item.delay);
+                    item.resolve();
+                }
+                
+                this.isProcessingQueue = false;
+                
+                // Call completion callback if set
+                if (this.onComplete) {
+                    this.onComplete();
+                    this.onComplete = null;
+                }
+            }
+            
+            async speakImmediate(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    const timeoutId = setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                    
+                    animationManager.addTimeout(timeoutId);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+                this.queue = [];
+                this.isProcessingQueue = false;
+                this.onComplete = null;
+            }
+            
+            setContext(context) {
+                this.currentContext = context;
+                this.queue = this.queue.filter(item => !item.context || item.context === context);
+            }
+
+            setOnComplete(callback) {
+                this.onComplete = callback;
+            }
+
+            toggle() {
+                this.isEnabled = !this.isEnabled;
+                if (!this.isEnabled) this.stop();
+                return this.isEnabled;
+            }
+            
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+                this.queue = [];
+                this.currentContext = null;
+                this.onComplete = null;
+            }
+        }
+
+        // Global variables
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let currentDemo = null;
+        let currentDemoAborted = false;
+        let animationManager = new AnimationManager();
+        let lessonProgress = 0;
+        let isPlaying = false;
+        let currentLessonContext = null;
+        let isCompleteLessonRunning = false;
+
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+            }
+            currentTeacher = new HearingTeacher();
+            return currentTeacher;
+        }
+
+        function updateProgress(percentage) {
+            lessonProgress = percentage;
+            document.getElementById('progress-fill').style.width = percentage + '%';
+            if (percentage > 0) {
+                document.getElementById('progress-indicator').classList.add('visible');
+            } else {
+                document.getElementById('progress-indicator').classList.remove('visible');
+            }
+        }
+
+        function hideAllDemos() {
+            document.querySelectorAll('.human-hearing-demo, .infrasound-demo, .ultrasound-demo, .hearing-aid-demo, .applications-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+        }
+
+        function setActiveButton(activeBtn) {
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+        }
+
+        function updateTitle(title) {
+            document.getElementById('demo-title').textContent = title;
+        }
+
+        function shouldContinue() {
+            return !currentDemoAborted && (currentLessonContext === null || currentLessonContext === 'complete-lesson');
+        }
+
+        function abortCurrentDemo() {
+            currentDemoAborted = true;
+            isCompleteLessonRunning = false;
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            animationManager.cleanup();
+        }
+
+        function resetAll() {
+            abortCurrentDemo();
+            updateProgress(0);
+            hideAllDemos();
+            updateTitle("Interactive Range of Hearing Learning");
+            currentDemoAborted = false;
+            currentLessonContext = null;
+            document.getElementById('human-hearing-demo').classList.add('active');
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeoutId = setTimeout(resolve, ms);
+                animationManager.addTimeout(timeoutId);
+            });
+        }
+
+        // Canvas Animations
+        function animateHearingRange() {
+            const canvas = document.getElementById('hearing-range-canvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            let time = 0;
+            
+            function drawHearingRange() {
+                if (!shouldContinue() && currentLessonContext !== 'human-hearing') return;
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw frequency spectrum
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+                gradient.addColorStop(0, '#ff6b6b');
+                gradient.addColorStop(0.1, '#4ecdc4');
+                gradient.addColorStop(0.9, '#4ecdc4');
+                gradient.addColorStop(1, '#ff6b6b');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
+                
+                // Draw human hearing range
+                const startX = canvas.width * 0.1;
+                const endX = canvas.width * 0.9;
+                const centerY = canvas.height / 2;
+                
+                ctx.fillStyle = 'rgba(67, 233, 123, 0.3)';
+                ctx.fillRect(startX, centerY - 15, endX - startX, 30);
+                
+                // Draw frequency labels
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('20 Hz', startX, centerY + 5);
+                ctx.fillText('20,000 Hz', endX, centerY + 5);
+                ctx.fillText('Human Hearing Range', canvas.width / 2, centerY - 25);
+                
+                // Animate sound waves
+                ctx.strokeStyle = '#4facfe';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let x = 0; x < canvas.width; x += 2) {
+                    const frequency = 0.02 + (x / canvas.width) * 0.08;
+                    const y = centerY + Math.sin(x * frequency + time) * 12;
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                
+                time += 0.1;
+                const animId = requestAnimationFrame(drawHearingRange);
+                animationManager.addCanvasAnimation('hearing-range', animId);
+            }
+            
+            drawHearingRange();
+        }
+
+        function animateInfrasound() {
+            const canvas = document.getElementById('infrasound-canvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            let time = 0;
+            
+            function drawInfrasound() {
+                if (!shouldContinue() && currentLessonContext !== 'infrasound') return;
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw very low frequency waves
+                ctx.strokeStyle = '#ff6b6b';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                for (let x = 0; x < canvas.width; x += 2) {
+                    const y = canvas.height / 2 + Math.sin((x * 0.005) + time) * 25;
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                
+                // Draw labels
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '16px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('Infrasound Waves (Below 20 Hz)', canvas.width / 2, 25);
+                ctx.fillText('Used by Elephants, Whales, and Earthquakes', canvas.width / 2, canvas.height - 15);
+                
+                time += 0.02;
+                const animId = requestAnimationFrame(drawInfrasound);
+                animationManager.addCanvasAnimation('infrasound', animId);
+            }
+            
+            drawInfrasound();
+        }
+
+        function animateUltrasound() {
+            const canvas = document.getElementById('ultrasound-canvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            let time = 0;
+            
+            function drawUltrasound() {
+                if (!shouldContinue() && currentLessonContext !== 'ultrasound') return;
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw high frequency waves
+                ctx.strokeStyle = '#43e97b';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let x = 0; x < canvas.width; x += 1) {
+                    const y = canvas.height / 2 + Math.sin((x * 0.1) + time) * 18;
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                
+                // Draw labels
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '16px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('Ultrasound Waves (Above 20,000 Hz)', canvas.width / 2, 25);
+                ctx.fillText('Used by Bats, Dolphins, and Medical Equipment', canvas.width / 2, canvas.height - 15);
+                
+                time += 0.15;
+                const animId = requestAnimationFrame(drawUltrasound);
+                animationManager.addCanvasAnimation('ultrasound', animId);
+            }
+            
+            drawUltrasound();
+        }
+
+        function animateUltrasoundDetection() {
+            const canvas = document.getElementById('ultrasound-detection-canvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            let time = 0;
+            
+            function drawDetection() {
+                if (!shouldContinue() && currentLessonContext !== 'applications') return;
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw metal block
+                const blockX = canvas.width / 2 - 80;
+                const blockY = canvas.height / 2 - 30;
+                const blockWidth = 160;
+                const blockHeight = 60;
+                
+                ctx.fillStyle = '#6c757d';
+                ctx.fillRect(blockX, blockY, blockWidth, blockHeight);
+                
+                // Draw crack/defect
+                ctx.strokeStyle = '#ff6b6b';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(blockX + 100, blockY + 8);
+                ctx.lineTo(blockX + 105, blockY + 52);
+                ctx.stroke();
+                
+                // Draw ultrasound source
+                ctx.fillStyle = '#4facfe';
+                ctx.fillRect(40, blockY + 20, 25, 15);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '10px Inter';
+                ctx.fillText('Source', 42, blockY + 30);
+                
+                // Draw detector
+                ctx.fillStyle = '#43e97b';
+                ctx.fillRect(canvas.width - 65, blockY + 20, 25, 15);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText('Detector', canvas.width - 68, blockY + 30);
+                
+                // Animate ultrasound waves
+                const waveX = 65 + (time % 80) * 4;
+                if (waveX < blockX + 100) {
+                    // Normal transmission
+                    ctx.strokeStyle = '#4facfe';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    for (let i = 0; i < 4; i++) {
+                        const x = waveX + i * 8;
+                        ctx.moveTo(x, blockY + 22);
+                        ctx.lineTo(x + 4, blockY + 33);
+                    }
+                    ctx.stroke();
+                } else {
+                    // Reflection at defect
+                    ctx.strokeStyle = '#ff6b6b';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    for (let i = 0; i < 3; i++) {
+                        const x = blockX + 100 - i * 8;
+                        ctx.moveTo(x, blockY + 22);
+                        ctx.lineTo(x - 4, blockY + 33);
+                    }
+                    ctx.stroke();
+                }
+                
+                // Labels
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('Ultrasound Flaw Detection', canvas.width / 2, 20);
+                ctx.fillText('Metal Block with Internal Crack', canvas.width / 2, canvas.height - 10);
+                
+                time++;
+                const animId = requestAnimationFrame(drawDetection);
+                animationManager.addCanvasAnimation('ultrasound-detection', animId);
+            }
+            
+            drawDetection();
+        }
+
+        // Complete Lesson function - FIXED VERSION
+        async function showCompleteLesson() {
+            abortCurrentDemo();
+            await wait(300);
+            
+            currentDemoAborted = false;
+            isCompleteLessonRunning = true;
+            currentLessonContext = 'complete-lesson';
+            isPlaying = true;
+            updateProgress(5);
+            
+            const teacher = createNewTeacher();
+            teacher.setContext('complete-lesson');
+            
+            updateTitle("📚 Complete Range of Hearing Lesson");
+            
+            await teacher.speak("Welcome to our comprehensive lesson on the Range of Hearing! We'll explore human hearing abilities, animal communication using infrasound and ultrasound, hearing aid technology, and practical applications. Let's begin our journey through the fascinating world of sound frequencies!", 0, 'complete-lesson');
+            if (!shouldContinue()) return;
+            
+            updateProgress(15);
+            await showHumanHearingInternal('complete-lesson');
+            if (!shouldContinue()) return;
+            
+            updateProgress(35);
+            await wait(3000);
+            if (!shouldContinue()) return;
+            
+            await showInfrasoundInternal('complete-lesson');
+            if (!shouldContinue()) return;
+            
+            updateProgress(55);
+            await wait(3000);
+            if (!shouldContinue()) return;
+            
+            await showUltrasoundInternal('complete-lesson');
+            if (!shouldContinue()) return;
+            
+            updateProgress(75);
+            await wait(3000);
+            if (!shouldContinue()) return;
+            
+            await showHearingAidInternal('complete-lesson');
+            if (!shouldContinue()) return;
+            
+            updateProgress(90);
+            await wait(3000);
+            if (!shouldContinue()) return;
+            
+            await showApplicationsInternal('complete-lesson');
+            if (!shouldContinue()) return;
+            
+            updateProgress(100);
+            await teacher.speak("Congratulations! You've successfully completed the comprehensive lesson on Range of Hearing. You now understand the amazing spectrum of sound frequencies, from elephant communication to bat echolocation, and how technology helps us detect and enhance our hearing capabilities!", 0, 'complete-lesson');
+            
+            isPlaying = false;
+            isCompleteLessonRunning = false;
+        }
+
+        // Individual demo functions with internal versions for complete lesson
+        async function showHumanHearing() {
+            abortCurrentDemo();
+            await wait(200);
+            
+            currentDemoAborted = false;
+            currentLessonContext = 'human-hearing';
+            isPlaying = true;
+            
+            await showHumanHearingInternal('human-hearing');
+            
+            isPlaying = false;
+        }
+
+        async function showHumanHearingInternal(parentContext = null) {
+            const demoContext = parentContext || 'human-hearing';
+            currentLessonContext = demoContext;
+            const teacher = createNewTeacher();
+            teacher.setContext(demoContext);
+            
+            hideAllDemos();
+            updateTitle("👂 Human Audible Range");
+            document.getElementById('human-hearing-demo').classList.add('active');
+            
+            setTimeout(() => {
+                if (shouldContinue() || demoContext === 'human-hearing') {
+                    animateHearingRange();
+                }
+            }, 500);
+            
+            await teacher.speak("The human audible range extends from about 20 Hz to 20,000 Hz. Children under five and some animals like dogs can hear up to 25,000 Hz. As people grow older, their ears become less sensitive to higher frequencies, which is why elderly people often struggle with high-pitched sounds.", 0, demoContext);
+            
+            if (!shouldContinue() && demoContext !== 'human-hearing') return;
+            
+            return true;
+        }
+
+        async function showInfrasound() {
+            abortCurrentDemo();
+            await wait(200);
+            
+            currentDemoAborted = false;
+            currentLessonContext = 'infrasound';
+            isPlaying = true;
+            
+            await showInfrasoundInternal('infrasound');
+            
+            isPlaying = false;
+        }
+
+        async function showInfrasoundInternal(parentContext = null) {
+            const demoContext = parentContext || 'infrasound';
+            currentLessonContext = demoContext;
+            const teacher = createNewTeacher();
+            teacher.setContext(demoContext);
+            
+            hideAllDemos();
+            updateTitle("📉 Infrasound - Below Human Hearing");
+            document.getElementById('infrasound-demo').classList.add('active');
+            
+            setTimeout(() => {
+                if (shouldContinue() || demoContext === 'infrasound') {
+                    animateInfrasound();
+                }
+            }, 500);
+            
+            await teacher.speak("Sounds below 20 Hz are called infrasound. Animals like rhinoceroses communicate using infrasound as low as 5 Hz. Earthquakes produce infrasound before main shock waves, which may alert animals to danger. Elephants and whales also use these low frequencies to communicate over vast distances.", 0, demoContext);
+            
+            if (!shouldContinue() && demoContext !== 'infrasound') return;
+            
+            return true;
+        }
+
+        async function showUltrasound() {
+            abortCurrentDemo();
+            await wait(200);
+            
+            currentDemoAborted = false;
+            currentLessonContext = 'ultrasound';
+            isPlaying = true;
+            
+            await showUltrasoundInternal('ultrasound');
+            
+            isPlaying = false;
+        }
+
+        async function showUltrasoundInternal(parentContext = null) {
+            const demoContext = parentContext || 'ultrasound';
+            currentLessonContext = demoContext;
+            const teacher = createNewTeacher();
+            teacher.setContext(demoContext);
+            
+            hideAllDemos();
+            updateTitle("📈 Ultrasound - Above Human Hearing");
+            document.getElementById('ultrasound-demo').classList.add('active');
+            
+            setTimeout(() => {
+                if (shouldContinue() || demoContext === 'ultrasound') {
+                    animateUltrasound();
+                }
+            }, 500);
+            
+            await teacher.speak("Frequencies higher than 20,000 Hz are called ultrasound. Animals like bats, dolphins, and porpoises use ultrasound for navigation and hunting. Moths can hear bat squeaks and escape capture. Rats also produce ultrasound for communication that humans cannot hear.", 0, demoContext);
+            
+            if (!shouldContinue() && demoContext !== 'ultrasound') return;
+            
+            return true;
+        }
+
+        async function showHearingAid() {
+            abortCurrentDemo();
+            await wait(200);
+            
+            currentDemoAborted = false;
+            currentLessonContext = 'hearing-aid';
+            isPlaying = true;
+            
+            await showHearingAidInternal('hearing-aid');
+            
+            isPlaying = false;
+        }
+
+        async function showHearingAidInternal(parentContext = null) {
+            const demoContext = parentContext || 'hearing-aid';
+            currentLessonContext = demoContext;
+            const teacher = createNewTeacher();
+            teacher.setContext(demoContext);
+            
+            hideAllDemos();
+            updateTitle("🔧 Hearing Aid Technology");
+            document.getElementById('hearing-aid-demo').classList.add('active');
+            
+            await teacher.speak("A hearing aid is an electronic, battery-operated device that helps people with hearing loss. It receives sound through a microphone, converts it to electrical signals, amplifies them, and sends the amplified sound to the ear for clear hearing.", 0, demoContext);
+            
+            if (!shouldContinue() && demoContext !== 'hearing-aid') return;
+            
+            return true;
+        }
+
+        async function showApplications() {
+            abortCurrentDemo();
+            await wait(200);
+            
+            currentDemoAborted = false;
+            currentLessonContext = 'applications';
+            isPlaying = true;
+            
+            await showApplicationsInternal('applications');
+            
+            isPlaying = false;
+        }
+
+        async function showApplicationsInternal(parentContext = null) {
+            const demoContext = parentContext || 'applications';
+            currentLessonContext = demoContext;
+            const teacher = createNewTeacher();
+            teacher.setContext(demoContext);
+            
+            hideAllDemos();
+            updateTitle("🏗️ Ultrasound Applications");
+            document.getElementById('applications-demo').classList.add('active');
+            
+            setTimeout(() => {
+                if (shouldContinue() || demoContext === 'applications') {
+                    animateUltrasoundDetection();
+                }
+            }, 500);
+            
+            await teacher.speak("Ultrasound is used to detect flaws in metal structures. When ultrasonic waves encounter cracks or holes, they reflect back, indicating defects that are invisible from outside. This technology helps ensure the safety of buildings, bridges, and other important structures.", 0, demoContext);
+            
+            if (!shouldContinue() && demoContext !== 'applications') return;
+            
+            return true;
+        }
+
+        // Interactive functions
+        function playAnimalSound(animal) {
+            const teacher = currentTeacher || createNewTeacher();
+            
+            const animalInfo = {
+                rhinoceros: "Rhinoceroses communicate using extremely low-frequency infrasound around 5 Hz. These deep rumbles can travel for kilometers through the ground, allowing rhinos to communicate across vast distances.",
+                elephant: "Elephants use infrasonic calls between 1 to 20 Hz to communicate with their herd over long distances. These low-frequency sounds can travel through dense vegetation and terrain.",
+                whale: "Whales produce powerful infrasonic calls that can travel hundreds of kilometers through ocean water. These calls help them communicate across the vast expanses of the ocean.",
+                bat: "Bats emit high-frequency ultrasonic calls between 20 to 200 kHz for echolocation. They can detect objects as thin as human hair using these precise sound waves.",
+                dolphin: "Dolphins use ultrasound between 40 to 150 kHz for echolocation and communication. They can identify objects buried in sand using their sophisticated sonar system.",
+                porpoise: "Porpoises produce some of the highest frequency sounds in nature, up to 150 kHz, for incredibly detailed echolocation in murky waters."
+            };
+            
+            teacher.speak(animalInfo[animal], 0, 'animal-' + animal);
+        }
+
+        function explainComponent(component) {
+            const teacher = currentTeacher || createNewTeacher();
+            
+            const componentInfo = {
+                microphone: "The microphone is the first component that receives sound waves from the environment and converts them into electrical signals for processing.",
+                amplifier: "The amplifier boosts the weak electrical signals from the microphone to make them strong enough to drive the speaker effectively.",
+                speaker: "The speaker converts the amplified electrical signals back into sound waves that are delivered directly to the user's ear.",
+                ear: "The ear receives the amplified sound from the hearing aid speaker, allowing the person to hear sounds they couldn't detect before.",
+                battery: "The battery provides the electrical power needed to operate the microphone, amplifier, and speaker components of the hearing aid."
+            };
+            
+            teacher.speak(componentInfo[component], 0, 'component-' + component);
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide loading overlay
+            setTimeout(() => {
+                document.getElementById('loading-overlay').classList.add('hidden');
+            }, 1200);
+            
+            // Button click handlers - FIXED VERSION
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const demo = this.getAttribute('data-demo');
+                    setActiveButton(this);
+                    
+                    // Immediately abort any running demo
+                    abortCurrentDemo();
+                    await wait(300);
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'human-hearing':
+                            showHumanHearing();
+                            break;
+                        case 'infrasound':
+                            showInfrasound();
+                            break;
+                        case 'ultrasound':
+                            showUltrasound();
+                            break;
+                        case 'hearing-aid':
+                            showHearingAid();
+                            break;
+                        case 'applications':
+                            showApplications();
+                            break;
+                        case 'reset':
+                            resetAll();
+                            setActiveButton(null);
+                            break;
+                    }
+                });
+            });
+
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+
+            // Initialize with human hearing demo
+            setTimeout(() => {
+                const teacher = createNewTeacher();
+                teacher.speak("Welcome to the Range of Hearing module! Explore how humans and animals perceive different frequencies of sound, from the deep rumbles of elephants to the high-pitched calls of bats. Click the Complete Lesson button to experience the full learning journey!", 0, 'welcome');
+                animateHearingRange();
+            }, 1800);
+        });
+    </script>
+</body>
+</html>

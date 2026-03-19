@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transpiration and Translocation - Interactive Journey</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f3460 0%, #16537e 25%, #27ae60 50%, #2ecc71 75%, #f1c40f 100%);
+            color: white;
+            overflow: hidden;
+            position: relative;
+            height: 100vh;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            opacity: 0.08;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.3" d="M0,96L48,112C96,128,192,160,288,186.7C384,213,480,235,576,213.3C672,192,768,128,864,128C960,128,1056,192,1152,197.3C1248,203,1344,149,1392,122.7L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') repeat-x;
+            animation: wave 20s linear infinite;
+        }
+
+        @keyframes wave {
+            0% { background-position-x: 0; }
+            100% { background-position-x: 1440px; }
+        }
+
+        /* Museum Interface */
+        .museum-header {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            text-align: left;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 10px 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .museum-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            background: linear-gradient(45deg, #27ae60, #f1c40f);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.4); }
+        }
+
+        .exhibit-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .transpiration-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #3498db;
+            border-radius: 50%;
+            animation: transpiration 3s ease-in-out infinite;
+        }
+
+        @keyframes transpiration {
+            0%, 100% { transform: scale(1) translateY(0); opacity: 1; background: #3498db; }
+            25% { transform: scale(1.3) translateY(-3px); opacity: 0.7; background: #2ecc71; }
+            50% { transform: scale(1.5) translateY(-6px); opacity: 0.5; background: #f1c40f; }
+            75% { transform: scale(1.3) translateY(-3px); opacity: 0.7; background: #2ecc71; }
+        }
+
+        /* Journey Navigation */
+        .journey-navigation {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 380px;
+        }
+
+        .journey-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #27ae60;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .journey-steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .journey-btn {
+            background: rgba(39, 174, 96, 0.2);
+            border: 1px solid rgba(39, 174, 96, 0.4);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .journey-btn:hover {
+            background: rgba(39, 174, 96, 0.3);
+            border-color: #27ae60;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+        }
+
+        .journey-btn.active {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            border-color: #27ae60;
+            box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .journey-btn.completed {
+            background: rgba(241, 196, 15, 0.3);
+            border-color: #f1c40f;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* 3D Model Container */
+        .model-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+            overflow: hidden;
+            border: none;
+            z-index: 100;
+        }
+
+        .sketchfab-embed-wrapper {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f3460 0%, #16537e 25%, #27ae60 50%, #2ecc71 75%, #f1c40f 100%);
+        }
+
+        .sketchfab-embed-wrapper iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 0;
+        }
+
+        /* Information Panel */
+        .info-panel {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            width: 480px;
+            max-height: calc(100vh - 140px);
+            z-index: 800;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .info-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-icon {
+            font-size: 28px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .info-title {
+            flex: 1;
+        }
+
+        .info-title h2 {
+            font-size: 18px;
+            color: #27ae60;
+            margin-bottom: 4px;
+        }
+
+        .info-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .info-content {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Progress Tracker */
+        .progress-tracker {
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(241, 196, 15, 0.1));
+            border: 1px solid rgba(39, 174, 96, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .progress-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: #27ae60;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .progress-percentage {
+            font-size: 18px;
+            color: #f1c40f;
+            font-weight: 700;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #f1c40f);
+            border-radius: 4px;
+            transition: width 0.8s ease;
+            box-shadow: 0 0 10px rgba(39, 174, 96, 0.5);
+        }
+
+        .progress-steps-mini {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.6);
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+
+        .step-mini {
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 45px;
+        }
+
+        .step-mini.active {
+            color: #27ae60;
+            font-weight: 600;
+        }
+
+        .step-mini.completed {
+            color: #f1c40f;
+        }
+
+        /* Information Cards */
+        .info-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .info-card-title {
+            color: #27ae60;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-card-content {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .info-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-list li {
+            padding: 6px 0;
+            padding-left: 20px;
+            position: relative;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .info-list li:before {
+            content: "💧";
+            position: absolute;
+            left: 0;
+            font-size: 10px;
+        }
+
+        /* Energy Box */
+        .energy-box {
+            background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(241, 196, 15, 0.1));
+            border: 1px solid rgba(155, 89, 182, 0.3);
+            border-radius: 12px;
+            padding: 14px;
+            margin: 16px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .energy-box:before {
+            content: "⚡";
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            font-size: 60px;
+            opacity: 0.1;
+        }
+
+        .energy-title {
+            color: #9b59b6;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .energy-text {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 12px;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Fun Fact Box */
+        .fun-fact {
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(46, 204, 113, 0.1));
+            border: 1px solid rgba(52, 152, 219, 0.3);
+            border-radius: 12px;
+            padding: 14px;
+            margin: 16px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fun-fact:before {
+            content: "🌱";
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            font-size: 60px;
+            opacity: 0.1;
+        }
+
+        .fun-fact-title {
+            color: #3498db;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .fun-fact-text {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 12px;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Voice Controls */
+        .voice-controls {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            position: relative;
+        }
+
+        .control-btn:hover {
+            background: rgba(39, 174, 96, 0.3);
+            border-color: #27ae60;
+            transform: scale(1.1);
+        }
+
+        .control-btn.active {
+            background: rgba(39, 174, 96, 0.4);
+            border-color: #27ae60;
+            box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
+        }
+
+        .control-tooltip {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .control-btn:hover .control-tooltip {
+            opacity: 1;
+        }
+
+        /* Loading Screen */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f3460 0%, #16537e 25%, #27ae60 50%, #2ecc71 75%, #f1c40f 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: opacity 1s ease;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-icon {
+            font-size: 60px;
+            animation: transpiration 1.5s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .loading-progress {
+            width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #f1c40f);
+            animation: loading 2s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 100%; }
+            100% { width: 0%; }
+        }
+
+        /* Voice Indicator */
+        .voice-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(39, 174, 96, 0.5);
+            border-radius: 30px;
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .voice-indicator.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-10px);
+        }
+
+        .voice-waves {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .voice-wave {
+            width: 3px;
+            height: 20px;
+            background: linear-gradient(180deg, #27ae60, #f1c40f);
+            border-radius: 2px;
+            animation: voice-wave 1s ease-in-out infinite;
+        }
+
+        .voice-wave:nth-child(2) { animation-delay: 0.1s; }
+        .voice-wave:nth-child(3) { animation-delay: 0.2s; }
+        .voice-wave:nth-child(4) { animation-delay: 0.3s; }
+        .voice-wave:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes voice-wave {
+            0%, 100% { transform: scaleY(0.3); }
+            50% { transform: scaleY(1); }
+        }
+
+        .narration-text {
+            color: white;
+            font-size: 13px;
+            max-width: 300px;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .action-btn {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .action-btn:hover {
+            background: rgba(39, 174, 96, 0.3);
+            border-color: #27ae60;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+        }
+
+        /* Custom Scrollbar */
+        .info-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .info-panel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .info-panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #27ae60, #f1c40f);
+            border-radius: 3px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .info-panel {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                top: auto;
+                width: 100%;
+                max-height: 50vh;
+                border-radius: 20px 20px 0 0;
+            }
+            
+            .journey-navigation {
+                bottom: 52vh;
+                max-width: calc(100% - 40px);
+            }
+            
+            .voice-controls {
+                top: auto;
+                bottom: 55vh;
+                right: 10px;
+            }
+            
+            .quick-actions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-icon">💨</div>
+            <div class="loading-text">Preparing Transpiration Journey...</div>
+            <div class="loading-progress">
+                <div class="loading-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Museum Header -->
+    <div class="museum-header">
+        <div class="museum-title">Transpiration & Translocation</div>
+        <div class="exhibit-subtitle">
+            <span class="transpiration-indicator"></span>
+            Plant's Water & Food Transport
+        </div>
+    </div>
+
+    <!-- Journey Navigation -->
+    <div class="journey-navigation">
+        <div class="journey-title">
+            <span>🌿</span>
+            <span>Transport Process Journey</span>
+        </div>
+        <div class="journey-steps">
+            <button class="journey-btn active" onclick="loadJourneyStep('stomata')">
+                <span>🍃</span> Stomata Control
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('transpiration')">
+                <span>💨</span> Transpiration
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('leafanatomy')">
+                <span>🔬</span> Leaf Anatomy
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('translocation')">
+                <span>🚛</span> Translocation
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('energy')">
+                <span>⚡</span> Energy (ATP)
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('regulation')">
+                <span>🎛️</span> Regulation
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('integration')">
+                <span>🔄</span> Integration
+            </button>
+        </div>
+    </div>
+
+    <!-- 3D Model Container -->
+    <div class="model-container">
+        <div class="sketchfab-embed-wrapper">
+            <iframe id="api-frame"
+                    title="Transpiration Model" 
+                    frameborder="0" 
+                    allowfullscreen 
+                    mozallowfullscreen="true" 
+                    webkitallowfullscreen="true" 
+                    allow="autoplay; fullscreen; xr-spatial-tracking"
+                    xr-spatial-tracking 
+                    execution-while-out-of-viewport 
+                    execution-while-not-rendered 
+                    web-share 
+                    src="https://sketchfab.com/models/00ffda2fc813426a9852abe6350332ca/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0">
+            </iframe>
+        </div>
+    </div>
+
+    <!-- Information Panel -->
+    <div class="info-panel" id="infoPanel">
+        <div class="info-header">
+            <div class="info-icon" id="stepIcon">🍃</div>
+            <div class="info-title">
+                <h2 id="stepTitle">Stomatal Control - Gas Exchange Regulation</h2>
+                <div class="info-subtitle" id="stepSubtitle">The gatekeepers of plant transpiration</div>
+            </div>
+        </div>
+
+        <!-- Progress Tracker -->
+        <div class="progress-tracker">
+            <div class="progress-header">
+                <span>Transport Process Progress</span>
+                <span class="progress-percentage" id="progressPercent">14%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 14%"></div>
+            </div>
+            <div class="progress-steps-mini">
+                <span class="step-mini active" onclick="loadJourneyStep('stomata')">Stomata</span>
+                <span class="step-mini" onclick="loadJourneyStep('transpiration')">Trans</span>
+                <span class="step-mini" onclick="loadJourneyStep('leafanatomy')">Leaf</span>
+                <span class="step-mini" onclick="loadJourneyStep('translocation')">Food</span>
+                <span class="step-mini" onclick="loadJourneyStep('energy')">ATP</span>
+                <span class="step-mini" onclick="loadJourneyStep('regulation')">Reg</span>
+                <span class="step-mini" onclick="loadJourneyStep('integration')">Int</span>
+            </div>
+        </div>
+
+        <div class="info-content" id="mainDescription">
+            Stomata are microscopic pores controlled by guard cells that regulate gas exchange and water loss in plants. These dynamic structures respond to environmental conditions, balancing the plant's need for CO₂ uptake with water conservation.
+        </div>
+
+        <div class="info-card">
+            <div class="info-card-title">
+                <span>🔬</span> Stomatal Mechanism
+            </div>
+            <div class="info-card-content">
+                <ul class="info-list" id="keyConcepts">
+                    <li>Guard cells: kidney-shaped cells controlling pore opening</li>
+                    <li>Turgor pressure: water pressure determines cell shape</li>
+                    <li>K⁺ pumps: active transport regulates ion concentration</li>
+                    <li>Light response: blue light triggers opening</li>
+                    <li>CO₂ levels: low CO₂ promotes stomatal opening</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="fun-fact">
+            <div class="fun-fact-title">Stomatal Facts!</div>
+            <div class="fun-fact-text" id="funFact">
+                Guard cells can change volume by up to 40% in just 15 minutes, making stomata among the fastest-responding structures in plants!
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-card-title">
+                <span>🎯</span> Learning Objectives
+            </div>
+            <div class="info-card-content" id="learningObjectives">
+                Understand how guard cells control stomatal opening, learn about environmental factors affecting regulation, and appreciate the balance between gas exchange and water conservation.
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Controls -->
+    <div class="voice-controls">
+        <button class="control-btn active" id="voiceToggle" onclick="toggleVoice()">
+            🔊
+            <span class="control-tooltip">Voice Narration</span>
+        </button>
+        <button class="control-btn" onclick="toggleAutoPlay()">
+            ▶️
+            <span class="control-tooltip">Auto Journey</span>
+        </button>
+        <button class="control-btn" onclick="toggleInfo()">
+            ℹ️
+            <span class="control-tooltip">Toggle Info</span>
+        </button>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <button class="action-btn" onclick="startGuidedTour()">
+            <span>🚀</span> Guided Tour
+        </button>
+        <button class="action-btn" onclick="showQuiz()">
+            <span>🎯</span> Test Knowledge
+        </button>
+    </div>
+
+    <!-- Voice Indicator -->
+    <div class="voice-indicator" id="voiceIndicator">
+        <div class="voice-waves">
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+        </div>
+        <div class="narration-text" id="narrationText">Narrating...</div>
+    </div>
+
+    <script>
+        // Journey Step Data for Transpiration and Translocation
+        const JOURNEY_DATA = {
+            stomata: {
+                title: "Stomatal Control - Gas Exchange Regulation",
+                subtitle: "The gatekeepers of plant transpiration",
+                icon: "🍃",
+                modelUrl: "https://sketchfab.com/models/00ffda2fc813426a9852abe6350332ca/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Stomata are microscopic pores controlled by guard cells that regulate gas exchange and water loss in plants. These dynamic structures respond to environmental conditions, balancing the plant's need for CO₂ uptake with water conservation.",
+                concepts: [
+                    "Guard cells: kidney-shaped cells controlling pore opening",
+                    "Turgor pressure: water pressure determines cell shape",
+                    "K⁺ pumps: active transport regulates ion concentration",
+                    "Light response: blue light triggers opening",
+                    "CO₂ levels: low CO₂ promotes stomatal opening"
+                ],
+                funFact: "Guard cells can change volume by up to 40% in just 15 minutes, making stomata among the fastest-responding structures in plants!",
+                objectives: "Understand how guard cells control stomatal opening, learn about environmental factors affecting regulation, and appreciate the balance between gas exchange and water conservation.",
+                narration: "Welcome to the remarkable world of stomatal control! These microscopic structures are the plant's smart breathing pores, constantly adjusting to balance competing needs. Each stoma is controlled by two guard cells that work like hydraulic actuators. When the plant needs to open stomata for photosynthesis, guard cells actively pump potassium ions into their cytoplasm using ATP energy. This increases the solute concentration, causing water to flow in by osmosis. As the guard cells become turgid, their unique kidney shape causes them to bow outward, opening the pore between them. The process reverses when water conservation is needed - potassium ions are pumped out, water follows, guard cells become flaccid, and the stoma closes. Environmental factors continuously influence this process: blue light from the sun triggers opening for photosynthesis, low CO₂ levels signal the need for more carbon dioxide uptake, and drought stress hormones like ABA cause closure to conserve water."
+            },
+            transpiration: {
+                title: "Transpiration Process & Significance",
+                subtitle: "The driving force of plant water transport",
+                icon: "💨",
+                modelUrl: "https://sketchfab.com/models/e71bfcf145c742cdbbde168d0f9736b8/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Transpiration is the loss of water vapor from plant surfaces, primarily through stomata. This process drives water uptake from roots, transports minerals, cools the plant, and provides the force for the cohesion-tension mechanism of water transport.",
+                concepts: [
+                    "Water vapor loss: primarily through stomatal pores",
+                    "Transpiration stream: continuous water flow from roots to leaves",
+                    "Cooling effect: evaporation reduces leaf temperature",
+                    "Mineral transport: dissolved nutrients carried in transpiration stream",
+                    "Driving force: creates suction that pulls water upward"
+                ],
+                funFact: "A large oak tree can transpire over 1,000 liters of water per day during summer - enough to fill 10 bathtubs!",
+                objectives: "Understand the mechanism of transpiration, learn its multiple functions in plants, and appreciate how it drives water transport throughout the plant.",
+                narration: "Transpiration is much more than simple water loss - it's the engine that powers plant water transport! When water molecules evaporate from the moist surfaces inside leaves and exit through stomata, they create a powerful suction force that pulls water up from the roots. This process happens in several steps: first, water evaporates from the wet cell walls in the leaf's spongy mesophyll, creating water vapor. This vapor moves through air spaces to reach stomata, where it exits to the atmosphere. As water molecules leave, they pull on the remaining water molecules through hydrogen bonding - this cohesive force extends all the way down to the roots! The benefits are multiple: transpiration cools the plant like sweating cools animals, it transports dissolved minerals from soil to all plant parts, and it maintains turgor pressure in cells. The rate depends on environmental conditions - dry air, bright light, high temperature, and wind all increase transpiration, while high humidity and still air reduce it."
+            },
+            leafanatomy: {
+                title: "Leaf Anatomy for Gas Exchange",
+                subtitle: "Structural adaptations for efficient transport",
+                icon: "🔬",
+                modelUrl: "https://sketchfab.com/models/e71bfcf145c742cdbbde168d0f9736b8/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Leaf anatomy is perfectly adapted for efficient gas exchange and transpiration. The internal structure includes specialized tissues that maximize surface area for gas exchange while maintaining structural support and transport pathways.",
+                concepts: [
+                    "Palisade mesophyll: columnar cells packed with chloroplasts",
+                    "Spongy mesophyll: loose arrangement with air spaces",
+                    "Vascular bundles: xylem and phloem transport tissues",
+                    "Epidermis: protective outer layer with cuticle",
+                    "Substomatal cavity: air space beneath each stoma"
+                ],
+                funFact: "The internal surface area of a leaf can be 30 times greater than its external surface area due to the intricate air space system!",
+                objectives: "Identify leaf tissue types, understand how anatomy facilitates gas exchange, and appreciate the relationship between structure and function in leaves.",
+                narration: "The leaf's internal architecture is a masterpiece of biological engineering optimized for gas exchange! This cross-section reveals several distinct tissue layers, each with specific functions. The upper epidermis forms a protective barrier topped with a waxy cuticle that reduces water loss. Beneath this, the palisade mesophyll consists of tightly packed, columnar cells loaded with chloroplasts where most photosynthesis occurs. Below the palisade layer lies the spongy mesophyll - a loose arrangement of irregularly shaped cells separated by extensive air spaces. These air spaces are crucial: they allow rapid diffusion of gases throughout the leaf interior and connect to stomata for gas exchange with the atmosphere. The substomatal cavities beneath each stoma create local areas where water vapor can accumulate before exiting. Vascular bundles containing xylem and phloem run through the leaf, delivering water and removing the sugars produced by photosynthesis. This entire system maximizes the internal surface area available for gas exchange while maintaining efficient transport pathways."
+            },
+            translocation: {
+                title: "Food Translocation in Phloem",
+                subtitle: "Sugar transport throughout the plant",
+                icon: "🚛",
+                modelUrl: "https://sketchfab.com/models/e71bfcf145c742cdbbde168d0f9736b8/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Translocation is the transport of organic compounds, primarily sugars, through phloem tissue. This process moves photosynthetic products from sources (leaves) to sinks (roots, fruits, growing tissues) using the pressure flow mechanism.",
+                concepts: [
+                    "Source to sink flow: from photosynthetic tissues to storage/growth areas",
+                    "Sieve elements: living cells forming phloem tubes",
+                    "Companion cells: support sieve elements with energy and proteins",
+                    "Pressure flow hypothesis: mass flow driven by pressure differences",
+                    "Loading and unloading: active transport at source and sink ends"
+                ],
+                funFact: "Phloem sap can flow at speeds up to 1 meter per hour and contains 10-25% sugar - sweeter than most soft drinks!",
+                objectives: "Understand the pressure flow mechanism, learn about source-sink relationships, and appreciate how plants distribute photosynthetic products.",
+                narration: "Welcome to the plant's food distribution network - the phloem translocation system! Unlike xylem's one-way water transport, phloem moves organic compounds bidirectionally from sources to sinks. Sources are any tissues producing sugars, primarily leaves during photosynthesis, while sinks are tissues using or storing these sugars, like roots, fruits, or growing shoots. The process begins when sugars are actively loaded into sieve elements at source locations using ATP energy. This creates a high solute concentration that draws water in from nearby xylem, generating pressure. At sink locations, sugars are actively unloaded, reducing solute concentration and pressure. This pressure difference drives mass flow through the phloem network - imagine a pressure-driven pipeline carrying sugar solution throughout the plant! The sieve elements are specialized living cells with perforated end walls called sieve plates that allow rapid flow. Companion cells adjacent to sieve elements provide energy and maintain the metabolic functions that sieve elements can't perform themselves. This system can rapidly redirect food resources - for example, when a plant flowers, sugars are redirected from storage tissues to developing flowers and fruits."
+            },
+            energy: {
+                title: "Energy Requirements - ATP in Transport",
+                subtitle: "The currency of cellular energy",
+                icon: "⚡",
+                modelUrl: "https://sketchfab.com/models/c57e3245be264e97a25d96ae9aa7c8ba/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "ATP (adenosine triphosphate) provides the energy currency for active transport processes in plants. Many aspects of plant transport require energy input, from ion pumping in guard cells to sugar loading in phloem.",
+                concepts: [
+                    "ATP structure: adenine, ribose, and three phosphate groups",
+                    "Energy release: hydrolysis of phosphate bonds releases energy",
+                    "Active transport: energy-dependent movement against gradients",
+                    "Ion pumps: ATP-powered transport of K⁺, H⁺, and other ions",
+                    "Secondary transport: using ion gradients to drive other transport"
+                ],
+                funFact: "A single guard cell can use millions of ATP molecules in just a few minutes when rapidly changing stomatal aperture!",
+                objectives: "Understand ATP structure and function, learn which transport processes require energy, and appreciate the energy costs of plant transport systems.",
+                narration: "Meet ATP - the universal energy currency that powers active transport in plants! This remarkable molecule consists of adenine attached to ribose sugar, which connects to a chain of three phosphate groups. The magic happens in those phosphate bonds: when the terminal phosphate is removed by hydrolysis, about 7.3 kilocalories of energy are released per mole. This energy powers many transport processes that can't occur spontaneously. In stomatal control, ATP drives the H⁺-ATPase pumps that create the electrochemical gradients necessary for potassium ion movement. In phloem loading, ATP powers the proton pumps that create the driving force for sugar uptake into sieve elements. Root cells use ATP to actively absorb minerals from soil against concentration gradients. Even some aspects of xylem transport require ATP - root pressure generation depends on active ion transport powered by ATP. The plant must constantly produce ATP through cellular respiration and photophosphorylation to maintain these energy-requiring transport processes. This represents a significant metabolic cost, but it's essential for precise control of transport processes that passive diffusion alone cannot achieve."
+            },
+            regulation: {
+                title: "Transport Regulation Mechanisms",
+                subtitle: "Environmental and hormonal controls",
+                icon: "🎛️",
+                modelUrl: "https://sketchfab.com/models/00ffda2fc813426a9852abe6350332ca/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Plant transport is regulated by complex interactions between environmental factors and internal signals. Hormones, circadian rhythms, and stress responses fine-tune transport processes to match plant needs with environmental conditions.",
+                concepts: [
+                    "Abscisic acid (ABA): drought stress hormone closing stomata",
+                    "Circadian rhythms: daily cycles in stomatal opening",
+                    "Light quality: red/far-red ratios affect stomatal responses",
+                    "Water status: turgor pressure influences transport rates",
+                    "Temperature effects: affects enzyme activity and membrane properties"
+                ],
+                funFact: "Plants can 'remember' drought stress for several days through ABA signaling, keeping stomata more tightly controlled even after water returns!",
+                objectives: "Learn about hormonal regulation of transport, understand environmental sensing mechanisms, and appreciate how plants integrate multiple signals.",
+                narration: "Plant transport systems are remarkably sophisticated, integrating multiple environmental and internal signals to optimize performance! The hormone abscisic acid (ABA) is a key regulator, accumulating during drought stress and causing stomatal closure to conserve water. ABA works by triggering calcium release in guard cells, which activates ion channels that reverse the potassium accumulation needed for opening. Circadian clocks create daily rhythms in stomatal behavior - many plants open stomata in anticipation of dawn and begin closing them before dusk. Light quality matters too: blue light directly triggers stomatal opening through phototropin receptors, while red light affects long-term stomatal development. Temperature has complex effects: moderate warming increases transpiration rates, but heat stress triggers closure to prevent excessive water loss. The plant integrates all these signals through complex signaling networks. For example, during drought, ABA can override the normal light-induced opening response. Plants also show anticipatory responses - they may begin adjusting transport processes based on subtle environmental cues that predict changing conditions. This regulation allows plants to maintain optimal water status while maximizing photosynthetic carbon gain."
+            },
+            integration: {
+                title: "Transport System Integration",
+                subtitle: "Coordinating water and food transport",
+                icon: "🔄",
+                modelUrl: "https://sketchfab.com/models/e71bfcf145c742cdbbde168d0f9736b8/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Plant transport systems work as integrated networks, coordinating water transport in xylem with food transport in phloem while responding to environmental conditions and developmental needs.",
+                concepts: [
+                    "Xylem-phloem interactions: shared water and pressure relationships",
+                    "Source-sink dynamics: developmental changes in transport patterns",
+                    "Whole-plant hydraulics: coordinated water movement and storage",
+                    "Stress responses: integrated adjustments to transport capacity",
+                    "Growth coordination: transport supporting tissue development"
+                ],
+                funFact: "During fruit development, a single large fruit can redirect up to 80% of the plant's total sugar production, dramatically changing the entire transport network!",
+                objectives: "Understand how transport systems work together, appreciate whole-plant integration, and learn how transport patterns change during development.",
+                narration: "Let's explore how all plant transport systems work together as an integrated network! Xylem and phloem don't operate independently - they interact in complex ways. Water from xylem provides the solvent for phloem translocation, and pressure changes in one system can affect the other. During photosynthesis, sugar production in leaves creates strong sink strength that can influence local water transport patterns. The plant constantly adjusts its transport network based on developmental needs: young, growing leaves start as sinks for both water and nutrients, then transition to become sources as they mature. During reproduction, developing flowers and fruits become powerful sinks that can redirect transport streams throughout the plant. Seasonal changes create dramatic shifts: in deciduous trees, autumn leaf senescence triggers massive nutrient retrieval from leaves back to storage organs. Stress responses require coordinated adjustments across all transport systems: drought triggers not only stomatal closure but also changes in root hydraulic conductivity, leaf area regulation, and prioritization of sugar allocation to maintain critical functions. This integration allows plants to respond as unified organisms, optimizing resource use and survival across a wide range of environmental conditions."
+            }
+        };
+
+        // Global Variables
+        let currentStep = 'stomata';
+        let voiceEnabled = true;
+        let autoPlayEnabled = false;
+        let currentSpeech = null;
+        let selectedVoice = null;
+        let journeyProgress = 0;
+        let guidedTourActive = false;
+
+        // Initialize Voice System
+        function initVoiceSystem() {
+            if (!('speechSynthesis' in window)) {
+                console.warn('Speech synthesis not supported');
+                voiceEnabled = false;
+                document.getElementById('voiceToggle').style.display = 'none';
+                return;
+            }
+
+            function loadVoices() {
+                const voices = speechSynthesis.getVoices();
+                if (voices.length === 0) return;
+
+                const preferredVoices = [
+                    'Google UK English Female',
+                    'Microsoft Sonia',
+                    'Microsoft Hazel',
+                    'Samantha',
+                    'Victoria'
+                ];
+
+                for (const name of preferredVoices) {
+                    selectedVoice = voices.find(v => v.name.includes(name));
+                    if (selectedVoice) break;
+                }
+
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(v => v.lang.startsWith('en'));
+                }
+            }
+
+            loadVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        }
+
+        // Load Journey Step
+        function loadJourneyStep(stepId) {
+            const stepData = JOURNEY_DATA[stepId];
+            if (!stepData) return;
+
+            currentStep = stepId;
+            
+            // Update model
+            document.getElementById('api-frame').src = stepData.modelUrl;
+            
+            // Update info panel
+            document.getElementById('stepIcon').textContent = stepData.icon;
+            document.getElementById('stepTitle').textContent = stepData.title;
+            document.getElementById('stepSubtitle').textContent = stepData.subtitle;
+            document.getElementById('mainDescription').textContent = stepData.description;
+            
+            // Update key concepts
+            const conceptsList = document.getElementById('keyConcepts');
+            conceptsList.innerHTML = stepData.concepts.map(c => `<li>${c}</li>`).join('');
+            
+            // Update fun fact
+            document.getElementById('funFact').textContent = stepData.funFact;
+            
+            // Update learning objectives
+            document.getElementById('learningObjectives').textContent = stepData.objectives;
+            
+            // Add energy box if present
+            const existingEnergy = document.querySelector('.energy-box');
+            if (existingEnergy) existingEnergy.remove();
+            
+            if (stepData.energy) {
+                const energyBox = document.createElement('div');
+                energyBox.className = 'energy-box';
+                energyBox.innerHTML = `
+                    <div class="energy-title">Energy Requirements</div>
+                    <div class="energy-text">${stepData.energy}</div>
+                `;
+                document.querySelector('.fun-fact').parentNode.insertBefore(energyBox, document.querySelector('.fun-fact').nextSibling);
+            }
+            
+            // Update navigation buttons
+            updateNavigationButtons(stepId);
+            
+            // Update progress
+            updateProgress();
+            
+            // Play narration if enabled
+            if (voiceEnabled) {
+                speakText(stepData.narration);
+            }
+        }
+
+        // Update Navigation Buttons
+        function updateNavigationButtons(activeStep) {
+            const buttons = document.querySelectorAll('.journey-btn');
+            const steps = ['stomata', 'transpiration', 'leafanatomy', 'translocation', 'energy', 'regulation', 'integration'];
+            const activeIndex = steps.indexOf(activeStep);
+            
+            buttons.forEach((btn, index) => {
+                btn.classList.remove('active', 'completed');
+                if (index < activeIndex) {
+                    btn.classList.add('completed');
+                } else if (index === activeIndex) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Update mini steps
+            const miniSteps = document.querySelectorAll('.step-mini');
+            miniSteps.forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index < activeIndex) {
+                    step.classList.add('completed');
+                } else if (index === activeIndex) {
+                    step.classList.add('active');
+                }
+            });
+        }
+
+        // Update Progress
+        function updateProgress() {
+            const steps = ['stomata', 'transpiration', 'leafanatomy', 'translocation', 'energy', 'regulation', 'integration'];
+            const currentIndex = steps.indexOf(currentStep);
+            const progress = ((currentIndex + 1) / steps.length) * 100;
+            
+            document.getElementById('progressPercent').textContent = Math.round(progress) + '%';
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        // Speech Functions
+        function speakText(text) {
+            if (!voiceEnabled || !text) return;
+            
+            stopSpeech();
+            
+            currentSpeech = new SpeechSynthesisUtterance(text);
+            if (selectedVoice) {
+                currentSpeech.voice = selectedVoice;
+            }
+            currentSpeech.rate = 0.9;
+            currentSpeech.pitch = 1.0;
+            currentSpeech.volume = 0.9;
+            
+            currentSpeech.onstart = () => {
+                document.getElementById('voiceIndicator').classList.add('visible');
+                document.getElementById('narrationText').textContent = 
+                    text.substring(0, 50) + (text.length > 50 ? '...' : '');
+            };
+            
+            currentSpeech.onend = () => {
+                document.getElementById('voiceIndicator').classList.remove('visible');
+                currentSpeech = null;
+                
+                if (guidedTourActive) {
+                    setTimeout(nextStep, 2000);
+                }
+            };
+            
+            speechSynthesis.speak(currentSpeech);
+        }
+
+        function stopSpeech() {
+            if (currentSpeech) {
+                speechSynthesis.cancel();
+                currentSpeech = null;
+                document.getElementById('voiceIndicator').classList.remove('visible');
+            }
+        }
+
+        // Control Functions
+        function toggleVoice() {
+            voiceEnabled = !voiceEnabled;
+            const btn = document.getElementById('voiceToggle');
+            btn.textContent = voiceEnabled ? '🔊' : '🔇';
+            btn.classList.toggle('active', voiceEnabled);
+            
+            if (!voiceEnabled) {
+                stopSpeech();
+            }
+        }
+
+        function toggleAutoPlay() {
+            autoPlayEnabled = !autoPlayEnabled;
+            if (autoPlayEnabled) {
+                startGuidedTour();
+            } else {
+                guidedTourActive = false;
+            }
+        }
+
+        function toggleInfo() {
+            const panel = document.getElementById('infoPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Guided Tour
+        function startGuidedTour() {
+            guidedTourActive = true;
+            const steps = ['stomata', 'transpiration', 'leafanatomy', 'translocation', 'energy', 'regulation', 'integration'];
+            let stepIndex = 0;
+            
+            function tourStep() {
+                if (stepIndex < steps.length && guidedTourActive) {
+                    loadJourneyStep(steps[stepIndex]);
+                    stepIndex++;
+                } else {
+                    guidedTourActive = false;
+                    if (voiceEnabled) {
+                        speakText("Congratulations! You've completed your journey through transpiration and translocation. You now understand how plants coordinate water loss with food transport in their sophisticated transport networks!");
+                    }
+                }
+            }
+            
+            tourStep();
+            window.nextStep = tourStep;
+        }
+
+        // Quiz Function
+        function showQuiz() {
+            const questions = [
+                "How do guard cells control stomatal opening?",
+                "What drives the transpiration stream in plants?",
+                "How does the pressure flow hypothesis explain translocation?",
+                "Which processes require ATP energy in plant transport?",
+                "How do plants integrate water and food transport systems?"
+            ];
+            
+            const randomQ = questions[Math.floor(Math.random() * questions.length)];
+            
+            if (voiceEnabled) {
+                speakText(`Here's a question to test your knowledge: ${randomQ} Think about what you've learned about plant transport processes!`);
+            }
+        }
+
+        // Initialize
+        function init() {
+            initVoiceSystem();
+            
+            // Hide loading screen
+            setTimeout(() => {
+                const loading = document.getElementById('loadingOverlay');
+                loading.style.opacity = '0';
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                    
+                    // Welcome message
+                    if (voiceEnabled) {
+                        speakText("Welcome to your journey through transpiration and translocation! We'll explore how plants lose water through stomata and transport food through phloem, and how these processes are coordinated. Let's start with stomatal control!");
+                    }
+                }, 1000);
+            }, 3000);
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                switch(e.key) {
+                    case 'v': toggleVoice(); break;
+                    case 'i': toggleInfo(); break;
+                    case 'g': startGuidedTour(); break;
+                    case 'Escape': stopSpeech(); guidedTourActive = false; break;
+                    case 'ArrowRight': nextStep && nextStep(); break;
+                }
+            });
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>

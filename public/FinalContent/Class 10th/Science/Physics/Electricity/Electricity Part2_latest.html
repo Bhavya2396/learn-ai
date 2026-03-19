@@ -1,0 +1,2336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 11: Circuit Diagram and Ohm's Law</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --electric-gradient: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            --current-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --shadow-primary: 0 25px 50px rgba(0, 0, 0, 0.4);
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(255, 216, 155, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-particles {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            margin: 0 auto 30px;
+        }
+
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: scatter 3s ease-in-out infinite;
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        .particle:nth-child(1) { background: #ffd89b; left: 100px; top: 100px; animation-delay: 0s; }
+        .particle:nth-child(2) { background: #19547b; left: 100px; top: 100px; animation-delay: 0.3s; }
+        .particle:nth-child(3) { background: #f093fb; left: 100px; top: 100px; animation-delay: 0.6s; }
+        .particle:nth-child(4) { background: #667eea; left: 100px; top: 100px; animation-delay: 0.9s; }
+        .particle:nth-child(5) { background: #764ba2; left: 100px; top: 100px; animation-delay: 1.2s; }
+
+        @keyframes scatter {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(calc(var(--x) * 50px), calc(var(--y) * 50px)) scale(1.5);
+                opacity: 0.7;
+            }
+            100% {
+                transform: translate(calc(var(--x) * 100px), calc(var(--y) * 100px)) scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        .particle:nth-child(1) { --x: 1; --y: -1; }
+        .particle:nth-child(2) { --x: -1; --y: -1; }
+        .particle:nth-child(3) { --x: -1; --y: 1; }
+        .particle:nth-child(4) { --x: 1; --y: 1; }
+        .particle:nth-child(5) { --x: 0; --y: -1.5; }
+
+        .loading-text {
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            font-weight: 600;
+            background: var(--electric-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 2s linear infinite;
+            background-size: 200% auto;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header {
+            text-align: center;
+            padding: 60px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: var(--electric-gradient);
+            opacity: 0.3;
+            z-index: -1;
+            border-radius: 30px;
+            animation: electricPulse 5s ease-in-out infinite;
+        }
+
+        @keyframes electricPulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.02); }
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: var(--electric-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: 800;
+            animation: titleFloat 3s ease-in-out infinite;
+            text-shadow: 0 0 30px rgba(255, 216, 155, 0.3);
+        }
+
+        @keyframes titleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .main-display {
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-radius: 30px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .demo-container {
+            height: 500px;
+            overflow: hidden;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+        }
+
+        .demo-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .demo-stage canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #chartContainer {
+            width: 100%;
+            height: 450px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            display: none;
+        }
+
+        #audio-toggle {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--electric-gradient);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+        }
+
+        #audio-toggle:hover {
+            transform: scale(1.1) rotate(10deg);
+        }
+
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            min-width: 180px;
+            position: relative;
+            overflow: hidden;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .control-btn.active {
+            background: var(--electric-gradient);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 216, 155, 0.4);
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            margin-top: 20px;
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.2));
+            padding: 30px;
+            border-radius: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #ffd89b;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .info-title {
+            color: #ffd89b;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(255, 216, 155, 0.3);
+        }
+
+        .formula-display {
+            text-align: center;
+            font-size: 2rem;
+            margin: 30px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, rgba(255, 216, 155, 0.1), rgba(25, 84, 123, 0.1));
+            border-radius: 15px;
+            font-family: 'Georgia', serif;
+            color: #ffd89b;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 216, 155, 0.2);
+        }
+
+        .example-box {
+            background: linear-gradient(135deg, rgba(0, 150, 100, 0.15), rgba(0, 100, 0, 0.1));
+            border-left: 5px solid #4ecdc4;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .example-box h4 {
+            color: #4ecdc4;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .symbols-table {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .symbols-table th {
+            background: var(--electric-gradient);
+            padding: 18px;
+            text-align: left;
+            font-weight: 600;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .symbols-table td {
+            padding: 15px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background 0.3s;
+        }
+
+        .symbols-table tr:hover td {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .question-box {
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.15), rgba(100, 0, 100, 0.1));
+            border-left: 5px solid #f093fb;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .question-box h4 {
+            color: #f093fb;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .lesson-section {
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1));
+            border-radius: 20px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .lesson-title {
+            color: #ffd89b;
+            font-size: 2.2rem;
+            margin-bottom: 25px;
+            text-align: center;
+            text-shadow: 0 3px 15px rgba(255, 216, 155, 0.3);
+        }
+
+        .lesson-text {
+            font-size: 1.15rem;
+            line-height: 1.9;
+            color: #e2e8f0;
+        }
+
+        .solution-step {
+            margin: 15px 0;
+            padding-left: 25px;
+            color: #e2e8f0;
+            font-size: 1.1rem;
+            position: relative;
+        }
+
+        .solution-step::before {
+            content: '▸';
+            position: absolute;
+            left: 5px;
+            color: #4ecdc4;
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 216, 155, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(255, 216, 155, 0.8); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .control-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-particles">
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+            </div>
+            <div class="loading-text">Preparing Ohm's Law Lab...</div>
+        </div>
+    </div>
+
+    <!-- Audio Control -->
+    <button id="audio-toggle" title="Toggle Audio Narration">🔊</button>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>⚡ Circuit Diagram & Ohm's Law</h1>
+            <p>Chapter 11.3 & 11.4 - Understanding circuit symbols and Ohm's relationship</p>
+        </div>
+
+        <!-- Main Display Area -->
+        <div class="main-display">
+            <!-- Demo Container -->
+            <div class="demo-container">
+                <div class="demo-stage">
+                    <canvas id="demoCanvas" width="1200" height="500"></canvas>
+                    <div id="chartContainer">
+                        <canvas id="dataChart"></canvas>
+                    </div>
+                    <div id="lessonContent" style="display: none; padding: 20px; color: white;"></div>
+                </div>
+            </div>
+
+            <!-- Information Panels -->
+            <div class="info-panel" id="circuitPanel" style="display: none;">
+                <div class="info-title">📊 11.3 Circuit Diagram</div>
+                <p>An electric circuit comprises a cell (or battery), a plug key, electrical component(s), and connecting wires. It is often convenient to draw a schematic diagram, using standardized symbols to represent different components.</p>
+                
+                <table class="symbols-table">
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Symbol</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Electric Cell</td>
+                            <td>⊕━⊖</td>
+                            <td>Single power source</td>
+                        </tr>
+                        <tr>
+                            <td>Battery</td>
+                            <td>⊕━⊖⊕━⊖</td>
+                            <td>Multiple cells in series</td>
+                        </tr>
+                        <tr>
+                            <td>Switch (Open)</td>
+                            <td>━ ○ ━</td>
+                            <td>Circuit breaker (off)</td>
+                        </tr>
+                        <tr>
+                            <td>Switch (Closed)</td>
+                            <td>━•━</td>
+                            <td>Circuit breaker (on)</td>
+                        </tr>
+                        <tr>
+                            <td>Bulb</td>
+                            <td>⊗</td>
+                            <td>Light source</td>
+                        </tr>
+                        <tr>
+                            <td>Resistor</td>
+                            <td>━▭━</td>
+                            <td>Resistance element</td>
+                        </tr>
+                        <tr>
+                            <td>Ammeter</td>
+                            <td>━(A)━</td>
+                            <td>Current measurement</td>
+                        </tr>
+                        <tr>
+                            <td>Voltmeter</td>
+                            <td>━(V)━</td>
+                            <td>Voltage measurement</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="info-panel" id="ohmsPanel" style="display: none;">
+                <div class="info-title">⚖️ 11.4 Ohm's Law</div>
+                <p>In 1827, Georg Simon Ohm discovered the relationship between current and potential difference. The potential difference (V) across the ends of a metallic wire is directly proportional to the current (I) flowing through it, provided temperature remains constant.</p>
+                
+                <div class="formula-display">
+                    V = I × R
+                </div>
+                
+                <p>Where:</p>
+                <ul style="margin-left: 20px; line-height: 2;">
+                    <li><strong>V</strong> = Potential Difference (Volts, V)</li>
+                    <li><strong>I</strong> = Current (Amperes, A)</li>
+                    <li><strong>R</strong> = Resistance (Ohms, Ω)</li>
+                </ul>
+                
+                <p style="margin-top: 20px;"><strong>Key Facts:</strong></p>
+                <ul style="margin-left: 20px; line-height: 2;">
+                    <li>1 Ohm = 1 Volt / 1 Ampere</li>
+                    <li>R = V/I (resistance calculation)</li>
+                    <li>I = V/R (current calculation)</li>
+                    <li>Resistance opposes current flow</li>
+                    <li>Named after Georg Simon Ohm (1787-1854)</li>
+                </ul>
+            </div>
+
+            <!-- Activity 11.1 -->
+            <div class="example-box" id="activity1" style="display: none;">
+                <h4>Activity 11.1 - Exploring Ohm's Law</h4>
+                <p><strong>Setup:</strong> Circuit with nichrome wire (0.5m), ammeter, voltmeter, and 1-4 cells (1.5V each)</p>
+                
+                <p style="margin-top: 15px;"><strong>Observations:</strong></p>
+                <table class="symbols-table">
+                    <thead>
+                        <tr>
+                            <th>No. of Cells</th>
+                            <th>Current (A)</th>
+                            <th>Voltage (V)</th>
+                            <th>V/I (Ω)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>0.15</td>
+                            <td>1.5</td>
+                            <td>10.0</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>0.30</td>
+                            <td>3.0</td>
+                            <td>10.0</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>0.45</td>
+                            <td>4.5</td>
+                            <td>10.0</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>0.60</td>
+                            <td>6.0</td>
+                            <td>10.0</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <p style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                    💡 The V/I ratio remains constant! This demonstrates Ohm's Law - the linear relationship between voltage and current.
+                </p>
+            </div>
+
+            <!-- Activity 11.2 -->
+            <div class="example-box" id="activity2" style="display: none;">
+                <h4>Activity 11.2 - Comparing Resistances</h4>
+                <p><strong>Setup:</strong> Test circuit with different components: nichrome wire, torch bulb, 10W bulb</p>
+                
+                <p style="margin-top: 15px;"><strong>Results:</strong></p>
+                <div class="solution-step">Nichrome wire: High current (low resistance)</div>
+                <div class="solution-step">Torch bulb: Medium current (medium resistance)</div>
+                <div class="solution-step">10W bulb: Low current (high resistance)</div>
+                
+                <p style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                    💡 Different components offer different resistances to current flow. A rheostat can be used to vary resistance in a circuit.
+                </p>
+            </div>
+
+            <!-- Practice Questions -->
+            <div class="question-box" id="questions" style="display: none;">
+                <h4>Practice Questions</h4>
+                <ol style="line-height: 2;">
+                    <li>What is the purpose of using circuit symbols?</li>
+                    <li>State Ohm's Law and write its mathematical expression.</li>
+                    <li>If V = 12V and I = 2A, calculate the resistance.</li>
+                    <li>Why does current differ for different components in the same circuit?</li>
+                </ol>
+                
+                <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                    <p><strong>Answers:</strong></p>
+                    <p>1. To represent circuit components in a standardized, simple way</p>
+                    <p>2. V ∝ I or V = IR (at constant temperature)</p>
+                    <p>3. R = V/I = 12V/2A = 6Ω</p>
+                    <p>4. Different materials offer different resistance to electron flow</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button class="control-btn active" data-mode="lesson">📚 Complete Lesson</button>
+            <button class="control-btn" data-mode="symbols">📊 Circuit Symbols</button>
+            <button class="control-btn" data-mode="ohmslaw">⚖️ Ohm's Law Demo</button>
+            <button class="control-btn" data-mode="experiment">🔬 Virtual Experiment</button>
+            <button class="control-btn" data-mode="vgraph">📈 V-I Graph</button>
+            <button class="control-btn" data-mode="resistance">🔌 Resistance Demo</button>
+            <button class="control-btn" data-mode="rheostat">🎛️ Variable Resistance</button>
+        </div>
+        
+        <!-- Reset Button -->
+        <div style="text-align: center;">
+            <button class="control-btn reset-btn" id="resetBtn">🔄 Reset Everything</button>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let currentMode = 'lesson';
+        let animationFrame = null;
+        let time = 0;
+        let lessonSequence = null;
+        let lessonStarted = false;
+        let audioEnabled = true;
+        let chartInstance = null;
+
+        // Canvas and Context
+        const canvas = document.getElementById('demoCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Audio Narrator Class
+        class AudioNarrator {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.enabled = true;
+                this.speaking = false;
+            }
+
+            speak(text, priority = false) {
+                if (!this.enabled) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    if (priority) {
+                        this.stop();
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.9;
+                    
+                    utterance.onend = () => {
+                        this.speaking = false;
+                        resolve();
+                    };
+                    
+                    this.synth.speak(utterance);
+                    this.speaking = true;
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.speaking = false;
+            }
+
+            toggle() {
+                this.enabled = !this.enabled;
+                if (!this.enabled) this.stop();
+                return this.enabled;
+            }
+        }
+
+        const narrator = new AudioNarrator();
+
+        // Lesson Sequence Class
+        class LessonSequence {
+            constructor() {
+                this.sections = [
+                    { id: 'intro', name: 'Introduction', duration: 5000 },
+                    { id: 'symbols', name: 'Circuit Symbols', duration: 10000 },
+                    { id: 'ohmslaw', name: 'Ohm\'s Law', duration: 10000 },
+                    { id: 'experiment', name: 'Virtual Experiment', duration: 10000 },
+                    { id: 'vgraph', name: 'V-I Graph', duration: 8000 },
+                    { id: 'resistance', name: 'Resistance Demo', duration: 8000 },
+                    { id: 'rheostat', name: 'Variable Resistance', duration: 8000 }
+                ];
+                this.currentSection = 0;
+                this.running = false;
+                this.timeout = null;
+            }
+
+            async start() {
+                this.stop();
+                this.running = true;
+                this.currentSection = 0;
+                
+                document.getElementById('demoCanvas').style.display = 'none';
+                document.getElementById('chartContainer').style.display = 'none';
+                document.getElementById('lessonContent').style.display = 'block';
+                hideAllPanels();
+                
+                await narrator.speak("Welcome to Chapter 11. Let's explore circuit diagrams and Ohm's law!");
+                
+                await this.runNextSection();
+            }
+
+            async runNextSection() {
+                if (!this.running || this.currentSection >= this.sections.length) {
+                    if (this.running) {
+                        await narrator.speak("Congratulations! You've completed the lesson on circuit diagrams and Ohm's law.");
+                        this.showCompletionMessage();
+                    }
+                    return;
+                }
+
+                const section = this.sections[this.currentSection];
+                
+                // Update display based on section
+                this.updateDisplay(section.id);
+                
+                // Set mode for animation
+                currentMode = section.id;
+                
+                // Start narration for each section
+                await this.narrate(section.id);
+                
+                await this.wait(section.duration);
+                
+                if (this.running) {
+                    this.currentSection++;
+                    await this.runNextSection();
+                }
+            }
+
+            updateDisplay(sectionId) {
+                hideAllPanels();
+                document.getElementById('chartContainer').style.display = 'none';
+                document.getElementById('lessonContent').style.display = 'none';
+                document.getElementById('demoCanvas').style.display = 'block';
+                
+                switch(sectionId) {
+                    case 'intro':
+                        document.getElementById('demoCanvas').style.display = 'none';
+                        document.getElementById('lessonContent').style.display = 'block';
+                        this.showIntroContent();
+                        break;
+                    case 'symbols':
+                        document.getElementById('circuitPanel').style.display = 'block';
+                        break;
+                    case 'ohmslaw':
+                        document.getElementById('ohmsPanel').style.display = 'block';
+                        break;
+                    case 'experiment':
+                        document.getElementById('activity1').style.display = 'block';
+                        break;
+                    case 'vgraph':
+                        document.getElementById('demoCanvas').style.display = 'none';
+                        document.getElementById('chartContainer').style.display = 'block';
+                        createVIGraph();
+                        break;
+                    case 'resistance':
+                        document.getElementById('activity2').style.display = 'block';
+                        break;
+                    case 'rheostat':
+                        document.getElementById('questions').style.display = 'block';
+                        break;
+                }
+            }
+
+            async narrate(sectionId) {
+                switch(sectionId) {
+                    case 'intro':
+                        await narrator.speak("Electric circuits are the foundation of all electronic devices. To understand and design circuits efficiently, we use standardized symbols and follow fundamental laws. Today we'll explore circuit diagrams and discover Ohm's law, which describes the relationship between voltage, current, and resistance.");
+                        break;
+                    case 'symbols':
+                        await narrator.speak("Circuit symbols are standardized representations of electrical components. Just like musical notes represent sounds, these symbols represent electrical elements. The cell symbol shows a single power source with positive and negative terminals. A battery is multiple cells connected in series. Switches control current flow, resistors limit current, and meters measure electrical quantities. These symbols make complex circuits easy to understand and share globally.");
+                        break;
+                    case 'ohmslaw':
+                        await narrator.speak("Ohm's Law states that the potential difference across a conductor is directly proportional to the current flowing through it, provided temperature remains constant. V equals I times R, where V is voltage in volts, I is current in amperes, and R is resistance in ohms. This fundamental relationship helps us calculate any electrical quantity if we know the other two. Resistance is the property that opposes current flow - higher resistance means less current for the same voltage.");
+                        break;
+                    case 'experiment':
+                        await narrator.speak("In Activity 11.1, we connect a nichrome wire with varying numbers of cells. Notice how doubling the voltage doubles the current - this linear relationship is Ohm's law in action! The V over I ratio remains constant at 10 ohms, which is the resistance of the nichrome wire. This experiment proves that resistance is a property of the conductor, not dependent on voltage or current. The straight-line graph through the origin confirms the direct proportionality between voltage and current.");
+                        break;
+                    case 'vgraph':
+                        await narrator.speak("The voltage-current graph is a straight line passing through the origin. This linear relationship is the graphical representation of Ohm's law. The slope of this line equals the resistance - steeper slopes mean higher resistance. For our nichrome wire with 10 ohms resistance, every volt increases the current by 0.1 ampere. This graph is fundamental for understanding how electrical components behave in circuits.");
+                        break;
+                    case 'resistance':
+                        await narrator.speak("Different materials offer different resistance to current flow. In Activity 11.2, the nichrome wire allows high current, showing low resistance. The torch bulb has medium resistance, while the 10 watt bulb has high resistance. This happens because electrons face different levels of opposition as they move through different materials. Good conductors like copper have low resistance, while insulators have extremely high resistance. Understanding resistance helps us control current in circuits.");
+                        break;
+                    case 'rheostat':
+                        await narrator.speak("A rheostat, or variable resistor, allows us to change resistance in a circuit without changing the voltage source. By sliding a contact along a resistance wire, we can increase or decrease the effective length of the resistor. This changes the total resistance and therefore controls the current. Rheostats are used in volume controls, light dimmers, and motor speed controllers. They demonstrate that resistance can be adjusted to achieve desired current levels in practical applications.");
+                        break;
+                }
+            }
+
+            showIntroContent() {
+                const html = `
+                    <div class="lesson-section">
+                        <h2 class="lesson-title">Introduction to Circuit Diagrams & Ohm's Law</h2>
+                        <div class="lesson-text">
+                            <p>In this lesson, we'll explore:</p>
+                            <ul style="margin: 20px; line-height: 2;">
+                                <li>📊 Standard circuit symbols and their meanings</li>
+                                <li>⚖️ Ohm's Law and its mathematical expression</li>
+                                <li>🔬 Experimental verification of Ohm's Law</li>
+                                <li>📈 V-I graphs and their interpretation</li>
+                                <li>🔌 How resistance affects current flow</li>
+                                <li>🎛️ Variable resistance and its applications</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            showCompletionMessage() {
+                const html = `
+                    <div style="text-align: center; padding: 40px;">
+                        <h2 style="color: #ffd89b; margin-bottom: 20px;">
+                            🎉 Lesson Complete!
+                        </h2>
+                        <p style="font-size: 1.2rem;">You've mastered:</p>
+                        <ul style="margin: 20px auto; max-width: 400px; text-align: left; list-style: none;">
+                            <li style="margin: 10px 0; color: #4ecdc4;">✔ Circuit Symbols</li>
+                            <li style="margin: 10px 0; color: #4ecdc4;">✔ Ohm's Law (V = IR)</li>
+                            <li style="margin: 10px 0; color: #4ecdc4;">✔ V-I Graphs</li>
+                            <li style="margin: 10px 0; color: #4ecdc4;">✔ Resistance Concepts</li>
+                            <li style="margin: 10px 0; color: #4ecdc4;">✔ Variable Resistance</li>
+                        </ul>
+                        <p style="margin-top: 30px;">
+                            Explore individual sections or reset to review.
+                        </p>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+                document.getElementById('lessonContent').style.display = 'block';
+                document.getElementById('demoCanvas').style.display = 'none';
+            }
+
+            wait(ms) {
+                return new Promise(resolve => {
+                    this.timeout = setTimeout(resolve, ms);
+                });
+            }
+
+            stop() {
+                this.running = false;
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                    this.timeout = null;
+                }
+                narrator.stop();
+            }
+        }
+
+        // Helper function to hide all panels
+        function hideAllPanels() {
+            document.getElementById('circuitPanel').style.display = 'none';
+            document.getElementById('ohmsPanel').style.display = 'none';
+            document.getElementById('activity1').style.display = 'none';
+            document.getElementById('activity2').style.display = 'none';
+            document.getElementById('questions').style.display = 'none';
+        }
+
+        // Create V-I Graph
+        function createVIGraph() {
+            const chartCanvas = document.getElementById('dataChart');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            
+            const chartData = {
+                labels: ['0V', '1.5V', '3V', '4.5V', '6V', '7.5V', '9V'],
+                datasets: [
+                    {
+                        label: 'Current vs Voltage (Nichrome Wire)',
+                        data: [0, 0.15, 0.30, 0.45, 0.60, 0.75, 0.90],
+                        borderColor: '#ffd89b',
+                        backgroundColor: 'rgba(255, 216, 155, 0.1)',
+                        borderWidth: 3,
+                        tension: 0,
+                        pointRadius: 6,
+                        pointHoverRadius: 10,
+                        pointBackgroundColor: '#ffd89b',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    },
+                    {
+                        label: 'Linear Fit (R = 10Ω)',
+                        data: [0, 0.15, 0.30, 0.45, 0.60, 0.75, 0.90],
+                        borderColor: '#4ecdc4',
+                        borderDash: [5, 5],
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        tension: 0,
+                        pointRadius: 0,
+                        pointHoverRadius: 0
+                    }
+                ]
+            };
+            
+            chartInstance = new Chart(chartCanvas, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'V-I Characteristic (Ohm\'s Law Demonstration)',
+                            color: '#ffd89b',
+                            font: {
+                                size: 20,
+                                weight: 'bold'
+                            },
+                            padding: 20
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                },
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffd89b',
+                            bodyColor: '#ffffff',
+                            borderColor: '#ffd89b',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    if (context.dataIndex > 0) {
+                                        const v = context.dataIndex * 1.5;
+                                        const i = context.parsed.y;
+                                        const r = (v / i).toFixed(1);
+                                        return `R = V/I = ${v}V / ${i}A = ${r}Ω`;
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                borderColor: 'rgba(255, 255, 255, 0.3)'
+                            },
+                            ticks: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Current (Amperes)',
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                borderColor: 'rgba(255, 255, 255, 0.3)'
+                            },
+                            ticks: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Voltage (Volts)',
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+        }
+
+        // Animation Functions
+        function animateSymbols() {
+            // Clear canvas with gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 1200, 500);
+            gradient.addColorStop(0, '#0a0a0a');
+            gradient.addColorStop(1, '#1a1a2e');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Title
+            ctx.fillStyle = '#ffd89b';
+            ctx.font = 'bold 28px Arial';
+            ctx.shadowColor = '#ffd89b';
+            ctx.shadowBlur = 10;
+            ctx.fillText('Standard Circuit Symbols', 420, 40);
+            
+            // Draw animated circuit symbols in grid
+            const symbols = [
+                { name: 'Cell', x: 150, y: 120 },
+                { name: 'Battery', x: 350, y: 120 },
+                { name: 'Switch', x: 550, y: 120 },
+                { name: 'Bulb', x: 750, y: 120 },
+                { name: 'Resistor', x: 950, y: 120 },
+                { name: 'Ammeter', x: 250, y: 280 },
+                { name: 'Voltmeter', x: 450, y: 280 },
+                { name: 'Rheostat', x: 650, y: 280 },
+                { name: 'Wire Joint', x: 850, y: 280 }
+            ];
+            
+            symbols.forEach((symbol, index) => {
+                const pulse = Math.sin(time * 0.02 + index * 0.5) * 0.2 + 0.8;
+                
+                ctx.strokeStyle = `rgba(78, 205, 196, ${pulse})`;
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                
+                switch(symbol.name) {
+                    case 'Cell':
+                        // Draw cell symbol
+                        ctx.beginPath();
+                        ctx.moveTo(symbol.x - 30, symbol.y);
+                        ctx.lineTo(symbol.x - 10, symbol.y);
+                        ctx.stroke();
+                        
+                        ctx.strokeStyle = '#ff6b6b';
+                        ctx.lineWidth = 4;
+                        ctx.beginPath();
+                        ctx.moveTo(symbol.x - 10, symbol.y - 20);
+                        ctx.lineTo(symbol.x - 10, symbol.y + 20);
+                        ctx.stroke();
+                        
+                        ctx.strokeStyle = '#4169e1';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(symbol.x + 10, symbol.y - 10);
+                        ctx.lineTo(symbol.x + 10, symbol.y + 10);
+                        ctx.stroke();
+                        
+                        ctx.strokeStyle = `rgba(78, 205, 196, ${pulse})`;
+                        ctx.beginPath();
+                        ctx.moveTo(symbol.x + 10, symbol.y);
+                        ctx.lineTo(symbol.x + 30, symbol.y);
+                        ctx.stroke();
+                        break;
+                        
+                    case 'Battery':
+                        // Draw battery (multiple cells)
+                        for (let i = 0; i < 2; i++) {
+                            const offset = i * 30;
+                            ctx.strokeStyle = '#ff6b6b';
+                            ctx.lineWidth = 4;
+                            ctx.beginPath();
+                            ctx.moveTo(symbol.x - 30 + offset, symbol.y - 20);
+                            ctx.lineTo(symbol.x - 30 + offset, symbol.y + 20);
+                            ctx.stroke();
+                            
+                            ctx.strokeStyle = '#4169e1';
+                            ctx.lineWidth = 3;
+                            ctx.beginPath();
+                            ctx.moveTo(symbol.x - 10 + offset, symbol.y - 10);
+                            ctx.lineTo(symbol.x - 10 + offset, symbol.y + 10);
+                            ctx.stroke();
+                        }
+                        break;
+                        
+                    case 'Switch':
+                        // Draw switch (animated open/close)
+                        const switchAngle = Math.sin(time * 0.02) > 0 ? 0 : -Math.PI / 6;
+                        
+                        ctx.strokeStyle = `rgba(78, 205, 196, ${pulse})`;
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(symbol.x - 30, symbol.y);
+                        ctx.lineTo(symbol.x - 10, symbol.y);
+                        ctx.stroke();
+                        
+                        ctx.beginPath();
+                        ctx.arc(symbol.x - 10, symbol.y, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        ctx.save();
+                        ctx.translate(symbol.x - 10, symbol.y);
+                        ctx.rotate(switchAngle);
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(20, 0);
+                        ctx.stroke();
+                        ctx.restore();
+                        
+                        ctx.beginPath();
+                        ctx.arc(symbol.x + 10, symbol.y, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(symbol.x + 10, symbol.y);
+                        ctx.lineTo(symbol.x + 30, symbol.y);
+                        ctx.stroke();
+                        break;
+                        
+                    case 'Bulb':
+                        // Draw bulb with glow
+                        const glowIntensity = Math.sin(time * 0.03) * 0.3 + 0.7;
+                        
+                        ctx.shadowColor = '#ffd700';
+                        ctx.shadowBlur = 30 * glowIntensity;
+                        
+                        ctx.strokeStyle = `rgba(255, 215, 0, ${glowIntensity})`;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(symbol.x, symbol.y, 20, 0, Math.PI * 2);
+                        ctx.stroke();
+                        
+                        // Filament
+                        ctx.beginPath();
+                        ctx.moveTo(symbol.x - 10, symbol.y - 5);
+                        ctx.lineTo(symbol.x - 5, symbol.y + 5);
+                        ctx.lineTo(symbol.x + 5, symbol.y - 5);
+                        ctx.lineTo(symbol.x + 10, symbol.y + 5);
+                        ctx.stroke();
+                        
+                        ctx.shadowBlur = 0;
+                        break;
+                        
+                    case 'Resistor':
+                        // Draw resistor (zigzag)
+                        ctx.strokeStyle = `rgba(78, 205, 196, ${pulse})`;
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(symbol.x - 40, symbol.y);
+                        ctx.lineTo(symbol.x - 20, symbol.y);
+                        
+                        for (let i = 0; i < 4; i++) {
+                            const x = symbol.x - 20 + i * 10;
+                            ctx.lineTo(x + 5, symbol.y + (i % 2 === 0 ? -10 : 10));
+                        }
+                        
+                        ctx.lineTo(symbol.x + 20, symbol.y);
+                        ctx.lineTo(symbol.x + 40, symbol.y);
+                        ctx.stroke();
+                        break;
+                        
+                    case 'Ammeter':
+                        // Draw ammeter
+                        ctx.strokeStyle = `rgba(78, 205, 196, ${pulse})`;
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(symbol.x, symbol.y, 25, 0, Math.PI * 2);
+                        ctx.stroke();
+                        
+                        ctx.fillStyle = '#4ecdc4';
+                        ctx.font = 'bold 20px Arial';
+                        ctx.fillText('A', symbol.x - 8, symbol.y + 7);
+                        break;
+                        
+                    case 'Voltmeter':
+                        // Draw voltmeter
+                        ctx.strokeStyle = `rgba(240, 147, 251, ${pulse})`;
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(symbol.x, symbol.y, 25, 0, Math.PI * 2);
+                        ctx.stroke();
+                        
+                        ctx.fillStyle = '#f093fb';
+                        ctx.font = 'bold 20px Arial';
+                        ctx.fillText('V', symbol.x - 8, symbol.y + 7);
+                        break;
+                        
+                    case 'Rheostat':
+                        // Draw rheostat with slider
+                        const sliderPos = Math.sin(time * 0.02) * 15;
+                        
+                        ctx.strokeStyle = `rgba(78, 205, 196, ${pulse})`;
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(symbol.x - 40, symbol.y);
+                        ctx.lineTo(symbol.x - 20, symbol.y);
+                        
+                        // Zigzag resistance
+                        for (let i = 0; i < 4; i++) {
+                            const x = symbol.x - 20 + i * 10;
+                            ctx.lineTo(x + 5, symbol.y + (i % 2 === 0 ? -10 : 10));
+                        }
+                        
+                        ctx.lineTo(symbol.x + 20, symbol.y);
+                        ctx.lineTo(symbol.x + 40, symbol.y);
+                        ctx.stroke();
+                        
+                        // Slider arrow
+                        ctx.strokeStyle = '#ffd89b';
+                        ctx.beginPath();
+                        ctx.moveTo(symbol.x + sliderPos, symbol.y - 25);
+                        ctx.lineTo(symbol.x + sliderPos, symbol.y - 10);
+                        ctx.stroke();
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(symbol.x + sliderPos - 5, symbol.y - 15);
+                        ctx.lineTo(symbol.x + sliderPos, symbol.y - 10);
+                        ctx.lineTo(symbol.x + sliderPos + 5, symbol.y - 15);
+                        ctx.stroke();
+                        break;
+                        
+                    case 'Wire Joint':
+                        // Draw wire joint
+                        ctx.strokeStyle = `rgba(78, 205, 196, ${pulse})`;
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(symbol.x - 30, symbol.y);
+                        ctx.lineTo(symbol.x + 30, symbol.y);
+                        ctx.stroke();
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(symbol.x, symbol.y - 30);
+                        ctx.lineTo(symbol.x, symbol.y + 30);
+                        ctx.stroke();
+                        
+                        ctx.fillStyle = '#4ecdc4';
+                        ctx.beginPath();
+                        ctx.arc(symbol.x, symbol.y, 5, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                }
+                
+                // Label
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px Arial';
+                ctx.shadowBlur = 0;
+                ctx.fillText(symbol.name, symbol.x - 25, symbol.y + 50);
+            });
+            
+            ctx.shadowBlur = 0;
+            time++;
+        }
+
+        function animateOhmsLaw() {
+    // Clear canvas with gradient
+    const gradient = ctx.createLinearGradient(0, 0, 1200, 500);
+    gradient.addColorStop(0, '#0a0a0a');
+    gradient.addColorStop(1, '#1a1a2e');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 1200, 500);
+    
+    // Title
+    ctx.fillStyle = '#ffd89b';
+    ctx.font = 'bold 30px Arial';
+    ctx.shadowColor = '#ffd89b';
+    ctx.shadowBlur = 10;
+    ctx.fillText('Ohm\'s Law: V = I × R', 450, 50);
+    ctx.shadowBlur = 0;
+    
+    // Draw interactive triangle showing relationship
+    const centerX = 600;
+    const centerY = 250;
+    const radius = 120;
+    
+    // Triangle vertices
+    const angle1 = -Math.PI / 2; // Top (V)
+    const angle2 = Math.PI / 6;  // Bottom right (I)
+    const angle3 = 5 * Math.PI / 6; // Bottom left (R)
+    
+    const v1 = {
+        x: centerX + Math.cos(angle1) * radius,
+        y: centerY + Math.sin(angle1) * radius
+    };
+    const v2 = {
+        x: centerX + Math.cos(angle2) * radius,
+        y: centerY + Math.sin(angle2) * radius
+    };
+    const v3 = {
+        x: centerX + Math.cos(angle3) * radius,
+        y: centerY + Math.sin(angle3) * radius
+    };
+    
+    // Draw triangle with glow
+    const pulse = Math.sin(time * 0.02) * 0.3 + 0.7;
+    
+    ctx.strokeStyle = `rgba(78, 205, 196, ${pulse})`;
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#4ecdc4';
+    ctx.shadowBlur = 20;
+    
+    ctx.beginPath();
+    ctx.moveTo(v1.x, v1.y);
+    ctx.lineTo(v2.x, v2.y);
+    ctx.lineTo(v3.x, v3.y);
+    ctx.closePath();
+    ctx.stroke();
+    
+    // Draw division lines
+    // ctx.strokeStyle = `rgba(255, 216, 155, ${pulse})`;
+    // ctx.lineWidth = 2;
+    // ctx.beginPath();
+    // ctx.moveTo(v1.x, v1.y);
+    // ctx.lineTo(centerX, centerY);
+    // ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(v3.x, v3.y);
+    ctx.lineTo(v2.x, v2.y);
+    ctx.stroke();
+    
+    ctx.shadowBlur = 0;
+    
+    // Labels with animation
+    const labelPulse = Math.sin(time * 0.03) * 5;
+    
+    // V label
+    ctx.fillStyle = '#ffd89b';
+    ctx.font = 'bold 36px Arial';
+    ctx.fillText('V', v1.x - 12 + labelPulse * 0.2, v1.y - 20);
+    ctx.font = '16px Arial';
+    ctx.fillText('Voltage', v1.x - 25, v1.y - 45);
+    
+    // I label
+    ctx.fillStyle = '#4ecdc4';
+    ctx.font = 'bold 36px Arial';
+    ctx.fillText('I', v2.x + 20, v2.y + 10);
+    ctx.font = '16px Arial';
+    ctx.fillText('Current', v2.x + 15, v2.y + 35);
+    
+    // R label
+    ctx.fillStyle = '#f093fb';
+    ctx.font = 'bold 36px Arial';
+    ctx.fillText('R', v3.x - 40, v3.y + 10);
+    ctx.font = '16px Arial';
+    ctx.fillText('Resistance', v3.x - 70, v3.y + 35);
+    
+    // Show relationships
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '20px Arial';
+    ctx.fillText('V = I × R', centerX - 35, centerY - 10);
+    ctx.fillText('I = V / R', centerX - 35, centerY + 15);
+    ctx.fillText('R = V / I', centerX - 35, centerY + 40);
+    
+    // Example calculation animation
+    const examplePhase = Math.floor((time / 100) % 3);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px Arial';
+    ctx.fillText('Example:', 100, 320);
+    
+    ctx.font = '18px Arial';
+    switch(examplePhase) {
+        case 0:
+            ctx.fillStyle = '#ffd89b';
+            ctx.fillText('Find V: If I = 2A, R = 6Ω', 100, 350);
+            ctx.fillText('V = I × R = 2 × 6 = 12V', 100, 380);
+            break;
+        case 1:
+            ctx.fillStyle = '#4ecdc4';
+            ctx.fillText('Find I: If V = 12V, R = 6Ω', 100, 350);
+            ctx.fillText('I = V / R = 12 / 6 = 2A', 100, 380);
+            break;
+        case 2:
+            ctx.fillStyle = '#f093fb';
+            ctx.fillText('Find R: If V = 12V, I = 2A', 100, 350);
+            ctx.fillText('R = V / I = 12 / 2 = 6Ω', 100, 380);
+            break;
+    }
+    
+    time++;
+}
+
+function animateExperiment() {
+    // Clear canvas with gradient
+    const gradient = ctx.createLinearGradient(0, 0, 1200, 500);
+    gradient.addColorStop(0, '#0a0a0a');
+    gradient.addColorStop(1, '#1a1a2e');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 1200, 500);
+    
+    // Title
+    ctx.fillStyle = '#ffd89b';
+    ctx.font = 'bold 28px Arial';
+    ctx.shadowColor = '#ffd89b';
+    ctx.shadowBlur = 10;
+    ctx.fillText('Activity 11.1: Verifying Ohm\'s Law', 400, 40);
+    
+    // Draw experimental setup
+    // Battery with variable cells (cycles every 4 seconds)
+    const numCells = Math.floor((time / 120) % 4) + 1;
+    
+    // Draw batteries
+    for (let i = 0; i < numCells; i++) {
+        const x = 100 + i * 40;
+        const y = 250;
+        
+        ctx.strokeStyle = '#ff6b6b';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(x - 10, y - 20);
+        ctx.lineTo(x - 10, y + 20);
+        ctx.stroke();
+        
+        ctx.strokeStyle = '#4169e1';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x + 10, y - 10);
+        ctx.lineTo(x + 10, y + 10);
+        ctx.stroke();
+        
+        if (i < numCells - 1) {
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x + 10, y);
+            ctx.lineTo(x + 30, y);
+            ctx.stroke();
+        }
+    }
+    
+    // Connect to circuit
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(100 + (numCells - 1) * 40 + 10, 250);
+    ctx.lineTo(400, 250);
+    ctx.lineTo(400, 150);
+    ctx.lineTo(500, 150);
+    ctx.stroke();
+    
+    // Nichrome wire (glows brighter with more current)
+    const glowIntensity = 5 + numCells * 5;
+    ctx.strokeStyle = '#ffd89b';
+    ctx.lineWidth = 8;
+    ctx.shadowColor = '#ffd89b';
+    ctx.shadowBlur = glowIntensity;
+    ctx.beginPath();
+    ctx.moveTo(500, 150);
+    ctx.lineTo(700, 150);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    
+    // Label nichrome wire
+    ctx.fillStyle = '#ffd89b';
+    ctx.font = '16px Arial';
+    ctx.fillText('Nichrome Wire (0.5m)', 540, 130);
+    
+    // Continue circuit
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(700, 150);
+    ctx.lineTo(800, 150);
+    ctx.lineTo(800, 250);
+    ctx.stroke();
+    
+    // Ammeter
+    ctx.strokeStyle = '#4ecdc4';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(850, 250, 30, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#4ecdc4';
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText('A', 842, 258);
+    
+    // Ammeter needle (oscillates slightly for realism)
+    const current = numCells * 0.15 + Math.sin(time * 0.1) * 0.01;
+    const needleAngle = -Math.PI/2 + (current / 0.6) * Math.PI;
+    ctx.strokeStyle = '#ff6b6b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(850, 250);
+    ctx.lineTo(850 + Math.cos(needleAngle) * 25, 250 + Math.sin(needleAngle) * 25);
+    ctx.stroke();
+    
+    // Complete circuit back to battery
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(880, 250);
+    ctx.lineTo(950, 250);
+    ctx.lineTo(950, 350);
+    ctx.lineTo(90, 350);
+    ctx.lineTo(90, 250);
+    ctx.stroke();
+    
+    // Voltmeter parallel to nichrome wire
+    ctx.strokeStyle = '#f093fb';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(500, 150);
+    ctx.lineTo(500, 100);
+    ctx.lineTo(600, 100);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(700, 150);
+    ctx.lineTo(700, 100);
+    ctx.lineTo(600, 100);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // Voltmeter
+    ctx.strokeStyle = '#f093fb';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(600, 70, 30, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#f093fb';
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText('V', 592, 78);
+    
+    // Voltmeter needle
+    const voltage = numCells * 1.5 + Math.sin(time * 0.1 + 1) * 0.02;
+    const vNeedleAngle = -Math.PI/2 + (voltage / 6) * Math.PI;
+    ctx.strokeStyle = '#ff6b6b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(600, 70);
+    ctx.lineTo(600 + Math.cos(vNeedleAngle) * 25, 70 + Math.sin(vNeedleAngle) * 25);
+    ctx.stroke();
+    
+    // Display readings with dynamic colors
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText('Measurements:', 100, 420);
+    
+    ctx.font = '18px Arial';
+    ctx.fillStyle = '#4ecdc4';
+    ctx.fillText(`Current: ${current.toFixed(2)} A`, 100, 450);
+    ctx.fillStyle = '#f093fb';
+    ctx.fillText(`Voltage: ${voltage.toFixed(1)} V`, 250, 450);
+    ctx.fillStyle = '#ffd89b';
+    ctx.fillText(`Resistance: ${(voltage/current).toFixed(1)} Ω (constant)`, 400, 450);
+    
+    // Show data table with speed indicator
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '16px Arial';
+    ctx.fillText(`Battery Cells: ${numCells}`, 600, 420);
+    ctx.fillStyle = '#ffff00';
+    ctx.fillText(`Electron Speed: ${'▶'.repeat(numCells)}`, 600, 550);
+    
+    // Animate electrons along the complete circuit path
+    const batteryEndX = 100 + (numCells - 1) * 40 + 10;
+    
+    // Define circuit path segments
+    const segments = [
+        { x1: batteryEndX, y1: 250, x2: 400, y2: 250, len: 400 - batteryEndX },
+        { x1: 400, y1: 250, x2: 400, y2: 150, len: 100 },
+        { x1: 400, y1: 150, x2: 500, y2: 150, len: 100 },
+        { x1: 500, y1: 150, x2: 700, y2: 150, len: 200 },
+        { x1: 700, y1: 150, x2: 800, y2: 150, len: 100 },
+        { x1: 800, y1: 150, x2: 800, y2: 250, len: 100 },
+        { x1: 800, y1: 250, x2: 820, y2: 250, len: 20 },
+        { x1: 820, y1: 250, x2: 880, y2: 250, len: 60, isAmmeter: true },
+        { x1: 880, y1: 250, x2: 950, y2: 250, len: 70 },
+        { x1: 950, y1: 250, x2: 950, y2: 350, len: 100 },
+        { x1: 950, y1: 350, x2: 90, y2: 350, len: 860 },
+        { x1: 90, y1: 350, x2: 90, y2: 250, len: 100 }
+    ];
+    
+    // Calculate total path length
+    const totalLength = segments.reduce((sum, seg) => sum + seg.len, 0);
+    
+    // SPEED INCREASES DRAMATICALLY WITH MORE CELLS
+    // Base speed: 0.002, multiplied by numCells (1x, 2x, 3x, 4x speed)
+    const baseSpeed = 0.002;
+    const speedMultiplier = numCells;
+    const electronSpeed = baseSpeed * speedMultiplier;
+    
+    // Draw more electrons for higher current
+    const numElectrons = 10 + numCells * 2;
+    
+    for (let i = 0; i < numElectrons; i++) {
+        // CONTINUOUS MOVEMENT: time increases every frame, creating continuous motion
+        // Speed is proportional to number of cells (voltage/current)
+        const offset = i / numElectrons;
+        const progress = ((time * electronSpeed) + offset) % 1;
+        const distanceAlongPath = progress * totalLength;
+        
+        // Find which segment the electron is on
+        let accumulatedDistance = 0;
+        let x = 0, y = 0;
+        
+        for (const seg of segments) {
+            if (accumulatedDistance + seg.len >= distanceAlongPath) {
+                const segProgress = (distanceAlongPath - accumulatedDistance) / seg.len;
+                
+                // Special handling for ammeter (circular path)
+                if (seg.isAmmeter) {
+                    const angle = Math.PI + segProgress * Math.PI;
+                    x = 850 + Math.cos(angle) * 30;
+                    y = 250 + Math.sin(angle) * 30;
+                } else {
+                    // Linear interpolation for straight segments
+                    x = seg.x1 + (seg.x2 - seg.x1) * segProgress;
+                    y = seg.y1 + (seg.y2 - seg.y1) * segProgress;
+                }
+                break;
+            }
+            accumulatedDistance += seg.len;
+        }
+        
+        // Draw electron with size based on current
+        const electronSize = 3 + numCells * 0.5;
+        
+        // Add motion blur effect for fast-moving electrons
+        if (numCells > 2) {
+            ctx.fillStyle = `rgba(255, 255, 0, 0.3)`;
+            ctx.beginPath();
+            ctx.arc(x - speedMultiplier * 2, y, electronSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Main electron
+        ctx.fillStyle = '#ffff00';
+        ctx.shadowColor = '#ffff00';
+        ctx.shadowBlur = 5 + numCells * 2;
+        ctx.beginPath();
+        ctx.arc(x, y, electronSize, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+    
+    // Display speed information
+    ctx.fillStyle = '#00ff00';
+    ctx.font = 'bold 14px Arial';
+    ctx.fillText(`Flow Rate: ${['Slow', 'Medium', 'Fast', 'Very Fast'][numCells - 1]}`, 750, 420);
+    
+    // Increment time for continuous animation
+    time++;
+}
+
+function animateResistance() {
+    // Clear canvas with gradient
+    const gradient = ctx.createLinearGradient(0, 0, 1200, 500);
+    gradient.addColorStop(0, '#0a0a0a');
+    gradient.addColorStop(1, '#1a1a2e');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 1200, 500);
+    
+    // Title
+    ctx.fillStyle = '#ffd89b';
+    ctx.font = 'bold 28px Arial';
+    ctx.shadowColor = '#ffd89b';
+    ctx.shadowBlur = 10;
+    ctx.fillText('Activity 11.2: Comparing Resistances', 400, 40);
+    ctx.shadowBlur = 0;
+    
+    // Draw three circuits side by side with different resistances
+    const components = [
+        { name: 'Nichrome Wire', x: 200, resistance: 10, current: 0.6, color: '#ffd89b' },
+        { name: 'Torch Bulb', x: 500, resistance: 20, current: 0.3, color: '#ffd700' },
+        { name: '10W Bulb', x: 800, resistance: 60, current: 0.1, color: '#fffacd' }
+    ];
+    
+    components.forEach((comp, index) => {
+        const pulse = Math.sin(time * 0.02 + index) * 0.2 + 0.8;
+        
+        // Draw complete circuit for each component
+        
+        // Battery (6V constant)
+        ctx.strokeStyle = '#ff6b6b';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(comp.x - 50, 200);
+        ctx.lineTo(comp.x - 50, 230);
+        ctx.stroke();
+        
+        ctx.strokeStyle = '#4169e1';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(comp.x - 30, 205);
+        ctx.lineTo(comp.x - 30, 225);
+        ctx.stroke();
+        
+        // Circuit path - from battery positive
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        // From battery positive to top
+        ctx.moveTo(comp.x - 30, 215);
+        ctx.lineTo(comp.x - 30, 150);
+        ctx.lineTo(comp.x - 10, 150);
+        ctx.stroke();
+        
+        // Through ammeter (top)
+        ctx.strokeStyle = '#4ecdc4';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(comp.x + 10, 150, 20, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = '#4ecdc4';
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText('A', comp.x + 3, 156);
+        
+        // Ammeter needle
+        const needleAngle = -Math.PI/2 + (comp.current / 0.6) * Math.PI * 0.8;
+        ctx.strokeStyle = '#ff6b6b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(comp.x + 10, 150);
+        ctx.lineTo(
+            comp.x + 10 + Math.cos(needleAngle) * 15, 
+            150 + Math.sin(needleAngle) * 15
+        );
+        ctx.stroke();
+        
+        // From ammeter to component
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(comp.x + 30, 150);
+        ctx.lineTo(comp.x + 50, 150);
+        ctx.lineTo(comp.x + 50, 230);
+        ctx.lineTo(comp.x + 30, 230);
+        ctx.stroke();
+        
+        // Draw component
+        if (comp.name === 'Nichrome Wire') {
+            // Nichrome wire as a resistor zigzag
+            ctx.strokeStyle = comp.color;
+            ctx.lineWidth = 4;
+            ctx.shadowColor = comp.color;
+            ctx.shadowBlur = 10 * pulse;
+            ctx.beginPath();
+            for (let i = 0; i <= 4; i++) {
+                const xPos = comp.x - 20 + i * 10;
+                const yPos = 230 + (i % 2 === 0 ? 0 : 10);
+                if (i === 0) ctx.moveTo(xPos, 230);
+                else ctx.lineTo(xPos, yPos);
+            }
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        } else {
+            // Bulb with glow based on current
+            const glowIntensity = pulse * comp.current / 0.6;
+            ctx.shadowColor = comp.color;
+            ctx.shadowBlur = 30 * glowIntensity;
+            ctx.strokeStyle = comp.color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(comp.x, 230, 15, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Filament inside bulb
+            ctx.strokeStyle = `rgba(255, 255, 255, ${glowIntensity})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(comp.x - 8, 230);
+            ctx.lineTo(comp.x + 8, 230);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        
+        // Connect component to battery negative
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(comp.x - 20, 230);
+        ctx.lineTo(comp.x - 50, 230);
+        ctx.lineTo(comp.x - 50, 215);
+        ctx.stroke();
+        
+        // CONTINUOUS ELECTRON ANIMATION
+        // Define the complete circuit path for electrons
+        const circuitPath = [
+            { x1: comp.x - 30, y1: 215, x2: comp.x - 30, y2: 150 },  // Up from battery
+            { x1: comp.x - 30, y1: 150, x2: comp.x - 10, y2: 150 },  // To ammeter
+            // Through ammeter (semicircle on top)
+            { x1: comp.x - 10, y1: 150, x2: comp.x + 30, y2: 150, isAmmeter: true, cx: comp.x + 10, cy: 150 },
+            { x1: comp.x + 30, y1: 150, x2: comp.x + 50, y2: 150 },  // From ammeter
+            { x1: comp.x + 50, y1: 150, x2: comp.x + 50, y2: 230 },  // Down to component
+            { x1: comp.x + 50, y1: 230, x2: comp.x + 30, y2: 230 },  // To component right
+            // Through component
+            { x1: comp.x + 30, y1: 230, x2: comp.x - 20, y2: 230, isComponent: true },
+            { x1: comp.x - 20, y1: 230, x2: comp.x - 50, y2: 230 },  // From component
+            { x1: comp.x - 50, y1: 230, x2: comp.x - 50, y2: 215 }   // Back to battery
+        ];
+        
+        // Calculate total path length
+        let totalLength = 0;
+        circuitPath.forEach(segment => {
+            if (segment.isAmmeter) {
+                totalLength += Math.PI * 20; // Half circle with radius 20
+            } else {
+                const dx = segment.x2 - segment.x1;
+                const dy = segment.y2 - segment.y1;
+                totalLength += Math.sqrt(dx * dx + dy * dy);
+            }
+        });
+        
+        // Number of electrons proportional to current
+        const numElectrons = Math.floor(3 + comp.current * 10);
+        
+        // Speed proportional to current (Ohm's law: I = V/R)
+        const electronSpeed = 0.002 * comp.current / 0.1; // Normalized by minimum current
+        
+        // Draw electrons
+        for (let i = 0; i < numElectrons; i++) {
+            // Continuous movement with offset for each electron
+            const offset = i / numElectrons;
+            const progress = ((time * electronSpeed) + offset) % 1;
+            const distanceAlongPath = progress * totalLength;
+            
+            // Find position on path
+            let accumulatedDistance = 0;
+            let electronX = 0, electronY = 0;
+            
+            for (const segment of circuitPath) {
+                let segmentLength;
+                if (segment.isAmmeter) {
+                    segmentLength = Math.PI * 20;
+                } else {
+                    const dx = segment.x2 - segment.x1;
+                    const dy = segment.y2 - segment.y1;
+                    segmentLength = Math.sqrt(dx * dx + dy * dy);
+                }
+                
+                if (accumulatedDistance + segmentLength >= distanceAlongPath) {
+                    const segProgress = (distanceAlongPath - accumulatedDistance) / segmentLength;
+                    
+                    if (segment.isAmmeter) {
+                        // Semicircle path through ammeter (top half)
+                        const angle = Math.PI + segProgress * Math.PI;
+                        electronX = segment.cx + Math.cos(angle) * 20;
+                        electronY = segment.cy + Math.sin(angle) * 20;
+                    } else if (segment.isComponent) {
+                        // Slower through component (visual resistance effect)
+                        electronX = segment.x1 + (segment.x2 - segment.x1) * segProgress;
+                        electronY = segment.y1 + (segment.y2 - segment.y1) * segProgress;
+                        // Add slight wobble in high resistance components
+                        if (comp.resistance > 20) {
+                            electronY += Math.sin(time * 0.1 + i) * 2;
+                        }
+                    } else {
+                        // Linear path
+                        electronX = segment.x1 + (segment.x2 - segment.x1) * segProgress;
+                        electronY = segment.y1 + (segment.y2 - segment.y1) * segProgress;
+                    }
+                    break;
+                }
+                accumulatedDistance += segmentLength;
+            }
+            
+            // Draw electron with size based on current
+            const electronSize = 2 + comp.current * 4;
+            
+            // Motion blur for fast electrons
+            if (comp.current > 0.3) {
+                ctx.fillStyle = `rgba(255, 255, 0, ${0.3 * comp.current})`;
+                ctx.beginPath();
+                ctx.arc(electronX - electronSpeed * 10, electronY, electronSize * 0.8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Main electron
+            ctx.fillStyle = '#ffff00';
+            ctx.shadowColor = '#ffff00';
+            ctx.shadowBlur = 3 + comp.current * 10;
+            ctx.beginPath();
+            ctx.arc(electronX, electronY, electronSize, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        
+        // Labels and data
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText(comp.name, comp.x - 45, 280);
+        
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#4ecdc4';
+        ctx.fillText(`Current: ${comp.current} A`, comp.x - 40, 300);
+        ctx.fillStyle = '#ffd89b';
+        ctx.fillText(`Resistance: ${comp.resistance} Ω`, comp.x - 40, 318);
+        ctx.fillStyle = '#f093fb';
+        ctx.fillText(`Voltage: 6V`, comp.x - 40, 336);
+        
+        // Speed indicator
+        const speedBars = Math.ceil(comp.current * 5);
+        ctx.fillStyle = '#00ff00';
+        ctx.font = '12px Arial';
+        ctx.fillText(`Speed: ${'▶'.repeat(speedBars)}`, comp.x - 40, 354);
+    });
+    
+    // Explanation box
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.fillRect(250, 380, 700, 100);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText('Ohm\'s Law: V = I × R (Same voltage, different resistances)', 320, 405);
+    
+    ctx.font = '16px Arial';
+    ctx.fillText('• Low resistance (10Ω) → High current (0.6A) → Fast electron flow', 270, 430);
+    ctx.fillText('• Medium resistance (20Ω) → Medium current (0.3A) → Moderate flow', 270, 450);
+    ctx.fillText('• High resistance (60Ω) → Low current (0.1A) → Slow electron flow', 270, 470);
+    
+    // Increment time for continuous animation
+    time++;
+}
+
+function animateRheostat() {
+    // Clear canvas with gradient
+    const gradient = ctx.createLinearGradient(0, 0, 1200, 500);
+    gradient.addColorStop(0, '#0a0a0a');
+    gradient.addColorStop(1, '#1a1a2e');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 1200, 500);
+    
+    // Title
+    ctx.fillStyle = '#ffd89b';
+    ctx.font = 'bold 28px Arial';
+    ctx.shadowColor = '#ffd89b';
+    ctx.shadowBlur = 10;
+    ctx.fillText('Variable Resistance (Rheostat)', 420, 40);
+    
+    // Draw rheostat circuit
+    // Battery
+    ctx.strokeStyle = '#ff6b6b';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(150, 230);
+    ctx.lineTo(150, 270);
+    ctx.stroke();
+    
+    ctx.strokeStyle = '#4169e1';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(170, 240);
+    ctx.lineTo(170, 260);
+    ctx.stroke();
+    
+    // Circuit path
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(170, 250);
+    ctx.lineTo(300, 250);
+    ctx.lineTo(300, 150);
+    ctx.lineTo(400, 150);
+    ctx.stroke();
+    
+    // Rheostat coil
+    const coilStart = 400;
+    const coilEnd = 800;
+    const coilY = 150;
+    
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    for (let i = 0; i < 20; i++) {
+        const x = coilStart + i * 20;
+        ctx.moveTo(x, coilY);
+        ctx.arc(x + 10, coilY, 10, Math.PI, 0, true);
+    }
+    ctx.stroke();
+    
+    // Sliding contact - FIXED to stay within rheostat boundaries
+    // Now oscillates between coilStart and coilEnd
+    const sliderRange = coilEnd - coilStart - 20; // Leave some margin
+    const sliderPos = coilStart + 10 + (Math.sin(time * 0.01) + 1) * 0.5 * sliderRange;
+    
+    ctx.strokeStyle = '#ffd89b';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(sliderPos, coilY - 30);
+    ctx.lineTo(sliderPos, coilY);
+    ctx.stroke();
+    
+    // Slider knob
+    ctx.fillStyle = '#ffd89b';
+    ctx.beginPath();
+    ctx.arc(sliderPos, coilY - 35, 8, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Wire from slider to circuit
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(sliderPos, coilY);
+    ctx.lineTo(sliderPos, 200);
+    ctx.lineTo(900, 200);
+    ctx.lineTo(900, 250);
+    ctx.stroke();
+    
+    // Calculate electrical values
+    const maxResistance = 100; // Maximum resistance of rheostat
+    const resistance = ((sliderPos - coilStart) / (coilEnd - coilStart)) * maxResistance;
+    const fixedResistance = 10; // Fixed resistance in circuit (including bulb)
+    const voltage = 12; // Battery voltage
+    const current = voltage / (resistance + fixedResistance);
+    const brightness = Math.min(1, current / 1.0); // Cap at 1 for maximum brightness
+    
+    // Light bulb - ALWAYS VISIBLE with varying brightness
+    // Outer glow effect
+    ctx.shadowColor = '#ffd700';
+    ctx.shadowBlur = 60 * brightness;
+    
+    // Bulb glass (always visible, brightness varies)
+    ctx.strokeStyle = `rgba(255, 215, 0, ${0.3 + brightness * 0.7})`; // Minimum 30% opacity
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(950, 250, 30, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Inner glow
+    if (brightness > 0.1) {
+        ctx.fillStyle = `rgba(255, 245, 200, ${brightness * 0.3})`;
+        ctx.beginPath();
+        ctx.arc(950, 250, 28, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    // Filament (always visible, color intensity varies)
+    ctx.strokeStyle = `rgba(255, ${200 + brightness * 55}, ${100 + brightness * 100}, ${0.4 + brightness * 0.6})`;
+    ctx.lineWidth = 2 + brightness;
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+        const x = 935 + i * 7;
+        const y = 250 + Math.sin(i * 0.8) * 10;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    
+    ctx.shadowBlur = 0;
+    
+    // Complete circuit
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(980, 250);
+    ctx.lineTo(1050, 250);
+    ctx.lineTo(1050, 350);
+    ctx.lineTo(150, 350);
+    ctx.lineTo(150, 270);
+    ctx.stroke();
+    
+    // Ammeter in circuit
+    ctx.strokeStyle = '#4ecdc4';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(600, 350, 30, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#4ecdc4';
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText('A', 592, 358);
+    
+    // Ammeter needle
+    const needleAngle = -Math.PI/2 + (current / 1.2) * Math.PI;
+    ctx.strokeStyle = '#ff6b6b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(600, 350);
+    ctx.lineTo(600 + Math.cos(needleAngle) * 25, 350 + Math.sin(needleAngle) * 25);
+    ctx.stroke();
+    
+    // Display values
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText('Measurements:', 100, 430);
+    
+    ctx.font = '18px Arial';
+    ctx.fillStyle = '#ffd89b';
+    ctx.fillText(`Resistance: ${resistance.toFixed(1)} Ω`, 250, 430);
+    ctx.fillStyle = '#4ecdc4';
+    ctx.fillText(`Current: ${current.toFixed(2)} A`, 450, 430);
+    ctx.fillStyle = '#f093fb';
+    ctx.fillText(`Brightness: ${(brightness * 100).toFixed(0)}%`, 650, 430);
+    ctx.fillStyle = '#ff6b6b';
+    ctx.fillText(`Voltage: ${voltage} V`, 250, 460);
+    
+    // Info text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '16px Arial';
+    ctx.fillText('Slider moves along rheostat → changes resistance → affects current → varies bulb brightness', 250, 490);
+    
+    time++;
+}
+
+        // Main animation loop
+        function animate() {
+            switch (currentMode) {
+                case 'symbols':
+                    animateSymbols();
+                    break;
+                case 'ohmslaw':
+                    animateOhmsLaw();
+                    break;
+                case 'experiment':
+                    animateExperiment();
+                    break;
+                case 'resistance':
+                    animateResistance();
+                    break;
+                case 'rheostat':
+                    animateRheostat();
+                    break;
+            }
+            
+            animationFrame = requestAnimationFrame(animate);
+        }
+
+        // Reset Function
+        function resetEverything() {
+            lessonStarted = false;
+            
+            if (lessonSequence) {
+                lessonSequence.stop();
+            }
+            narrator.stop();
+            
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+            
+            // Reset parameters
+            time = 0;
+            
+            // Reset UI
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('[data-mode="lesson"]').classList.add('active');
+            
+            hideAllPanels();
+            document.getElementById('demoCanvas').style.display = 'none';
+            document.getElementById('chartContainer').style.display = 'none';
+            document.getElementById('lessonContent').style.display = 'block';
+            
+            currentMode = 'lesson';
+            
+            // Restart animation
+            animate();
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }, 1500);
+            
+            lessonSequence = new LessonSequence();
+            
+            // Control buttons
+            document.querySelectorAll('.control-btn:not(.reset-btn)').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const mode = this.getAttribute('data-mode');
+                    
+                    // Stop any running sequences
+                    if (lessonSequence) lessonSequence.stop();
+                    narrator.stop();
+                    
+                    currentMode = mode;
+                    document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show/hide elements based on mode
+                    hideAllPanels();
+                    document.getElementById('lessonContent').style.display = 'none';
+                    document.getElementById('chartContainer').style.display = 'none';
+                    
+                    if (mode === 'lesson') {
+                        resetEverything();
+                        lessonStarted = true;
+                        lessonSequence.start();
+                    } else if (mode === 'vgraph') {
+                        document.getElementById('demoCanvas').style.display = 'none';
+                        document.getElementById('chartContainer').style.display = 'block';
+                        createVIGraph();
+                        narrator.speak("The V-I graph shows a straight line passing through the origin, proving Ohm's law. The slope of this line equals the resistance.", true);
+                    } else {
+                        document.getElementById('demoCanvas').style.display = 'block';
+                        
+                        switch(mode) {
+                            case 'symbols':
+                                document.getElementById('circuitPanel').style.display = 'block';
+                                narrator.speak("Circuit symbols provide a universal language for electrical diagrams. Each symbol represents a specific component, making complex circuits easy to understand.", true);
+                                break;
+                            case 'ohmslaw':
+                                document.getElementById('ohmsPanel').style.display = 'block';
+                                narrator.speak("Ohm's Law states V equals I times R. This fundamental relationship helps us calculate any electrical quantity if we know the other two.", true);
+                                break;
+                            case 'experiment':
+                                document.getElementById('activity1').style.display = 'block';
+                                narrator.speak("Watch how voltage and current change proportionally as we add more cells. The resistance remains constant, proving Ohm's law.", true);
+                                break;
+                            case 'resistance':
+                                document.getElementById('activity2').style.display = 'block';
+                                narrator.speak("Different materials offer different resistance. Good conductors have low resistance, while insulators have very high resistance.", true);
+                                break;
+                            case 'rheostat':
+                                document.getElementById('questions').style.display = 'block';
+                                narrator.speak("A rheostat allows us to vary resistance in a circuit. Watch how changing resistance affects current flow and bulb brightness.", true);
+                                break;
+                        }
+                    }
+                    
+                    time = 0;
+                });
+            });
+            
+            // Reset button
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                narrator.speak("Resetting lesson to the beginning.", true);
+                resetEverything();
+            });
+            
+            // Audio toggle
+            document.getElementById('audio-toggle').addEventListener('click', function() {
+                audioEnabled = narrator.toggle();
+                this.textContent = audioEnabled ? '🔊' : '🔇';
+            });
+            
+            // Start initial display
+            document.getElementById('lessonContent').innerHTML = `
+                <div class="lesson-section">
+                    <h2 class="lesson-title">Welcome to Chapter 11.3 & 11.4</h2>
+                    <div class="lesson-text">
+                        <p>Click "Complete Lesson" to start the full guided tour, or choose any specific topic to explore.</p>
+                    </div>
+                </div>
+            `;
+            
+            // Start animation
+            animate();
+        });
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            narrator.stop();
+            if (lessonSequence) lessonSequence.stop();
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+        });
+    </script>
+</body>
+</html>

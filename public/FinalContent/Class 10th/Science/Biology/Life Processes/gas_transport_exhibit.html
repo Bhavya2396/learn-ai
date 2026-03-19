@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gas Transport and Exchange - Interactive Journey</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 50%, #e74c3c 100%);
+            color: white;
+            overflow: hidden;
+            position: relative;
+            height: 100vh;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            opacity: 0.1;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.2" d="M0,96L48,112C96,128,192,160,288,186.7C384,213,480,235,576,213.3C672,192,768,128,864,128C960,128,1056,192,1152,197.3C1248,203,1344,149,1392,122.7L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') repeat-x;
+            animation: wave 10s linear infinite;
+        }
+
+        @keyframes wave {
+            0% { background-position-x: 0; }
+            100% { background-position-x: 1440px; }
+        }
+
+        /* Museum Interface */
+        .museum-header {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            text-align: left;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 10px 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .museum-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            background: linear-gradient(45deg, #3498db, #e74c3c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+        }
+
+        .exhibit-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .breathing-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #3498db;
+            border-radius: 50%;
+            animation: breathing 2s ease-in-out infinite;
+        }
+
+        @keyframes breathing {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.6; }
+        }
+
+        /* Journey Navigation */
+        .journey-navigation {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 300px;
+        }
+
+        .journey-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #3498db;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .journey-steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .journey-btn {
+            background: rgba(52, 152, 219, 0.2);
+            border: 1px solid rgba(52, 152, 219, 0.4);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .journey-btn:hover {
+            background: rgba(52, 152, 219, 0.3);
+            border-color: #3498db;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .journey-btn.active {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            border-color: #3498db;
+            box-shadow: 0 0 20px rgba(52, 152, 219, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .journey-btn.completed {
+            background: rgba(46, 204, 113, 0.3);
+            border-color: #2ecc71;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* 3D Model Container */
+        .model-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+            overflow: hidden;
+            border: none;
+            z-index: 100;
+        }
+
+        .sketchfab-embed-wrapper {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 50%, #e74c3c 100%);
+        }
+
+        .sketchfab-embed-wrapper iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 0;
+        }
+
+        /* Information Panel */
+        .info-panel {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            width: 400px;
+            max-height: calc(100vh - 140px);
+            z-index: 800;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .info-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-icon {
+            font-size: 28px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .info-title {
+            flex: 1;
+        }
+
+        .info-title h2 {
+            font-size: 18px;
+            color: #3498db;
+            margin-bottom: 4px;
+        }
+
+        .info-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .info-content {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Progress Tracker */
+        .progress-tracker {
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(231, 76, 60, 0.1));
+            border: 1px solid rgba(52, 152, 219, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .progress-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: #3498db;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .progress-percentage {
+            font-size: 18px;
+            color: #e74c3c;
+            font-weight: 700;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #e74c3c);
+            border-radius: 4px;
+            transition: width 0.8s ease;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+        }
+
+        .progress-steps-mini {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.6);
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .step-mini {
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 60px;
+        }
+
+        .step-mini.active {
+            color: #3498db;
+            font-weight: 600;
+        }
+
+        .step-mini.completed {
+            color: #2ecc71;
+        }
+
+        /* Information Cards */
+        .info-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .info-card-title {
+            color: #3498db;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-card-content {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .info-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-list li {
+            padding: 6px 0;
+            padding-left: 20px;
+            position: relative;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .info-list li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #3498db;
+        }
+
+        /* Fun Fact Box */
+        .fun-fact {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(52, 152, 219, 0.1));
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            border-radius: 12px;
+            padding: 14px;
+            margin: 16px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fun-fact:before {
+            content: "💡";
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            font-size: 60px;
+            opacity: 0.1;
+        }
+
+        .fun-fact-title {
+            color: #2ecc71;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .fun-fact-text {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 12px;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Voice Controls */
+        .voice-controls {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            position: relative;
+        }
+
+        .control-btn:hover {
+            background: rgba(52, 152, 219, 0.3);
+            border-color: #3498db;
+            transform: scale(1.1);
+        }
+
+        .control-btn.active {
+            background: rgba(52, 152, 219, 0.4);
+            border-color: #3498db;
+            box-shadow: 0 0 20px rgba(52, 152, 219, 0.5);
+        }
+
+        .control-tooltip {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .control-btn:hover .control-tooltip {
+            opacity: 1;
+        }
+
+        /* Loading Screen */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 50%, #e74c3c 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: opacity 1s ease;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-icon {
+            font-size: 60px;
+            animation: breathing 1.5s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .loading-progress {
+            width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #e74c3c);
+            animation: loading 2s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 100%; }
+            100% { width: 0%; }
+        }
+
+        /* Voice Indicator */
+        .voice-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(52, 152, 219, 0.5);
+            border-radius: 30px;
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .voice-indicator.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-10px);
+        }
+
+        .voice-waves {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .voice-wave {
+            width: 3px;
+            height: 20px;
+            background: linear-gradient(180deg, #3498db, #e74c3c);
+            border-radius: 2px;
+            animation: voice-wave 1s ease-in-out infinite;
+        }
+
+        .voice-wave:nth-child(2) { animation-delay: 0.1s; }
+        .voice-wave:nth-child(3) { animation-delay: 0.2s; }
+        .voice-wave:nth-child(4) { animation-delay: 0.3s; }
+        .voice-wave:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes voice-wave {
+            0%, 100% { transform: scaleY(0.3); }
+            50% { transform: scaleY(1); }
+        }
+
+        .narration-text {
+            color: white;
+            font-size: 13px;
+            max-width: 300px;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .action-btn {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .action-btn:hover {
+            background: rgba(52, 152, 219, 0.3);
+            border-color: #3498db;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        /* Custom Scrollbar */
+        .info-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .info-panel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .info-panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #3498db, #e74c3c);
+            border-radius: 3px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .info-panel {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                top: auto;
+                width: 100%;
+                max-height: 50vh;
+                border-radius: 20px 20px 0 0;
+            }
+            
+            .journey-navigation {
+                bottom: 52vh;
+                max-width: calc(100% - 40px);
+            }
+            
+            .voice-controls {
+                top: auto;
+                bottom: 55vh;
+                right: 10px;
+            }
+            
+            .quick-actions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-icon">🫁</div>
+            <div class="loading-text">Preparing Gas Transport Journey...</div>
+            <div class="loading-progress">
+                <div class="loading-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Museum Header -->
+    <div class="museum-header">
+        <div class="museum-title">Gas Transport & Exchange</div>
+        <div class="exhibit-subtitle">
+            <span class="breathing-indicator"></span>
+            Oxygen & CO₂ Journey
+        </div>
+    </div>
+
+    <!-- Journey Navigation -->
+    <div class="journey-navigation">
+        <div class="journey-title">
+            <span>🌬️</span>
+            <span>Gas Transport Journey</span>
+        </div>
+        <div class="journey-steps">
+            <button class="journey-btn active" onclick="loadJourneyStep('hemoglobin')">
+                <span>🔴</span> Hemoglobin
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('redbloodcell')">
+                <span>🩸</span> RBC Structure
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('capillary')">
+                <span>🔬</span> Gas Exchange
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('transport')">
+                <span>🚛</span> Transport
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('surface')">
+                <span>📐</span> Surface Area
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('pigments')">
+                <span>🎨</span> Pigments
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('co2')">
+                <span>💨</span> CO₂ Transport
+            </button>
+        </div>
+    </div>
+
+    <!-- 3D Model Container -->
+    <div class="model-container">
+        <div class="sketchfab-embed-wrapper">
+            <iframe id="api-frame"
+                    title="Gas Transport Model" 
+                    frameborder="0" 
+                    allowfullscreen 
+                    mozallowfullscreen="true" 
+                    webkitallowfullscreen="true" 
+                    allow="autoplay; fullscreen; xr-spatial-tracking"
+                    xr-spatial-tracking 
+                    execution-while-out-of-viewport 
+                    execution-while-not-rendered 
+                    web-share 
+                    src="https://sketchfab.com/models/223db202d986496ebbf85964f7760992/embed?autostart=1&internal=1&tracking=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_watermark=0">
+            </iframe>
+        </div>
+    </div>
+
+    <!-- Information Panel -->
+    <div class="info-panel" id="infoPanel">
+        <div class="info-header">
+            <div class="info-icon" id="stepIcon">🔴</div>
+            <div class="info-title">
+                <h2 id="stepTitle">Hemoglobin - The Oxygen Carrier</h2>
+                <div class="info-subtitle" id="stepSubtitle">Nature's perfect gas transporter</div>
+            </div>
+        </div>
+
+        <!-- Progress Tracker -->
+        <div class="progress-tracker">
+            <div class="progress-header">
+                <span>Learning Progress</span>
+                <span class="progress-percentage" id="progressPercent">14%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 14%"></div>
+            </div>
+            <div class="progress-steps-mini">
+                <span class="step-mini active" onclick="loadJourneyStep('hemoglobin')">Hgb</span>
+                <span class="step-mini" onclick="loadJourneyStep('redbloodcell')">RBC</span>
+                <span class="step-mini" onclick="loadJourneyStep('capillary')">Exchange</span>
+                <span class="step-mini" onclick="loadJourneyStep('transport')">Transport</span>
+                <span class="step-mini" onclick="loadJourneyStep('surface')">Surface</span>
+                <span class="step-mini" onclick="loadJourneyStep('pigments')">Pigments</span>
+                <span class="step-mini" onclick="loadJourneyStep('co2')">CO₂</span>
+            </div>
+        </div>
+
+        <div class="info-content" id="mainDescription">
+            Hemoglobin is the remarkable protein that makes oxygen transport possible. This complex quaternary protein contains four subunits, each with an iron-containing heme group that can bind one oxygen molecule. The cooperative binding mechanism allows hemoglobin to efficiently pick up oxygen in the lungs and release it in tissues.
+        </div>
+
+        <div class="info-card">
+            <div class="info-card-title">
+                <span>🔬</span> Key Structural Features
+            </div>
+            <div class="info-card-content">
+                <ul class="info-list" id="keyConcepts">
+                    <li>Four polypeptide chains (2α, 2β globins)</li>
+                    <li>Four heme groups with iron centers</li>
+                    <li>Quaternary protein structure</li>
+                    <li>Cooperative oxygen binding (sigmoid curve)</li>
+                    <li>Allosteric regulation by pH, CO₂, 2,3-BPG</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="fun-fact">
+            <div class="fun-fact-title">Incredible Fact!</div>
+            <div class="fun-fact-text" id="funFact">
+                Each hemoglobin molecule can carry 4 oxygen molecules, and each red blood cell contains about 280 million hemoglobin molecules - that's over 1 billion oxygen molecules per cell!
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-card-title">
+                <span>🎯</span> Learning Objectives
+            </div>
+            <div class="info-card-content" id="learningObjectives">
+                Understand hemoglobin's quaternary structure, the role of heme groups, and how cooperative binding enhances oxygen transport efficiency.
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Controls -->
+    <div class="voice-controls">
+        <button class="control-btn active" id="voiceToggle" onclick="toggleVoice()">
+            🔊
+            <span class="control-tooltip">Voice Narration</span>
+        </button>
+        <button class="control-btn" onclick="toggleAutoPlay()">
+            ▶️
+            <span class="control-tooltip">Auto Journey</span>
+        </button>
+        <button class="control-btn" onclick="toggleInfo()">
+            ℹ️
+            <span class="control-tooltip">Toggle Info</span>
+        </button>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <button class="action-btn" onclick="startGuidedTour()">
+            <span>🚀</span> Guided Tour
+        </button>
+        <button class="action-btn" onclick="showQuiz()">
+            <span>🎯</span> Test Knowledge
+        </button>
+    </div>
+
+    <!-- Voice Indicator -->
+    <div class="voice-indicator" id="voiceIndicator">
+        <div class="voice-waves">
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+        </div>
+        <div class="narration-text" id="narrationText">Narrating...</div>
+    </div>
+
+    <script>
+        // Journey Step Data for Gas Transport and Exchange
+        const JOURNEY_DATA = {
+            hemoglobin: {
+                title: "Hemoglobin - The Oxygen Carrier",
+                subtitle: "Nature's perfect gas transporter",
+                icon: "🔴",
+                modelUrl: "https://sketchfab.com/models/223db202d986496ebbf85964f7760992/embed?autostart=1&internal=1&tracking=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_watermark=0",
+                description: "Hemoglobin is the remarkable protein that makes oxygen transport possible. This complex quaternary protein contains four subunits, each with an iron-containing heme group that can bind one oxygen molecule. The cooperative binding mechanism allows hemoglobin to efficiently pick up oxygen in the lungs and release it in tissues.",
+                concepts: [
+                    "Four polypeptide chains (2α, 2β globins)",
+                    "Four heme groups with iron centers",
+                    "Quaternary protein structure",
+                    "Cooperative oxygen binding (sigmoid curve)",
+                    "Allosteric regulation by pH, CO₂, 2,3-BPG"
+                ],
+                funFact: "Each hemoglobin molecule can carry 4 oxygen molecules, and each red blood cell contains about 280 million hemoglobin molecules - that's over 1 billion oxygen molecules per cell!",
+                objectives: "Understand hemoglobin's quaternary structure, the role of heme groups, and how cooperative binding enhances oxygen transport efficiency.",
+                narration: "Welcome to the molecular marvel of hemoglobin! You're looking at nature's most efficient oxygen transport system. This protein has four subunits - two alpha and two beta chains, each containing a heme group with an iron atom at its center. Watch how the iron changes color from dark red to bright red when it binds oxygen. The beauty of hemoglobin lies in its cooperative binding - when one oxygen binds, it makes it easier for the other three to bind too. This creates the sigmoid oxygen dissociation curve that makes hemoglobin so efficient. In the lungs where oxygen is abundant, hemoglobin grabs oxygen eagerly. In the tissues where oxygen is scarce and pH is lower, it releases oxygen readily. The four subunits work together like a perfectly choreographed dance!"
+            },
+            redbloodcell: {
+                title: "Red Blood Cell - Mobile Gas Container",
+                subtitle: "Specialized for gas transport",
+                icon: "🩸",
+                modelUrl: "https://sketchfab.com/3d-models/normal-red-blood-cell-c3a85d646c7040ad81b75150b401fbac/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Red blood cells are perfectly designed vehicles for gas transport. Their biconcave disc shape maximizes surface area for gas exchange while maintaining flexibility to squeeze through tiny capillaries. With no nucleus or organelles, 97% of their dry weight is hemoglobin.",
+                concepts: [
+                    "Biconcave disc shape (7.5 μm diameter)",
+                    "No nucleus or organelles",
+                    "97% dry weight is hemoglobin",
+                    "Flexible membrane for capillary passage",
+                    "120-day lifespan in circulation"
+                ],
+                funFact: "A single red blood cell can squeeze through capillaries only 3 micrometers wide - that's less than half its normal diameter!",
+                objectives: "Appreciate how RBC structure is perfectly adapted for gas transport and understand the relationship between form and function.",
+                narration: "Meet the red blood cell - a gas transport specialist! Notice its unique biconcave disc shape - like a donut without the hole. This shape isn't random - it's perfectly engineered for gas transport. The biconcave design increases surface area by 20% compared to a sphere, allowing for faster gas exchange. The thin center means gases have less distance to travel to reach the hemoglobin inside. These cells have sacrificed their nucleus and organelles to pack in as much hemoglobin as possible - about 280 million molecules per cell! Their flexible membrane allows them to deform and squeeze through capillaries narrower than their diameter. They're like tiny, flexible gas tankers cruising through your bloodstream!"
+            },
+            capillary: {
+                title: "Capillary Gas Exchange - The Interface",
+                subtitle: "Where oxygen meets tissues",
+                icon: "🔬",
+                modelUrl: "https://sketchfab.com/models/45a708382714453ebc866e82c7ab47c4/embed?autostart=1&internal=1&tracking=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_watermark=0",
+                description: "Capillaries are where the magic of gas exchange happens. These microscopic vessels have walls only one cell thick, allowing rapid diffusion of oxygen and carbon dioxide between blood and tissues. The dense capillary networks ensure no cell is more than a few micrometers from a blood supply.",
+                concepts: [
+                    "Single-cell thick endothelial walls",
+                    "5-10 μm diameter (single RBC passage)",
+                    "Massive surface area (300-500 m²)",
+                    "Short diffusion distances (<1 μm)",
+                    "Dense networks in metabolically active tissues"
+                ],
+                funFact: "Your body has about 10 billion capillaries with a total surface area larger than a tennis court, all packed into your body!",
+                objectives: "Understand how capillary structure facilitates efficient gas exchange and appreciate the relationship between metabolic demand and capillary density.",
+                narration: "You're now inside a capillary cross-section - the ultimate gas exchange interface! These tiny vessels are engineering marvels. The wall is just one cell thick - the endothelium - creating the shortest possible path for gas diffusion. Watch the red blood cells squeeze through in single file, bringing their oxygen cargo close to the tissue cells. Oxygen dissolves in the plasma and diffuses through the capillary wall, while carbon dioxide moves in the opposite direction. The basement membrane provides structural support while remaining permeable to gases. Notice how tightly packed the red blood cells are - this maximizes the concentration gradient for oxygen diffusion. In highly metabolic tissues like muscle or brain, capillary density is incredibly high to meet the oxygen demand!"
+            },
+            transport: {
+                title: "Gas Transport Mechanisms",
+                subtitle: "How gases travel in blood",
+                icon: "🚛",
+                modelUrl: "https://sketchfab.com/3d-models/normal-red-blood-cell-c3a85d646c7040ad81b75150b401fbac/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Gases are transported in blood through multiple mechanisms. Oxygen travels primarily bound to hemoglobin (98.5%) with a small amount dissolved in plasma. Carbon dioxide has three transport routes: dissolved in plasma, bound to hemoglobin, and as bicarbonate ions.",
+                concepts: [
+                    "O₂ transport: 98.5% on hemoglobin, 1.5% dissolved",
+                    "CO₂ transport: 70% as HCO₃⁻, 23% on hemoglobin, 7% dissolved",
+                    "Bohr effect: CO₂/H⁺ reduces O₂ affinity",
+                    "Haldane effect: O₂ reduces CO₂ affinity",
+                    "Carbonic anhydrase catalyzes CO₂ ↔ HCO₃⁻"
+                ],
+                funFact: "The Bohr effect is so efficient that just a 0.1 pH unit drop can double oxygen unloading in tissues!",
+                objectives: "Learn the different transport mechanisms for O₂ and CO₂ and understand how the Bohr and Haldane effects optimize gas exchange.",
+                narration: "Let's explore how gases actually travel in your blood! Oxygen has a simple strategy - it loves hemoglobin. About 98.5% binds to hemoglobin's iron atoms, while only 1.5% dissolves directly in plasma. Carbon dioxide is more versatile. Most of it - about 70% - gets converted to bicarbonate ions by the enzyme carbonic anhydrase inside red blood cells. About 23% binds to hemoglobin at different sites than oxygen, and 7% dissolves in plasma. Here's the clever part: the Bohr effect means that when CO₂ levels rise in tissues, hemoglobin releases oxygen more readily. Meanwhile, the Haldane effect means that when hemoglobin picks up oxygen in the lungs, it releases CO₂ more easily. It's a perfectly coordinated system!"
+            },
+            surface: {
+                title: "Surface Area Calculations",
+                subtitle: "Maximizing gas exchange efficiency",
+                icon: "📐",
+                modelUrl: "https://sketchfab.com/models/45a708382714453ebc866e82c7ab47c4/embed?autostart=1&internal=1&tracking=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_watermark=0",
+                description: "The respiratory and circulatory systems maximize surface area for gas exchange. Lung alveoli provide 50-100 m² of surface area, while capillaries add another 300-500 m². This enormous surface area packed into a small volume is key to efficient gas exchange.",
+                concepts: [
+                    "Alveolar surface area: 50-100 m² (half a tennis court)",
+                    "Capillary surface area: 300-500 m² (full tennis court)",
+                    "Respiratory membrane: <0.5 μm thick",
+                    "Fick's law: Rate ∝ Surface Area/Thickness",
+                    "Surface area to volume ratio optimization"
+                ],
+                funFact: "If you could unfold all your alveoli and capillaries, they would cover an area larger than a basketball court!",
+                objectives: "Appreciate how biological systems maximize surface area and understand the mathematical principles behind efficient gas exchange.",
+                narration: "Let's talk about one of biology's greatest engineering achievements - surface area maximization! Your lungs contain 300-500 million tiny alveoli, each surrounded by dense capillary networks. If you could flatten out all these surfaces, they would cover about 70 square meters - that's larger than a badminton court! But here's what's amazing - all this surface area is packed into your chest cavity. The respiratory membrane where gas exchange occurs is incredibly thin - less than 0.5 micrometers. According to Fick's law of diffusion, the rate of gas exchange is proportional to surface area and inversely proportional to membrane thickness. Your lungs have maximized the numerator and minimized the denominator for the most efficient gas exchange possible!"
+            },
+            pigments: {
+                title: "Respiratory Pigments",
+                subtitle: "Oxygen-carrying molecules across species",
+                icon: "🎨",
+                modelUrl: "https://sketchfab.com/models/223db202d986496ebbf85964f7760992/embed?autostart=1&internal=1&tracking=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_watermark=0",
+                description: "Different organisms use different respiratory pigments for oxygen transport. Hemoglobin (iron-based) in vertebrates, hemocyanin (copper-based) in arthropods, and hemerythrin (iron-based) in some marine worms all evolved to solve the same problem - efficient oxygen transport.",
+                concepts: [
+                    "Hemoglobin: iron-based, red color",
+                    "Hemocyanin: copper-based, blue color",
+                    "Hemerythrin: iron-based, purple/pink color",
+                    "Chlorocruorin: iron-based, green color",
+                    "Different O₂ affinities for different environments"
+                ],
+                funFact: "Horseshoe crabs have blue blood due to hemocyanin, and their blood is used to test medical equipment for bacterial contamination!",
+                objectives: "Compare different respiratory pigments and understand how evolution has created multiple solutions for oxygen transport.",
+                narration: "Welcome to the colorful world of respiratory pigments! While we humans use iron-based hemoglobin that gives our blood its red color, nature has evolved several different solutions for oxygen transport. Hemocyanin, used by arthropods like lobsters and spiders, contains copper instead of iron and makes their blood blue! Hemerythrin, found in some marine worms, is also iron-based but has a different structure, creating purple or pink blood. Some marine worms use chlorocruorin, which is green! Each pigment evolved to match the oxygen demands and environmental conditions of its organism. Hemoglobin's high oxygen affinity works perfectly for our warm-blooded, high-metabolism lifestyle, while hemocyanin's lower affinity suits the slower metabolism of many invertebrates."
+            },
+            co2: {
+                title: "CO₂ Transport & Acid-Base Balance",
+                subtitle: "Managing cellular waste and pH",
+                icon: "💨",
+                modelUrl: "https://sketchfab.com/3d-models/normal-red-blood-cell-c3a85d646c7040ad81b75150b401fbac/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Carbon dioxide transport is more complex than oxygen transport. CO₂ must be carried from tissues to lungs while maintaining blood pH. The bicarbonate buffer system, involving carbonic anhydrase, is crucial for both CO₂ transport and acid-base homeostasis.",
+                concepts: [
+                    "Carbonic anhydrase: CO₂ + H₂O ↔ H₂CO₃ ↔ H⁺ + HCO₃⁻",
+                    "Chloride shift: HCO₃⁻ out, Cl⁻ in (electroneutrality)",
+                    "Bicarbonate buffer system maintains pH 7.4",
+                    "Respiratory compensation for metabolic acidosis",
+                    "Carbaminohemoglobin formation (CO₂ + Hgb)"
+                ],
+                funFact: "Your red blood cells are tiny pH factories - carbonic anhydrase is one of the fastest enzymes known, catalyzing 1 million reactions per second!",
+                objectives: "Understand the bicarbonate buffer system and appreciate how CO₂ transport is linked to acid-base balance in the body.",
+                narration: "Now let's explore the sophisticated CO₂ transport system! When CO₂ enters red blood cells from tissues, it meets carbonic anhydrase - one of nature's fastest enzymes. This enzyme rapidly converts CO₂ and water into carbonic acid, which immediately splits into a hydrogen ion and bicarbonate. The bicarbonate leaves the cell in exchange for chloride - this is called the chloride shift. This system does double duty: it transports CO₂ and acts as the body's primary pH buffer. The H⁺ ions bind to hemoglobin, which acts like a sponge for acid. In the lungs, this entire process reverses - bicarbonate re-enters the cell, combines with H⁺ to form CO₂, which you then exhale. It's an elegant solution that keeps your blood pH precisely at 7.4 while efficiently removing metabolic waste!"
+            }
+        };
+
+        // Global Variables
+        let currentStep = 'hemoglobin';
+        let voiceEnabled = true;
+        let autoPlayEnabled = false;
+        let currentSpeech = null;
+        let selectedVoice = null;
+        let journeyProgress = 0;
+        let guidedTourActive = false;
+
+        // Initialize Voice System
+        function initVoiceSystem() {
+            if (!('speechSynthesis' in window)) {
+                console.warn('Speech synthesis not supported');
+                voiceEnabled = false;
+                document.getElementById('voiceToggle').style.display = 'none';
+                return;
+            }
+
+            function loadVoices() {
+                const voices = speechSynthesis.getVoices();
+                if (voices.length === 0) return;
+
+                const preferredVoices = [
+                    'Google UK English Female',
+                    'Microsoft Sonia',
+                    'Microsoft Hazel',
+                    'Samantha',
+                    'Victoria'
+                ];
+
+                for (const name of preferredVoices) {
+                    selectedVoice = voices.find(v => v.name.includes(name));
+                    if (selectedVoice) break;
+                }
+
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(v => v.lang.startsWith('en'));
+                }
+            }
+
+            loadVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        }
+
+        // Load Journey Step
+        function loadJourneyStep(stepId) {
+            const stepData = JOURNEY_DATA[stepId];
+            if (!stepData) return;
+
+            currentStep = stepId;
+            
+            // Update model
+            document.getElementById('api-frame').src = stepData.modelUrl;
+            
+            // Update info panel
+            document.getElementById('stepIcon').textContent = stepData.icon;
+            document.getElementById('stepTitle').textContent = stepData.title;
+            document.getElementById('stepSubtitle').textContent = stepData.subtitle;
+            document.getElementById('mainDescription').textContent = stepData.description;
+            
+            // Update key concepts
+            const conceptsList = document.getElementById('keyConcepts');
+            conceptsList.innerHTML = stepData.concepts.map(c => `<li>${c}</li>`).join('');
+            
+            // Update fun fact
+            document.getElementById('funFact').textContent = stepData.funFact;
+            
+            // Update learning objectives
+            document.getElementById('learningObjectives').textContent = stepData.objectives;
+            
+            // Update navigation buttons
+            updateNavigationButtons(stepId);
+            
+            // Update progress
+            updateProgress();
+            
+            // Play narration if enabled
+            if (voiceEnabled) {
+                speakText(stepData.narration);
+            }
+        }
+
+        // Update Navigation Buttons
+        function updateNavigationButtons(activeStep) {
+            const buttons = document.querySelectorAll('.journey-btn');
+            const steps = ['hemoglobin', 'redbloodcell', 'capillary', 'transport', 'surface', 'pigments', 'co2'];
+            const activeIndex = steps.indexOf(activeStep);
+            
+            buttons.forEach((btn, index) => {
+                btn.classList.remove('active', 'completed');
+                if (index < activeIndex) {
+                    btn.classList.add('completed');
+                } else if (index === activeIndex) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Update mini steps
+            const miniSteps = document.querySelectorAll('.step-mini');
+            miniSteps.forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index < activeIndex) {
+                    step.classList.add('completed');
+                } else if (index === activeIndex) {
+                    step.classList.add('active');
+                }
+            });
+        }
+
+        // Update Progress
+        function updateProgress() {
+            const steps = ['hemoglobin', 'redbloodcell', 'capillary', 'transport', 'surface', 'pigments', 'co2'];
+            const currentIndex = steps.indexOf(currentStep);
+            const progress = ((currentIndex + 1) / steps.length) * 100;
+            
+            document.getElementById('progressPercent').textContent = Math.round(progress) + '%';
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        // Speech Functions
+        function speakText(text) {
+            if (!voiceEnabled || !text) return;
+            
+            stopSpeech();
+            
+            currentSpeech = new SpeechSynthesisUtterance(text);
+            if (selectedVoice) {
+                currentSpeech.voice = selectedVoice;
+            }
+            currentSpeech.rate = 0.9;
+            currentSpeech.pitch = 1.0;
+            currentSpeech.volume = 0.9;
+            
+            currentSpeech.onstart = () => {
+                document.getElementById('voiceIndicator').classList.add('visible');
+                document.getElementById('narrationText').textContent = 
+                    text.substring(0, 50) + (text.length > 50 ? '...' : '');
+            };
+            
+            currentSpeech.onend = () => {
+                document.getElementById('voiceIndicator').classList.remove('visible');
+                currentSpeech = null;
+                
+                if (guidedTourActive) {
+                    setTimeout(nextStep, 2000);
+                }
+            };
+            
+            speechSynthesis.speak(currentSpeech);
+        }
+
+        function stopSpeech() {
+            if (currentSpeech) {
+                speechSynthesis.cancel();
+                currentSpeech = null;
+                document.getElementById('voiceIndicator').classList.remove('visible');
+            }
+        }
+
+        // Control Functions
+        function toggleVoice() {
+            voiceEnabled = !voiceEnabled;
+            const btn = document.getElementById('voiceToggle');
+            btn.textContent = voiceEnabled ? '🔊' : '🔇';
+            btn.classList.toggle('active', voiceEnabled);
+            
+            if (!voiceEnabled) {
+                stopSpeech();
+            }
+        }
+
+        function toggleAutoPlay() {
+            autoPlayEnabled = !autoPlayEnabled;
+            if (autoPlayEnabled) {
+                startGuidedTour();
+            } else {
+                guidedTourActive = false;
+            }
+        }
+
+        function toggleInfo() {
+            const panel = document.getElementById('infoPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Guided Tour
+        function startGuidedTour() {
+            guidedTourActive = true;
+            const steps = ['hemoglobin', 'redbloodcell', 'capillary', 'transport', 'surface', 'pigments', 'co2'];
+            let stepIndex = 0;
+            
+            function tourStep() {
+                if (stepIndex < steps.length && guidedTourActive) {
+                    loadJourneyStep(steps[stepIndex]);
+                    stepIndex++;
+                } else {
+                    guidedTourActive = false;
+                    if (voiceEnabled) {
+                        speakText("Congratulations! You've completed your journey through gas transport and exchange. You now understand how oxygen and carbon dioxide move through your body's incredible transport system!");
+                    }
+                }
+            }
+            
+            tourStep();
+            window.nextStep = tourStep;
+        }
+
+        // Quiz Function
+        function showQuiz() {
+            const questions = [
+                "How many oxygen molecules can one hemoglobin carry?",
+                "What percentage of oxygen is transported bound to hemoglobin?",
+                "What is the Bohr effect?",
+                "How is most CO₂ transported in blood?",
+                "What makes the respiratory membrane so efficient?"
+            ];
+            
+            const randomQ = questions[Math.floor(Math.random() * questions.length)];
+            
+            if (voiceEnabled) {
+                speakText(`Here's a question to test your knowledge: ${randomQ} Think about what you've learned about gas transport!`);
+            }
+        }
+
+        // Initialize
+        function init() {
+            initVoiceSystem();
+            
+            // Hide loading screen
+            setTimeout(() => {
+                const loading = document.getElementById('loadingOverlay');
+                loading.style.opacity = '0';
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                    
+                    // Welcome message
+                    if (voiceEnabled) {
+                        speakText("Welcome to your journey through gas transport and exchange! We'll explore how oxygen and carbon dioxide move through your body, starting with the incredible hemoglobin molecule. Let's begin!");
+                    }
+                }, 1000);
+            }, 3000);
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                switch(e.key) {
+                    case 'v': toggleVoice(); break;
+                    case 'i': toggleInfo(); break;
+                    case 'g': startGuidedTour(); break;
+                    case 'Escape': stopSpeech(); guidedTourActive = false; break;
+                    case 'ArrowRight': nextStep && nextStep(); break;
+                }
+            });
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>

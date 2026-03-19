@@ -1,0 +1,2020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heights and Distances - Interactive Trigonometry Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --geometry-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --trig-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--trig-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+        }
+
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--trig-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--trig-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .geometry-canvas {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .geometry-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .geometry-description {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 800px;
+            margin: 20px auto;
+            line-height: 1.6;
+        }
+
+        .theorem-box {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            max-width: 700px;
+            backdrop-filter: blur(10px);
+        }
+
+        .theorem-title {
+            font-size: 1.3rem;
+            color: var(--text-accent);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .theorem-content {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .value-display {
+            font-size: 1.5rem;
+            color: var(--text-accent);
+            padding: 15px 30px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            border: 2px solid var(--glass-border);
+            margin: 15px 0;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+        }
+
+        .split-view {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .threejs-container {
+            width: 100%;
+            height: 400px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .slider-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px 0;
+            padding: 20px;
+            background: var(--glass-bg);
+            border-radius: 15px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .slider-label {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            cursor: pointer;
+            border: none;
+        }
+
+        .quiz-container {
+            width: 100%;
+            max-width: 700px;
+            padding: 30px;
+            background: var(--glass-bg);
+            border-radius: 20px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .quiz-progress {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .quiz-question {
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            margin-bottom: 25px;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .quiz-option {
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: left;
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        .quiz-feedback {
+            min-height: 60px;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-size: 1.05rem;
+        }
+
+        .correct {
+            background: rgba(67, 233, 123, 0.2);
+            border: 2px solid #43e97b;
+            color: #43e97b;
+        }
+
+        .incorrect {
+            background: rgba(245, 87, 108, 0.2);
+            border: 2px solid #f5576c;
+            color: #f5576c;
+        }
+
+        .quiz-score {
+            text-align: center;
+            font-size: 1.2rem;
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 500px;
+            height: 300px;
+            margin: 20px auto;
+        }
+
+        .theory-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 24px;
+            margin: 40px auto 0 auto;
+            width: 100%;
+            max-width: 1400px;
+            justify-items: center;
+        }
+        
+        .theory-card {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 28px 20px 20px 20px;
+            min-width: 0;
+            max-width: 340px;
+            min-height: 210px;
+            box-shadow: var(--shadow-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: var(--transition);
+        }
+        
+        .theory-card:hover {
+            transform: scale(1.04) translateY(-3px);
+            border-color: var(--text-accent);
+            background: var(--glass-bg), var(--primary-gradient);
+        }
+        
+        .theory-icon {
+            font-size: 2.7rem;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 2px 7px rgba(0,0,0,0.18));
+        }
+        
+        .theory-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--text-accent);
+            margin-bottom: 12px;
+        }
+        
+        .theory-text {
+            font-size: 1.07rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+
+        .formula-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--text-accent);
+            border-radius: 12px;
+            padding: 15px 25px;
+            margin: 15px 0;
+            font-size: 1.3rem;
+            color: var(--text-accent);
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .calculation-steps {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            max-width: 600px;
+        }
+
+        .step {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin: 10px 0;
+            padding: 8px 12px;
+            border-left: 3px solid var(--text-accent);
+        }
+
+        @media (max-width: 850px) {
+            .theory-cards {
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 16px;
+            }
+            .theory-card { min-height: 175px; padding: 20px 10px 15px 10px; }
+        }
+        
+        @media (max-width: 590px) {
+            .theory-cards {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .theory-card { border-radius: 15px; }
+        }
+        
+        @media (max-width: 768px) {
+            .split-view {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .geometry-title {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📐 Heights and Distances - Trigonometry Applications</h1>
+        <p>Chapter 9: Exploring Real-World Applications of Trigonometric Ratios</p>
+    </div>
+
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage">
+            <div class="stage-content active">
+                <h2 class="geometry-title">Welcome to Heights and Distances! 🏔️</h2>
+                <div class="value-display">Discover the Power of Trigonometry</div>
+                <p class="geometry-description">
+                    Learn how to measure heights and distances without actually climbing or walking there!
+                    Master angle of elevation, angle of depression, and solve real-world problems.
+                </p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">📚 Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">🎯 Introduction</button>
+            <button class="demo-btn" data-demo="line-of-sight">👁️ Line of Sight</button>
+            <button class="demo-btn" data-demo="angle-elevation">⬆️ Angle of Elevation</button>
+            <button class="demo-btn" data-demo="angle-depression">⬇️ Angle of Depression</button>
+            <button class="demo-btn" data-demo="tower-problem">🗼 Tower Problem</button>
+            <button class="demo-btn" data-demo="interactive">🎮 Interactive Demo</button>
+            <button class="demo-btn" data-demo="quiz">🧮 Quiz Time</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+
+        <div class="theory-cards">
+            <div class="theory-card">
+                <div class="theory-icon">⬆️</div>
+                <div class="theory-title">Angle of Elevation</div>
+                <div class="theory-text">Angle formed when looking UP from horizontal to an object above you. Measured upward from the horizontal line.</div>
+            </div>
+            
+            <div class="theory-card">
+                <div class="theory-icon">⬇️</div>
+                <div class="theory-title">Angle of Depression</div>
+                <div class="theory-text">Angle formed when looking DOWN from horizontal to an object below you. Measured downward from the horizontal line.</div>
+            </div>
+            
+            <div class="theory-card">
+                <div class="theory-icon">👁️</div>
+                <div class="theory-title">Line of Sight</div>
+                <div class="theory-text">Imaginary straight line connecting the observer's eye to the object being viewed.</div>
+            </div>
+            
+            <div class="theory-card">
+                <div class="theory-icon">📐</div>
+                <div class="theory-title">tan(θ) Formula</div>
+                <div class="theory-text">tan(θ) = Height/Distance<br>Most commonly used ratio for heights and distances problems.</div>
+            </div>
+            
+            <div class="theory-card">
+                <div class="theory-icon">🔺</div>
+                <div class="theory-title">Right Triangle</div>
+                <div class="theory-text">Every heights and distances problem forms a right-angled triangle with horizontal, vertical, and line of sight.</div>
+            </div>
+            
+            <div class="theory-card">
+                <div class="theory-icon">📊</div>
+                <div class="theory-title">Key Ratios</div>
+                <div class="theory-text">sin(θ) = Opposite/Hypotenuse<br>cos(θ) = Adjacent/Hypotenuse<br>tan(θ) = Opposite/Adjacent</div>
+            </div>
+            
+            <div class="theory-card">
+                <div class="theory-icon">🌟</div>
+                <div class="theory-title">Common Angles</div>
+                <div class="theory-text">tan(30°) = 1/√3<br>tan(45°) = 1<br>tan(60°) = √3</div>
+            </div>
+            
+            <div class="theory-card">
+                <div class="theory-icon">🎯</div>
+                <div class="theory-title">Problem Steps</div>
+                <div class="theory-text">1. Draw diagram<br>2. Identify right triangle<br>3. Choose correct ratio<br>4. Solve for unknown</div>
+            </div>
+            
+            <div class="theory-card">
+                <div class="theory-icon">🏔️</div>
+                <div class="theory-title">Applications</div>
+                <div class="theory-text">Measure heights of buildings, towers, mountains, and distances across rivers without direct measurement.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // GLOBAL STATE MANAGEMENT (10 VARIABLES)
+        // ============================================
+        
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let threeJsScenes = [];
+        let currentDemo = null;
+        let currentDemoAborted = false;
+        let currentRunId = 0;
+        let currentTaskId = null;
+        let animationTimeouts = [];
+        let activeTasks = new Set();
+        let isPlaying = false;
+
+        const quizState = {
+            currentQuestion: 0,
+            score: 0,
+            answers: []
+        };
+
+        // ============================================
+        // TEACHER VOICE CLASS
+        // ============================================
+
+        class TeacherVoice {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.voice = null;
+                this.rate = 0.95;
+                this.pitch = 1;
+                this.volume = 1;
+                this.isEnabled = true;
+                this.currentUtterance = null;
+                this.isDestroyed = false;
+                this.setupVoice();
+            }
+
+            setupVoice() {
+                const loadVoices = () => {
+                    const voices = this.synth.getVoices();
+                    this.voice = voices.find(v => v.lang.includes('en-GB') && v.name.toLowerCase().includes('female'))
+                        || voices.find(v => v.lang.includes('en-GB'))
+                        || voices.find(v => v.lang.includes('en'))
+                        || voices[0];
+                };
+                loadVoices();
+                this.synth.onvoiceschanged = loadVoices;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !globalAudioEnabled || !text || this.isDestroyed) return;
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.voice = this.voice;
+                        utterance.rate = this.rate;
+                        utterance.pitch = this.pitch;
+                        utterance.volume = this.volume;
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        this.currentUtterance = utterance;
+                        this.synth.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+            }
+        }
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            threeJsScenes.forEach(scene => {
+                if (scene.renderer) scene.renderer.dispose();
+                if (scene.animationId) cancelAnimationFrame(scene.animationId);
+            });
+            threeJsScenes = [];
+            activeTasks.clear();
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) return false;
+            return !currentDemoAborted;
+        }
+
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentTeacher = new TeacherVoice();
+            currentTeacher.isEnabled = globalAudioEnabled;
+            return currentTeacher;
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        // ============================================
+        // THREE.JS SCENE CREATION
+        // ============================================
+
+        function createThreeJsScene(container, options = {}) {
+            const { backgroundColor = 0x1a1a2e, cameraZ = 10 } = options;
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(backgroundColor);
+
+            const camera = new THREE.PerspectiveCamera(
+                75,
+                container.clientWidth / container.clientHeight,
+                0.1,
+                1000
+            );
+            camera.position.z = cameraZ;
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            const sceneData = { scene, camera, renderer, objects: {}, animationId: null };
+
+            function animate() {
+                sceneData.animationId = requestAnimationFrame(animate);
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            threeJsScenes.push(sceneData);
+            return sceneData;
+        }
+
+        // ============================================
+        // DRAWING FUNCTIONS
+        // ============================================
+
+        function drawLine(sceneData, x1, y1, x2, y2, color = 0xffffff, linewidth = 2) {
+            const points = [
+                new THREE.Vector3(x1, y1, 0),
+                new THREE.Vector3(x2, y2, 0)
+            ];
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ 
+                color: color,
+                linewidth: linewidth
+            });
+
+            const line = new THREE.Line(geometry, material);
+            sceneData.scene.add(line);
+            return line;
+        }
+
+        function drawDashedLine(sceneData, x1, y1, x2, y2, color = 0xffffff) {
+            const points = [
+                new THREE.Vector3(x1, y1, 0),
+                new THREE.Vector3(x2, y2, 0)
+            ];
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineDashedMaterial({ 
+                color: color,
+                linewidth: 2,
+                dashSize: 0.3,
+                gapSize: 0.15
+            });
+
+            const line = new THREE.Line(geometry, material);
+            line.computeLineDistances();
+            sceneData.scene.add(line);
+            return line;
+        }
+
+        function drawPoint(sceneData, x, y, color = 0xfbbf24, size = 0.15) {
+            const geometry = new THREE.SphereGeometry(size);
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const point = new THREE.Mesh(geometry, material);
+            point.position.set(x, y, 0);
+            sceneData.scene.add(point);
+            return point;
+        }
+
+        function drawAngleArc(sceneData, centerX, centerY, startAngle, endAngle, radius, color = 0xfbbf24) {
+            const curve = new THREE.EllipseCurve(
+                centerX, centerY,
+                radius, radius,
+                startAngle, endAngle,
+                false,
+                0
+            );
+
+            const points = curve.getPoints(50);
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: color, linewidth: 2 });
+            const arc = new THREE.Line(geometry, material);
+            sceneData.scene.add(arc);
+            return arc;
+        }
+
+        function drawLabel(sceneData, text, x, y, color = '#ffffff', size = 1) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 128;
+
+            context.font = 'bold 72px Arial';
+            context.fillStyle = color;
+            context.textAlign = 'center';
+            context.fillText(text, 128, 70);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(material);
+            sprite.position.set(x, y, 0);
+            sprite.scale.set(2.5 * size, 1.2 * size, 1);
+
+            sceneData.scene.add(sprite);
+            return sprite;
+        }
+
+        function drawRightTriangle(sceneData, baseX, baseY, width, height, color = 0x4facfe, filled = false) {
+            const points = [
+                new THREE.Vector3(baseX, baseY, 0),
+                new THREE.Vector3(baseX + width, baseY, 0),
+                new THREE.Vector3(baseX + width, baseY + height, 0),
+                new THREE.Vector3(baseX, baseY, 0)
+            ];
+
+            if (filled) {
+                const shape = new THREE.Shape();
+                shape.moveTo(baseX, baseY);
+                shape.lineTo(baseX + width, baseY);
+                shape.lineTo(baseX + width, baseY + height);
+                shape.lineTo(baseX, baseY);
+
+                const geometry = new THREE.ShapeGeometry(shape);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: color, 
+                    transparent: true, 
+                    opacity: 0.3,
+                    side: THREE.DoubleSide
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                sceneData.scene.add(mesh);
+            }
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: color, linewidth: 3 });
+            const line = new THREE.Line(geometry, material);
+            sceneData.scene.add(line);
+            return line;
+        }
+
+        function drawTower(sceneData, x, y, height, color = 0x8b4513) {
+            // Draw tower body
+            const towerGeometry = new THREE.BoxGeometry(0.5, height, 0.3);
+            const towerMaterial = new THREE.MeshBasicMaterial({ color: color });
+            const tower = new THREE.Mesh(towerGeometry, towerMaterial);
+            tower.position.set(x, y + height/2, 0);
+            sceneData.scene.add(tower);
+
+            // Draw tower top (triangle)
+            const topShape = new THREE.Shape();
+            topShape.moveTo(x - 0.4, y + height);
+            topShape.lineTo(x, y + height + 0.6);
+            topShape.lineTo(x + 0.4, y + height);
+            topShape.lineTo(x - 0.4, y + height);
+
+            const topGeometry = new THREE.ShapeGeometry(topShape);
+            const topMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xff6347,
+                side: THREE.DoubleSide
+            });
+            const top = new THREE.Mesh(topGeometry, topMaterial);
+            sceneData.scene.add(top);
+
+            return { tower, top };
+        }
+
+        function drawPerson(sceneData, x, y, color = 0x4facfe) {
+            // Head
+            const headGeometry = new THREE.CircleGeometry(0.2, 16);
+            const headMaterial = new THREE.MeshBasicMaterial({ color: 0xffc0cb });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.set(x, y + 0.9, 0);
+            sceneData.scene.add(head);
+
+            // Body
+            const bodyGeometry = new THREE.BoxGeometry(0.3, 0.6, 0.2);
+            const bodyMaterial = new THREE.MeshBasicMaterial({ color: color });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.set(x, y + 0.4, 0);
+            sceneData.scene.add(body);
+
+            // Legs
+            const legGeometry = new THREE.BoxGeometry(0.12, 0.4, 0.15);
+            const legMaterial = new THREE.MeshBasicMaterial({ color: 0x4169e1 });
+            
+            const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+            leftLeg.position.set(x - 0.1, y - 0.1, 0);
+            sceneData.scene.add(leftLeg);
+
+            const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+            rightLeg.position.set(x + 0.1, y - 0.1, 0);
+            sceneData.scene.add(rightLeg);
+
+            return { head, body, leftLeg, rightLeg };
+        }
+
+        // ============================================
+        // COMPLETE LESSON FUNCTION
+        // ============================================
+
+        async function showCompleteLesson() {
+            const taskId = `complete-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+
+            await teacher.speak("Welcome to the complete lesson on Heights and Distances! Let's begin our comprehensive journey through trigonometry applications.");
+            
+            await showIntroductionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+
+            await showLineOfSightContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+
+            await showAngleElevationContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+
+            await showAngleDepressionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+
+            await showTowerProblemContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+
+            await teacher.speak("Congratulations! You have completed the full lesson on Heights and Distances. You now understand how to use trigonometry to measure real-world objects!");
+        }
+
+        // ============================================
+        // MODULE 1: INTRODUCTION
+        // ============================================
+
+        async function showIntroduction() {
+            const taskId = `intro-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+            await showIntroductionContent(taskId);
+        }
+
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Introduction to Heights and Distances 📐</h2>
+                <p class="geometry-description">
+                    In the previous chapter, you studied trigonometric ratios. Now we'll see how these ratios 
+                    help us measure heights and distances in real life without actually climbing or walking there!
+                </p>
+                <div class="threejs-container" id="intro-threejs"></div>
+                <div class="theory-cards">
+                    <div class="theory-card">
+                        <div class="theory-icon">🏔️</div>
+                        <div class="theory-title">Heights</div>
+                        <div class="theory-text">Measure tall buildings, mountains, and towers</div>
+                    </div>
+                    <div class="theory-card">
+                        <div class="theory-icon">📏</div>
+                        <div class="theory-title">Distances</div>
+                        <div class="theory-text">Find distances across rivers, valleys, and more</div>
+                    </div>
+                    <div class="theory-card">
+                        <div class="theory-icon">📐</div>
+                        <div class="theory-title">Angles</div>
+                        <div class="theory-text">Use angles to calculate unknown measurements</div>
+                    </div>
+                </div>
+            `;
+
+            await wait(100);
+
+            const container = document.getElementById('intro-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("Welcome to Heights and Distances! In this lesson, we'll discover how trigonometry helps us measure things that seem impossible to measure directly.");
+            if (!shouldContinue(taskId)) return;
+
+            // Animate multiple triangles appearing
+            const triangles = [];
+            for (let i = 0; i < 3; i++) {
+                const xPos = -4 + i * 4;
+                const triangle = drawRightTriangle(sceneData, xPos - 1, -2, 2, 3, [0x4facfe, 0xfa709a, 0x43e97b][i], true);
+                triangle.scale.set(0, 0, 0);
+                triangles.push(triangle);
+                
+                gsap.to(triangle.scale, {
+                    x: 1,
+                    y: 1,
+                    z: 1,
+                    duration: 0.8,
+                    delay: i * 0.4,
+                    ease: "back.out(1.7)"
+                });
+                
+                await wait(400);
+            }
+
+            await teacher.speak("We'll use right-angled triangles and trigonometric ratios like sine, cosine, and tangent to solve real-world problems.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+        }
+
+        // ============================================
+        // MODULE 2: LINE OF SIGHT
+        // ============================================
+
+        async function showLineOfSight() {
+            const taskId = `sight-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+            await showLineOfSightContent(taskId);
+        }
+
+        async function showLineOfSightContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Line of Sight 👁️</h2>
+                <div class="threejs-container" id="sight-threejs"></div>
+                <div class="theorem-box">
+                    <div class="theorem-title">📏 Line of Sight Definition</div>
+                    <div class="theorem-content">
+                        The <strong>line of sight</strong> is the line drawn from the eye of an observer 
+                        to the point in the object being viewed by the observer.
+                        <br><br>
+                        It is the imaginary straight line connecting your eye to what you're looking at.
+                    </div>
+                </div>
+                <div class="value-display">Eye → Target = Line of Sight</div>
+            `;
+
+            await wait(100);
+
+            const container = document.getElementById('sight-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("The line of sight is the imaginary line from your eye to the object you are looking at.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw observer (person)
+            const person = drawPerson(sceneData, -4, -2, 0x4facfe);
+            person.head.scale.set(0, 0, 0);
+            person.body.scale.set(0, 0, 0);
+            gsap.to(person.head.scale, { x: 1, y: 1, z: 1, duration: 0.5 });
+            gsap.to(person.body.scale, { x: 1, y: 1, z: 1, duration: 0.5, delay: 0.2 });
+
+            await wait(800);
+
+            // Draw target (minar/tower)
+            const towerData = drawTower(sceneData, 4, -2, 4, 0x8b4513);
+            towerData.tower.scale.set(0, 0, 0);
+            gsap.to(towerData.tower.scale, { x: 1, y: 1, z: 1, duration: 0.8, ease: "bounce.out" });
+
+            await wait(1000);
+
+            // Draw line of sight
+            await teacher.speak("When you look at an object, an imaginary line connects your eye to that object. This is called the line of sight.");
+            if (!shouldContinue(taskId)) return;
+
+            const lineOfSight = drawLine(sceneData, -4, -1.1, 4, 2.6, 0xff00ff, 3);
+            lineOfSight.scale.x = 0;
+            gsap.to(lineOfSight.scale, { x: 1, duration: 1.2, ease: "power2.out" });
+
+            await wait(1500);
+
+            // Animate line of sight pulsing
+            gsap.to(lineOfSight.scale, {
+                x: 1.05,
+                duration: 0.5,
+                yoyo: true,
+                repeat: 3,
+                ease: "sine.inOut"
+            });
+
+            await teacher.speak("Notice how the line of sight goes directly from the observer's eye to the top of the tower.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+        }
+
+        // ============================================
+        // MODULE 3: ANGLE OF ELEVATION
+        // ============================================
+
+        async function showAngleElevation() {
+            const taskId = `elevation-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+            await showAngleElevationContent(taskId);
+        }
+
+        async function showAngleElevationContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Angle of Elevation ⬆️</h2>
+                <div class="threejs-container" id="elevation-threejs"></div>
+                <div class="theorem-box">
+                    <div class="theorem-title">⬆️ Angle of Elevation Definition</div>
+                    <div class="theorem-content">
+                        The <strong>angle of elevation</strong> is the angle formed by the line of sight 
+                        with the horizontal when the object being viewed is <strong>above</strong> the horizontal level.
+                        <br><br>
+                        In other words, it's the angle you raise your head to look at something above you.
+                        <br><br>
+                        <strong>Key Point:</strong> The angle is measured from the horizontal line upward.
+                    </div>
+                </div>
+                <div class="formula-box">tan(θ) = Height / Distance</div>
+                <div class="value-display" id="elevation-value">θ = Angle of Elevation</div>
+            `;
+
+            await wait(100);
+
+            const container = document.getElementById('elevation-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("The angle of elevation is the angle you look upward from the horizontal to see an object above you.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw ground
+            const ground = drawLine(sceneData, -6, -2, 6, -2, 0x90ee90, 2);
+            
+            await wait(500);
+
+            // Draw observer at point A
+            const person = drawPerson(sceneData, -4, -2, 0x4facfe);
+            drawLabel(sceneData, 'A', -4, -2.8, '#4facfe', 1.0);
+
+            await wait(500);
+
+            // Draw tower at point C
+            const towerHeight = 3.5;
+            const towerData = drawTower(sceneData, 3, -2, towerHeight, 0x8b4513);
+            towerData.tower.scale.y = 0;
+            gsap.to(towerData.tower.scale, { y: 1, duration: 1, ease: "power2.out" });
+            
+            drawLabel(sceneData, 'C', 3, -2.8, '#8b4513', 1.0);
+            drawLabel(sceneData, 'B', 3, -2 + towerHeight + 0.8, '#ff6347', 1.0);
+
+            await wait(1200);
+
+            // Draw horizontal line from eye level
+            const eyeLevel = -1.1;
+            const horizontal = drawDashedLine(sceneData, -4, eyeLevel, 3, eyeLevel, 0xffff00);
+            horizontal.scale.x = 0;
+            gsap.to(horizontal.scale, { x: 1, duration: 0.8, ease: "power2.out" });
+
+            await teacher.speak("First, we draw a horizontal line from the observer's eye level.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+
+            // Draw line of sight
+            const lineOfSight = drawLine(sceneData, -4, eyeLevel, 3, -2 + towerHeight, 0xff00ff, 3);
+            lineOfSight.scale.x = 0;
+            gsap.to(lineOfSight.scale, { x: 1, duration: 1, ease: "power2.out" });
+
+            await wait(1200);
+
+            await teacher.speak("Now we draw the line of sight from the eye to the top of the tower.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw angle arc
+            const angle = Math.atan2(towerHeight - (eyeLevel + 2), 7);
+            const arc = drawAngleArc(sceneData, -4, eyeLevel, 0, angle, 1.5, 0xfbbf24);
+            arc.scale.set(0, 0, 0);
+            gsap.to(arc.scale, { x: 1, y: 1, z: 1, duration: 0.8 });
+
+            drawLabel(sceneData, 'θ', -3, eyeLevel + 0.4, '#fbbf24', 1.1);
+
+            await wait(1000);
+
+            await teacher.speak("The angle between the horizontal line and the line of sight is called the angle of elevation, denoted by theta.");
+            if (!shouldContinue(taskId)) return;
+
+            // Highlight the right triangle
+            const triangleOutline = drawRightTriangle(sceneData, -4, eyeLevel, 7, towerHeight - (eyeLevel + 2), 0x00ff00, false);
+            triangleOutline.scale.set(0, 0, 0);
+            gsap.to(triangleOutline.scale, { x: 1, y: 1, z: 1, duration: 0.8 });
+
+            await wait(1000);
+
+            await teacher.speak("Notice how this forms a right-angled triangle. We can use tangent of theta to find the height: tangent theta equals height divided by distance.");
+            if (!shouldContinue(taskId)) return;
+
+            // Animate the value display
+            const valueDisplay = document.getElementById('elevation-value');
+            gsap.to(valueDisplay, {
+                scale: 1.1,
+                duration: 0.3,
+                yoyo: true,
+                repeat: 3
+            });
+
+            await wait(3000);
+        }
+
+        // ============================================
+        // MODULE 4: ANGLE OF DEPRESSION
+        // ============================================
+
+        async function showAngleDepression() {
+            const taskId = `depression-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+            await showAngleDepressionContent(taskId);
+        }
+
+        async function showAngleDepressionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Angle of Depression ⬇️</h2>
+                <div class="threejs-container" id="depression-threejs"></div>
+                <div class="theorem-box">
+                    <div class="theorem-title">⬇️ Angle of Depression Definition</div>
+                    <div class="theorem-content">
+                        The <strong>angle of depression</strong> is the angle formed by the line of sight 
+                        with the horizontal when the object being viewed is <strong>below</strong> the horizontal level.
+                        <br><br>
+                        In other words, it's the angle you lower your head to look at something below you.
+                        <br><br>
+                        <strong>Key Point:</strong> The angle is measured from the horizontal line downward.
+                    </div>
+                </div>
+                <div class="value-display" id="depression-value">Looking Down: Angle of Depression</div>
+            `;
+
+            await wait(100);
+
+            const container = document.getElementById('depression-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("The angle of depression is the angle you look downward from the horizontal to see an object below you.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw ground
+            const ground = drawLine(sceneData, -6, -3, 6, -3, 0x90ee90, 2);
+            
+            await wait(500);
+
+            // Draw balcony/platform
+            const balconyHeight = 2;
+            const balcony = drawLine(sceneData, -2, balconyHeight, 2, balconyHeight, 0x8b4513, 4);
+            
+            // Draw building support
+            const buildingSupport = drawLine(sceneData, -2, balconyHeight, -2, -3, 0x8b4513, 3);
+            
+            await wait(500);
+
+            // Draw person on balcony
+            const person = drawPerson(sceneData, -1, balconyHeight, 0x4facfe);
+            drawLabel(sceneData, 'A', -1, balconyHeight - 0.7, '#4facfe', 1.0);
+
+            await teacher.speak("Imagine you are standing on a balcony, looking down at an object on the ground below.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+
+            // Draw object on ground (flower pot)
+            const pot = drawPoint(sceneData, 4, -3, 0xff69b4, 0.25);
+            drawLabel(sceneData, 'B', 4, -3.6, '#ff69b4', 1.0);
+
+            await wait(800);
+
+            // Draw horizontal line from eye level
+            const eyeLevel = balconyHeight + 0.9;
+            const horizontal = drawDashedLine(sceneData, -1, eyeLevel, 4, eyeLevel, 0xffff00);
+            horizontal.scale.x = 0;
+            gsap.to(horizontal.scale, { x: 1, duration: 0.8, ease: "power2.out" });
+
+            await teacher.speak("We draw a horizontal line from the observer's eye level.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+
+            // Draw line of sight
+            const lineOfSight = drawLine(sceneData, -1, eyeLevel, 4, -3, 0xff00ff, 3);
+            lineOfSight.scale.x = 0;
+            gsap.to(lineOfSight.scale, { x: 1, duration: 1, ease: "power2.out" });
+
+            await wait(1200);
+
+            await teacher.speak("The line of sight goes from the eye down to the flower pot on the ground.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw angle arc (angle of depression)
+            const angleValue = Math.atan2(eyeLevel + 3, 5);
+            const arc = drawAngleArc(sceneData, -1, eyeLevel, -angleValue, 0, 1.5, 0xfbbf24);
+            arc.scale.set(0, 0, 0);
+            gsap.to(arc.scale, { x: 1, y: 1, z: 1, duration: 0.8 });
+
+            drawLabel(sceneData, 'θ', -0.3, eyeLevel - 0.5, '#fbbf24', 1.1);
+
+            await wait(1000);
+
+            await teacher.speak("The angle between the horizontal line and the line of sight, measured downward, is the angle of depression.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw the right triangle
+            const triangleOutline = drawRightTriangle(sceneData, -1, eyeLevel, 5, -(eyeLevel + 3), 0x00ff00, false);
+            triangleOutline.scale.set(0, 0, 0);
+            gsap.to(triangleOutline.scale, { x: 1, y: 1, z: 1, duration: 0.8 });
+
+            await wait(1000);
+
+            await teacher.speak("This also forms a right-angled triangle, and we can use trigonometry to calculate distances!");
+            if (!shouldContinue(taskId)) return;
+
+            // Animate the value display
+            const valueDisplay = document.getElementById('depression-value');
+            gsap.to(valueDisplay, {
+                scale: 1.1,
+                duration: 0.3,
+                yoyo: true,
+                repeat: 3
+            });
+
+            await wait(3000);
+        }
+
+        // ============================================
+        // MODULE 5: TOWER PROBLEM
+        // ============================================
+
+        async function showTowerProblem() {
+            const taskId = `tower-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+            await showTowerProblemContent(taskId);
+        }
+
+        async function showTowerProblemContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Example: Tower Problem 🗼</h2>
+                <div class="geometry-description">
+                    <strong>Problem:</strong> A tower stands vertically on the ground. From a point on the ground, 
+                    which is 15 m away from the foot of the tower, the angle of elevation of the top of the tower 
+                    is found to be 60°. Find the height of the tower.
+                </div>
+                <div class="threejs-container" id="tower-threejs"></div>
+                <div class="calculation-steps" id="calc-steps">
+                    <div class="step">Given: Distance CB = 15 m, Angle ACB = 60°</div>
+                    <div class="step">Find: Height AB = ?</div>
+                </div>
+                <div class="value-display" id="tower-value">Let's solve step by step!</div>
+            `;
+
+            await wait(100);
+
+            const container = document.getElementById('tower-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("Let's solve a real problem! A tower stands vertically, and from a point 15 meters away, the angle of elevation is 60 degrees. We need to find the height.");
+            if (!shouldContinue(taskId)) return;
+
+            // Draw ground
+            const ground = drawLine(sceneData, -6, -2.5, 6, -2.5, 0x90ee90, 3);
+            
+            await wait(500);
+
+            // Draw point C (observer position)
+            const pointC = drawPoint(sceneData, -3, -2.5, 0x4facfe, 0.2);
+            drawLabel(sceneData, 'C', -3, -3.2, '#4facfe', 1.1);
+
+            await wait(500);
+
+            // Draw tower AB
+            const towerHeight = 4.5; // This will represent 15√3 visually
+            const towerData = drawTower(sceneData, 3, -2.5, towerHeight, 0x8b4513);
+            towerData.tower.scale.y = 0;
+            gsap.to(towerData.tower.scale, { y: 1, duration: 1.5, ease: "power2.out" });
+            
+            drawLabel(sceneData, 'B', 3, -2.5 - 0.7, '#8b4513', 1.1);
+            drawLabel(sceneData, 'A', 3, -2.5 + towerHeight + 0.5, '#ff6347', 1.1);
+
+            await wait(1800);
+
+            // Draw distance CB (base)
+            const distanceLine = drawLine(sceneData, -3, -2.5, 3, -2.5, 0xffff00, 4);
+            drawLabel(sceneData, '15 m', 0, -3.2, '#ffff00', 1.1);
+
+            await teacher.speak("The distance from the observer to the base of the tower is 15 meters.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+
+            // Draw line of sight AC
+            const lineOfSight = drawLine(sceneData, -3, -2.5, 3, -2.5 + towerHeight, 0xff00ff, 3);
+            lineOfSight.scale.x = 0;
+            gsap.to(lineOfSight.scale, { x: 1, duration: 1.2, ease: "power2.out" });
+
+            await wait(1300);
+
+            // Draw angle 60°
+            const angle60 = Math.PI / 3; // 60 degrees in radians
+            const arc = drawAngleArc(sceneData, -3, -2.5, 0, Math.atan2(towerHeight, 6), 1.8, 0xfbbf24);
+            arc.scale.set(0, 0, 0);
+            gsap.to(arc.scale, { x: 1, y: 1, z: 1, duration: 0.8 });
+
+            drawLabel(sceneData, '60°', -1.8, -1.8, '#fbbf24', 1.2);
+
+            await teacher.speak("The angle of elevation is 60 degrees.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+
+            // Highlight the right triangle
+            const triangle = drawRightTriangle(sceneData, -3, -2.5, 6, towerHeight, 0x00ff00, true);
+            triangle.scale.set(0, 0, 0);
+            gsap.to(triangle.scale, { x: 1, y: 1, z: 1, duration: 0.8 });
+
+            await wait(1000);
+
+            await teacher.speak("Now, in the right triangle A B C, we know angle A C B is 60 degrees, and the adjacent side C B is 15 meters.");
+            if (!shouldContinue(taskId)) return;
+
+            // Add calculation steps
+            const calcSteps = document.getElementById('calc-steps');
+            
+            await wait(1000);
+            
+            const step1 = document.createElement('div');
+            step1.className = 'step';
+            step1.textContent = 'Step 1: tan(60°) = AB/CB';
+            calcSteps.appendChild(step1);
+            gsap.from(step1, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("We use tangent. Tangent of 60 degrees equals A B divided by C B.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            
+            const step2 = document.createElement('div');
+            step2.className = 'step';
+            step2.textContent = 'Step 2: √3 = AB/15';
+            calcSteps.appendChild(step2);
+            gsap.from(step2, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Since tangent of 60 degrees equals square root of 3, we get square root of 3 equals A B divided by 15.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            
+            const step3 = document.createElement('div');
+            step3.className = 'step';
+            step3.textContent = 'Step 3: AB = 15√3';
+            calcSteps.appendChild(step3);
+            gsap.from(step3, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Multiplying both sides by 15, we get A B equals 15 multiplied by square root of 3.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            
+            const step4 = document.createElement('div');
+            step4.className = 'step';
+            step4.style.color = '#43e97b';
+            step4.style.fontSize = '1.3rem';
+            step4.textContent = 'Answer: AB = 15√3 ≈ 25.98 meters';
+            calcSteps.appendChild(step4);
+            gsap.from(step4, { x: -50, opacity: 0, duration: 0.5 });
+
+            await teacher.speak("Therefore, the height of the tower is 15 times square root of 3, which is approximately 25 point 98 meters!");
+            if (!shouldContinue(taskId)) return;
+
+            // Animate the final answer
+            gsap.to(step4, {
+                scale: 1.15,
+                duration: 0.4,
+                yoyo: true,
+                repeat: 3
+            });
+
+            // Update value display
+            const valueDisplay = document.getElementById('tower-value');
+            valueDisplay.textContent = 'Height = 15√3 ≈ 25.98 m';
+            gsap.to(valueDisplay, {
+                scale: 1.1,
+                duration: 0.3,
+                yoyo: true,
+                repeat: 3
+            });
+
+            await wait(4000);
+        }
+
+        // ============================================
+        // MODULE 6: INTERACTIVE DEMO
+        // ============================================
+
+        async function showInteractiveDemo() {
+            const taskId = `interactive-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+            await showInteractiveDemoContent(taskId);
+        }
+
+        async function showInteractiveDemoContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+
+            content.innerHTML = `
+                <h2 class="geometry-title">Interactive Trigonometry Demo 🎮</h2>
+                <p class="geometry-description">
+                    Adjust the angle and distance to see how the right triangle changes and affects the height!
+                </p>
+                <div class="threejs-container" id="interactive-threejs"></div>
+                <div class="slider-container">
+                    <div class="slider-label">Angle: <span id="angle-display">45</span>°</div>
+                    <input type="range" class="slider" id="angle-slider" min="10" max="80" value="45">
+                </div>
+                <div class="slider-container">
+                    <div class="slider-label">Distance: <span id="distance-display">15</span> m</div>
+                    <input type="range" class="slider" id="distance-slider" min="5" max="30" value="15">
+                </div>
+                <div class="value-display" id="interactive-value">Height = 15.00 m</div>
+            `;
+
+            await wait(100);
+
+            const container = document.getElementById('interactive-threejs');
+            const sceneData = createThreeJsScene(container);
+
+            await teacher.speak("Now you can interact! Adjust the angle and distance sliders to see how the right triangle changes and affects the height calculation.");
+            if (!shouldContinue(taskId)) return;
+
+            let currentAngle = 45;
+            let currentDistance = 15;
+
+            function updateScene() {
+                // Clear previous objects
+                while(sceneData.scene.children.length > 0) { 
+                    sceneData.scene.remove(sceneData.scene.children[0]); 
+                }
+
+                // Calculate height
+                const angleRad = (currentAngle * Math.PI) / 180;
+                const height = currentDistance * Math.tan(angleRad);
+
+                // Draw ground
+                drawLine(sceneData, -6, -2.5, 6, -2.5, 0x90ee90, 3);
+
+                // Draw observer
+                const person = drawPerson(sceneData, -4, -2.5, 0x4facfe);
+                drawLabel(sceneData, 'You', -4, -3.2, '#4facfe', 0.8);
+
+                // Draw distance line
+                const baseEnd = -4 + currentDistance * 0.4;
+                const visualHeight = Math.min(height * 0.15, 4.5);
+                drawLine(sceneData, -4, -2.5, baseEnd, -2.5, 0xffff00, 3);
+                drawLabel(sceneData, currentDistance + ' m', (baseEnd - 4) / 2, -3.2, '#ffff00', 0.8);
+
+                // Draw line of sight
+                drawLine(sceneData, -4, -2.5, baseEnd, -2.5 + visualHeight, 0xff00ff, 3);
+
+                // Draw triangle
+                drawRightTriangle(sceneData, -4, -2.5, baseEnd + 4, visualHeight, 0x00ff00, true);
+
+                // Update value display
+                document.getElementById('interactive-value').textContent = `Height = ${height.toFixed(2)} m`;
+            }
+
+            updateScene();
+
+            // Angle slider
+            document.getElementById('angle-slider').addEventListener('input', function(e) {
+                currentAngle = parseInt(e.target.value);
+                document.getElementById('angle-display').textContent = currentAngle;
+                updateScene();
+            });
+
+            // Distance slider
+            document.getElementById('distance-slider').addEventListener('input', function(e) {
+                currentDistance = parseInt(e.target.value);
+                document.getElementById('distance-display').textContent = currentDistance;
+                updateScene();
+            });
+
+            await teacher.speak("Try changing the values and watch how the triangle changes shape and the height calculation updates based on the tangent relationship!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(10000);
+        }
+
+        // ============================================
+        // MODULE 7: QUIZ
+        // ============================================
+
+        const quizData = [
+            {
+                question: "What is the line of sight?",
+                options: [
+                    "A line drawn parallel to the ground",
+                    "A line drawn from the eye to the object being viewed",
+                    "A line drawn from the object to the ground",
+                    "A vertical line"
+                ],
+                correct: 1,
+                explanation: "The line of sight is the line drawn from the observer's eye to the point in the object being viewed."
+            },
+            {
+                question: "When is the angle of elevation used?",
+                options: [
+                    "When the object is below the observer",
+                    "When the object is at the same level as the observer",
+                    "When the object is above the observer",
+                    "When measuring horizontal distances"
+                ],
+                correct: 2,
+                explanation: "The angle of elevation is used when the object being viewed is above the horizontal level of the observer."
+            },
+            {
+                question: "If the angle of elevation to the top of a tower is 30° and you're standing 20m away, what trigonometric ratio would you use to find the height?",
+                options: [
+                    "sin(30°)",
+                    "cos(30°)",
+                    "tan(30°)",
+                    "cot(30°)"
+                ],
+                correct: 2,
+                explanation: "We use tan(30°) = height/distance, because tangent relates the opposite side (height) to the adjacent side (distance)."
+            },
+            {
+                question: "If tan(60°) = √3 and the distance from a tower is 10m, what is the height?",
+                options: [
+                    "10 m",
+                    "10√3 m",
+                    "10/√3 m",
+                    "20 m"
+                ],
+                correct: 1,
+                explanation: "Using tan(60°) = height/10, we get √3 = height/10, so height = 10√3 meters."
+            },
+            {
+                question: "The angle of depression from a balcony to a flower pot is the same as:",
+                options: [
+                    "The angle of elevation from the flower pot to the balcony",
+                    "90° minus the angle of elevation",
+                    "The angle of elevation plus 90°",
+                    "Twice the angle of elevation"
+                ],
+                correct: 0,
+                explanation: "The angle of depression from point A to point B equals the angle of elevation from point B to point A (alternate angles)."
+            }
+        ];
+
+        async function showQuiz() {
+            const taskId = `quiz-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            const teacher = createNewTeacher(taskId);
+            
+            quizState.currentQuestion = 0;
+            quizState.score = 0;
+            quizState.answers = [];
+
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="geometry-title">Quiz Time! 🧮</h2>
+                <div class="quiz-container" id="quiz-container"></div>
+            `;
+
+            await teacher.speak("Let's test your knowledge with a quiz on heights and distances!");
+            await wait(1000);
+
+            displayQuestion();
+
+            function displayQuestion() {
+                const quizContainer = document.getElementById('quiz-container');
+                const q = quizData[quizState.currentQuestion];
+
+                quizContainer.innerHTML = `
+                    <div class="quiz-progress">Question ${quizState.currentQuestion + 1} of ${quizData.length}</div>
+                    <div class="quiz-question">${q.question}</div>
+                    <div class="quiz-options" id="quiz-options"></div>
+                    <div class="quiz-feedback" id="quiz-feedback"></div>
+                `;
+
+                const optionsContainer = document.getElementById('quiz-options');
+                q.options.forEach((option, index) => {
+                    const optionBtn = document.createElement('div');
+                    optionBtn.className = 'quiz-option';
+                    optionBtn.textContent = option;
+                    optionBtn.addEventListener('click', () => selectAnswer(index));
+                    optionsContainer.appendChild(optionBtn);
+                });
+            }
+
+            async function selectAnswer(selectedIndex) {
+                const q = quizData[quizState.currentQuestion];
+                const isCorrect = selectedIndex === q.correct;
+                
+                if (isCorrect) {
+                    quizState.score++;
+                    await teacher.speak("Correct! " + q.explanation);
+                } else {
+                    await teacher.speak("Not quite. " + q.explanation);
+                }
+
+                quizState.answers.push({ question: quizState.currentQuestion, correct: isCorrect });
+
+                const feedback = document.getElementById('quiz-feedback');
+                feedback.className = 'quiz-feedback ' + (isCorrect ? 'correct' : 'incorrect');
+                feedback.textContent = (isCorrect ? '✓ Correct! ' : '✗ Incorrect. ') + q.explanation;
+
+                // Disable all options
+                document.querySelectorAll('.quiz-option').forEach(opt => {
+                    opt.style.pointerEvents = 'none';
+                    opt.style.opacity = '0.6';
+                });
+
+                await wait(4000);
+
+                quizState.currentQuestion++;
+                if (quizState.currentQuestion < quizData.length) {
+                    displayQuestion();
+                } else {
+                    showResults();
+                }
+            }
+
+            async function showResults() {
+                const quizContainer = document.getElementById('quiz-container');
+                const percentage = (quizState.score / quizData.length) * 100;
+                let message = '';
+                
+                if (percentage >= 80) {
+                    message = 'Excellent work! You have mastered heights and distances!';
+                } else if (percentage >= 60) {
+                    message = 'Good job! Keep practicing to improve further!';
+                } else {
+                    message = 'Keep learning! Review the lessons and try again!';
+                }
+
+                quizContainer.innerHTML = `
+                    <div class="quiz-score">Your Score: ${quizState.score}/${quizData.length}</div>
+                    <div class="quiz-score" style="font-size: 1rem; margin-top: 15px;">${percentage.toFixed(0)}%</div>
+                    <div class="geometry-description" style="margin-top: 20px;">${message}</div>
+                    <div class="chart-container">
+                        <canvas id="quiz-chart"></canvas>
+                    </div>
+                `;
+
+                // Create chart
+                const ctx = document.getElementById('quiz-chart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: quizData.map((_, i) => `Q${i + 1}`),
+                        datasets: [{
+                            label: 'Your Answers',
+                            data: quizState.answers.map(a => a.correct ? 1 : 0),
+                            backgroundColor: quizState.answers.map(a => 
+                                a.correct ? 'rgba(67, 233, 123, 0.8)' : 'rgba(245, 87, 108, 0.8)'
+                            ),
+                            borderColor: quizState.answers.map(a => 
+                                a.correct ? '#43e97b' : '#f5576c'
+                            ),
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 1,
+                                ticks: {
+                                    color: '#ffffff',
+                                    stepSize: 1,
+                                    callback: function(value) {
+                                        return value === 1 ? 'Correct' : 'Wrong';
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    color: '#ffffff'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+
+                await teacher.speak(`Quiz complete! You scored ${quizState.score} out of ${quizData.length}. ${message}`);
+            }
+        }
+
+        // ============================================
+        // RESET FUNCTION
+        // ============================================
+
+        function resetApplication() {
+            stopCurrentDemo();
+
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="geometry-title">Welcome to Heights and Distances! 🏔️</h2>
+                <div class="value-display">Discover the Power of Trigonometry</div>
+                <p class="geometry-description">
+                    Learn how to measure heights and distances without actually climbing or walking there!
+                    Master angle of elevation, angle of depression, and solve real-world problems.
+                </p>
+                <div class="threejs-container" id="welcome-threejs"></div>
+            `;
+
+            setTimeout(() => {
+                const container = document.getElementById('welcome-threejs');
+                if (container) {
+                    const sceneData = createThreeJsScene(container);
+                    
+                    // Create animated triangles
+                    for (let i = 0; i < 4; i++) {
+                        const xPos = -5 + i * 3.5;
+                        const triangle = drawRightTriangle(sceneData, xPos - 1, -2, 2, 3, [0x4facfe, 0xfa709a, 0x43e97b, 0xfbbf24][i], true);
+                        
+                        gsap.from(triangle.scale, {
+                            x: 0,
+                            y: 0,
+                            z: 0,
+                            duration: 0.8,
+                            delay: i * 0.2,
+                            ease: "back.out(1.7)"
+                        });
+                    }
+                }
+            }, 100);
+
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            currentDemo = null;
+
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to continue exploring the fascinating world of trigonometry and its real-world applications!");
+            }, 500);
+        }
+
+        // ============================================
+        // UTILITY FUNCTION
+        // ============================================
+
+        function createStageContent() {
+            const stage = document.querySelector('.demo-stage');
+            stage.innerHTML = '';
+            const content = document.createElement('div');
+            content.className = 'stage-content active';
+            stage.appendChild(content);
+            return content;
+        }
+
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="geometry-title">Welcome to Heights and Distances! 🏔️</h2>
+                <div class="value-display">Discover the Power of Trigonometry</div>
+                <p class="geometry-description">
+                    Learn how to measure heights and distances without actually climbing or walking there!
+                    Master angle of elevation, angle of depression, and solve real-world problems.
+                </p>
+                <div class="threejs-container" id="welcome-threejs"></div>
+            `;
+            
+            setTimeout(() => {
+                const container = document.getElementById('welcome-threejs');
+                if (container) {
+                    const sceneData = createThreeJsScene(container);
+                    
+                    // Create animated triangles
+                    for (let i = 0; i < 4; i++) {
+                        const xPos = -5 + i * 3.5;
+                        const triangle = drawRightTriangle(sceneData, xPos - 1, -2, 2, 3, [0x4facfe, 0xfa709a, 0x43e97b, 0xfbbf24][i], true);
+                        
+                        gsap.from(triangle.scale, {
+                            x: 0,
+                            y: 0,
+                            z: 0,
+                            duration: 0.8,
+                            delay: i * 0.2,
+                            ease: "back.out(1.7)"
+                        });
+                    }
+                }
+                teacher.speak("Welcome to Heights and Distances! Explore how trigonometry helps us solve real-world measurement problems with amazing three D animations!");
+            }, 500);
+
+            // Demo button event handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'line-of-sight':
+                            showLineOfSight();
+                            break;
+                        case 'angle-elevation':
+                            showAngleElevation();
+                            break;
+                        case 'angle-depression':
+                            showAngleDepression();
+                            break;
+                        case 'tower-problem':
+                            showTowerProblem();
+                            break;
+                        case 'interactive':
+                            showInteractiveDemo();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+
+            // Audio control button
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+
+            // Window resize handler for Three.js scenes
+            window.addEventListener('resize', () => {
+                threeJsScenes.forEach(sceneData => {
+                    const container = sceneData.renderer.domElement.parentElement;
+                    if (container) {
+                        sceneData.camera.aspect = container.clientWidth / container.clientHeight;
+                        sceneData.camera.updateProjectionMatrix();
+                        sceneData.renderer.setSize(container.clientWidth, container.clientHeight);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Atomic Science: Isotopes and Isobars</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 25%, #2d3561 50%, #1a1f3a 75%, #0a0e27 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(2px 2px at 20% 30%, white, transparent),
+                radial-gradient(2px 2px at 60% 70%, white, transparent),
+                radial-gradient(1px 1px at 50% 50%, white, transparent);
+            background-size: 200px 200px;
+            opacity: 0.2;
+            animation: drift 120s linear infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        @keyframes drift {
+            from { transform: translate(0, 0); }
+            to { transform: translate(-200px, -200px); }
+        }
+
+        /* Main Layout Container */
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+        }
+
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            background: linear-gradient(45deg, #00d4ff, #ff00ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            font-weight: 700;
+            filter: drop-shadow(0 0 30px rgba(0, 212, 255, 0.5));
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { filter: brightness(1) drop-shadow(0 0 30px rgba(0, 212, 255, 0.5)); }
+            50% { filter: brightness(1.2) drop-shadow(0 0 50px rgba(255, 0, 255, 0.7)); }
+        }
+
+        .header p {
+            font-size: clamp(1rem, 2vw, 1.3rem);
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        /* 3D Canvas Container - MAXIMIZED */
+        .canvas-container {
+            background: linear-gradient(135deg, 
+                rgba(10, 14, 39, 0.9) 0%,
+                rgba(26, 31, 58, 0.9) 50%,
+                rgba(10, 14, 39, 0.9) 100%);
+            border-radius: 25px;
+            position: relative;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.5),
+                inset 0 0 100px rgba(0, 212, 255, 0.1);
+            overflow: hidden;
+            border: 3px solid rgba(0, 212, 255, 0.3);
+            width: 100%;
+            height: 80vh;
+            min-height: 600px;
+            margin-bottom: 20px;
+        }
+
+        #atomicCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: grab;
+        }
+
+        #atomicCanvas:active {
+            cursor: grabbing;
+        }
+
+        /* Text Labels Container - Positioned below atoms - FIXED */
+        .labels-container {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 1200px;
+            pointer-events: none;
+            display: flex;
+            justify-content: space-evenly;
+            align-items: flex-start;
+            gap: 30px;
+            flex-wrap: nowrap;
+            padding: 0 20px;
+        }
+
+        .atom-label {
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(0, 212, 255, 0.5);
+            border-radius: 12px;
+            padding: 10px 15px;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            min-width: 120px;
+            flex: 0 1 auto;
+            max-width: 200px;
+        }
+
+        .atom-label.main {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(255, 0, 255, 0.2));
+            border-color: rgba(255, 0, 255, 0.6);
+        }
+
+        .atom-label .symbol {
+            color: #00d4ff;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .atom-label .name {
+            color: #ffffff;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .atom-label .details {
+            font-size: 0.85rem;
+            color: #e2e8f0;
+            margin-top: 5px;
+            line-height: 1.3;
+        }
+
+        .atom-label .protons { color: #ff6b6b; }
+        .atom-label .neutrons { color: #4dabf7; }
+        .atom-label .electrons { color: #69db7c; }
+
+        /* Control Panel */
+        .controls {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 2px solid rgba(0, 212, 255, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .controls-title {
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #00d4ff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .demo-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #00d4ff, #0099ff);
+            border: none;
+            color: white;
+            padding: 14px 20px;
+            border-radius: 35px;
+            font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .demo-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .demo-btn:hover::before {
+            left: 100%;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(0, 212, 255, 0.5);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+            animation: activePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes activePulse {
+            0%, 100% { 
+                box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+            }
+            50% { 
+                box-shadow: 0 12px 35px rgba(16, 185, 129, 0.6);
+            }
+        }
+
+        /* Educational Content Section - SIMPLIFIED */
+        .content-section {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 25px;
+            padding: 30px;
+            border: 2px solid rgba(0, 212, 255, 0.2);
+        }
+
+        .content-section h2 {
+            font-size: 2rem;
+            background: linear-gradient(45deg, #00d4ff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .concept-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .concept-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-5px);
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+
+        .concept-card h3 {
+            font-size: 1.3rem;
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+
+        .concept-card p {
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        .key-point {
+            background: rgba(0, 212, 255, 0.1);
+            border-left: 4px solid #00d4ff;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+
+        /* Comparison Display */
+        .comparison-display {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 15px 30px;
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            display: none;
+            max-width: 90%;
+        }
+
+        .comparison-display.active {
+            display: block;
+        }
+
+        .comparison-title {
+            font-size: 1.2rem;
+            color: #00d4ff;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .comparison-row {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .comparison-item {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .comparison-item .name {
+            font-size: 1.1rem;
+            color: #ff00ff;
+            margin-bottom: 5px;
+        }
+
+        .comparison-item .value {
+            font-size: 0.9rem;
+            color: #e2e8f0;
+        }
+
+        /* Progress Indicator */
+        .progress-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 10px 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .progress-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .progress-dot.active {
+            background: linear-gradient(135deg, #00d4ff, #ff00ff);
+            transform: scale(1.3);
+        }
+
+        .progress-dot.completed {
+            background: #69db7c;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .audio-btn {
+            background: linear-gradient(135deg, #00d4ff, #0099ff);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+        }
+
+        .audio-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 30px rgba(0, 212, 255, 0.5);
+        }
+
+        .audio-btn.muted .unmute-icon { display: none; }
+        .audio-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .canvas-container {
+                height: 60vh;
+                min-height: 400px;
+            }
+            
+            .demo-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .labels-container {
+                bottom: 60px;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+                max-height: 200px;
+                overflow-y: auto;
+            }
+            
+            .atom-label {
+                font-size: 0.9rem;
+                min-width: 200px;
+            }
+            
+            .atom-label.main {
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .labels-container {
+                gap: 15px;
+            }
+            
+            .atom-label {
+                min-width: 100px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="audio-btn" title="Toggle Audio">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Isotopes & Isobars</h1>
+            <p>Interactive 3D visualization of atomic variations</p>
+        </div>
+
+        <!-- 3D Canvas - MAXIMIZED -->
+        <div class="canvas-container">
+            <canvas id="atomicCanvas"></canvas>
+            
+            <!-- Text Labels Container -->
+            <div class="labels-container" id="labelsContainer">
+                <!-- Labels will be added dynamically -->
+            </div>
+            
+            <!-- Comparison Display - Removed -->
+        </div>
+
+        <!-- Control Panel -->
+        <div class="controls">
+            <div class="controls-title">Interactive Demonstrations</div>
+            <div class="demo-buttons">
+                <button class="demo-btn" id="btn-complete" onclick="playCompleteStory()">📖 Complete Story</button>
+                <button class="demo-btn" id="btn-isotopes" onclick="exploreIsotopes()">⚛️ Explore Isotopes</button>
+                <button class="demo-btn" id="btn-isobars" onclick="exploreIsobars()">🔄 Explore Isobars</button>
+                <button class="demo-btn" id="btn-build" onclick="buildIsotope()">🔧 Build Isotope</button>
+                <button class="demo-btn" id="btn-reset" onclick="resetView()">↺ Reset</button>
+            </div>
+        </div>
+
+        <!-- Educational Content Section - OVERVIEW ONLY -->
+        <div class="content-section">
+            <h2>Key Concepts Overview</h2>
+            
+            <div class="content-grid">
+                <div class="concept-card">
+                    <h3>What are Isotopes?</h3>
+                    <p>Atoms of the same element with the same atomic number but different mass numbers.</p>
+                    <div class="key-point">
+                        <strong>Example:</strong> Hydrogen has three isotopes - Protium (¹H), Deuterium (²H), and Tritium (³H)
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <h3>What are Isobars?</h3>
+                    <p>Atoms of different elements with different atomic numbers but the same mass number.</p>
+                    <div class="key-point">
+                        <strong>Example:</strong> Calcium-40 and Argon-40 both have mass number 40
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <h3>Applications</h3>
+                    <p>Isotopes have important uses in various fields:</p>
+                    <ul style="margin-left: 20px; color: #e2e8f0;">
+                        <li>Nuclear reactors (Uranium isotopes)</li>
+                        <li>Medical treatments (Cobalt, Iodine)</li>
+                        <li>Scientific dating (Carbon-14)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="progress-indicator" id="progressIndicator" style="display: none;">
+        <div class="progress-dot" data-step="1"></div>
+        <div class="progress-dot" data-step="2"></div>
+        <div class="progress-dot" data-step="3"></div>
+        <div class="progress-dot" data-step="4"></div>
+        <div class="progress-dot" data-step="5"></div>
+    </div>
+
+    <script>
+        // Global Variables
+        let scene, camera, renderer;
+        let currentAtoms = [];
+        let atomLabels = [];
+        let animationId;
+        let audioEnabled = true;
+        let currentNarrator = null;
+        let isPlaying = false;
+        let currentActiveButton = null;
+
+        // Atom Data
+        const atomData = {
+            hydrogen: {
+                protium: { symbol: '¹H', name: 'Protium', protons: 1, neutrons: 0, electrons: 1, color: 0x00ff88 },
+                deuterium: { symbol: '²H', name: 'Deuterium', protons: 1, neutrons: 1, electrons: 1, color: 0x00ffaa },
+                tritium: { symbol: '³H', name: 'Tritium', protons: 1, neutrons: 2, electrons: 1, color: 0x00ffcc }
+            },
+            chlorine: {
+                cl35: { symbol: '³⁵Cl', name: 'Chlorine-35', protons: 17, neutrons: 18, electrons: 17, color: 0x10b981 },
+                cl37: { symbol: '³⁷Cl', name: 'Chlorine-37', protons: 17, neutrons: 20, electrons: 17, color: 0x34d399 }
+            },
+            isobars: {
+                calcium: { symbol: '⁴⁰Ca', name: 'Calcium-40', protons: 20, neutrons: 20, electrons: 20, color: 0xfbbf24 },
+                argon: { symbol: '⁴⁰Ar', name: 'Argon-40', protons: 18, neutrons: 22, electrons: 18, color: 0xa78bfa }
+            }
+        };
+
+        // Narrator Class
+        class Narrator {
+            constructor() {
+                this.isEnabled = audioEnabled;
+                this.currentUtterance = null;
+                this.isDestroyed = false;
+                this.isSpeaking = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.rate = 0.9;
+                        utterance.pitch = 1.0;
+                        utterance.volume = 0.8;
+                        
+                        this.isSpeaking = true;
+                        utterance.onend = () => {
+                            this.isSpeaking = false;
+                            resolve();
+                        };
+                        utterance.onerror = () => {
+                            this.isSpeaking = false;
+                            resolve();
+                        };
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                this.isSpeaking = false;
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+            }
+        }
+
+        // Button management functions
+        function setActiveButton(buttonId) {
+            // Remove active class from all buttons
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to the specified button
+            if (buttonId) {
+                const btn = document.getElementById(buttonId);
+                if (btn) {
+                    btn.classList.add('active');
+                    currentActiveButton = buttonId;
+                }
+            }
+        }
+
+        function stopAllAnimations() {
+            // Stop current narrator
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            
+            // Set animation flag to false
+            isPlaying = false;
+            
+            // Hide progress indicator
+            hideProgress();
+        }
+
+        // Initialize Three.js
+        function initThreeJS() {
+            const canvas = document.getElementById('atomicCanvas');
+            const container = document.querySelector('.canvas-container');
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = null;
+            
+            // Camera - adjusted for larger view
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+            camera.position.set(0, 5, 25);
+            camera.lookAt(0, 0, 0);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: canvas, 
+                antialias: true,
+                alpha: true 
+            });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+            
+            const pointLight = new THREE.PointLight(0x00d4ff, 0.5, 100);
+            pointLight.position.set(-10, 10, -5);
+            scene.add(pointLight);
+            
+            // Mouse controls
+            setupMouseControls();
+            
+            // Start animation loop
+            animate();
+        }
+
+        // Create Atom Model - LARGER SIZE
+        function createAtom(atomInfo, x = 0, y = 0, z = 0) {
+            const atomGroup = new THREE.Group();
+            atomGroup.position.set(x, y, z);
+            
+            // Create nucleus with proper particle arrangement
+            const nucleusGroup = new THREE.Group();
+            
+            // Increased nucleus size
+            const totalNucleons = atomInfo.protons + atomInfo.neutrons;
+            const nucleusRadius = Math.cbrt(totalNucleons) * 0.4; // Increased from 0.3
+            
+            // Create protons and neutrons using spherical packing
+            for (let i = 0; i < totalNucleons; i++) {
+                const t = i / totalNucleons;
+                const inclination = Math.acos(1 - 2 * t);
+                const azimuth = 2 * Math.PI * i / (1.618033988749895);
+                
+                const x = nucleusRadius * Math.sin(inclination) * Math.cos(azimuth);
+                const y = nucleusRadius * Math.sin(inclination) * Math.sin(azimuth);
+                const z = nucleusRadius * Math.cos(inclination);
+                
+                const isProton = i < atomInfo.protons;
+                const particleGeometry = new THREE.SphereGeometry(0.2, 16, 16); // Increased from 0.15
+                const particleMaterial = new THREE.MeshPhongMaterial({
+                    color: isProton ? 0xff6b6b : 0x4dabf7,
+                    emissive: isProton ? 0xff6b6b : 0x4dabf7,
+                    emissiveIntensity: 0.3,
+                    shininess: 100
+                });
+                
+                const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+                particle.position.set(x, y, z);
+                nucleusGroup.add(particle);
+            }
+            
+            // Add a subtle glow to the nucleus
+            const glowGeometry = new THREE.SphereGeometry(nucleusRadius * 1.5, 32, 32);
+            const glowMaterial = new THREE.MeshPhongMaterial({
+                color: atomInfo.color,
+                emissive: atomInfo.color,
+                emissiveIntensity: 0.2,
+                transparent: true,
+                opacity: 0.3
+            });
+            const nucleusGlow = new THREE.Mesh(glowGeometry, glowMaterial);
+            nucleusGroup.add(nucleusGlow);
+            
+            atomGroup.add(nucleusGroup);
+            atomGroup.nucleus = nucleusGroup;
+            
+            // Create electron shells and electrons
+            const electronConfig = getElectronConfiguration(atomInfo.electrons);
+            const shells = [];
+            
+            electronConfig.forEach((electronCount, shellIndex) => {
+                if (electronCount === 0) return;
+                
+                const shellRadius = 2.5 + shellIndex * 2; // Increased shell radius
+                
+                // Create shell orbit ring
+                const ringGeometry = new THREE.TorusGeometry(shellRadius, 0.03, 8, 64);
+                const ringMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x00d4ff,
+                    opacity: 0.2,
+                    transparent: true
+                });
+                const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                ring.rotation.x = Math.PI / 2;
+                atomGroup.add(ring);
+                
+                // Create a rotating container for electrons in this shell
+                const shellContainer = new THREE.Object3D();
+                
+                // Add electrons to the shell
+                for (let i = 0; i < electronCount; i++) {
+                    const electronGeometry = new THREE.SphereGeometry(0.1, 16, 16); // Increased from 0.08
+                    const electronMaterial = new THREE.MeshPhongMaterial({
+                        color: 0x69db7c,
+                        emissive: 0x69db7c,
+                        emissiveIntensity: 0.6
+                    });
+                    const electron = new THREE.Mesh(electronGeometry, electronMaterial);
+                    
+                    // Position electron on shell
+                    const angle = (i / electronCount) * Math.PI * 2;
+                    electron.position.x = Math.cos(angle) * shellRadius;
+                    electron.position.z = Math.sin(angle) * shellRadius;
+                    electron.position.y = 0;
+                    
+                    shellContainer.add(electron);
+                }
+                
+                shellContainer.rotation.x = (Math.random() - 0.5) * 0.2;
+                shellContainer.rotation.z = (Math.random() - 0.5) * 0.2;
+                shellContainer.userData = {
+                    rotationSpeed: (1 - shellIndex * 0.2) * 0.02
+                };
+                
+                atomGroup.add(shellContainer);
+                shells.push(shellContainer);
+            });
+            
+            atomGroup.shells = shells;
+            atomGroup.userData = atomInfo;
+            
+            return atomGroup;
+        }
+
+        // Get electron configuration
+        function getElectronConfiguration(totalElectrons) {
+            const shells = [2, 8, 8, 18];
+            const config = [];
+            let remaining = totalElectrons;
+            
+            for (let i = 0; i < shells.length && remaining > 0; i++) {
+                const electronsInShell = Math.min(remaining, shells[i]);
+                config.push(electronsInShell);
+                remaining -= electronsInShell;
+            }
+            
+            return config;
+        }
+
+        // Create text label for atom - positioned below
+        function createAtomLabel(atomInfo, position, index = 0) {
+            const labelsContainer = document.getElementById('labelsContainer');
+            
+            const label = document.createElement('div');
+            label.className = index === 0 ? 'atom-label main' : 'atom-label';
+            
+            label.innerHTML = `
+                <div class="symbol">${atomInfo.symbol}</div>
+                <div class="name">${atomInfo.name}</div>
+                <div class="details">
+                    <span class="protons">p⁺: ${atomInfo.protons}</span><br>
+                    <span class="neutrons">n⁰: ${atomInfo.neutrons}</span><br>
+                    <span class="electrons">e⁻: ${atomInfo.electrons}</span><br>
+                    Mass: ${atomInfo.protons + atomInfo.neutrons}
+                </div>
+            `;
+            
+            labelsContainer.appendChild(label);
+            atomLabels.push(label);
+            
+            return label;
+        }
+
+        // Clear all labels
+        function clearLabels() {
+            const labelsContainer = document.getElementById('labelsContainer');
+            labelsContainer.innerHTML = '';
+            atomLabels = [];
+        }
+
+        // Show comparison display - removed to prevent overlap
+        function showComparisonDisplay(type, atoms) {
+            // Comparison info is now shown only in the atom labels below each atom
+            // This prevents overlap with the 3D visualization
+        }
+
+        function hideComparisonDisplay() {
+            // No longer needed since we're not showing the overlay
+        }
+
+        // Setup mouse controls
+        function setupMouseControls() {
+            const canvas = renderer.domElement;
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            canvas.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+                
+                scene.rotation.y += deltaX * 0.01;
+                scene.rotation.x = Math.max(-0.5, Math.min(0.5, scene.rotation.x + deltaY * 0.01));
+                
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                camera.position.z += e.deltaY * 0.01;
+                camera.position.z = Math.max(15, Math.min(40, camera.position.z));
+            });
+        }
+
+        // Animation loop
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            
+            // Rotate electron shells
+            currentAtoms.forEach(atom => {
+                if (atom.shells) {
+                    atom.shells.forEach(shell => {
+                        if (shell.userData && shell.userData.rotationSpeed) {
+                            shell.rotation.y += shell.userData.rotationSpeed;
+                        }
+                    });
+                }
+                
+                // Gentle nucleus rotation
+                if (atom.nucleus) {
+                    atom.nucleus.rotation.y += 0.005;
+                    atom.nucleus.rotation.x += 0.003;
+                }
+            });
+            
+            renderer.render(scene, camera);
+        }
+
+        // Clear current atoms
+        function clearAtoms() {
+            currentAtoms.forEach(atom => {
+                scene.remove(atom);
+            });
+            currentAtoms = [];
+            clearLabels();
+            hideComparisonDisplay();
+        }
+
+        // Show single atom with label
+        function showAtom(atomInfo, position = { x: 0, y: 0, z: 0 }, showLabel = true) {
+            const atom = createAtom(atomInfo, position.x, position.y, position.z);
+            scene.add(atom);
+            currentAtoms.push(atom);
+            
+            if (showLabel) {
+                createAtomLabel(atomInfo, position, currentAtoms.length - 1);
+            }
+            
+            return atom;
+        }
+
+        // Complete Story
+        async function playCompleteStory() {
+            // Stop any current animations/narration
+            stopAllAnimations();
+            
+            // Set active button
+            setActiveButton('btn-complete');
+            
+            isPlaying = true;
+            clearAtoms();
+            showProgress();
+            
+            currentNarrator = new Narrator();
+            
+            // Chapter 1: Introduction
+            updateProgress(1);
+            await currentNarrator.speak("Welcome to the fascinating world of isotopes and isobars! Let's explore how atoms can have variations.");
+            
+            if (!isPlaying) return;
+            
+            // Chapter 2: Hydrogen Isotopes
+            updateProgress(2);
+            clearAtoms();
+            showAtom(atomData.hydrogen.protium);
+            await currentNarrator.speak("This is Protium, the most common hydrogen isotope. One proton, no neutrons.");
+            
+            if (!isPlaying) return;
+            await wait(3000);
+            clearAtoms();
+            showAtom(atomData.hydrogen.deuterium);
+            await currentNarrator.speak("Deuterium has one proton and one neutron. Still hydrogen!");
+            
+            if (!isPlaying) return;
+            await wait(3000);
+            clearAtoms();
+            showAtom(atomData.hydrogen.tritium);
+            await currentNarrator.speak("Tritium has one proton and two neutrons. All three are hydrogen isotopes.");
+            
+            if (!isPlaying) return;
+            
+            // Chapter 3: Comparing Isotopes
+            updateProgress(3);
+            await wait(3000);
+            clearAtoms();
+            showAtom(atomData.hydrogen.protium, { x: -6, y: 0, z: 0 });
+            showAtom(atomData.hydrogen.deuterium, { x: 0, y: 0, z: 0 });
+            showAtom(atomData.hydrogen.tritium, { x: 6, y: 0, z: 0 });
+            showComparisonDisplay('isotopes');
+            await currentNarrator.speak("All three hydrogen isotopes together. Same atomic number, different mass numbers!");
+            
+            if (!isPlaying) return;
+            
+            // Chapter 4: Chlorine Isotopes
+            updateProgress(4);
+            await wait(4000);
+            clearAtoms();
+            showAtom(atomData.chlorine.cl35, { x: -4, y: 0, z: 0 });
+            showAtom(atomData.chlorine.cl37, { x: 4, y: 0, z: 0 });
+            await currentNarrator.speak("Chlorine also has isotopes. Chlorine-35 and Chlorine-37.");
+            
+            if (!isPlaying) return;
+            
+            // Chapter 5: Isobars
+            updateProgress(5);
+            await wait(4000);
+            clearAtoms();
+            showAtom(atomData.isobars.calcium, { x: -4, y: 0, z: 0 });
+            showAtom(atomData.isobars.argon, { x: 4, y: 0, z: 0 });
+            showComparisonDisplay('isobars');
+            await currentNarrator.speak("These are isobars. Calcium-40 and Argon-40 have the same mass but are different elements!");
+            
+            if (!isPlaying) return;
+            await wait(3000);
+            await currentNarrator.speak("You've learned about isotopes and isobars!");
+            
+            hideProgress();
+            isPlaying = false;
+            // Remove active state after completion
+            setTimeout(() => setActiveButton(null), 2000);
+        }
+
+        // Explore Isotopes
+        async function exploreIsotopes() {
+            // Stop any current animations/narration
+            stopAllAnimations();
+            
+            // Set active button
+            setActiveButton('btn-isotopes');
+            
+            isPlaying = true;
+            clearAtoms();
+            
+            currentNarrator = new Narrator();
+            
+            // Show hydrogen isotopes with labels
+            showAtom(atomData.hydrogen.protium, { x: -6, y: 0, z: 0 });
+            showAtom(atomData.hydrogen.deuterium, { x: 0, y: 0, z: 0 });
+            showAtom(atomData.hydrogen.tritium, { x: 6, y: 0, z: 0 });
+            showComparisonDisplay('isotopes');
+            
+            await currentNarrator.speak("Exploring hydrogen isotopes. All have one proton but different neutron counts.");
+            
+            isPlaying = false;
+        }
+
+        // Explore Isobars
+        async function exploreIsobars() {
+            // Stop any current animations/narration
+            stopAllAnimations();
+            
+            // Set active button
+            setActiveButton('btn-isobars');
+            
+            isPlaying = true;
+            clearAtoms();
+            
+            currentNarrator = new Narrator();
+            
+            // Show isobars with labels
+            showAtom(atomData.isobars.calcium, { x: -4, y: 0, z: 0 });
+            showAtom(atomData.isobars.argon, { x: 4, y: 0, z: 0 });
+            showComparisonDisplay('isobars');
+            
+            await currentNarrator.speak("Exploring isobars. Both have mass number 40 but are different elements.");
+            
+            isPlaying = false;
+        }
+
+        // Build Isotope Mode
+        async function buildIsotope() {
+            // Stop any current animations/narration
+            stopAllAnimations();
+            
+            // Set active button
+            setActiveButton('btn-build');
+            
+            isPlaying = true;
+            clearAtoms();
+            
+            currentNarrator = new Narrator();
+            
+            // Start with protium
+            showAtom(atomData.hydrogen.protium);
+            await currentNarrator.speak("Starting with protium. Let's add neutrons!");
+            
+            if (!isPlaying) return;
+            await wait(2000);
+            
+            // Transform to deuterium
+            clearAtoms();
+            showAtom(atomData.hydrogen.deuterium);
+            await currentNarrator.speak("Added one neutron. Now we have Deuterium!");
+            
+            if (!isPlaying) return;
+            await wait(2000);
+            
+            // Transform to tritium
+            clearAtoms();
+            showAtom(atomData.hydrogen.tritium);
+            await currentNarrator.speak("Added another neutron. Now we have Tritium!");
+            
+            isPlaying = false;
+        }
+
+        // Helper functions
+        function resetView() {
+            // Stop all animations
+            stopAllAnimations();
+            
+            // Remove active button state
+            setActiveButton(null);
+            
+            clearAtoms();
+            hideProgress();
+            scene.rotation.set(0, 0, 0);
+            camera.position.set(0, 5, 25);
+            isPlaying = false;
+        }
+
+        function showProgress() {
+            document.getElementById('progressIndicator').style.display = 'flex';
+        }
+
+        function hideProgress() {
+            document.getElementById('progressIndicator').style.display = 'none';
+        }
+
+        function updateProgress(step) {
+            document.querySelectorAll('.progress-dot').forEach((dot, index) => {
+                if (index < step) {
+                    dot.classList.add('completed');
+                    dot.classList.remove('active');
+                } else if (index === step - 1) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active', 'completed');
+                }
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Audio control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            audioEnabled = !audioEnabled;
+            document.getElementById('mute-btn').classList.toggle('muted', !audioEnabled);
+            
+            if (!audioEnabled && currentNarrator) {
+                currentNarrator.stop();
+            }
+            
+            if (currentNarrator) {
+                currentNarrator.isEnabled = audioEnabled;
+            }
+        });
+
+        // Initialize
+        function init() {
+            initThreeJS();
+            
+            // Welcome message
+            const welcomeNarrator = new Narrator();
+            welcomeNarrator.speak("Welcome to Interactive Atomic Science! Select a demonstration to begin!");
+        }
+
+        // Start when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const container = document.querySelector('.canvas-container');
+            if (camera && renderer) {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+        });
+    </script>
+</body>
+</html>

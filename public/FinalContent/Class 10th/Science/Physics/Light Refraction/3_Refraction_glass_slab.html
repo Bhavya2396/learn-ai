@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Refraction of Light - Physics in Motion</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c1222 0%, #1a2332 50%, #2d3748 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(168, 85, 247, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(168, 85, 247, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3.2rem;
+            background: linear-gradient(45deg, #a855f7, #3b82f6, #ef4444);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Physics Stage */
+        .physics-stage {
+            background: linear-gradient(to bottom, 
+                #0f0f23 0%,
+                #1a1a40 20%,
+                #2d2d5f 40%,
+                #4a4a7a 60%,
+                #87CEEB 80%,
+                #4fc3f7 90%,
+                #8d6e63 90%,
+                #6d4c41 100%);
+            border-radius: 25px;
+            height: 700px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            border: 4px solid rgba(168, 85, 247, 0.4);
+        }
+
+        /* Canvas for advanced animations */
+        #physics-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+        }
+
+        /* Ground */
+        .ground {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 15%;
+            background: linear-gradient(to bottom, #8d6e63, #5d4037);
+            border-top: 4px solid #4e342e;
+        }
+
+        /* Water Surface */
+        .water-surface {
+            position: absolute;
+            top: 60%;
+            left: 0;
+            right: 0;
+            height: 25%;
+            background: linear-gradient(to bottom, 
+                rgba(6, 182, 212, 0.3) 0%,
+                rgba(6, 182, 212, 0.6) 50%,
+                rgba(6, 182, 212, 0.8) 100%);
+            border-top: 2px solid rgba(6, 182, 212, 0.9);
+            z-index: 10;
+            animation: waterRipple 3s ease-in-out infinite;
+        }
+
+        @keyframes waterRipple {
+            0%, 100% { 
+                transform: translateY(0);
+                box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+            }
+            50% { 
+                transform: translateY(-2px);
+                box-shadow: 0 0 30px rgba(6, 182, 212, 0.5);
+            }
+        }
+
+        /* Objects */
+        .coin {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #FFD700, #FFA500);
+            border-radius: 50%;
+            border: 3px solid #FF8F00;
+            z-index: 8;
+            box-shadow: 
+                0 8px 16px rgba(0, 0, 0, 0.3),
+                inset 2px 2px 4px rgba(255, 255, 255, 0.3);
+            transition: all 0.5s ease;
+            opacity: 0;
+        }
+
+        .coin::before {
+            content: '$';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #B8860B;
+        }
+
+        .apparent-coin {
+            position: absolute;
+            bottom: 25%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.7), rgba(245, 158, 11, 0.7));
+            border-radius: 50%;
+            border: 3px dashed #d97706;
+            z-index: 8;
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+
+        .apparent-coin::before {
+            content: '$';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #B8860B;
+            opacity: 0.8;
+        }
+
+        .pencil {
+            position: absolute;
+            bottom: 35%;
+            right: 20%;
+            width: 6px;
+            height: 80px;
+            background: linear-gradient(to bottom, #FFD700, #FFA500, #8B4513);
+            border-radius: 3px;
+            z-index: 8;
+            transform-origin: bottom center;
+            transition: all 0.5s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+        }
+
+        .pencil::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -1px;
+            width: 8px;
+            height: 8px;
+            background: #FFD700;
+            border-radius: 50%;
+        }
+
+        /* Real-time Data Display */
+        .data-display {
+            position: absolute;
+            top: 5px;
+            left: 70%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            padding: 15px;
+            border: 2px solid rgba(168, 85, 247, 0.6);
+            z-index: 50;
+            opacity: 0;
+            transition: all 0.5s ease;
+            min-width: 280px;
+        }
+
+        .data-display.visible {
+            opacity: 1;
+        }
+
+        .data-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 0.95rem;
+        }
+
+        .data-label {
+            color: #a855f7;
+            font-weight: 600;
+        }
+
+        .data-value {
+            color: #3b82f6;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        .formula-display {
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 8px;
+            padding: 8px;
+            margin: 10px 0;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            color: #60a5fa;
+        }
+
+        /* Angle Control */
+        .angle-control {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 50;
+            display: none;
+        }
+
+        .angle-control.visible {
+            display: block;
+        }
+
+        .angle-control label {
+            color: #a855f7;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .angle-control input[type="range"] {
+            width: 150px;
+        }
+
+        .angle-value {
+            color: #3b82f6;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* Subtitle Area */
+        .subtitle-area {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px 25px;
+            border: 2px solid rgba(168, 85, 247, 0.3);
+            box-shadow: rgba(0, 0, 0, 0.3) 0px 8px 32px;
+            z-index: 1000;
+            max-width: 80%;
+            text-align: center;
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+
+        .subtitle-area.visible {
+            opacity: 1;
+        }
+
+        .subtitle-text {
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 500;
+            line-height: 1.4;
+            margin: 0;
+            text-shadow: rgba(0, 0, 0, 0.5) 0px 2px 4px;
+        }
+
+        /* Control Panel */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            color: #a855f7;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #a855f7, #9333ea);
+            border: none;
+            color: white;
+            padding: 16px 28px;
+            border-radius: 35px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(168, 85, 247, 0.3);
+            min-width: 180px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(168, 85, 247, 0.4);
+        }
+
+        .demo-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+        }
+
+        /* Analysis Panel */
+        .analysis {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(168, 85, 247, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .analysis-title {
+            font-size: 1.6rem;
+            color: #a855f7;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .refraction-laws {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(59, 130, 246, 0.15));
+            border-radius: 20px;
+            border: 3px solid rgba(168, 85, 247, 0.4);
+            margin-bottom: 20px;
+        }
+
+        .law-title {
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+            color: #a855f7;
+            font-weight: 600;
+        }
+
+        .law-formula {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            font-family: 'Courier New', monospace;
+            color: #3b82f6;
+        }
+
+        .law-explanation {
+            font-size: 1rem;
+            color: #e2e8f0;
+            line-height: 1.5;
+        }
+
+        .phenomena-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .phenomenon-item {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 20px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .phenomenon-title {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            opacity: 0.9;
+            font-weight: 500;
+            color: #3b82f6;
+        }
+
+        .phenomenon-description {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            line-height: 1.4;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .physics-stage {
+                height: 500px;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .phenomena-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .data-display {
+                position: relative;
+                margin: 20px 0;
+                left: 0;
+                top: 0;
+            }
+        }
+
+        /* Animation Classes */
+        .fade-in {
+            opacity: 1 !important;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        .coin-fade-in {
+            opacity: 1 !important;
+            animation: coinFadeIn 0.8s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes coinFadeIn {
+            from { opacity: 0; transform: translateX(-50%) scale(0.8); }
+            to { opacity: 1; transform: translateX(-50%) scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Advanced Refraction of Light</h1>
+            <p>Explore how light bends when it travels from one medium to another. Discover the science behind everyday optical phenomena through interactive, physics-accurate demonstrations.</p>
+        </div>
+
+        <!-- Physics Stage -->
+        <div class="physics-stage" id="stage">
+            <canvas id="physics-canvas" width="1200" height="700"></canvas>
+            
+            <div class="ground"></div>
+            <div class="water-surface"></div>
+            
+            <!-- Objects -->
+            <div class="coin" id="coin"></div>
+            <div class="apparent-coin" id="apparent-coin"></div>
+            <div class="pencil" id="pencil"></div>
+
+            <!-- Real-time Data Display -->
+            <div class="data-display" id="data-display">
+                <div class="data-item">
+                    <span class="data-label">Incident Angle (i):</span>
+                    <span class="data-value" id="incident-angle">--°</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Refracted Angle (r₁):</span>
+                    <span class="data-value" id="refracted-angle">--°</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Emergent Angle (e):</span>
+                    <span class="data-value" id="emergent-angle">--°</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Lateral Displacement:</span>
+                    <span class="data-value" id="lateral-shift">--</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Refractive Index:</span>
+                    <span class="data-value" id="refractive-index">--</span>
+                </div>
+                <div class="formula-display" id="snells-law">
+                    n₁ sin i = n₂ sin r
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Verification:</span>
+                    <span class="data-value" id="verification">--</span>
+                </div>
+            </div>
+
+            <!-- Angle Control -->
+            <div class="angle-control" id="angle-control">
+                <label>Adjust Incident Angle</label>
+                <input type="range" id="angle-slider" min="10" max="80" value="45">
+                <div class="angle-value" id="angle-value">45°</div>
+            </div>
+
+            <!-- Subtitle Area -->
+            <div class="subtitle-area" id="subtitle-area">
+                <div class="subtitle-text" id="subtitle-text">Select a demonstration to explore refraction phenomena!</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="lesson-title">Discover Light Refraction</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playRefractionStory()">📖 Complete Story</button>
+                <button class="demo-btn" onclick="showCoinActivity()">🪙 Coin in Water</button>
+                <button class="demo-btn" onclick="showPencilBending()">✏️ Pencil Displacement</button>
+                <button class="demo-btn" onclick="showGlassSlabRefraction()">🔬 Glass Slab (NCERT)</button>
+                <button class="demo-btn" onclick="stopCurrentDemo()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Analysis -->
+        <div class="analysis">
+            <div class="analysis-title">🔬 Physics Analysis - NCERT Based</div>
+            
+            <div class="refraction-laws">
+                <div class="law-title">Snell's Law of Refraction</div>
+                <div class="law-formula">n₁ sin θ₁ = n₂ sin θ₂</div>
+                <div class="law-explanation">
+                    The ratio of sine of angle of incidence to sine of angle of refraction is a constant for a given pair of media
+                </div>
+            </div>
+
+            <div class="phenomena-grid">
+                <div class="phenomenon-item">
+                    <div class="phenomenon-title">Incident & Emergent Rays</div>
+                    <div class="phenomenon-description">In a parallel-sided glass slab, emergent ray is parallel to incident ray but laterally displaced</div>
+                </div>
+                <div class="phenomenon-item">
+                    <div class="phenomenon-title">Lateral Displacement</div>
+                    <div class="phenomenon-description">Perpendicular distance between incident and emergent ray paths, depends on angle and thickness</div>
+                </div>
+                <div class="phenomenon-item">
+                    <div class="phenomenon-title">Real vs Apparent Depth</div>
+                    <div class="phenomenon-description">Objects appear raised in water due to refraction. Apparent depth = Real depth / n</div>
+                </div>
+                <div class="phenomenon-item">
+                    <div class="phenomenon-title">Normal at Interface</div>
+                    <div class="phenomenon-description">All angles are measured from the normal (perpendicular) to the surface at point of incidence</div>
+                </div>
+            </div>
+
+            <div id="current-analysis" style="text-align: center; margin-top: 20px; font-size: 1.1rem; color: #e2e8f0;">
+                Select a demonstration to explore refraction phenomena based on NCERT physics!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Physically Accurate Glass Slab Refraction Canvas
+        class GlassSlabCanvas {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.width = this.canvas.width;
+                this.height = this.canvas.height;
+                this.isRunning = false;
+                
+                // Physics parameters (NCERT based)
+                this.n1 = 1.0;  // Air refractive index
+                this.n2 = 1.5;  // Glass refractive index
+                this.incidentAngle = 45; // degrees
+                this.glassThickness = 120; // pixels
+                
+                // Glass slab position
+                this.glassTop = this.height * 0.35;
+                this.glassBottom = this.glassTop + this.glassThickness;
+                
+                // Ray starting point
+                this.rayStartX = 100;
+                this.rayStartY = 100;
+                
+                // Animation parameters
+                this.animationProgress = 0;
+                this.lightParticles = [];
+                
+                this.setupCanvas();
+            }
+
+            setupCanvas() {
+                const rect = this.canvas.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                this.canvas.width = rect.width * dpr;
+                this.canvas.height = rect.height * dpr;
+                this.ctx.scale(dpr, dpr);
+                this.canvas.style.width = rect.width + 'px';
+                this.canvas.style.height = rect.height + 'px';
+                
+                this.width = rect.width;
+                this.height = rect.height;
+                
+                // Update positions based on actual canvas size
+                this.glassTop = this.height * 0.35;
+                this.glassBottom = this.glassTop + this.glassThickness;
+            }
+
+            // Calculate refraction using Snell's Law
+            calculateRefraction(angleIn, n1, n2) {
+                const angleInRad = (angleIn * Math.PI) / 180;
+                const sinRefracted = (n1 * Math.sin(angleInRad)) / n2;
+                
+                // Check for total internal reflection
+                if (Math.abs(sinRefracted) > 1) {
+                    return null;
+                }
+                
+                const angleOutRad = Math.asin(sinRefracted);
+                return (angleOutRad * 180) / Math.PI;
+            }
+
+            // Calculate lateral displacement
+            calculateLateralDisplacement(incidentAngle, thickness, n) {
+                const i = (incidentAngle * Math.PI) / 180;
+                const r = this.calculateRefraction(incidentAngle, 1.0, n);
+                if (!r) return 0;
+                
+                const rRad = (r * Math.PI) / 180;
+                const displacement = thickness * Math.sin(i - rRad) / Math.cos(rRad);
+                return displacement;
+            }
+
+            drawBackground() {
+                // Clear canvas
+                this.ctx.fillStyle = '#f0f8ff';
+                this.ctx.fillRect(0, 0, this.width, this.height);
+                
+                // Draw air regions with labels
+                this.ctx.fillStyle = 'rgba(135, 206, 235, 0.1)';
+                this.ctx.fillRect(0, 0, this.width, this.glassTop);
+                this.ctx.fillRect(0, this.glassBottom, this.width, this.height - this.glassBottom);
+                
+                // Air labels
+                this.ctx.fillStyle = '#333';
+                this.ctx.font = 'bold 16px Arial';
+                this.ctx.textAlign = 'left';
+                this.ctx.fillText('Air (n = 1.0)', 20, 30);
+                this.ctx.fillText('Air (n = 1.0)', 20, this.height - 20);
+            }
+
+            drawGlassSlab() {
+                // Glass slab with gradient
+                const gradient = this.ctx.createLinearGradient(0, this.glassTop, 0, this.glassBottom);
+                gradient.addColorStop(0, 'rgba(173, 216, 230, 0.3)');
+                gradient.addColorStop(0.5, 'rgba(173, 216, 230, 0.5)');
+                gradient.addColorStop(1, 'rgba(173, 216, 230, 0.3)');
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(0, this.glassTop, this.width, this.glassThickness);
+                
+                // Glass borders
+                this.ctx.strokeStyle = '#4682b4';
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, this.glassTop);
+                this.ctx.lineTo(this.width, this.glassTop);
+                this.ctx.moveTo(0, this.glassBottom);
+                this.ctx.lineTo(this.width, this.glassBottom);
+                this.ctx.stroke();
+                
+                // Glass label
+                this.ctx.fillStyle = '#333';
+                this.ctx.font = 'bold 16px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('Glass Slab (n = 1.5)', this.width / 2, this.glassTop + this.glassThickness / 2);
+            }
+
+            drawNormals(point1X, point2X) {
+                this.ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
+                this.ctx.lineWidth = 1;
+                this.ctx.setLineDash([5, 5]);
+                
+                // Normal at first interface
+                this.ctx.beginPath();
+                this.ctx.moveTo(point1X, this.glassTop - 100);
+                this.ctx.lineTo(point1X, this.glassTop + 150);
+                this.ctx.stroke();
+                
+                // Normal at second interface
+                this.ctx.beginPath();
+                this.ctx.moveTo(point2X, this.glassBottom - 150);
+                this.ctx.lineTo(point2X, this.glassBottom + 100);
+                this.ctx.stroke();
+                
+                this.ctx.setLineDash([]);
+                
+                // Normal labels
+                this.ctx.fillStyle = '#666';
+                this.ctx.font = '12px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('Normal', point1X, this.glassTop - 110);
+                this.ctx.fillText('Normal', point2X, this.glassBottom + 110);
+            }
+
+            drawRayPath() {
+                // Calculate refraction angles
+                const refractedAngle1 = this.calculateRefraction(this.incidentAngle, this.n1, this.n2);
+                if (!refractedAngle1) return;
+                
+                // Ray path calculations
+                const incidentRad = (this.incidentAngle * Math.PI) / 180;
+                const refractedRad = (refractedAngle1 * Math.PI) / 180;
+                
+                // Point where ray hits first interface
+                const point1X = this.rayStartX + (this.glassTop - this.rayStartY) * Math.tan(incidentRad);
+                const point1Y = this.glassTop;
+                
+                // Point where ray hits second interface
+                const point2X = point1X + this.glassThickness * Math.tan(refractedRad);
+                const point2Y = this.glassBottom;
+                
+                // Exit point (emergent ray parallel to incident)
+                const exitLength = 300;
+                const point3X = point2X + exitLength * Math.tan(incidentRad);
+                const point3Y = point2Y + exitLength;
+                
+                // Draw normals
+                this.drawNormals(point1X, point2X);
+                
+                // Draw incident ray
+                this.ctx.strokeStyle = '#ff0000';
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.rayStartX, this.rayStartY);
+                this.ctx.lineTo(point1X, point1Y);
+                this.ctx.stroke();
+                
+                // Draw refracted ray inside glass
+                this.ctx.strokeStyle = '#00ff00';
+                this.ctx.beginPath();
+                this.ctx.moveTo(point1X, point1Y);
+                this.ctx.lineTo(point2X, point2Y);
+                this.ctx.stroke();
+                
+                // Draw emergent ray
+                this.ctx.strokeStyle = '#0000ff';
+                this.ctx.beginPath();
+                this.ctx.moveTo(point2X, point2Y);
+                this.ctx.lineTo(point3X, point3Y);
+                this.ctx.stroke();
+                
+                // Draw extended incident ray (dashed) to show lateral displacement
+                this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
+                this.ctx.lineWidth = 1;
+                this.ctx.setLineDash([5, 5]);
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.rayStartX, this.rayStartY);
+                this.ctx.lineTo(this.rayStartX + 600 * Math.tan(incidentRad), this.rayStartY + 600);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+                
+                // Draw angles
+                this.drawAngles(point1X, point1Y, point2X, point2Y, refractedAngle1);
+                
+                // Draw lateral displacement
+                this.drawLateralDisplacement(point2X, point2Y, incidentRad);
+                
+                // Draw light particles along the path
+                this.drawLightParticles(point1X, point1Y, point2X, point2Y, point3X, point3Y);
+                
+                return { refractedAngle1, point1X, point2X };
+            }
+
+            drawAngles(point1X, point1Y, point2X, point2Y, refractedAngle) {
+                const radius = 40;
+                
+                // Incident angle arc
+                this.ctx.strokeStyle = '#ff0000';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.arc(point1X, point1Y, radius, -Math.PI/2, -Math.PI/2 + (this.incidentAngle * Math.PI / 180));
+                this.ctx.stroke();
+                
+                // Incident angle label
+                this.ctx.fillStyle = '#ff0000';
+                this.ctx.font = 'bold 14px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(`i = ${this.incidentAngle}°`, point1X - 60, point1Y - 20);
+                
+                // Refracted angle arc
+                this.ctx.strokeStyle = '#00ff00';
+                this.ctx.beginPath();
+                this.ctx.arc(point1X, point1Y, radius + 10, Math.PI/2, Math.PI/2 - (refractedAngle * Math.PI / 180), true);
+                this.ctx.stroke();
+                
+                // Refracted angle label
+                this.ctx.fillStyle = '#00ff00';
+                this.ctx.fillText(`r₁ = ${refractedAngle.toFixed(1)}°`, point1X + 60, point1Y + 30);
+                
+                // Emergent angle (equal to incident angle)
+                this.ctx.strokeStyle = '#0000ff';
+                this.ctx.beginPath();
+                this.ctx.arc(point2X, point2Y, radius, Math.PI/2, Math.PI/2 + (this.incidentAngle * Math.PI / 180));
+                this.ctx.stroke();
+                
+                // Emergent angle label
+                this.ctx.fillStyle = '#0000ff';
+                this.ctx.fillText(`e = ${this.incidentAngle}°`, point2X + 60, point2Y + 30);
+            }
+
+            drawLateralDisplacement(point2X, point2Y, incidentRad) {
+                const displacement = this.calculateLateralDisplacement(this.incidentAngle, this.glassThickness, this.n2);
+                
+                // Draw perpendicular line showing displacement
+                this.ctx.strokeStyle = '#ff00ff';
+                this.ctx.lineWidth = 2;
+                this.ctx.setLineDash([3, 3]);
+                
+                const perpAngle = incidentRad + Math.PI/2;
+                const startX = point2X;
+                const startY = point2Y;
+                const endX = startX - displacement * Math.cos(perpAngle);
+                const endY = startY - displacement * Math.sin(perpAngle);
+                
+                this.ctx.beginPath();
+                this.ctx.moveTo(startX, startY);
+                this.ctx.lineTo(endX, endY);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+                
+                // Displacement label
+                this.ctx.fillStyle = '#ff00ff';
+                this.ctx.font = 'bold 12px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(`d = ${(displacement * 0.1).toFixed(2)} cm`, (startX + endX)/2, (startY + endY)/2 - 10);
+            }
+
+            drawLightParticles(p1x, p1y, p2x, p2y, p3x, p3y) {
+                // Add new particles periodically
+                if (Math.random() < 0.1) {
+                    this.lightParticles.push({
+                        progress: 0,
+                        speed: 0.02 + Math.random() * 0.01
+                    });
+                }
+                
+                // Update and draw particles
+                this.lightParticles = this.lightParticles.filter(particle => {
+                    particle.progress += particle.speed;
+                    
+                    if (particle.progress > 3) return false;
+                    
+                    let x, y, color;
+                    
+                    if (particle.progress < 1) {
+                        // Incident ray
+                        const t = particle.progress;
+                        x = this.rayStartX + t * (p1x - this.rayStartX);
+                        y = this.rayStartY + t * (p1y - this.rayStartY);
+                        color = '#ff0000';
+                    } else if (particle.progress < 2) {
+                        // Refracted ray in glass
+                        const t = particle.progress - 1;
+                        x = p1x + t * (p2x - p1x);
+                        y = p1y + t * (p2y - p1y);
+                        color = '#00ff00';
+                    } else {
+                        // Emergent ray
+                        const t = particle.progress - 2;
+                        x = p2x + t * (p3x - p2x);
+                        y = p2y + t * (p3y - p2y);
+                        color = '#0000ff';
+                    }
+                    
+                    // Draw particle
+                    this.ctx.fillStyle = color;
+                    this.ctx.globalAlpha = 0.8;
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, 4, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.globalAlpha = 1;
+                    
+                    return true;
+                });
+            }
+
+            updateDataDisplay() {
+                const refractedAngle = this.calculateRefraction(this.incidentAngle, this.n1, this.n2);
+                const lateralShift = this.calculateLateralDisplacement(this.incidentAngle, this.glassThickness, this.n2);
+                
+                document.getElementById('incident-angle').textContent = `${this.incidentAngle}°`;
+                document.getElementById('refracted-angle').textContent = refractedAngle ? `${refractedAngle.toFixed(1)}°` : 'N/A';
+                document.getElementById('emergent-angle').textContent = `${this.incidentAngle}°`;
+                document.getElementById('lateral-shift').textContent = `${(lateralShift * 0.1).toFixed(2)} cm`;
+                document.getElementById('refractive-index').textContent = this.n2.toFixed(2);
+                
+                // Verify Snell's Law
+                if (refractedAngle) {
+                    const sinI = Math.sin(this.incidentAngle * Math.PI / 180);
+                    const sinR = Math.sin(refractedAngle * Math.PI / 180);
+                    const calculated_n = sinI / sinR;
+                    document.getElementById('verification').textContent = `n = ${calculated_n.toFixed(3)} ≈ ${this.n2}`;
+                }
+            }
+
+            animate() {
+                if (!this.isRunning) return;
+                
+                // Clear and redraw
+                this.drawBackground();
+                this.drawGlassSlab();
+                this.drawRayPath();
+                this.updateDataDisplay();
+                
+                // Continue animation
+                requestAnimationFrame(() => this.animate());
+            }
+
+            start() {
+                this.isRunning = true;
+                this.lightParticles = [];
+                document.getElementById('data-display').classList.add('visible');
+                document.getElementById('angle-control').classList.add('visible');
+                this.animate();
+            }
+
+            stop() {
+                this.isRunning = false;
+                this.lightParticles = [];
+                this.ctx.clearRect(0, 0, this.width, this.height);
+                document.getElementById('data-display').classList.remove('visible');
+                document.getElementById('angle-control').classList.remove('visible');
+            }
+
+            setIncidentAngle(angle) {
+                this.incidentAngle = Math.max(10, Math.min(80, angle));
+            }
+        }
+
+        // Voice System
+        class RefractionNarrator {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.9, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+
+            toggle() {
+                this.isEnabled = !this.isEnabled;
+                if (!this.isEnabled) this.stop();
+                return this.isEnabled;
+            }
+        }
+
+        // Global state management
+        let globalAudioEnabled = true;
+        let currentNarrator = null;
+        let glassSlabCanvas = null;
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let currentRunId = 0;
+        let currentTaskId = null; // Track current task ID
+
+        // Function to stop current demo
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            
+            // Clear current task context
+            currentTaskId = null;
+            
+            // Stop narrator
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            
+            // Stop glass slab canvas
+            if (glassSlabCanvas) {
+                glassSlabCanvas.stop();
+            }
+            
+            isPlaying = false;
+        }
+
+        // Function to check if demo should continue
+        function shouldContinue(taskId = null) {
+            // If a specific task ID is provided, check if it matches current task
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        // Function to create new narrator
+        function createNewNarrator(taskId = null) {
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentNarrator = new RefractionNarrator();
+            return currentNarrator;
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            glassSlabCanvas = new GlassSlabCanvas('physics-canvas');
+            
+            // Setup angle slider
+            const angleSlider = document.getElementById('angle-slider');
+            const angleValue = document.getElementById('angle-value');
+            
+            if (angleSlider) {
+                angleSlider.addEventListener('input', (e) => {
+                    const angle = parseInt(e.target.value);
+                    angleValue.textContent = `${angle}°`;
+                    if (glassSlabCanvas) {
+                        glassSlabCanvas.setIncidentAngle(angle);
+                    }
+                });
+            }
+            
+            const narrator = createNewNarrator('initialization');
+            narrator.speak("Welcome to Advanced Refraction of Light! Explore scientifically accurate demonstrations based on NCERT physics principles!");
+        });
+
+        // Demo functions
+        async function playRefractionStory() {
+            const taskId = 'complete-story';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            const narrator = createNewNarrator(taskId);
+            const runId = currentRunId;
+            
+            await resetAll();
+            updateTitle("📖 The Complete Story of Light Refraction");
+            updateAnalysis("Starting comprehensive refraction exploration...");
+            updateSubtitle("Journey through the fascinating world of light refraction!");
+            
+            await narrator.speak("Chapter 1: Introduction to Refraction. When light travels from one medium to another, it changes speed and direction. This fundamental property of light creates many interesting phenomena!");
+            if (!shouldContinue(taskId)) return;
+            await wait(2000);
+            
+            await narrator.speak("Chapter 2: Coin in Water - Let's see how refraction makes objects appear at different positions!");
+            if (!shouldContinue(taskId)) return;
+            await showCoinActivityInternal(narrator, runId, taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+            
+            await resetAll();
+            await narrator.speak("Chapter 3: Pencil in Water - Observe how refraction creates apparent bending!");
+            if (!shouldContinue(taskId)) return;
+            await showPencilBendingInternal(narrator, runId, taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+            
+            await resetAll();
+            await narrator.speak("Chapter 4: Glass Slab Refraction - Now let's explore the complete physics with accurate ray diagrams!");
+            if (!shouldContinue(taskId)) return;
+            await showGlassSlabRefractionInternal(narrator, runId, taskId);
+            
+            await narrator.speak("This completes our journey through light refraction! You've learned how light bends according to Snell's law and creates various optical phenomena!");
+            
+            setActiveButton(-1);
+            isPlaying = false;
+        }
+
+        async function showCoinActivity() {
+            const taskId = 'coin-activity';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            const narrator = createNewNarrator(taskId);
+            const runId = currentRunId;
+            await showCoinActivityInternal(narrator, runId, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showCoinActivityInternal(narrator, runId, taskId = 'coin-activity') {
+            await resetAll();
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🪙 Coin in Water - Apparent Position");
+            updateSubtitle("Observe how refraction makes the coin appear raised!");
+            
+            await narrator.speak("When light rays from a coin in water reach our eyes, they bend at the water-air interface. This makes the coin appear at a shallower depth than its actual position.");
+            if (!shouldContinue(taskId)) return;
+            
+            document.getElementById('coin').classList.add('coin-fade-in');
+            await wait(1500);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("The apparent depth is less than the real depth. The ratio of real depth to apparent depth equals the refractive index of water!");
+            if (!shouldContinue(taskId)) return;
+            
+            document.getElementById('apparent-coin').classList.add('coin-fade-in');
+            await wait(2000);
+            
+            updateAnalysis("Real Depth / Apparent Depth = Refractive Index (n = 1.33 for water)");
+        }
+
+        async function showPencilBending() {
+            const taskId = 'pencil-bending';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            const narrator = createNewNarrator(taskId);
+            const runId = currentRunId;
+            await showPencilBendingInternal(narrator, runId, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showPencilBendingInternal(narrator, runId, taskId = 'pencil-bending') {
+            await resetAll();
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("✏️ Pencil Displacement in Water");
+            updateSubtitle("Watch how refraction creates the illusion of a bent pencil!");
+            
+            await narrator.speak("When a pencil is partially immersed in water, the submerged part appears displaced due to refraction at the water surface.");
+            if (!shouldContinue(taskId)) return;
+            
+            document.getElementById('pencil').classList.add('fade-in');
+            await wait(1500);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            document.getElementById('pencil').style.transform = 'rotate(3deg)';
+            await wait(1000);
+            
+            updateAnalysis("The pencil appears bent because light from the submerged portion bends away from the normal when entering air");
+            
+            await narrator.speak("This apparent bending occurs because we see the pencil along the refracted ray path, not the actual path!");
+        }
+
+        async function showGlassSlabRefraction() {
+            const taskId = 'glass-slab';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            const narrator = createNewNarrator(taskId);
+            const runId = currentRunId;
+            await showGlassSlabRefractionInternal(narrator, runId, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showGlassSlabRefractionInternal(narrator, runId, taskId = 'glass-slab') {
+            await resetAll();
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🔬 Glass Slab Refraction - NCERT Physics");
+            updateSubtitle("Accurate demonstration of light passing through a parallel-sided glass slab");
+            
+            glassSlabCanvas.start();
+            
+            await narrator.speak("This is a scientifically accurate demonstration of refraction through a glass slab. Notice how the incident ray bends towards the normal when entering glass.");
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+            
+            await narrator.speak("Inside the glass, light travels at a different angle. When it exits, it bends away from the normal, emerging parallel to the incident ray but laterally displaced.");
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+            
+            await narrator.speak("The emergent ray is always parallel to the incident ray in a parallel-sided glass slab. This lateral displacement depends on the angle of incidence and glass thickness.");
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+            
+            updateAnalysis("Snell's Law verified: n₁ sin i = n₂ sin r. Try adjusting the incident angle with the slider!");
+            
+            await narrator.speak("You can adjust the incident angle using the slider to see how it affects refraction and lateral displacement. This follows Snell's law precisely!");
+        }
+
+        // This function is already defined above, removing duplicate
+
+        async function resetAll() {
+            // Stop current narrator if exists
+            if (currentNarrator) {
+                currentNarrator.stop();
+            }
+            
+            // Stop glass slab canvas
+            if (glassSlabCanvas) {
+                glassSlabCanvas.stop();
+            }
+            
+            // Hide elements
+            ['coin', 'apparent-coin', 'pencil'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.classList.remove('fade-in', 'coin-fade-in');
+                    element.style.opacity = '0';
+                    element.style.transform = id.includes('coin') ? 'translateX(-50%)' : '';
+                }
+            });
+            
+            updateAnalysis("Ready to explore light refraction based on NCERT physics!");
+            updateSubtitle("Select a demonstration to begin!");
+            await wait(300);
+        }
+
+        function updateTitle(title) {
+            document.getElementById('lesson-title').textContent = title;
+        }
+
+        function updateAnalysis(text) {
+            document.getElementById('current-analysis').textContent = text;
+        }
+
+        function updateSubtitle(text) {
+            const subtitleArea = document.getElementById('subtitle-area');
+            const subtitleText = document.getElementById('subtitle-text');
+            subtitleText.textContent = text;
+            subtitleArea.classList.add('visible');
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Audio control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+            
+            if (!globalAudioEnabled && currentNarrator) {
+                currentNarrator.stop();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3.2 - Modern Symbols of Atoms</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #764ba2 75%, #667eea 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(3px 3px at 10% 20%, rgba(255,255,255,0.3), transparent),
+                radial-gradient(2px 2px at 80% 60%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1px 1px at 45% 80%, rgba(255,255,255,0.4), transparent);
+            background-size: 300px 300px;
+            animation: particleFloat 45s linear infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        @keyframes particleFloat {
+            from { transform: translate(0, 0) rotate(0deg); }
+            to { transform: translate(-100px, -100px) rotate(360deg); }
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: linear-gradient(45deg, #ffd89b, #19547b, #ffd89b);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+            animation: gradientShift 5s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* Animation Stage */
+        .animation-stage {
+            background: linear-gradient(135deg, 
+                rgba(30, 30, 60, 0.95) 0%,
+                rgba(60, 30, 80, 0.95) 50%,
+                rgba(30, 30, 60, 0.95) 100%);
+            border-radius: 25px;
+            height: 650px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.4),
+                inset 0 0 100px rgba(255, 216, 155, 0.1);
+            overflow: hidden;
+            border: 3px solid rgba(255, 216, 155, 0.3);
+        }
+
+        #animationCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: grab;
+        }
+
+        #animationCanvas:active {
+            cursor: grabbing;
+        }
+
+        /* Stage Info Overlay */
+        .stage-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px 20px;
+            border: 2px solid rgba(255, 216, 155, 0.3);
+            max-width: 350px;
+        }
+
+        .stage-info h3 {
+            font-size: 1.3rem;
+            color: #ffd89b;
+            margin-bottom: 8px;
+        }
+
+        /* Symbol Display */
+        .symbol-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px 30px;
+            border: 2px solid rgba(255, 216, 155, 0.4);
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffd89b;
+            display: none;
+            text-align: center;
+        }
+
+        .symbol-display .element-symbol {
+            font-size: 3rem;
+            color: #ffd89b;
+            margin-bottom: 10px;
+        }
+
+        .symbol-display .element-name {
+            font-size: 1.2rem;
+            color: #94a3b8;
+        }
+
+        /* Watermelon Scale */
+        .watermelon-scale {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #000000, #1a1a1a);
+            border: 4px solid #333;
+            border-radius: 15px;
+            padding: 20px 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            display: none;
+            z-index: 10;
+        }
+
+        .scale-reading {
+            font-family: 'Courier New', monospace;
+            font-size: 2.5rem;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+            font-weight: bold;
+        }
+
+        .scale-label {
+            font-size: 1rem;
+            color: #888;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        /* Viewer Controls */
+        .viewer-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .view-btn {
+            width: 45px;
+            height: 45px;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(31, 41, 55, 0.9);
+            border: 2px solid rgba(255, 216, 155, 0.3);
+            color: white;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+        }
+
+        .view-btn:hover {
+            background: rgba(255, 216, 155, 0.3);
+            transform: scale(1.1);
+        }
+
+        .view-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: #ffd89b;
+        }
+
+        /* Control Panel */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            background: linear-gradient(45deg, #ffd89b, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 16px 28px;
+            border-radius: 35px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            min-width: 200px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s;
+        }
+
+        .demo-btn:hover::before {
+            left: 100%;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Info Boxes */
+        .info-box {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+            border-radius: 20px;
+            padding: 25px;
+            margin: 20px 0;
+            border: 2px solid rgba(255, 216, 155, 0.3);
+        }
+
+        .info-title {
+            font-size: 1.3rem;
+            color: #ffd89b;
+            margin-bottom: 15px;
+        }
+
+        /* Data Panel */
+        .data-panel {
+            background: linear-gradient(135deg, 
+                rgba(0, 0, 0, 0.7),
+                rgba(30, 30, 60, 0.7));
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(255, 216, 155, 0.3);
+            backdrop-filter: blur(15px);
+        }
+
+        .data-title {
+            font-size: 1.8rem;
+            background: linear-gradient(45deg, #ffd89b, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Progress Indicator */
+        .progress-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 10px 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .progress-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .progress-dot.active {
+            background: linear-gradient(135deg, #ffd89b, #764ba2);
+            transform: scale(1.3);
+        }
+
+        .progress-dot.completed {
+            background: #10b981;
+        }
+
+        /* Element Symbol Table */
+        .symbol-table {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+            border: 2px solid rgba(255, 216, 155, 0.2);
+        }
+
+        .symbol-table h3 {
+            font-size: 1.5rem;
+            color: #ffd89b;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .symbol-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .symbol-table th {
+            background: rgba(102, 126, 234, 0.3);
+            color: #ffd89b;
+            padding: 15px;
+            text-align: left;
+            font-size: 1.2rem;
+            border: 1px solid rgba(255, 216, 155, 0.2);
+        }
+
+        .symbol-table td {
+            padding: 12px 15px;
+            border: 1px solid rgba(255, 216, 155, 0.1);
+            color: #e2e8f0;
+            font-size: 1.1rem;
+        }
+
+        .symbol-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .symbol-table .symbol-cell {
+            font-weight: bold;
+            color: #ffd89b;
+            font-size: 1.3rem;
+            text-align: center;
+        }
+
+        .symbol-table .origin {
+            font-style: italic;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        /* Color Legend Table */
+        .color-legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(255, 216, 155, 0.3);
+            display: none;
+            z-index: 10;
+            min-width: 250px;
+        }
+
+        .color-legend h4 {
+            color: #ffd89b;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+
+        .color-legend table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .color-legend th {
+            color: #ffd89b;
+            padding: 8px;
+            text-align: left;
+            font-size: 1rem;
+            border-bottom: 1px solid rgba(255, 216, 155, 0.3);
+        }
+
+        .color-legend td {
+            padding: 8px;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            border-bottom: 1px solid rgba(255, 216, 155, 0.1);
+        }
+
+        .color-sample {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Quiz Section */
+        .quiz-section {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+            border: 2px solid rgba(255, 216, 155, 0.2);
+        }
+
+        .quiz-question {
+            font-size: 1.2rem;
+            color: #ffd89b;
+            margin-bottom: 15px;
+        }
+
+        .quiz-answer {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+            display: none;
+            border: 1px solid rgba(255, 216, 155, 0.3);
+        }
+
+        .quiz-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .quiz-btn:hover {
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .animation-stage {
+                height: 400px;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+        <button id="speed-btn" class="control-btn" title="Speed">
+            1x
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Chapter 3.2: Modern Symbols of Atoms</h1>
+            <p>From Dalton's Circles to IUPAC Standards</p>
+        </div>
+
+        <!-- Info Box -->
+        <div class="info-box">
+            <div class="info-title">📚 Journey Through Atomic Symbols</div>
+            <div>Explore how we represent atoms - from Dalton's simple circles to modern chemical symbols, and understand the concept of atomic mass through an interesting watermelon analogy!</div>
+        </div>
+
+        <!-- Animation Stage -->
+        <div class="animation-stage" id="stage">
+            <canvas id="animationCanvas"></canvas>
+            
+            <div class="stage-info" id="stageInfo">
+                <h3 id="infoTitle">Welcome to Chapter 3.2</h3>
+                <p id="infoText">Discover the evolution of atomic symbols and the concept of atomic mass</p>
+            </div>
+
+            <div class="symbol-display" id="symbolDisplay">
+                <div class="element-symbol">H</div>
+                <div class="element-name">Hydrogen</div>
+            </div>
+
+            <div class="watermelon-scale" id="watermelonScale">
+                <div class="scale-reading" id="scaleReading">1 FMU</div>
+                <div class="scale-label">Fruit Mass Unit</div>
+            </div>
+
+            <div class="viewer-controls">
+                <button class="view-btn active" onclick="setViewMode('3d')" title="3D View">3D</button>
+                <button class="view-btn" onclick="setViewMode('top')" title="Top View">⬆</button>
+                <button class="view-btn" onclick="setViewMode('side')" title="Side View">➡</button>
+            </div>
+
+            <!-- Color Legend Table -->
+            <div class="color-legend" id="colorLegend">
+                <h4>Element Colors</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Color</th>
+                            <th>Element</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="color-sample" style="background-color: #ff0000;"></span>Red</td>
+                            <td>Oxygen (O)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="color-sample" style="background-color: #ffffff;"></span>White</td>
+                            <td>Hydrogen (H)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="color-sample" style="background-color: #333333;"></span>Black</td>
+                            <td>Carbon (C)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="lesson-title">Explore Atomic Symbols & Mass</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" id="completeBtn" onclick="playCompleteLesson()">📖 Complete Lesson</button>
+                <button class="demo-btn" id="daltonBtn" onclick="showDaltonSymbols()">⭕ Dalton's Symbols</button>
+                <button class="demo-btn" id="watermelonBtn" onclick="showWatermelonAnalogy()">🍉 Atomic Mass Analogy</button>
+                <button class="demo-btn" id="moleculesBtn" onclick="showMolecules()">💧 Molecules & Ions</button>
+                <button class="demo-btn" id="resetBtn" onclick="resetAll()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Current Status -->
+        <div class="data-panel">
+            <div class="data-title">Current Lesson Status</div>
+            <div id="current-analysis" style="text-align: center; margin-top: 20px; font-size: 1.1rem; color: #e2e8f0;">
+                Ready to explore the evolution of atomic symbols and the concept of atomic mass!
+            </div>
+        </div>
+
+        <!-- IUPAC Symbols Table -->
+        <div class="symbol-table">
+            <h3>Modern Chemical Symbols (IUPAC Standards)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Element Name</th>
+                        <th>Symbol</th>
+                        <th>Origin (if applicable)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Hydrogen</td>
+                        <td class="symbol-cell">H</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>Carbon</td>
+                        <td class="symbol-cell">C</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>Nitrogen</td>
+                        <td class="symbol-cell">N</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>Oxygen</td>
+                        <td class="symbol-cell">O</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>Aluminium</td>
+                        <td class="symbol-cell">Al</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>Chlorine</td>
+                        <td class="symbol-cell">Cl</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>Zinc</td>
+                        <td class="symbol-cell">Zn</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>Cobalt</td>
+                        <td class="symbol-cell">Co</td>
+                        <td><span class="origin">Note: not CO (carbon monoxide)</span></td>
+                    </tr>
+                    <tr>
+                        <td>Iron</td>
+                        <td class="symbol-cell">Fe</td>
+                        <td><span class="origin">From Latin: Ferrum</span></td>
+                    </tr>
+                    <tr>
+                        <td>Sodium</td>
+                        <td class="symbol-cell">Na</td>
+                        <td><span class="origin">From Latin: Natrium</span></td>
+                    </tr>
+                    <tr>
+                        <td>Potassium</td>
+                        <td class="symbol-cell">K</td>
+                        <td><span class="origin">From German: Kalium</span></td>
+                    </tr>
+                    <tr>
+                        <td>Copper</td>
+                        <td class="symbol-cell">Cu</td>
+                        <td><span class="origin">From Latin: Cuprum (Cyprus)</span></td>
+                    </tr>
+                    <tr>
+                        <td>Silver</td>
+                        <td class="symbol-cell">Ag</td>
+                        <td><span class="origin">From Latin: Argentum</span></td>
+                    </tr>
+                    <tr>
+                        <td>Gold</td>
+                        <td class="symbol-cell">Au</td>
+                        <td><span class="origin">From Latin: Aurum</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="margin-top: 20px; color: #94a3b8; text-align: center; font-style: italic;">
+                Remember: The first letter is always uppercase, and the second letter (if present) is always lowercase.
+            </p>
+        </div>
+
+        <!-- Quiz Section -->
+        <div class="quiz-section">
+            <div class="quiz-question">Question 1: Define the atomic mass unit.</div>
+            <button class="quiz-btn" onclick="toggleAnswer(1)">Show Answer</button>
+            <div class="quiz-answer" id="answer1">
+                One atomic mass unit (u) is defined as exactly one-twelfth (1/12th) the mass of one atom of carbon-12. It was chosen as the standard reference for measuring atomic masses in 1961 by IUPAC.
+            </div>
+            
+            <div class="quiz-question" style="margin-top: 20px;">Question 2: Why is it not possible to see an atom with naked eyes?</div>
+            <button class="quiz-btn" onclick="toggleAnswer(2)">Show Answer</button>
+            <div class="quiz-answer" id="answer2">
+                Atoms are extremely small, typically around 10^-10 meters in diameter. They are far smaller than the wavelength of visible light (400-700 nanometers), making them impossible to see with the naked eye. Even the most powerful optical microscopes cannot resolve individual atoms.
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="progress-indicator" id="progressIndicator" style="display: none;">
+        <div class="progress-dot" data-step="1"></div>
+        <div class="progress-dot" data-step="2"></div>
+        <div class="progress-dot" data-step="3"></div>
+        <div class="progress-dot" data-step="4"></div>
+        <div class="progress-dot" data-step="5"></div>
+        <div class="progress-dot" data-step="6"></div>
+    </div>
+
+    <script>
+        // Voice System
+        class Narrator {
+            constructor() {
+                this.isEnabled = true;
+                this.rate = 1.0;
+                this.currentUtterance = null;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.rate = this.rate;
+                        utterance.pitch = 1.0;
+                        utterance.volume = 0.85;
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            setSpeed(speed) {
+                this.rate = speed;
+            }
+        }
+
+        // Global variables
+        let narrator = new Narrator();
+        let scene, camera, renderer;
+        let animationId;
+        let viewMode = '3d';
+        let isAnimating = false;
+        let currentAnimation = null;
+        let daltonSymbols = [];
+        let watermelon, watermelonPieces = [];
+        let molecules = [];
+        let balanceScale;
+        let activeButtons = new Set();
+
+        // Initialize Three.js
+        function initThreeJS() {
+            const canvas = document.getElementById('animationCanvas');
+            const container = document.getElementById('stage');
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = null;
+            
+            // Camera
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+            camera.position.set(0, 10, 25);
+            camera.lookAt(0, 0, 0);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: canvas, 
+                antialias: true,
+                alpha: true 
+            });
+            renderer.setSize(width, height);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftSoftShadowMap;
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 10);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            const pointLight = new THREE.PointLight(0xffd89b, 0.5, 100);
+            pointLight.position.set(-10, 10, -10);
+            scene.add(pointLight);
+            
+            // Setup controls
+            setupMouseControls();
+            
+            // Start animation loop
+            animate();
+        }
+
+        // Create Dalton's Symbols
+        async function createDaltonSymbols() {
+            clearScene();
+            daltonSymbols = [];
+            
+            const symbols = [
+                { type: 'empty', color: 0xffffff, label: 'Hydrogen' },
+                { type: 'dot', color: 0xffff00, label: 'Sulfur' },
+                { type: 'filled', color: 0x000000, label: 'Carbon' },
+                { type: 'plus', color: 0xff0000, label: 'Oxygen' },
+                { type: 'line', color: 0x00ff00, label: 'Nitrogen' }
+            ];
+            
+            symbols.forEach((symbol, index) => {
+                const group = new THREE.Group();
+                
+                // Create circle
+                const circleGeometry = new THREE.RingGeometry(1.8, 2, 32);
+                const circleMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    side: THREE.DoubleSide
+                });
+                const circle = new THREE.Mesh(circleGeometry, circleMaterial);
+                group.add(circle);
+                
+                // Add inner content based on type
+                switch (symbol.type) {
+                    case 'empty':
+                        // Just the circle
+                        break;
+                    case 'dot':
+                        const dotGeometry = new THREE.CircleGeometry(0.3, 32);
+                        const dotMaterial = new THREE.MeshBasicMaterial({ color: symbol.color });
+                        const dot = new THREE.Mesh(dotGeometry, dotMaterial);
+                        dot.position.z = 0.01;
+                        group.add(dot);
+                        break;
+                    case 'filled':
+                        const filledGeometry = new THREE.CircleGeometry(1.8, 32);
+                        const filledMaterial = new THREE.MeshBasicMaterial({ color: symbol.color });
+                        const filled = new THREE.Mesh(filledGeometry, filledMaterial);
+                        filled.position.z = 0.01;
+                        group.add(filled);
+                        break;
+                    case 'plus':
+                        const plusGroup = new THREE.Group();
+                        const vLineGeometry = new THREE.PlaneGeometry(0.2, 1.5);
+                        const hLineGeometry = new THREE.PlaneGeometry(1.5, 0.2);
+                        const lineMaterial = new THREE.MeshBasicMaterial({ color: symbol.color });
+                        const vLine = new THREE.Mesh(vLineGeometry, lineMaterial);
+                        const hLine = new THREE.Mesh(hLineGeometry, lineMaterial);
+                        vLine.position.z = 0.01;
+                        hLine.position.z = 0.01;
+                        plusGroup.add(vLine, hLine);
+                        group.add(plusGroup);
+                        break;
+                    case 'line':
+                        const lineGeometry = new THREE.PlaneGeometry(1.5, 0.2);
+                        const lineMat = new THREE.MeshBasicMaterial({ color: symbol.color });
+                        const line = new THREE.Mesh(lineGeometry, lineMat);
+                        line.position.z = 0.01;
+                        group.add(line);
+                        break;
+                }
+                
+                // Create text sprite for element name
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = 320;
+                canvas.height = 80;
+                
+                context.fillStyle = '#ffd89b';
+                context.font = 'bold 36px Arial';
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillText(symbol.label, 160, 40);
+                
+                const texture = new THREE.CanvasTexture(canvas);
+                const spriteMaterial = new THREE.SpriteMaterial({ 
+                    map: texture,
+                    transparent: true,
+                    alphaTest: 0.1
+                });
+                const sprite = new THREE.Sprite(spriteMaterial);
+                sprite.scale.set(5, 1.25, 1);
+                sprite.position.y = -3.5;
+                sprite.position.z = 0.1;
+                group.add(sprite);
+                
+                group.position.x = (index - 2) * 5;
+                group.userData = { label: symbol.label };
+                scene.add(group);
+                daltonSymbols.push(group);
+                
+                // Animate appearance
+                gsap.from(group.scale, {
+                    duration: 0.8,
+                    delay: index * 0.2,
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                    ease: "back.out(1.7)"
+                });
+            });
+        }
+
+        // Create Watermelon
+        function createWatermelon(whole = true) {
+            const group = new THREE.Group();
+            
+            if (whole) {
+                // Whole watermelon
+                const geometry = new THREE.SphereGeometry(5, 32, 32);
+                const material = new THREE.MeshPhongMaterial({
+                    color: 0x2d5a2d,
+                    specular: 0x111111,
+                    shininess: 30
+                });
+                const melon = new THREE.Mesh(geometry, material);
+                
+                // Add stripes
+                const stripeTexture = new THREE.TextureLoader();
+                // Simplified stripes using vertex colors
+                const colors = [];
+                const positions = geometry.attributes.position;
+                for (let i = 0; i < positions.count; i++) {
+                    const y = positions.getY(i);
+                    const stripe = Math.sin(y * 3) > 0;
+                    colors.push(stripe ? 0.2 : 0.3, stripe ? 0.4 : 0.5, stripe ? 0.2 : 0.3);
+                }
+                geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+                material.vertexColors = true;
+                
+                group.add(melon);
+            }
+            
+            return group;
+        }
+
+        // Create Watermelon Pieces
+        function createWatermelonPiece() {
+            const group = new THREE.Group();
+            
+            // Simplified wedge shape
+            const shape = new THREE.Shape();
+            shape.moveTo(0, 0);
+            shape.lineTo(2, 0);
+            shape.lineTo(1, 3);
+            shape.closePath();
+            
+            const extrudeSettings = {
+                steps: 1,
+                depth: 1,
+                bevelEnabled: true,
+                bevelThickness: 0.1,
+                bevelSize: 0.1,
+                bevelSegments: 1
+            };
+            
+            const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+            
+            // Red interior
+            const redMaterial = new THREE.MeshPhongMaterial({
+                color: 0xff6b6b,
+                specular: 0x222222,
+                shininess: 20
+            });
+            
+            // Green rind
+            const greenMaterial = new THREE.MeshPhongMaterial({
+                color: 0x2d5a2d,
+                specular: 0x111111,
+                shininess: 30
+            });
+            
+            const redMesh = new THREE.Mesh(geometry, redMaterial);
+            
+            // Add simple rind
+            const rindGeometry = new THREE.BoxGeometry(2.2, 0.2, 1.2);
+            const rind = new THREE.Mesh(rindGeometry, greenMaterial);
+            rind.position.set(1, -0.1, 0.5);
+            
+            group.add(redMesh);
+            group.add(rind);
+            
+            // Add black seeds
+            for (let i = 0; i < 3; i++) {
+                const seedGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+                const seedMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                const seed = new THREE.Mesh(seedGeometry, seedMaterial);
+                seed.position.set(
+                    Math.random() * 1.5 + 0.2,
+                    Math.random() * 2 + 0.5,
+                    Math.random() * 0.5 + 0.25
+                );
+                group.add(seed);
+            }
+            
+            return group;
+        }
+
+        // Create Balance Scale
+        function createBalanceScale() {
+            const group = new THREE.Group();
+            
+            // Base
+            const baseGeometry = new THREE.BoxGeometry(8, 0.5, 4);
+            const baseMaterial = new THREE.MeshPhongMaterial({ color: 0x444444 });
+            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            base.position.y = -5;
+            group.add(base);
+            
+            // Pillar
+            const pillarGeometry = new THREE.CylinderGeometry(0.3, 0.3, 6, 16);
+            const pillarMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
+            const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
+            pillar.position.y = -2;
+            group.add(pillar);
+            
+            // Beam
+            const beamGeometry = new THREE.BoxGeometry(12, 0.3, 0.5);
+            const beamMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
+            const beam = new THREE.Mesh(beamGeometry, beamMaterial);
+            beam.position.y = 1;
+            beam.name = 'beam';
+            group.add(beam);
+            
+            // Left pan
+            const panGeometry = new THREE.CylinderGeometry(2, 2, 0.2, 32);
+            const panMaterial = new THREE.MeshPhongMaterial({ color: 0xaaaaaa });
+            const leftPan = new THREE.Mesh(panGeometry, panMaterial);
+            leftPan.position.set(-5, 0.5, 0);
+            leftPan.name = 'leftPan';
+            beam.add(leftPan);
+            
+            // Right pan
+            const rightPan = new THREE.Mesh(panGeometry, panMaterial.clone());
+            rightPan.position.set(5, 0.5, 0);
+            rightPan.name = 'rightPan';
+            beam.add(rightPan);
+            
+            // Chains
+            for (let x of [-5, 5]) {
+                const chainGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1, 8);
+                const chainMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
+                const chain = new THREE.Mesh(chainGeometry, chainMaterial);
+                chain.position.set(x, 1, 0);
+                beam.add(chain);
+            }
+            
+            return group;
+        }
+
+        // Animate watermelon cutting
+        async function animateWatermelonCutting() {
+            return new Promise(async (resolve) => {
+                // Start with whole watermelon
+                watermelon = createWatermelon(true);
+                scene.add(watermelon);
+                
+                gsap.from(watermelon.scale, {
+                    duration: 1,
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                    ease: "back.out(1.7)"
+                });
+                
+                await wait(2000);
+                
+                // Animate cutting effect
+                gsap.to(watermelon.scale, {
+                    duration: 1,
+                    x: 1.2,
+                    y: 0.8,
+                    z: 1.2,
+                    ease: "power2.inOut",
+                    yoyo: true,
+                    repeat: 1
+                });
+                
+                await wait(2500);
+                
+                // Remove whole watermelon
+                scene.remove(watermelon);
+                
+                // Add 12 pieces
+                watermelonPieces = [];
+                for (let i = 0; i < 12; i++) {
+                    const piece = createWatermelonPiece();
+                    const angle = (i / 12) * Math.PI * 2;
+                    const radius = 4;
+                    piece.position.x = Math.cos(angle) * radius;
+                    piece.position.z = Math.sin(angle) * radius;
+                    piece.rotation.y = -angle;
+                    
+                    scene.add(piece);
+                    watermelonPieces.push(piece);
+                    
+                    gsap.from(piece.position, {
+                        duration: 0.8,
+                        delay: i * 0.05,
+                        x: 0,
+                        y: 0,
+                        z: 0,
+                        ease: "back.out(1.2)"
+                    });
+                }
+                
+                setTimeout(resolve, 2000);
+            });
+        }
+
+        // Animate balance scale comparison
+        async function animateBalanceScale() {
+            return new Promise(async (resolve) => {
+                // Clear pieces
+                watermelonPieces.forEach(piece => scene.remove(piece));
+                watermelonPieces = [];
+                
+                // Create balance scale
+                balanceScale = createBalanceScale();
+                scene.add(balanceScale);
+                
+                gsap.from(balanceScale.scale, {
+                    duration: 1,
+                    y: 0,
+                    ease: "elastic.out(1, 0.5)"
+                });
+                
+                await wait(1500);
+                
+                // Add watermelon pieces to left pan
+                const beam = balanceScale.getObjectByName('beam');
+                const leftPan = beam.getObjectByName('leftPan');
+                
+                for (let i = 0; i < 3; i++) {
+                    const piece = createWatermelonPiece();
+                    piece.scale.set(0.5, 0.5, 0.5);
+                    piece.position.set(
+                        (Math.random() - 0.5) * 1.5,
+                        0.5 + i * 0.3,
+                        (Math.random() - 0.5) * 1.5
+                    );
+                    leftPan.add(piece);
+                    
+                    gsap.from(piece.scale, {
+                        duration: 0.5,
+                        delay: i * 0.1,
+                        x: 0,
+                        y: 0,
+                        z: 0,
+                        ease: "back.out"
+                    });
+                }
+                
+                // Tilt scale
+                gsap.to(beam.rotation, {
+                    duration: 1,
+                    delay: 0.8,
+                    z: -0.2,
+                    ease: "power2.inOut"
+                });
+                
+                await wait(2000);
+                
+                // Add fruits to right pan
+                const rightPan = beam.getObjectByName('rightPan');
+                const fruits = [];
+                
+                // Create different colored spheres as fruits
+                const fruitColors = [0xff0000, 0xffa500, 0xffff00, 0x00ff00];
+                for (let i = 0; i < 4; i++) {
+                    const fruitGeometry = new THREE.SphereGeometry(0.4, 16, 16);
+                    const fruitMaterial = new THREE.MeshPhongMaterial({ 
+                        color: fruitColors[i],
+                        specular: 0x222222,
+                        shininess: 30
+                    });
+                    const fruit = new THREE.Mesh(fruitGeometry, fruitMaterial);
+                    fruit.position.set(
+                        (Math.random() - 0.5) * 1.5,
+                        0.5 + i * 0.5,
+                        (Math.random() - 0.5) * 1.5
+                    );
+                    rightPan.add(fruit);
+                    fruits.push(fruit);
+                    
+                    gsap.from(fruit.scale, {
+                        duration: 0.5,
+                        delay: i * 0.1,
+                        x: 0,
+                        y: 0,
+                        z: 0,
+                        ease: "back.out"
+                    });
+                }
+                
+                // Balance the scale
+                gsap.to(beam.rotation, {
+                    duration: 1.5,
+                    delay: 0.5,
+                    z: 0,
+                    ease: "power2.inOut"
+                });
+                
+                // Show scale reading
+                document.getElementById('watermelonScale').style.display = 'block';
+                animateFMUReading();
+                
+                setTimeout(resolve, 3000);
+            });
+        }
+
+        // Animate FMU reading
+        function animateFMUReading() {
+            const display = document.getElementById('scaleReading');
+            const values = ['1 FMU', '2 FMU', '3 FMU', '4 FMU', '3 FMU'];
+            let index = 0;
+            
+            const interval = setInterval(() => {
+                display.textContent = values[index];
+                index++;
+                if (index >= values.length) {
+                    clearInterval(interval);
+                }
+            }, 500);
+        }
+
+        // Create molecules
+        async function createMoleculeVisualization() {
+            clearScene();
+            molecules = [];
+            
+            // Water molecule (H2O) - Corrected structure
+            const waterGroup = new THREE.Group();
+            
+            // Bond parameters
+            const bondLength = 1.8;
+            const bondAngle = 104.5 * Math.PI / 180; // 104.5 degrees in radians
+            const halfAngle = bondAngle / 2;
+            
+            // Oxygen atom (at center)
+            const oxygenGeometry = new THREE.SphereGeometry(1, 32, 32);
+            const oxygenMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xff0000,
+                emissive: 0xff0000,
+                emissiveIntensity: 0.1
+            });
+            const oxygen = new THREE.Mesh(oxygenGeometry, oxygenMaterial);
+            oxygen.position.set(0, 0, 0); // Center
+            waterGroup.add(oxygen);
+            
+            // Hydrogen atoms
+            const hydrogenGeometry = new THREE.SphereGeometry(0.6, 32, 32);
+            const hydrogenMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xffffff,
+                emissive: 0xffffff,
+                emissiveIntensity: 0.1
+            });
+            
+            // Hydrogen 1 position
+            const h1X = -bondLength * Math.sin(halfAngle);
+            const h1Y = -bondLength * Math.cos(halfAngle);
+            const hydrogen1 = new THREE.Mesh(hydrogenGeometry, hydrogenMaterial);
+            hydrogen1.position.set(h1X, h1Y, 0);
+            waterGroup.add(hydrogen1);
+            
+            // Hydrogen 2 position
+            const h2X = bondLength * Math.sin(halfAngle);
+            const h2Y = -bondLength * Math.cos(halfAngle);
+            const hydrogen2 = new THREE.Mesh(hydrogenGeometry, hydrogenMaterial.clone());
+            hydrogen2.position.set(h2X, h2Y, 0);
+            waterGroup.add(hydrogen2);
+            
+            // Create bonds that properly connect oxygen to hydrogen atoms
+            const bondGeometry = new THREE.CylinderGeometry(0.15, 0.15, bondLength, 8);
+            const bondMaterial = new THREE.MeshBasicMaterial({ color: 0xcccccc });
+            
+            // Bond 1: Oxygen to Hydrogen 1
+            const bond1 = new THREE.Mesh(bondGeometry, bondMaterial);
+            // Position bond at midpoint between oxygen and hydrogen1
+            bond1.position.set(h1X / 2, h1Y / 2, 0);
+            // Calculate rotation angle for bond1
+            const bond1Angle = Math.atan2(h1Y, h1X) + Math.PI / 2;
+            bond1.rotation.z = bond1Angle;
+            waterGroup.add(bond1);
+            
+            // Bond 2: Oxygen to Hydrogen 2
+            const bond2 = new THREE.Mesh(bondGeometry, bondMaterial.clone());
+            // Position bond at midpoint between oxygen and hydrogen2
+            bond2.position.set(h2X / 2, h2Y / 2, 0);
+            // Calculate rotation angle for bond2
+            const bond2Angle = Math.atan2(h2Y, h2X) + Math.PI / 2;
+            bond2.rotation.z = bond2Angle;
+            waterGroup.add(bond2);
+            
+            // Add text label for water molecule
+            const waterLabelCanvas = document.createElement('canvas');
+            const waterLabelContext = waterLabelCanvas.getContext('2d');
+            waterLabelCanvas.width = 200;
+            waterLabelCanvas.height = 60;
+            
+            waterLabelContext.fillStyle = '#ffd89b';
+            waterLabelContext.font = 'bold 24px Arial';
+            waterLabelContext.textAlign = 'center';
+            waterLabelContext.textBaseline = 'middle';
+            waterLabelContext.fillText('H₂O (Water)', 100, 30);
+            
+            const waterLabelTexture = new THREE.CanvasTexture(waterLabelCanvas);
+            const waterLabelMaterial = new THREE.SpriteMaterial({ 
+                map: waterLabelTexture,
+                transparent: true,
+                alphaTest: 0.1
+            });
+            const waterLabel = new THREE.Sprite(waterLabelMaterial);
+            waterLabel.scale.set(4, 1.2, 1);
+            waterLabel.position.y = -4;
+            waterLabel.position.z = 0.1;
+            waterGroup.add(waterLabel);
+            
+            waterGroup.position.x = -6;
+            scene.add(waterGroup);
+            molecules.push(waterGroup);
+            
+            // CO2 molecule
+            const co2Group = new THREE.Group();
+            
+            // Carbon atom
+            const carbonGeometry = new THREE.SphereGeometry(0.8, 32, 32);
+            const carbonMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x333333,
+                emissive: 0x111111,
+                emissiveIntensity: 0.1
+            });
+            const carbon = new THREE.Mesh(carbonGeometry, carbonMaterial);
+            co2Group.add(carbon);
+            
+            // Oxygen atoms
+            const oxygen1 = new THREE.Mesh(oxygenGeometry, oxygenMaterial.clone());
+            oxygen1.position.x = -2.5;
+            co2Group.add(oxygen1);
+            
+            const oxygen2 = new THREE.Mesh(oxygenGeometry, oxygenMaterial.clone());
+            oxygen2.position.x = 2.5;
+            co2Group.add(oxygen2);
+            
+            // Double bonds
+            for (let i = 0; i < 2; i++) {
+                const bond = new THREE.Mesh(bondGeometry, bondMaterial.clone());
+                bond.position.x = i === 0 ? -1.25 : 1.25;
+                bond.position.y = 0.15;
+                bond.rotation.z = Math.PI / 2;
+                co2Group.add(bond);
+                
+                const bond2 = new THREE.Mesh(bondGeometry, bondMaterial.clone());
+                bond2.position.x = i === 0 ? -1.25 : 1.25;
+                bond2.position.y = -0.15;
+                bond2.rotation.z = Math.PI / 2;
+                co2Group.add(bond2);
+            }
+            
+            // Add text label for CO2 molecule
+            const co2LabelCanvas = document.createElement('canvas');
+            const co2LabelContext = co2LabelCanvas.getContext('2d');
+            co2LabelCanvas.width = 300;
+            co2LabelCanvas.height = 60;
+            
+            co2LabelContext.fillStyle = '#ffd89b';
+            co2LabelContext.font = 'bold 20px Arial';
+            co2LabelContext.textAlign = 'center';
+            co2LabelContext.textBaseline = 'middle';
+            co2LabelContext.fillText('CO₂ (Carbon Dioxide)', 150, 30);
+            
+            const co2LabelTexture = new THREE.CanvasTexture(co2LabelCanvas);
+            const co2LabelMaterial = new THREE.SpriteMaterial({ 
+                map: co2LabelTexture,
+                transparent: true,
+                alphaTest: 0.1
+            });
+            const co2Label = new THREE.Sprite(co2LabelMaterial);
+            co2Label.scale.set(6, 1.2, 1);
+            co2Label.position.y = -4;
+            co2Label.position.z = 0.1;
+            co2Group.add(co2Label);
+            
+            co2Group.position.x = 6;
+            scene.add(co2Group);
+            molecules.push(co2Group);
+            
+            // Animate appearance
+            molecules.forEach((mol, index) => {
+                gsap.from(mol.scale, {
+                    duration: 1,
+                    delay: index * 0.3,
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                    ease: "back.out(1.7)"
+                });
+                
+                // Continuous rotation
+                gsap.to(mol.rotation, {
+                    duration: 15,
+                    y: Math.PI * 2,
+                    repeat: -1,
+                    ease: "none"
+                });
+            });
+        }
+
+        // Button state management
+        function setButtonActive(buttonId, active) {
+            const button = document.getElementById(buttonId);
+            if (button) {
+                if (active) {
+                    button.classList.add('active');
+                    activeButtons.add(buttonId);
+                } else {
+                    button.classList.remove('active');
+                    activeButtons.delete(buttonId);
+                }
+            }
+        }
+
+        function clearAllButtonStates() {
+            activeButtons.forEach(buttonId => {
+                const button = document.getElementById(buttonId);
+                if (button) {
+                    button.classList.remove('active');
+                }
+            });
+            activeButtons.clear();
+        }
+
+        // Complete Lesson
+        async function playCompleteLesson() {
+            await stopCurrentAnimation();
+            clearAllButtonStates();
+            setButtonActive('completeBtn', true);
+            
+            isAnimating = true;
+            currentAnimation = 'complete';
+            
+            showProgress();
+            updateProgress(1);
+            
+            updateTitle("📖 Chapter 3.2: Complete Lesson");
+            
+            await narrator.speak("Welcome to Chapter 3.2! Let's explore how we represent atoms and understand atomic mass.");
+            
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            updateProgress(2);
+            await showDaltonSymbolsForComplete();
+            
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            updateProgress(3);
+            await narrator.speak("Modern symbols follow IUPAC standards. You can see the table below for examples of how elements are represented today.");
+            
+            await wait(2000);
+            
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            updateProgress(4);
+            await showWatermelonAnalogyForComplete();
+            
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            updateProgress(5);
+            await showMoleculesForComplete();
+            
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            updateProgress(6);
+            await narrator.speak("This completes our journey through atomic symbols and atomic mass!");
+            
+            hideProgress();
+            isAnimating = false;
+            setButtonActive('completeBtn', false);
+        }
+
+        // Enhanced cleanup function
+        async function performCompleteCleanup() {
+            // Stop all animations and narration
+            gsap.killTweensOf("*");
+            narrator.stop();
+            
+            // Clear scene
+            clearScene();
+            
+            // Hide all overlays
+            document.getElementById('symbolDisplay').style.display = 'none';
+            document.getElementById('watermelonScale').style.display = 'none';
+            document.getElementById('colorLegend').style.display = 'none';
+            
+            // Reset UI elements
+            updateTitle("Explore Atomic Symbols & Mass");
+            updateStageInfo("Welcome to Chapter 3.2", "Discover the evolution of atomic symbols and the concept of atomic mass");
+            updateAnalysis("Ready to explore the evolution of atomic symbols and the concept of atomic mass!");
+            
+            // Clear all button states
+            clearAllButtonStates();
+            
+            // Reset animation state
+            isAnimating = false;
+            currentAnimation = null;
+        }
+
+        // Show Dalton's Symbols (for individual button)
+        async function showDaltonSymbols() {
+            await performCompleteCleanup();
+            setButtonActive('daltonBtn', true);
+            
+            isAnimating = true;
+            currentAnimation = 'dalton';
+            
+            updateTitle("⭕ Dalton's Atomic Symbols");
+            updateStageInfo("Dalton's Symbols", "The first systematic representation of elements");
+            
+            await createDaltonSymbols();
+            
+            await narrator.speak("John Dalton was the first scientist to use symbols for elements in a specific way. Each symbol represented one atom of that element.");
+            
+            if (!isAnimating || currentAnimation !== 'dalton') return;
+            
+            await narrator.speak("He used circles with different markings: empty for hydrogen, with a dot for sulfur, filled for carbon, with a plus for oxygen, and with a line for nitrogen.");
+            
+            updateAnalysis("Dalton's visual symbols laid the foundation for modern chemical notation");
+            isAnimating = false;
+            setButtonActive('daltonBtn', false);
+        }
+
+        // Show Dalton's Symbols (for complete lesson)
+        async function showDaltonSymbolsForComplete() {
+            updateTitle("⭕ Dalton's Atomic Symbols");
+            updateStageInfo("Dalton's Symbols", "The first systematic representation of elements");
+            
+            await createDaltonSymbols();
+            
+            await narrator.speak("John Dalton was the first scientist to use symbols for elements in a specific way. Each symbol represented one atom of that element.");
+            
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            await narrator.speak("He used circles with different markings: empty for hydrogen, with a dot for sulfur, filled for carbon, with a plus for oxygen, and with a line for nitrogen.");
+            
+            updateAnalysis("Dalton's visual symbols laid the foundation for modern chemical notation");
+        }
+
+        // Show Watermelon Analogy (for individual button)
+        async function showWatermelonAnalogy() {
+            await performCompleteCleanup();
+            setButtonActive('watermelonBtn', true);
+            
+            isAnimating = true;
+            currentAnimation = 'watermelon';
+            
+            updateTitle("🍉 Understanding Atomic Mass Units");
+            updateStageInfo("Watermelon Analogy", "How atomic mass units work");
+            
+            await narrator.speak("Let's understand atomic mass units through a simple analogy. Imagine a fruit seller without standard weights.");
+            
+            if (!isAnimating || currentAnimation !== 'watermelon') return;
+            
+            await animateWatermelonCutting();
+            
+            await narrator.speak("He takes a watermelon and divides it into 12 equal pieces. Each piece becomes his unit of measurement.");
+            
+            if (!isAnimating || currentAnimation !== 'watermelon') return;
+            
+            await animateBalanceScale();
+            
+            await narrator.speak("Similarly, one atomic mass unit is exactly one-twelfth the mass of a carbon-12 atom. All other atomic masses are measured relative to this standard.");
+            
+            updateAnalysis("1 AMU = 1/12th mass of Carbon-12 atom");
+            document.getElementById('watermelonScale').style.display = 'none';
+            isAnimating = false;
+            setButtonActive('watermelonBtn', false);
+        }
+
+        // Show Watermelon Analogy (for complete lesson)
+        async function showWatermelonAnalogyForComplete() {
+            updateTitle("🍉 Understanding Atomic Mass Units");
+            updateStageInfo("Watermelon Analogy", "How atomic mass units work");
+            
+            await narrator.speak("Let's understand atomic mass units through a simple analogy. Imagine a fruit seller without standard weights.");
+            
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            clearScene();
+            await animateWatermelonCutting();
+            
+            await narrator.speak("He takes a watermelon and divides it into 12 equal pieces. Each piece becomes his unit of measurement.");
+            
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            await animateBalanceScale();
+            
+            await narrator.speak("Similarly, one atomic mass unit is exactly one-twelfth the mass of a carbon-12 atom. All other atomic masses are measured relative to this standard.");
+            
+            updateAnalysis("1 AMU = 1/12th mass of Carbon-12 atom");
+            document.getElementById('watermelonScale').style.display = 'none';
+        }
+
+        // Show Molecules (for individual button)
+        async function showMolecules() {
+            await performCompleteCleanup();
+            setButtonActive('moleculesBtn', true);
+            
+            isAnimating = true;
+            currentAnimation = 'molecules';
+            
+            updateTitle("💧 How Atoms Exist");
+            updateStageInfo("Molecules & Ions", "Atoms combine to form matter");
+            
+            // Show color legend
+            document.getElementById('colorLegend').style.display = 'block';
+            
+            await createMoleculeVisualization();
+            
+            await narrator.speak("Atoms rarely exist alone. They combine to form molecules and ions.");
+            
+            if (!isAnimating || currentAnimation !== 'molecules') return;
+            
+            await narrator.speak("Here we see water, H2O, with two hydrogen atoms bonded to one oxygen atom.");
+            
+            await wait(2000);
+            if (!isAnimating || currentAnimation !== 'molecules') return;
+            
+            await narrator.speak("And carbon dioxide, CO2, with one carbon atom double-bonded to two oxygen atoms.");
+            
+            await narrator.speak("These molecules aggregate in large numbers to form the matter we can see, feel, and touch.");
+            
+            updateAnalysis("Atoms combine to form molecules and ions that make up visible matter");
+            isAnimating = false;
+            setButtonActive('moleculesBtn', false);
+        }
+
+        // Show Molecules (for complete lesson)
+        async function showMoleculesForComplete() {
+            updateTitle("💧 How Atoms Exist");
+            updateStageInfo("Molecules & Ions", "Atoms combine to form matter");
+            
+            // Show color legend
+            document.getElementById('colorLegend').style.display = 'block';
+            
+            await createMoleculeVisualization();
+            
+            await narrator.speak("Atoms rarely exist alone. They combine to form molecules and ions.");
+            
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            await narrator.speak("Here we see water, H2O, with two hydrogen atoms bonded to one oxygen atom.");
+            
+            await wait(2000);
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            await narrator.speak("And carbon dioxide, CO2, with one carbon atom double-bonded to two oxygen atoms.");
+            
+            await narrator.speak("These molecules aggregate in large numbers to form the matter we can see, feel, and touch.");
+            
+            updateAnalysis("Atoms combine to form molecules and ions that make up visible matter");
+        }
+
+        // Helper functions
+        function clearScene() {
+            while(scene.children.length > 0) {
+                const child = scene.children[0];
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (child.material instanceof Array) {
+                        child.material.forEach(m => m.dispose());
+                    } else {
+                        child.material.dispose();
+                    }
+                }
+                scene.remove(child);
+            }
+            
+            // Re-add lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 10);
+            scene.add(directionalLight);
+            
+            const pointLight = new THREE.PointLight(0xffd89b, 0.5, 100);
+            pointLight.position.set(-10, 10, -10);
+            scene.add(pointLight);
+        }
+
+        async function stopCurrentAnimation() {
+            if (currentAnimation) {
+                gsap.killTweensOf("*");
+                currentAnimation = null;
+            }
+            isAnimating = false;
+            narrator.stop();
+        }
+
+        function updateTitle(title) {
+            document.getElementById('lesson-title').textContent = title;
+        }
+
+        function updateAnalysis(text) {
+            document.getElementById('current-analysis').textContent = text;
+        }
+
+        function updateStageInfo(title, text) {
+            document.getElementById('infoTitle').textContent = title;
+            document.getElementById('infoText').textContent = text;
+        }
+
+        function setViewMode(mode) {
+            viewMode = mode;
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            switch(mode) {
+                case '3d':
+                    gsap.to(camera.position, {
+                        duration: 1,
+                        x: 0,
+                        y: 10,
+                        z: 25,
+                        ease: "power2.inOut"
+                    });
+                    break;
+                case 'top':
+                    gsap.to(camera.position, {
+                        duration: 1,
+                        x: 0,
+                        y: 30,
+                        z: 1,
+                        ease: "power2.inOut"
+                    });
+                    break;
+                case 'side':
+                    gsap.to(camera.position, {
+                        duration: 1,
+                        x: 30,
+                        y: 5,
+                        z: 0,
+                        ease: "power2.inOut"
+                    });
+                    break;
+            }
+            camera.lookAt(0, 0, 0);
+        }
+
+        async function resetAll() {
+            await performCompleteCleanup();
+            setButtonActive('resetBtn', true);
+            
+            setTimeout(() => {
+                setButtonActive('resetBtn', false);
+            }, 500);
+        }
+
+        function showProgress() {
+            document.getElementById('progressIndicator').style.display = 'flex';
+        }
+
+        function hideProgress() {
+            document.getElementById('progressIndicator').style.display = 'none';
+        }
+
+        function updateProgress(step) {
+            document.querySelectorAll('.progress-dot').forEach((dot, index) => {
+                if (index < step) {
+                    dot.classList.add('completed');
+                    dot.classList.remove('active');
+                } else if (index === step - 1) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active', 'completed');
+                }
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Toggle quiz answers
+        function toggleAnswer(num) {
+            const answer = document.getElementById(`answer${num}`);
+            answer.style.display = answer.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Setup mouse controls
+        function setupMouseControls() {
+            const canvas = renderer.domElement;
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            canvas.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+                
+                scene.rotation.y += deltaX * 0.01;
+                scene.rotation.x = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, scene.rotation.x + deltaY * 0.01));
+                
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                camera.position.z += e.deltaY * 0.01;
+                camera.position.z = Math.max(10, Math.min(50, camera.position.z));
+            });
+        }
+
+        // Animation loop
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            
+            // Add any continuous animations here
+            
+            renderer.render(scene, camera);
+        }
+
+        // Audio controls
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            narrator.isEnabled = !narrator.isEnabled;
+            document.getElementById('mute-btn').classList.toggle('muted', !narrator.isEnabled);
+            if (!narrator.isEnabled) {
+                narrator.stop();
+            }
+        });
+
+        let speedIndex = 2; // Start at 1x
+        const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
+        const speedLabels = ['0.5x', '0.75x', '1x', '1.25x', '1.5x', '2x'];
+        
+        document.getElementById('speed-btn').addEventListener('click', () => {
+            speedIndex = (speedIndex + 1) % speeds.length;
+            narrator.setSpeed(speeds[speedIndex]);
+            document.getElementById('speed-btn').textContent = speedLabels[speedIndex];
+        });
+
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            initialize();
+        }
+
+        function initialize() {
+            initThreeJS();
+            narrator.speak("Welcome to Chapter 3.2! Discover how we represent atoms, from Dalton's circles to modern symbols, and understand atomic mass through an interesting watermelon analogy!");
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('stage');
+            if (camera && renderer) {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+        });
+    </script>
+</body>
+</html>

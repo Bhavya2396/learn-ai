@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cell Wall and Plasmolysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #166534 0%, #22c55e 100%);
+            color: white;
+            overflow: hidden;
+            position: relative;
+            height: 100vh;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            opacity: 0.1;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.2" d="M0,96L48,112C96,128,192,160,288,186.7C384,213,480,235,576,213.3C672,192,768,128,864,128C960,128,1056,192,1152,197.3C1248,203,1344,149,1392,122.7L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') repeat-x;
+            animation: wave 10s linear infinite;
+        }
+
+        @keyframes wave {
+            0% { background-position-x: 0; }
+            100% { background-position-x: 1440px; }
+        }
+
+        /* Museum Interface - Compact Header */
+        .museum-header {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            text-align: left;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 10px 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .museum-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            background: linear-gradient(45deg, #4ade80, #16a34a);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+        }
+
+        .exhibit-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cell-wall-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: wall-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes wall-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+        }
+
+        /* Journey Navigation - Enhanced */
+        .journey-navigation {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 320px;
+        }
+
+        .journey-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4ade80;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .journey-steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .journey-btn {
+            background: rgba(74, 222, 128, 0.2);
+            border: 1px solid rgba(74, 222, 128, 0.4);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .journey-btn:hover {
+            background: rgba(74, 222, 128, 0.3);
+            border-color: #4ade80;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
+        }
+
+        .journey-btn.active {
+            background: linear-gradient(135deg, #166534, #4ade80);
+            border-color: #166534;
+            box-shadow: 0 0 20px rgba(22, 101, 52, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .journey-btn.completed {
+            background: rgba(46, 204, 113, 0.3);
+            border-color: #2ecc71;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* 3D Model Container */
+        .model-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+            overflow: hidden;
+            border: none;
+            z-index: 100;
+        }
+
+        .sketchfab-embed-wrapper {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #166534 0%, #22c55e 100%);
+        }
+
+        .sketchfab-embed-wrapper iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 0;
+        }
+
+        /* Information Panel - Enhanced */
+        .info-panel {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            width: 380px;
+            max-height: calc(100vh - 140px);
+            z-index: 800;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .info-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-icon {
+            font-size: 28px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .info-title {
+            flex: 1;
+        }
+
+        .info-title h2 {
+            font-size: 18px;
+            color: #4ade80;
+            margin-bottom: 4px;
+        }
+
+        .info-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .info-content {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Progress Tracker */
+        .progress-tracker {
+            background: linear-gradient(135deg, rgba(74, 222, 128, 0.1), rgba(22, 101, 52, 0.1));
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .progress-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: #4ade80;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .progress-percentage {
+            font-size: 18px;
+            color: #166534;
+            font-weight: 700;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #166534);
+            border-radius: 4px;
+            transition: width 0.8s ease;
+            box-shadow: 0 0 10px rgba(22, 101, 52, 0.5);
+        }
+
+        .progress-steps-mini {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .step-mini {
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .step-mini.active {
+            color: #166534;
+            font-weight: 600;
+        }
+
+        .step-mini.completed {
+            color: #2ecc71;
+        }
+
+        /* Information Cards */
+        .info-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .info-card-title {
+            color: #4ade80;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-card-content {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .info-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-list li {
+            padding: 6px 0;
+            padding-left: 20px;
+            position: relative;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .info-list li:before {
+            content: "🌿";
+            position: absolute;
+            left: 0;
+            font-size: 10px;
+        }
+
+        /* Fun Fact Box */
+        .fun-fact {
+            background: linear-gradient(135deg, rgba(202, 138, 4, 0.1), rgba(245, 158, 11, 0.1));
+            border: 1px solid rgba(202, 138, 4, 0.3);
+            border-radius: 12px;
+            padding: 14px;
+            margin: 16px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fun-fact:before {
+            content: "🌱";
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            font-size: 60px;
+            opacity: 0.1;
+        }
+
+        .fun-fact-title {
+            color: #ca8a04;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .fun-fact-text {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 12px;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Voice Controls */
+        .voice-controls {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            position: relative;
+        }
+
+        .control-btn:hover {
+            background: rgba(22, 101, 52, 0.3);
+            border-color: #166534;
+            transform: scale(1.1);
+        }
+
+        .control-btn.active {
+            background: rgba(22, 101, 52, 0.4);
+            border-color: #166534;
+            box-shadow: 0 0 20px rgba(22, 101, 52, 0.5);
+        }
+
+        .control-tooltip {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .control-btn:hover .control-tooltip {
+            opacity: 1;
+        }
+
+        /* Loading Screen */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #166534 0%, #22c55e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: opacity 1s ease;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-wall {
+            font-size: 60px;
+            animation: wall-pulse 1.5s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .loading-progress {
+            width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #166534, #4ade80);
+            animation: loading 2s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 100%; }
+            100% { width: 0%; }
+        }
+
+        /* Voice Indicator */
+        .voice-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(22, 101, 52, 0.5);
+            border-radius: 30px;
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .voice-indicator.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-10px);
+        }
+
+        .voice-waves {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .voice-wave {
+            width: 3px;
+            height: 20px;
+            background: linear-gradient(180deg, #166534, #4ade80);
+            border-radius: 2px;
+            animation: voice-wave 1s ease-in-out infinite;
+        }
+
+        .voice-wave:nth-child(2) { animation-delay: 0.1s; }
+        .voice-wave:nth-child(3) { animation-delay: 0.2s; }
+        .voice-wave:nth-child(4) { animation-delay: 0.3s; }
+        .voice-wave:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes voice-wave {
+            0%, 100% { transform: scaleY(0.3); }
+            50% { transform: scaleY(1); }
+        }
+
+        .narration-text {
+            color: white;
+            font-size: 13px;
+            max-width: 300px;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .action-btn {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .action-btn:hover {
+            background: rgba(74, 222, 128, 0.3);
+            border-color: #4ade80;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
+        }
+
+        /* Custom Scrollbar */
+        .info-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .info-panel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .info-panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #166534, #4ade80);
+            border-radius: 3px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .info-panel {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                top: auto;
+                width: 100%;
+                max-height: 50vh;
+                border-radius: 20px 20px 0 0;
+            }
+            
+            .journey-navigation {
+                bottom: 52vh;
+                max-width: calc(100% - 40px);
+            }
+            
+            .voice-controls {
+                top: auto;
+                bottom: 55vh;
+                right: 10px;
+            }
+            
+            .quick-actions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-wall">🌱</div>
+            <div class="loading-text">Building Plant Cell Defenses...</div>
+            <div class="loading-progress">
+                <div class="loading-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Museum Header -->
+    <div class="museum-header">
+        <div class="museum-title">Cell Wall & Plasmolysis</div>
+        <div class="exhibit-subtitle">
+            <span class="cell-wall-indicator"></span>
+            Plant Cell Protection and Water Balance
+        </div>
+    </div>
+
+    <!-- Journey Navigation -->
+    <div class="journey-navigation">
+        <div class="journey-title">
+            <span>🌱</span>
+            <span>Cell Wall Journey</span>
+        </div>
+        <div class="journey-steps">
+            <button class="journey-btn active" onclick="loadJourneyStep('introduction')">
+                <span>🏗️</span> Introduction
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('structure')">
+                <span>🧱</span> Structure
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('protection')">
+                <span>🛡️</span> Protection
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('turgidity')">
+                <span>💪</span> Turgidity
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('plasmolysis')">
+                <span>💧</span> Plasmolysis
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('observation')">
+                <span>🔬</span> Observation
+            </button>
+        </div>
+    </div>
+
+    <!-- 3D Model Container -->
+    <div class="model-container">
+        <div class="sketchfab-embed-wrapper">
+            <iframe id="api-frame"
+                    title="Plant Cell Wall" 
+                    frameborder="0" 
+                    allowfullscreen 
+                    mozallowfullscreen="true" 
+                    webkitallowfullscreen="true" 
+                    allow="autoplay; fullscreen; xr-spatial-tracking"
+                    xr-spatial-tracking 
+                    execution-while-out-of-viewport 
+                    execution-while-not-rendered 
+                    web-share 
+                    src="https://sketchfab.com/models/f258c65762e5435c9d58c1aa136b557a/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0">
+            </iframe>
+        </div>
+    </div>
+
+    <!-- Information Panel -->
+    <div class="info-panel" id="infoPanel">
+        <div class="info-header">
+            <div class="info-icon" id="stepIcon">🏗️</div>
+            <div class="info-title">
+                <h2 id="stepTitle">Plant Cell Wall</h2>
+                <div class="info-subtitle" id="stepSubtitle">The rigid fortress protecting plant cells</div>
+            </div>
+        </div>
+
+        <!-- Progress Tracker -->
+        <div class="progress-tracker">
+            <div class="progress-header">
+                <span>Cell Wall Mastery</span>
+                <span class="progress-percentage" id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            <div class="progress-steps-mini">
+                <span class="step-mini active" onclick="loadJourneyStep('introduction')">Intro</span>
+                <span class="step-mini" onclick="loadJourneyStep('structure')">Struct.</span>
+                <span class="step-mini" onclick="loadJourneyStep('protection')">Protect.</span>
+                <span class="step-mini" onclick="loadJourneyStep('turgidity')">Turgid.</span>
+                <span class="step-mini" onclick="loadJourneyStep('plasmolysis')">Plasmo.</span>
+                <span class="step-mini" onclick="loadJourneyStep('observation')">Observ.</span>
+            </div>
+        </div>
+
+        <div class="info-content" id="mainDescription">
+            The plant cell wall is a rigid, protective structure made primarily of cellulose that surrounds the plant cell membrane. Unlike animal cells, plant cells depend on this wall for structural support, shape maintenance, and protection against osmotic pressure in hypotonic environments.
+        </div>
+
+        <div class="info-card">
+            <div class="info-card-title">
+                <span>🌿</span> Key Wall Functions
+            </div>
+            <div class="info-card-content">
+                <ul class="info-list" id="keyConcepts">
+                    <li>Provides structural support and shape</li>
+                    <li>Protects against osmotic bursting</li>
+                    <li>Made primarily of cellulose fibers</li>
+                    <li>Allows plants to remain upright</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="fun-fact">
+            <div class="fun-fact-title">Cellulose Power</div>
+            <div class="fun-fact-text" id="funFact">
+                Plant cell walls are so strong that cellulose is used to make paper, cardboard, and even some textiles - the same material that keeps plant cells from exploding!
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-card-title">
+                <span>🎯</span> Learning Objectives
+            </div>
+            <div class="info-card-content" id="learningObjectives">
+                Understand cell wall structure and composition, learn how walls protect against osmotic pressure, and observe plasmolysis in plant cells.
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Controls -->
+    <div class="voice-controls">
+        <button class="control-btn active" id="voiceToggle" onclick="toggleVoice()">
+            🔊
+            <span class="control-tooltip">Voice Narration</span>
+        </button>
+        <button class="control-btn" onclick="toggleAutoPlay()">
+            ▶️
+            <span class="control-tooltip">Auto Journey</span>
+        </button>
+        <button class="control-btn" onclick="toggleInfo()">
+            ℹ️
+            <span class="control-tooltip">Toggle Info</span>
+        </button>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <button class="action-btn" onclick="startGuidedTour()">
+            <span>🚀</span> Guided Tour
+        </button>
+        <button class="action-btn" onclick="showQuiz()">
+            <span>🎯</span> Test Knowledge
+        </button>
+    </div>
+
+    <!-- Voice Indicator -->
+    <div class="voice-indicator" id="voiceIndicator">
+        <div class="voice-waves">
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+        </div>
+        <div class="narration-text" id="narrationText">Narrating...</div>
+    </div>
+
+    <script>
+        // Journey Step Data with Complete Educational Content
+        const JOURNEY_DATA = {
+            introduction: {
+                title: "Plant Cell Wall",
+                subtitle: "The rigid fortress protecting plant cells",
+                icon: "🏗️",
+                modelUrl: "https://sketchfab.com/models/f258c65762e5435c9d58c1aa136b557a/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "The plant cell wall is a rigid, protective structure made primarily of cellulose that surrounds the plant cell membrane. Unlike animal cells, plant cells depend on this wall for structural support, shape maintenance, and protection against osmotic pressure in hypotonic environments.",
+                concepts: [
+                    "Provides structural support and shape",
+                    "Protects against osmotic bursting",
+                    "Made primarily of cellulose fibers",
+                    "Allows plants to remain upright"
+                ],
+                funFact: "Plant cell walls are so strong that cellulose is used to make paper, cardboard, and even some textiles - the same material that keeps plant cells from exploding!",
+                objectives: "Understand cell wall structure and composition, learn how walls protect against osmotic pressure, and observe plasmolysis in plant cells.",
+                narration: "Welcome to the world of plant cell walls - one of nature's most ingenious architectural solutions! You're looking at a eukaryotic plant cell, and that thick, rigid structure surrounding it is the cell wall, a feature that sets plant cells apart from animal cells. The cell wall is like a protective fortress that serves multiple critical functions. Unlike the flexible cell membrane that animal cells rely on alone, plant cells have this additional layer of protection and support. The wall is primarily made of cellulose, a complex carbohydrate formed by linking glucose molecules into long, strong fibers. These cellulose fibers are woven together like a microscopic mesh, creating a structure so robust that it can withstand enormous internal pressure. This is crucial because plant cells often find themselves in hypotonic environments where water rushes in through osmosis. Without the cell wall, plant cells would burst like overfilled balloons! The wall also gives plants their shape and allows them to grow upright without a skeleton, supporting massive trees that can reach hundreds of feet in height."
+            },
+            structure: {
+                title: "Cell Wall Composition",
+                subtitle: "Cellulose fibers and structural components",
+                icon: "🧱",
+                modelUrl: "https://sketchfab.com/models/f258c65762e5435c9d58c1aa136b557a/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "The cell wall consists mainly of cellulose microfibrils embedded in a matrix of other polysaccharides. This composite structure provides both strength and flexibility, allowing plants to grow while maintaining structural integrity.",
+                concepts: [
+                    "Cellulose microfibrils provide tensile strength",
+                    "Matrix polysaccharides fill spaces between fibers",
+                    "Lignin adds rigidity in woody tissues",
+                    "Pores allow molecular transport"
+                ],
+                funFact: "Cellulose is the most abundant organic compound on Earth - about 33% of all plant matter is cellulose, making it more common than any other biological molecule!",
+                objectives: "Examine the molecular architecture of cell walls and understand how different components contribute to wall properties.",
+                narration: "Let's examine the sophisticated architecture of the plant cell wall! The wall you see is actually a complex composite material, much like reinforced concrete. The primary component is cellulose, which forms long microfibrils - think of these as microscopic cables made of linked glucose molecules. These cellulose microfibrils are incredibly strong; they have a tensile strength comparable to steel! But cellulose alone isn't enough. The microfibrils are embedded in a matrix of other polysaccharides, including pectins and hemicelluloses, which act like cement between the cellulose cables. This matrix allows the wall to be strong yet flexible, permitting plant growth. In woody plants, another component called lignin is deposited in the wall, making it even more rigid and waterproof - this is what makes wood so hard. The wall isn't solid; it contains tiny pores that allow water and small molecules to pass through, enabling communication between cells and transport of materials. The wall is also dynamic - it can be modified as the plant grows, with new material added or existing material broken down as needed."
+            },
+            protection: {
+                title: "Protective Function",
+                subtitle: "Defense against osmotic pressure",
+                icon: "🛡️",
+                modelUrl: "https://sketchfab.com/models/f258c65762e5435c9d58c1aa136b557a/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "In hypotonic environments, water enters plant cells through osmosis, creating internal pressure. The rigid cell wall prevents the cell from bursting by withstanding this osmotic pressure, allowing plants to survive in freshwater and moist soil conditions.",
+                concepts: [
+                    "Withstands enormous osmotic pressure",
+                    "Prevents cell bursting in hypotonic solutions",
+                    "Maintains cell shape under pressure",
+                    "Enables plant survival in diverse environments"
+                ],
+                funFact: "The pressure inside a turgid plant cell can reach 10 atmospheres - that's equivalent to the pressure 100 meters underwater!",
+                objectives: "Understand how cell walls protect against osmotic damage and enable plant survival in hypotonic environments.",
+                narration: "Here's where the cell wall truly shines as a protective structure! Plant cells face a constant challenge that would be deadly for animal cells - they often live in hypotonic environments where water concentration outside the cell is higher than inside. This creates a powerful osmotic gradient that drives water into the cell. Without protection, the cell would swell and burst like a popped balloon. But the rigid cell wall acts like armor, containing the increasing internal pressure as water enters. The pressure inside a fully expanded plant cell can reach incredible levels - up to 10 times atmospheric pressure! This is like having the pressure you'd experience 100 meters underwater pushing outward from inside every cell. The cellulose fibers in the wall are oriented to resist this pressure most effectively, distributing the force evenly across the wall structure. This protection is essential for plant survival because plants depend on absorbing water from soil, which is typically hypotonic compared to their cell contents. The wall allows them to take up the water they need for photosynthesis and metabolism without the risk of cellular destruction."
+            },
+            turgidity: {
+                title: "Turgidity and Plant Rigidity",
+                subtitle: "How water pressure supports plant structure",
+                icon: "💪",
+                modelUrl: "https://sketchfab.com/models/f258c65762e5435c9d58c1aa136b557a/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Turgidity occurs when plant cells are full of water, creating internal pressure against the cell wall. This pressure gives plants their rigidity and upright structure, allowing them to maintain their shape without bones or cartilage.",
+                concepts: [
+                    "Turgid cells are full of water under pressure",
+                    "Internal pressure provides structural support",
+                    "Enables plants to stand upright",
+                    "Loss of turgidity causes wilting"
+                ],
+                funFact: "A wilted plant can become rigid again within minutes of watering as cells regain their turgidity - it's like inflating thousands of tiny balloons!",
+                objectives: "Learn how water pressure in plant cells creates structural support and understand the relationship between turgidity and plant posture.",
+                narration: "Turgidity is one of nature's most elegant engineering solutions! You're seeing a plant cell in its turgid state - fully inflated with water like a pressurized balloon. When plant cells absorb water through osmosis, the water fills the large central vacuole, creating internal pressure that pushes the cell membrane outward against the rigid cell wall. This pressure is called turgor pressure, and it's what keeps plants standing upright! Think of each plant cell as a tiny balloon inside a rigid box. When the balloon is fully inflated, it pushes against all sides of the box, making the entire structure firm and rigid. Multiply this by millions of cells, and you get the structural support that allows a plant to hold its leaves up to the sun and its flowers high in the air. This is why plants don't need bones or cartilage - they use water pressure for structural support instead! When plants don't get enough water, they lose turgor pressure and wilt. The cells become flaccid, like deflated balloons, and the plant can no longer support its own weight. But remarkably, as soon as water becomes available again, the cells can quickly regain their turgidity and the plant springs back to life!"
+            },
+            plasmolysis: {
+                title: "Plasmolysis Process",
+                subtitle: "What happens when plants lose water",
+                icon: "💧",
+                modelUrl: "https://sketchfab.com/models/f258c65762e5435c9d58c1aa136b557a/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Plasmolysis occurs when plant cells are placed in hypertonic solutions, causing water to leave the cell. The cell membrane pulls away from the cell wall as the cell shrinks, but the rigid wall maintains its shape.",
+                concepts: [
+                    "Occurs in hypertonic solutions",
+                    "Cell membrane pulls away from wall",
+                    "Cell shrinks but wall maintains shape",
+                    "Can be reversed if not too severe"
+                ],
+                funFact: "Plasmolysis is reversible up to a point - severely plasmolyzed cells may die, but mildly plasmolyzed cells can recover when returned to normal conditions!",
+                objectives: "Observe the plasmolysis process and understand how hypertonic conditions affect plant cell structure.",
+                narration: "Now let's explore plasmolysis - what happens when plant cells lose their battle with water balance! Plasmolysis occurs when a plant cell is placed in a hypertonic solution, where the solute concentration outside the cell is higher than inside. This reverses the normal osmotic flow - instead of water entering the cell, water rushes out! As water leaves the cell, the cytoplasm and cell membrane begin to shrink and pull away from the rigid cell wall. It's like watching a balloon deflate inside a rigid container - the balloon gets smaller, but the container stays the same size. The space between the cell membrane and the cell wall becomes visible, and the cell loses its turgidity completely. This is why plants wilt in salty soil or when exposed to concentrated solutions - their cells become plasmolyzed and can no longer maintain structural support. Interestingly, the cell wall doesn't change during plasmolysis because it's not alive and doesn't depend on turgor pressure for its shape. Only the living contents of the cell shrink. If plasmolysis isn't too severe and doesn't last too long, it can be reversed by returning the cell to normal or hypotonic conditions. But severe plasmolysis can damage the cell membrane and kill the cell permanently."
+            },
+            observation: {
+                title: "Observing Living vs Dead Cells",
+                subtitle: "Microscopic investigation techniques",
+                icon: "🔬",
+                modelUrl: "https://sketchfab.com/models/39d882d22227475a8e1ec8ba2a7cee6f/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Using electron microscopy and other advanced techniques, we can observe the differences between living and dead plant cells, particularly how cell walls and membranes respond differently to osmotic stress.",
+                concepts: [
+                    "Living cells respond to osmotic changes",
+                    "Dead cells show no membrane response",
+                    "Cell walls remain intact in both cases",
+                    "Advanced microscopy reveals fine details"
+                ],
+                funFact: "Electron microscopes can magnify specimens over 1 million times, revealing cell wall details impossible to see with regular light microscopes!",
+                objectives: "Learn to distinguish between living and dead plant cells and understand how different microscopy techniques reveal cellular structures.",
+                narration: "Here's the electron microscope - a powerful tool that lets us observe the intricate details of plant cell walls and the differences between living and dead cells! Unlike light microscopes that use visible light, electron microscopes use beams of electrons to create images with incredible resolution and magnification. This allows us to see the fine structure of cell walls, including individual cellulose microfibrils and the organization of different wall layers. When we observe living plant cells under various conditions, we can see dynamic responses to osmotic stress - the cell membrane actively responds to changes in water availability, and we can watch plasmolysis occur in real-time. The cytoplasm moves and flows, and organelles shift position as the cell responds to its environment. Dead plant cells tell a different story. While the cell wall remains intact because it's not a living structure, the cell membrane no longer responds to osmotic changes. Dead cells won't undergo plasmolysis because there's no living membrane to pull away from the wall. The cell contents may be degraded or missing entirely, leaving just the empty cell wall as a rigid skeleton. This difference helps us understand that while the cell wall provides crucial structural support, it's the living cell membrane and contents that make the cell responsive to environmental changes."
+            }
+        };
+
+        // Global Variables
+        let currentStep = 'introduction';
+        let voiceEnabled = true;
+        let autoPlayEnabled = false;
+        let currentSpeech = null;
+        let selectedVoice = null;
+        let journeyProgress = 0;
+        let guidedTourActive = false;
+
+        // Initialize Voice System
+        function initVoiceSystem() {
+            if (!('speechSynthesis' in window)) {
+                console.warn('Speech synthesis not supported');
+                voiceEnabled = false;
+                document.getElementById('voiceToggle').style.display = 'none';
+                return;
+            }
+
+            function loadVoices() {
+                const voices = speechSynthesis.getVoices();
+                if (voices.length === 0) return;
+
+                const preferredVoices = [
+                    'Google UK English Female',
+                    'Microsoft Sonia',
+                    'Microsoft Hazel',
+                    'Samantha',
+                    'Victoria'
+                ];
+
+                for (const name of preferredVoices) {
+                    selectedVoice = voices.find(v => v.name.includes(name));
+                    if (selectedVoice) break;
+                }
+
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(v => v.lang.startsWith('en'));
+                }
+            }
+
+            loadVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        }
+
+        // Load Journey Step
+        function loadJourneyStep(stepId) {
+            const stepData = JOURNEY_DATA[stepId];
+            if (!stepData) return;
+
+            currentStep = stepId;
+            
+            document.getElementById('api-frame').src = stepData.modelUrl;
+            
+            document.getElementById('stepIcon').textContent = stepData.icon;
+            document.getElementById('stepTitle').textContent = stepData.title;
+            document.getElementById('stepSubtitle').textContent = stepData.subtitle;
+            document.getElementById('mainDescription').textContent = stepData.description;
+            
+            const conceptsList = document.getElementById('keyConcepts');
+            conceptsList.innerHTML = stepData.concepts.map(c => `<li>${c}</li>`).join('');
+            
+            document.getElementById('funFact').textContent = stepData.funFact;
+            document.getElementById('learningObjectives').textContent = stepData.objectives;
+            
+            updateNavigationButtons(stepId);
+            updateProgress();
+            
+            if (voiceEnabled) {
+                speakText(stepData.narration);
+            }
+        }
+
+        // Update Navigation Buttons
+        function updateNavigationButtons(activeStep) {
+            const buttons = document.querySelectorAll('.journey-btn');
+            const steps = ['introduction', 'structure', 'protection', 'turgidity', 'plasmolysis', 'observation'];
+            const activeIndex = steps.indexOf(activeStep);
+            
+            buttons.forEach((btn, index) => {
+                btn.classList.remove('active', 'completed');
+                if (index < activeIndex) {
+                    btn.classList.add('completed');
+                } else if (index === activeIndex) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            const miniSteps = document.querySelectorAll('.step-mini');
+            miniSteps.forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index < activeIndex) {
+                    step.classList.add('completed');
+                } else if (index === activeIndex) {
+                    step.classList.add('active');
+                }
+            });
+        }
+
+        // Update Progress
+        function updateProgress() {
+            const steps = ['introduction', 'structure', 'protection', 'turgidity', 'plasmolysis', 'observation'];
+            const currentIndex = steps.indexOf(currentStep);
+            const progress = ((currentIndex + 1) / steps.length) * 100;
+            
+            document.getElementById('progressPercent').textContent = Math.round(progress) + '%';
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        // Speech Functions
+        function speakText(text) {
+            if (!voiceEnabled || !text) return;
+            
+            stopSpeech();
+            
+            currentSpeech = new SpeechSynthesisUtterance(text);
+            if (selectedVoice) {
+                currentSpeech.voice = selectedVoice;
+            }
+            currentSpeech.rate = 0.9;
+            currentSpeech.pitch = 1.0;
+            currentSpeech.volume = 0.9;
+            
+            currentSpeech.onstart = () => {
+                document.getElementById('voiceIndicator').classList.add('visible');
+                document.getElementById('narrationText').textContent = 
+                    text.substring(0, 50) + (text.length > 50 ? '...' : '');
+            };
+            
+            currentSpeech.onend = () => {
+                document.getElementById('voiceIndicator').classList.remove('visible');
+                currentSpeech = null;
+                
+                if (guidedTourActive) {
+                    setTimeout(nextStep, 2000);
+                }
+            };
+            
+            speechSynthesis.speak(currentSpeech);
+        }
+
+        function stopSpeech() {
+            if (currentSpeech) {
+                speechSynthesis.cancel();
+                currentSpeech = null;
+                document.getElementById('voiceIndicator').classList.remove('visible');
+            }
+        }
+
+        // Control Functions
+        function toggleVoice() {
+            voiceEnabled = !voiceEnabled;
+            const btn = document.getElementById('voiceToggle');
+            btn.textContent = voiceEnabled ? '🔊' : '🔇';
+            btn.classList.toggle('active', voiceEnabled);
+            
+            if (!voiceEnabled) {
+                stopSpeech();
+            }
+        }
+
+        function toggleAutoPlay() {
+            autoPlayEnabled = !autoPlayEnabled;
+            if (autoPlayEnabled) {
+                startGuidedTour();
+            } else {
+                guidedTourActive = false;
+            }
+        }
+
+        function toggleInfo() {
+            const panel = document.getElementById('infoPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Guided Tour
+        function startGuidedTour() {
+            guidedTourActive = true;
+            const steps = ['introduction', 'structure', 'protection', 'turgidity', 'plasmolysis', 'observation'];
+            let stepIndex = 0;
+            
+            function tourStep() {
+                if (stepIndex < steps.length && guidedTourActive) {
+                    loadJourneyStep(steps[stepIndex]);
+                    stepIndex++;
+                } else {
+                    guidedTourActive = false;
+                    if (voiceEnabled) {
+                        speakText("Excellent! You've mastered the concepts of plant cell walls and plasmolysis. You now understand how cellulose walls protect plant cells, provide structural support through turgidity, and how cells respond to osmotic stress through plasmolysis. These protective structures are essential for plant survival!");
+                    }
+                }
+            }
+            
+            tourStep();
+            window.nextStep = tourStep;
+        }
+
+        // Quiz Function
+        function showQuiz() {
+            const questions = [
+                "Why do plant cells need cell walls while animal cells don't?",
+                "How does cellulose structure contribute to cell wall strength?",
+                "What happens during plasmolysis and why?",
+                "How does turgidity help plants maintain their structure?",
+                "Why can't severely plasmolyzed cells always recover?"
+            ];
+            
+            const randomQ = questions[Math.floor(Math.random() * questions.length)];
+            
+            if (voiceEnabled) {
+                speakText(`Time to test your cell wall knowledge! Here's your question: ${randomQ} Think about how structure and function work together in plant protection!`);
+            }
+        }
+
+        // Initialize
+        function init() {
+            initVoiceSystem();
+            
+            setTimeout(() => {
+                const loading = document.getElementById('loadingOverlay');
+                loading.style.opacity = '0';
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                    
+                    if (voiceEnabled) {
+                        speakText("Welcome to your exploration of plant cell walls and plasmolysis! We'll discover how cellulose walls protect plant cells from osmotic damage, learn about turgidity and structural support, and observe what happens when plants lose water balance. Let's explore these amazing plant defenses!");
+                    }
+                }, 1000);
+            }, 3000);
+            
+            document.addEventListener('keydown', (e) => {
+                switch(e.key) {
+                    case 'v': toggleVoice(); break;
+                    case 'i': toggleInfo(); break;
+                    case 'g': startGuidedTour(); break;
+                    case 'Escape': stopSpeech(); guidedTourActive = false; break;
+                    case 'ArrowRight': nextStep && nextStep(); break;
+                }
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>

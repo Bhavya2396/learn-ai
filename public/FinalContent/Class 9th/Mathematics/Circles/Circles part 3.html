@@ -1,0 +1,3933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry: Angle Subtended by an Arc - Interactive Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --arc-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            --angle-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--arc-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+        }
+
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--arc-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--arc-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .threejs-container {
+            width: 100%;
+            height: 450px;
+            border-radius: 15px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+        }
+
+        .geometry-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .geometry-description {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 20px auto;
+            line-height: 1.6;
+        }
+
+        .value-display {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--arc-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .theorem-box {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .theorem-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-accent);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .theorem-content {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .proof-step {
+            background: rgba(67, 233, 123, 0.1);
+            border-left: 4px solid #43e97b;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 15px;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .interactive-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .slider-control {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .slider-control label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .slider-control input[type="range"] {
+            width: 120px;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--arc-gradient);
+            cursor: pointer;
+        }
+
+        .quiz-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .question-box {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .question-text {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .quiz-option {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: left;
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .quiz-option.correct {
+            background: rgba(67, 233, 123, 0.2);
+            border-color: #43e97b;
+        }
+
+        .quiz-option.incorrect {
+            background: rgba(245, 87, 108, 0.2);
+            border-color: #f5576c;
+        }
+
+        /* Theory Cards Styles */
+        .theory-section {
+            margin: 2rem 0;
+            padding: 0 1rem;
+        }
+
+        .theory-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .theory-card {
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.1), rgba(0, 123, 255, 0.05));
+            border: 1px solid rgba(79, 172, 254, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .theory-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.2);
+            border-color: rgba(79, 172, 254, 0.5);
+        }
+
+        .theory-card h3 {
+            color: #4FACFE;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 0 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .theory-card h4 {
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        .theory-card p {
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+            margin: 0.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .theory-card ul {
+            color: rgba(255, 255, 255, 0.9);
+            padding-left: 1.5rem;
+            margin: 0.5rem 0;
+        }
+
+        .theory-card li {
+            margin: 0.3rem 0;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .theory-card .formula {
+            background: rgba(79, 172, 254, 0.1);
+            border: 1px solid rgba(79, 172, 254, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            color: #4FACFE;
+        }
+
+        .theory-card .highlight {
+            background: rgba(255, 193, 7, 0.2);
+            border-left: 4px solid #FFC107;
+            padding: 0.5rem 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .theory-card .highlight p {
+            margin: 0;
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        /* Mobile Responsive Design for Theory Cards */
+        @media (max-width: 768px) {
+            .theory-section {
+                margin: 1rem 0;
+                padding: 0 0.5rem;
+            }
+
+            .theory-cards {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                margin-top: 1rem;
+            }
+
+            .theory-card {
+                padding: 1rem;
+                border-radius: 8px;
+            }
+
+            .theory-card h3 {
+                font-size: 1.1rem;
+            }
+
+            .theory-card h4 {
+                font-size: 1rem;
+            }
+
+            .theory-card p,
+            .theory-card li {
+                font-size: 0.9rem;
+            }
+
+            .theory-card .formula {
+                font-size: 1rem;
+                padding: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .theory-card {
+                padding: 0.8rem;
+            }
+
+            .theory-card h3 {
+                font-size: 1rem;
+            }
+
+            .theory-card h4 {
+                font-size: 0.95rem;
+            }
+
+            .theory-card p,
+            .theory-card li {
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.5rem; }
+            .geometry-title { font-size: 1.2rem; }
+            .value-display { font-size: 2rem; }
+            .controls { padding: 15px; }
+            .demo-btn { padding: 10px 18px; font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="header">
+        <h1>Angle Subtended by an Arc of a Circle</h1>
+        <p>Section 9.4 - Interactive 3D Geometry Learning</p>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage" id="demo-stage">
+            <div class="stage-content active">
+                <h2 class="geometry-title">Loading...</h2>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">▶ Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">📚 Introduction</button>
+            <button class="demo-btn" data-demo="equal-chords">⚖️ Equal Chords</button>
+            <button class="demo-btn" data-demo="arc-superimpose">🔄 Arc Superimposition</button>
+            <button class="demo-btn" data-demo="angle-centre">⭕ Angle at Centre</button>
+            <button class="demo-btn" data-demo="theorem-9-7">📐 Theorem 9.7</button>
+            <button class="demo-btn" data-demo="proof-9-7">✅ Proof 9.7</button>
+            <button class="demo-btn" data-demo="theorem-9-8">📊 Theorem 9.8</button>
+            <button class="demo-btn" data-demo="semicircle">⭕ Semicircle Angle</button>
+            <button class="demo-btn" data-demo="theorem-9-9">🔵 Theorem 9.9</button>
+            <button class="demo-btn" data-demo="cyclic-quad">⬜ Cyclic Quadrilateral</button>
+            <button class="demo-btn" data-demo="theorem-9-10">📏 Theorem 9.10</button>
+            <button class="demo-btn" data-demo="theorem-9-11">🔄 Theorem 9.11</button>
+            <button class="demo-btn" data-demo="example">💡 Example</button>
+            <button class="demo-btn" data-demo="interactive">🎮 Interactive Demo</button>
+            <button class="demo-btn" data-demo="quiz">📝 Quiz</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+    </div>
+
+    <!-- Theory Cards Section -->
+    <div class="theory-section">
+        <div class="theory-cards">
+            <!-- Equal Chords Theory Card -->
+            <div class="theory-card">
+                <h3>⚖️ Equal Chords</h3>
+                <p>In a circle, chords that are equidistant from the centre are equal in length. This fundamental property forms the basis for many circle theorems.</p>
+                
+                <h4>Key Properties:</h4>
+                <ul>
+                    <li>Equal chords subtend equal angles at the centre</li>
+                    <li>Equal chords are equidistant from the centre</li>
+                    <li>The perpendicular from the centre to a chord bisects the chord</li>
+                </ul>
+
+                <div class="highlight">
+                    <p><strong>Important:</strong> If two chords are equal, then their distances from the centre are also equal, and vice versa.</p>
+                </div>
+            </div>
+
+            <!-- Arc Superimposition Theory Card -->
+            <div class="theory-card">
+                <h3>🔄 Arc Superimposition</h3>
+                <p>When two arcs of equal measure are superimposed, they coincide perfectly. This concept is crucial for understanding angle relationships in circles.</p>
+                
+                <h4>Applications:</h4>
+                <ul>
+                    <li>Proving equal angles at the centre</li>
+                    <li>Demonstrating arc congruence</li>
+                    <li>Understanding central angle properties</li>
+                </ul>
+
+                <div class="formula">
+                    Equal arcs → Equal central angles
+                </div>
+            </div>
+
+            <!-- Angle at Centre Theory Card -->
+            <div class="theory-card">
+                <h3>⭕ Angle at Centre</h3>
+                <p>The angle subtended by an arc at the centre of a circle is twice the angle subtended by the same arc at any point on the circumference.</p>
+                
+                <h4>Theorem 9.7:</h4>
+                <p>The angle subtended by an arc at the centre is double the angle subtended by it at any point on the remaining part of the circle.</p>
+
+                <div class="formula">
+                    ∠AOB = 2 × ∠ACB
+                </div>
+
+                <div class="highlight">
+                    <p><strong>Proof:</strong> This is proven using the properties of isosceles triangles formed by radii.</p>
+                </div>
+            </div>
+
+            <!-- Semicircle Angle Theory Card -->
+            <div class="theory-card">
+                <h3>⭕ Semicircle Angle</h3>
+                <p>Any angle inscribed in a semicircle is a right angle. This is a special case of the angle at centre theorem.</p>
+                
+                <h4>Theorem 9.8:</h4>
+                <p>The angle in a semicircle is a right angle.</p>
+
+                <div class="formula">
+                    ∠ACB = 90° (when AB is diameter)
+                </div>
+
+                <h4>Converse:</h4>
+                <p>If an angle inscribed in a circle is a right angle, then the chord subtending it is a diameter.</p>
+            </div>
+
+            <!-- Cyclic Quadrilateral Theory Card -->
+            <div class="theory-card">
+                <h3>⬜ Cyclic Quadrilateral</h3>
+                <p>A quadrilateral is called cyclic if all its vertices lie on a circle. Cyclic quadrilaterals have special angle properties.</p>
+                
+                <h4>Theorem 9.10:</h4>
+                <p>Opposite angles of a cyclic quadrilateral are supplementary (add up to 180°).</p>
+
+                <div class="formula">
+                    ∠A + ∠C = 180°<br>
+                    ∠B + ∠D = 180°
+                </div>
+
+                <h4>Theorem 9.11:</h4>
+                <p>The exterior angle of a cyclic quadrilateral is equal to the interior opposite angle.</p>
+            </div>
+
+            <!-- Practical Applications Theory Card -->
+            <div class="theory-card">
+                <h3>💡 Practical Applications</h3>
+                <p>Circle theorems have numerous real-world applications in engineering, architecture, and design.</p>
+                
+                <h4>Real-world Uses:</h4>
+                <ul>
+                    <li>Architectural design and construction</li>
+                    <li>Engineering calculations for circular structures</li>
+                    <li>Navigation and GPS systems</li>
+                    <li>Art and design principles</li>
+                    <li>Mechanical engineering and gear design</li>
+                </ul>
+
+                <div class="highlight">
+                    <p><strong>Remember:</strong> Understanding these theorems helps solve complex geometric problems efficiently.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        let currentDemo = null;
+        let isPlaying = false;
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let threeJsScenes = [];
+        let activeTasks = new Set();
+        let currentRunId = 0;
+
+        // Utility Functions
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function shouldContinue(taskId) {
+            return activeTasks.has(taskId);
+        }
+
+        // Text-to-Speech Teacher
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+
+            const teacher = {
+                isEnabled: globalAudioEnabled,
+                currentUtterance: null,
+                taskId: taskId,
+
+                speak: function(text) {
+                    return new Promise((resolve) => {
+                        if (!this.isEnabled || (this.taskId && !shouldContinue(this.taskId))) {
+                            resolve();
+                            return;
+                        }
+
+                        if ('speechSynthesis' in window) {
+                            this.stop();
+                            this.currentUtterance = new SpeechSynthesisUtterance(text);
+                            this.currentUtterance.rate = 0.9;
+                            this.currentUtterance.pitch = 1;
+                            this.currentUtterance.volume = 1;
+
+                            this.currentUtterance.onend = () => resolve();
+                            this.currentUtterance.onerror = () => resolve();
+
+                            speechSynthesis.speak(this.currentUtterance);
+                        } else {
+                            resolve();
+                        }
+                    });
+                },
+
+                stop: function() {
+                    if ('speechSynthesis' in window) {
+                        speechSynthesis.cancel();
+                    }
+                    this.currentUtterance = null;
+                }
+            };
+
+            currentTeacher = teacher;
+            return teacher;
+        }
+
+        // Cleanup Functions
+        function stopCurrentDemo() {
+            currentRunId++;
+            activeTasks.clear();
+
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+
+            cleanupThreeJsScenes();
+        }
+
+        function cleanupThreeJsScenes() {
+            threeJsScenes.forEach(sceneData => {
+                if (sceneData.animationId) {
+                    cancelAnimationFrame(sceneData.animationId);
+                }
+                if (sceneData.renderer && sceneData.renderer.domElement && sceneData.renderer.domElement.parentNode) {
+                    sceneData.renderer.domElement.parentNode.removeChild(sceneData.renderer.domElement);
+                }
+                if (sceneData.renderer) {
+                    sceneData.renderer.dispose();
+                }
+            });
+            threeJsScenes = [];
+        }
+
+        function createStageContent() {
+            const stage = document.getElementById('demo-stage');
+            stage.innerHTML = '';
+            
+            const content = document.createElement('div');
+            content.className = 'stage-content active';
+            stage.appendChild(content);
+            
+            return content;
+        }
+
+        // Three.js Scene Creation
+        function createThreeJsCircleScene(container, config = {}) {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setClearColor(0x000000, 0);
+            container.appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+            
+            // Create circle
+            const circleGeometry = new THREE.RingGeometry(2.9, 3.1, 64);
+            const circleMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x4facfe,
+                transparent: true,
+                opacity: 0.8
+            });
+            const circle = new THREE.Mesh(circleGeometry, circleMaterial);
+            scene.add(circle);
+            
+            // Create center point
+            const centerGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+            const centerMaterial = new THREE.MeshPhongMaterial({ color: 0xfbbf24 });
+            const centerPoint = new THREE.Mesh(centerGeometry, centerMaterial);
+            scene.add(centerPoint);
+            
+            // Create disc (for transparency)
+            const discGeometry = new THREE.CircleGeometry(3, 64);
+            const discMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x667eea,
+                transparent: true,
+                opacity: 0.1
+            });
+            const disc = new THREE.Mesh(discGeometry, discMaterial);
+            scene.add(disc);
+            
+            camera.position.z = 8;
+            
+            const sceneData = {
+                scene,
+                camera,
+                renderer,
+                circle,
+                disc,
+                centerPoint,
+                chords: [],
+                arcs: [],
+                angles: [],
+                points: [],
+                lines: [],
+                labels: [],
+                animationId: null
+            };
+            
+            // Animation loop
+            function animate() {
+                sceneData.animationId = requestAnimationFrame(animate);
+                
+                if (config.rotate) {
+                    circle.rotation.z += 0.005;
+                    disc.rotation.z += 0.005;
+                }
+                
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+            threeJsScenes.push(sceneData);
+            return sceneData;
+        }
+
+        // Add chord to scene
+        function addChordToScene(sceneData, angle1, angle2, color = 0xf5576c) {
+            const radius = 3;
+            const x1 = radius * Math.cos(angle1);
+            const y1 = radius * Math.sin(angle1);
+            const x2 = radius * Math.cos(angle2);
+            const y2 = radius * Math.sin(angle2);
+            
+            const points = [
+                new THREE.Vector3(x1, y1, 0),
+                new THREE.Vector3(x2, y2, 0)
+            ];
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: color, linewidth: 3 });
+            const chord = new THREE.Line(geometry, material);
+            sceneData.scene.add(chord);
+            sceneData.chords.push(chord);
+            
+            // Add endpoint markers
+            const pointGeometry = new THREE.SphereGeometry(0.12, 16, 16);
+            const pointMaterial = new THREE.MeshPhongMaterial({ color: 0x43e97b });
+            
+            const point1 = new THREE.Mesh(pointGeometry, pointMaterial);
+            point1.position.set(x1, y1, 0);
+            sceneData.scene.add(point1);
+            sceneData.points.push(point1);
+            
+            const point2 = new THREE.Mesh(pointGeometry, pointMaterial);
+            point2.position.set(x2, y2, 0);
+            sceneData.scene.add(point2);
+            sceneData.points.push(point2);
+            
+            return { chord, point1, point2, angle1, angle2 };
+        }
+
+        // Add animated arc to scene
+        function addArcToScene(sceneData, startAngle, endAngle, color = 0xfbbf24, radius = 3) {
+            const curve = new THREE.EllipseCurve(
+                0, 0,
+                radius, radius,
+                startAngle, endAngle,
+                false,
+                0
+            );
+            
+            const points = curve.getPoints(50);
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: color, linewidth: 8 });
+            const arc = new THREE.Line(geometry, material);
+            sceneData.scene.add(arc);
+            sceneData.arcs.push(arc);
+            
+            return arc;
+        }
+
+        // Add angle visualization
+        function addAngleToScene(sceneData, vertex, angle1, angle2, radius = 0.8, color = 0xff9a9e) {
+            const curve = new THREE.EllipseCurve(
+                vertex.x, vertex.y,
+                radius, radius,
+                angle1, angle2,
+                false,
+                0
+            );
+            
+            const points = curve.getPoints(30);
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: color, linewidth: 3 });
+            const angleArc = new THREE.Line(geometry, material);
+            sceneData.scene.add(angleArc);
+            sceneData.angles.push(angleArc);
+            
+            return angleArc;
+        }
+
+        // Add line between two points
+        function addLineToScene(sceneData, p1, p2, color = 0x43e97b) {
+            const points = [
+                new THREE.Vector3(p1.x, p1.y, 0),
+                new THREE.Vector3(p2.x, p2.y, 0)
+            ];
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: color, linewidth: 2 });
+            const line = new THREE.Line(geometry, material);
+            sceneData.scene.add(line);
+            sceneData.lines.push(line);
+            
+            return line;
+        }
+
+        // Add point at position
+        function addPointToScene(sceneData, x, y, color = 0xfbbf24, size = 0.12) {
+            const geometry = new THREE.SphereGeometry(size, 16, 16);
+            const material = new THREE.MeshPhongMaterial({ color: color });
+            const point = new THREE.Mesh(geometry, material);
+            point.position.set(x, y, 0);
+            sceneData.scene.add(point);
+            sceneData.points.push(point);
+            return point;
+        }
+
+        // Add text labels to Three.js scene
+        function addTextLabel(sceneData, text, x, y, z = 0.1, color = 0xffffff) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 128;
+            canvas.height = 128;
+            
+            context.fillStyle = '#ffffff';
+            context.font = 'Bold 64px Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(text, 64, 64);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(material);
+            sprite.position.set(x, y, z);
+            sprite.scale.set(1.0, 1.0, 1);
+            
+            sceneData.scene.add(sprite);
+            sceneData.labels.push(sprite);
+            return sprite;
+        }
+
+        // Introduction
+        async function showIntroduction() {
+            const taskId = `intro-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Angle Subtended by an Arc</h2>
+                <div class="threejs-container" id="intro-threejs"></div>
+                <p class="geometry-description">
+                    Discover the fascinating relationship between arcs, chords, and angles in circles!
+                </p>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('intro-threejs');
+            const sceneData = createThreeJsCircleScene(container, { rotate: true });
+            
+            await teacher.speak("Welcome to Section nine point four! Today we'll explore the beautiful relationships between arcs and the angles they create.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add a chord
+            const chordData = addChordToScene(sceneData, Math.PI/6, 5*Math.PI/6, 0xf5576c);
+            
+            // Add labels A, B, and O
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/6);
+            const y1 = radius * Math.sin(Math.PI/6);
+            const x2 = radius * Math.cos(5*Math.PI/6);
+            const y2 = radius * Math.sin(5*Math.PI/6);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("When we draw a chord A B in a circle, it divides the circle into two arcs.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Highlight minor arc
+            addArcToScene(sceneData, Math.PI/6, 5*Math.PI/6, 0xffff00, 3);
+            
+            await teacher.speak("The smaller arc is called the minor arc, shown here in yellow.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Highlight major arc
+            addArcToScene(sceneData, 5*Math.PI/6, Math.PI/6 + 2*Math.PI, 0xffffff, 3);
+            
+            await teacher.speak("And the larger arc is the major arc, shown in white. These arcs have special angle properties!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Equal Chords and Congruent Arcs
+        async function showEqualChords() {
+            const taskId = `equal-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Equal Chords and Congruent Arcs</h2>
+                <div class="theorem-box">
+                    <div class="theorem-content">
+                        If two chords of a circle are equal, then their corresponding arcs are congruent 
+                        and conversely, if two arcs are congruent, then their corresponding chords are equal.
+                    </div>
+                </div>
+                <div class="threejs-container" id="equal-threejs"></div>
+                <div class="value-display">AB = CD ⟺ Arc AB ≅ Arc CD</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('equal-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Let's explore the relationship between equal chords and congruent arcs!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // First chord
+            const chord1 = addChordToScene(sceneData, Math.PI/6, 4*Math.PI/6, 0xf5576c);
+            addArcToScene(sceneData, Math.PI/6, 4*Math.PI/6, 0xfbbf24, 3);
+            
+            // Add labels for first chord
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/6);
+            const y1 = radius * Math.sin(Math.PI/6);
+            const x2 = radius * Math.cos(4*Math.PI/6);
+            const y2 = radius * Math.sin(4*Math.PI/6);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("Here's our first chord A B with its corresponding arc.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Second equal chord
+            const chord2 = addChordToScene(sceneData, -Math.PI/6, -4*Math.PI/6, 0x43e97b);
+            addArcToScene(sceneData, -Math.PI/6, -4*Math.PI/6, 0x38f9d7, 3);
+            
+            // Add labels for second chord
+            const x3 = radius * Math.cos(-Math.PI/6);
+            const y3 = radius * Math.sin(-Math.PI/6);
+            const x4 = radius * Math.cos(-4*Math.PI/6);
+            const y4 = radius * Math.sin(-4*Math.PI/6);
+            
+            addTextLabel(sceneData, 'C', x3 + 0.3, y3 + 0.3);
+            addTextLabel(sceneData, 'D', x4 + 0.3, y4 + 0.3);
+            
+            await teacher.speak("Now we draw another chord C D of the same length. Notice that their arcs are congruent!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("This means if you could cut out one arc and place it on the other, they would match perfectly!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Arc Superimposition Animation
+        async function showArcSuperimpose() {
+            const taskId = `superimpose-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Arc Superimposition</h2>
+                <div class="theorem-box">
+                    <div class="theorem-content">
+                        Equal chords make congruent arcs - one arc can be placed on another 
+                        without bending or twisting to superimpose it completely.
+                    </div>
+                </div>
+                <div class="threejs-container" id="superimpose-threejs"></div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('superimpose-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Let's see how congruent arcs superimpose on each other!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // First chord and arc
+            addChordToScene(sceneData, Math.PI/4, 3*Math.PI/4, 0xf5576c);
+            const arc1 = addArcToScene(sceneData, Math.PI/4, 3*Math.PI/4, 0xfbbf24, 3);
+            
+            // Add labels for first chord
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/4);
+            const y1 = radius * Math.sin(Math.PI/4);
+            const x2 = radius * Math.cos(3*Math.PI/4);
+            const y2 = radius * Math.sin(3*Math.PI/4);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("Here's chord A B with its arc.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Second chord and arc
+            addChordToScene(sceneData, -3*Math.PI/4, -Math.PI/4, 0x43e97b);
+            const arc2 = addArcToScene(sceneData, -3*Math.PI/4, -Math.PI/4, 0x00f2fe, 3.2);
+            
+            // Add labels for second chord
+            const x3 = radius * Math.cos(-3*Math.PI/4);
+            const y3 = radius * Math.sin(-3*Math.PI/4);
+            const x4 = radius * Math.cos(-Math.PI/4);
+            const y4 = radius * Math.sin(-Math.PI/4);
+            
+            addTextLabel(sceneData, 'C', x3 + 0.3, y3 + 0.3);
+            addTextLabel(sceneData, 'D', x4 + 0.3, y4 + 0.3);
+            
+            await teacher.speak("And here's an equal chord C D with its arc.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Animate arc2 moving to overlap arc1
+            await teacher.speak("Watch as we move arc C D to superimpose it on arc A B!");
+            if (!shouldContinue(taskId)) return;
+            
+            const startRotation = arc2.rotation.z;
+            const endRotation = startRotation + Math.PI;
+            const duration = 2000;
+            const startTime = Date.now();
+            
+            function animateSuperimpose() {
+                if (!shouldContinue(taskId)) return;
+                
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = progress * progress * (3 - 2 * progress); // smoothstep
+                
+                arc2.rotation.z = startRotation + (endRotation - startRotation) * eased;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animateSuperimpose);
+                }
+            }
+            
+            animateSuperimpose();
+            await wait(2500);
+            
+            await teacher.speak("Perfect match! The arcs superimpose completely, proving they are congruent!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Angle Subtended at Centre
+        async function showAngleCentre() {
+            const taskId = `angle-centre-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Angle Subtended at the Centre</h2>
+                <div class="theorem-box">
+                    <div class="theorem-content">
+                        The angle subtended by an arc at the centre is defined as the angle 
+                        subtended by the corresponding chord at the centre.
+                        The minor arc subtends the angle, and the major arc subtends the reflex angle.
+                    </div>
+                </div>
+                <div class="threejs-container" id="angle-centre-threejs"></div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('angle-centre-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Now let's understand what we mean by an angle subtended at the centre!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add arc PQ
+            const angle1 = Math.PI/6;
+            const angle2 = 2*Math.PI/3;
+            addArcToScene(sceneData, angle1, angle2, 0xfbbf24, 3);
+            
+            await teacher.speak("Here's an arc P Q on our circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1500);
+            
+            // Add points P and Q
+            const radius = 3;
+            const px = radius * Math.cos(angle1);
+            const py = radius * Math.sin(angle1);
+            const qx = radius * Math.cos(angle2);
+            const qy = radius * Math.sin(angle2);
+            
+            addPointToScene(sceneData, px, py, 0x43e97b);
+            addPointToScene(sceneData, qx, qy, 0x43e97b);
+            
+            // Add labels
+            addTextLabel(sceneData, 'P', px + 0.3, py + 0.3);
+            addTextLabel(sceneData, 'Q', qx + 0.3, qy + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await wait(1000);
+            
+            // Draw radii OP and OQ
+            addLineToScene(sceneData, {x: 0, y: 0}, {x: px, y: py}, 0xf5576c);
+            addLineToScene(sceneData, {x: 0, y: 0}, {x: qx, y: qy}, 0xf5576c);
+            
+            await teacher.speak("We connect the center O to points P and Q, forming radii O P and O Q.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Show angle at centre
+            addAngleToScene(sceneData, {x: 0, y: 0}, angle1, angle2, 0.8, 0xff9a9e);
+            
+            await teacher.speak("The angle P O Q is the angle subtended by the minor arc at the centre!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("And remember, congruent arcs subtend equal angles at the centre!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Theorem 9.7 - Main Statement
+        async function showTheorem97() {
+            const taskId = `theorem97-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Theorem 9.7</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.7</div>
+                    <div class="theorem-content">
+                        The angle subtended by an arc at the centre is double the angle 
+                        subtended by it at any point on the remaining part of the circle.
+                    </div>
+                </div>
+                <div class="threejs-container" id="theorem97-threejs"></div>
+                <div class="value-display">∠POQ = 2∠PAQ</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('theorem97-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Here's a fundamental theorem: The angle at the centre is double the angle at any point on the circle!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Setup arc PQ
+            const angleP = Math.PI/6;
+            const angleQ = 5*Math.PI/6;
+            const radius = 3;
+            
+            // Add arc
+            addArcToScene(sceneData, angleP, angleQ, 0xfbbf24, 3);
+            
+            // Points P and Q
+            const px = radius * Math.cos(angleP);
+            const py = radius * Math.sin(angleP);
+            const qx = radius * Math.cos(angleQ);
+            const qy = radius * Math.sin(angleQ);
+            
+            addPointToScene(sceneData, px, py, 0x43e97b, 0.15);
+            addPointToScene(sceneData, qx, qy, 0x43e97b, 0.15);
+            
+            // Add labels
+            addTextLabel(sceneData, 'P', px + 0.3, py + 0.3);
+            addTextLabel(sceneData, 'Q', qx + 0.3, qy + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("We have arc P Q on our circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1500);
+            
+            // Draw radii to show angle at centre
+            addLineToScene(sceneData, {x: 0, y: 0}, {x: px, y: py}, 0xf5576c);
+            addLineToScene(sceneData, {x: 0, y: 0}, {x: qx, y: qy}, 0xf5576c);
+            addAngleToScene(sceneData, {x: 0, y: 0}, angleP, angleQ, 0.7, 0xff9a9e);
+            
+            await teacher.speak("The angle P O Q at the centre.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add point A on the circle
+            const angleA = -Math.PI/3;
+            const ax = radius * Math.cos(angleA);
+            const ay = radius * Math.sin(angleA);
+            addPointToScene(sceneData, ax, ay, 0x00f2fe, 0.15);
+            
+            // Add label for point A
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            
+            await teacher.speak("Now let's take any point A on the remaining part of the circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1500);
+            
+            // Draw lines AP and AQ
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: px, y: py}, 0x43e97b);
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: qx, y: qy}, 0x43e97b);
+            
+            // Show angle at point A (smaller)
+            const angleAP = Math.atan2(py - ay, px - ax);
+            const angleAQ = Math.atan2(qy - ay, qx - ax);
+            addAngleToScene(sceneData, {x: ax, y: ay}, angleAP, angleAQ, 0.5, 0x38f9d7);
+            
+            await teacher.speak("The angle P A Q at point A on the circle is exactly half of angle P O Q!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Proof of Theorem 9.7
+        async function showProof97() {
+            const taskId = `proof97-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Proof of Theorem 9.7</h2>
+                <div class="threejs-container" id="proof97-threejs"></div>
+                <div class="proof-step">
+                    <strong>Given:</strong> Arc PQ subtending ∠POQ at centre O and ∠PAQ at point A
+                </div>
+                <div class="proof-step">
+                    <strong>To Prove:</strong> ∠POQ = 2∠PAQ
+                </div>
+                <div class="proof-step">
+                    <strong>Step 1:</strong> Join AO and extend it to point B
+                </div>
+                <div class="proof-step">
+                    <strong>Step 2:</strong> In △OAQ, ∠BOQ = ∠OAQ + ∠AQO (exterior angle)
+                </div>
+                <div class="proof-step">
+                    <strong>Step 3:</strong> Since OA = OQ (radii), ∠OAQ = ∠OQA
+                </div>
+                <div class="proof-step">
+                    <strong>Step 4:</strong> Therefore, ∠BOQ = 2∠OAQ
+                </div>
+                <div class="proof-step">
+                    <strong>Step 5:</strong> Similarly, ∠BOP = 2∠OAP
+                </div>
+                <div class="proof-step">
+                    <strong>Conclusion:</strong> ∠POQ = ∠BOP + ∠BOQ = 2(∠OAP + ∠OAQ) = 2∠PAQ
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('proof97-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Let's prove Theorem nine point seven step by step!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Setup
+            const angleP = Math.PI/5;
+            const angleQ = 4*Math.PI/5;
+            const angleA = -2*Math.PI/5;
+            const radius = 3;
+            
+            const px = radius * Math.cos(angleP);
+            const py = radius * Math.sin(angleP);
+            const qx = radius * Math.cos(angleQ);
+            const qy = radius * Math.sin(angleQ);
+            const ax = radius * Math.cos(angleA);
+            const ay = radius * Math.sin(angleA);
+            
+            // Add points
+            addPointToScene(sceneData, px, py, 0x43e97b, 0.15);
+            addPointToScene(sceneData, qx, qy, 0x43e97b, 0.15);
+            addPointToScene(sceneData, ax, ay, 0x00f2fe, 0.15);
+            
+            // Add labels
+            addTextLabel(sceneData, 'P', px + 0.3, py + 0.3);
+            addTextLabel(sceneData, 'Q', qx + 0.3, qy + 0.3);
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            // Add arc
+            addArcToScene(sceneData, angleP, angleQ, 0xfbbf24, 3);
+            
+            await teacher.speak("We start with arc P Q, centre O, and point A on the circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Join AO and extend to B
+            const angleB = angleA + Math.PI;
+            const bx = radius * Math.cos(angleB);
+            const by = radius * Math.sin(angleB);
+            addPointToScene(sceneData, bx, by, 0xf5576c, 0.12);
+            addLineToScene(sceneData, {x: bx, y: by}, {x: ax, y: ay}, 0xff9a9e);
+            
+            // Add label for point B
+            addTextLabel(sceneData, 'B', bx + 0.3, by + 0.3);
+            
+            await teacher.speak("Step one: We join A O and extend it to point B on the circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Draw triangle OAQ
+            addLineToScene(sceneData, {x: 0, y: 0}, {x: ax, y: ay}, 0xf5576c);
+            addLineToScene(sceneData, {x: 0, y: 0}, {x: qx, y: qy}, 0xf5576c);
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: qx, y: qy}, 0x43e97b);
+            
+            await teacher.speak("Now we have triangle O A Q. Since O A and O Q are radii, they're equal!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("In an isosceles triangle, base angles are equal, so angle O A Q equals angle O Q A.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("The exterior angle B O Q equals the sum of the two opposite interior angles, which gives us angle B O Q equals two times angle O A Q!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            
+            // Draw triangle OAP
+            addLineToScene(sceneData, {x: 0, y: 0}, {x: px, y: py}, 0xf5576c);
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: px, y: py}, 0x43e97b);
+            
+            await teacher.speak("Similarly, in triangle O A P, we get angle B O P equals two times angle O A P.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("Adding these together: angle P O Q equals angle B O P plus angle B O Q, which equals two times angle P A Q. Proved!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Theorem 9.8 - Angles in Same Segment
+        async function showTheorem98() {
+            const taskId = `theorem98-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Theorem 9.8</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.8</div>
+                    <div class="theorem-content">
+                        Angles in the same segment of a circle are equal.
+                    </div>
+                </div>
+                <div class="threejs-container" id="theorem98-threejs"></div>
+                <div class="value-display">∠PAQ = ∠PCQ</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('theorem98-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Theorem nine point eight tells us that angles in the same segment are always equal!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Setup
+            const angleP = Math.PI/6;
+            const angleQ = 5*Math.PI/6;
+            const radius = 3;
+            
+            // Add chord PQ
+            addChordToScene(sceneData, angleP, angleQ, 0xf5576c);
+            
+            const px = radius * Math.cos(angleP);
+            const py = radius * Math.sin(angleP);
+            const qx = radius * Math.cos(angleQ);
+            const qy = radius * Math.sin(angleQ);
+            
+            // Add labels for chord endpoints
+            addTextLabel(sceneData, 'P', px + 0.3, py + 0.3);
+            addTextLabel(sceneData, 'Q', qx + 0.3, qy + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("We have chord P Q dividing the circle into two segments.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add point A in the segment
+            const angleA = -Math.PI/3;
+            const ax = radius * Math.cos(angleA);
+            const ay = radius * Math.sin(angleA);
+            addPointToScene(sceneData, ax, ay, 0x00f2fe, 0.15);
+            
+            // Add label for point A
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: px, y: py}, 0x43e97b);
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: qx, y: qy}, 0x43e97b);
+            
+            const angleAP = Math.atan2(py - ay, px - ax);
+            const angleAQ = Math.atan2(qy - ay, qx - ax);
+            addAngleToScene(sceneData, {x: ax, y: ay}, angleAP, angleAQ, 0.5, 0xff9a9e);
+            
+            await teacher.speak("Let's take point A in one segment and measure angle P A Q.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            // Add point C in the same segment
+            const angleC = -3*Math.PI/4;
+            const cx = radius * Math.cos(angleC);
+            const cy = radius * Math.sin(angleC);
+            addPointToScene(sceneData, cx, cy, 0x38f9d7, 0.15);
+            
+            // Add label for point C
+            addTextLabel(sceneData, 'C', cx + 0.3, cy + 0.3);
+            
+            addLineToScene(sceneData, {x: cx, y: cy}, {x: px, y: py}, 0x43e97b);
+            addLineToScene(sceneData, {x: cx, y: cy}, {x: qx, y: qy}, 0x43e97b);
+            
+            const angleCP = Math.atan2(py - cy, px - cx);
+            const angleCQ = Math.atan2(qy - cy, qx - cx);
+            addAngleToScene(sceneData, {x: cx, y: cy}, angleCP, angleCQ, 0.5, 0xfbbf24);
+            
+            await teacher.speak("Now take any other point C in the same segment. Angle P C Q is equal to angle P A Q!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("Why? Because both angles are half of the angle at the centre, so they must be equal!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Angle in Semicircle
+        async function showSemicircle() {
+            const taskId = `semicircle-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Angle in a Semicircle</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Special Case</div>
+                    <div class="theorem-content">
+                        An angle in a semicircle is a right angle (90°).
+                        This is because the angle at the centre is 180°, 
+                        so the angle at any point on the semicircle is 180°/2 = 90°.
+                    </div>
+                </div>
+                <div class="threejs-container" id="semicircle-threejs"></div>
+                <div class="value-display">∠PAQ = 90°</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('semicircle-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Here's a beautiful special case: any angle in a semicircle is always a right angle!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Draw diameter PQ
+            const radius = 3;
+            addChordToScene(sceneData, 0, Math.PI, 0xfbbf24);
+            
+            const px = radius;
+            const py = 0;
+            const qx = -radius;
+            const qy = 0;
+            
+            // Add labels for diameter endpoints
+            addTextLabel(sceneData, 'P', px + 0.3, py + 0.3);
+            addTextLabel(sceneData, 'Q', qx + 0.3, qy + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            // Highlight semicircle
+            addArcToScene(sceneData, 0, Math.PI, 0xf5576c, 3);
+            
+            await teacher.speak("We start with diameter P Q, which creates a semicircle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add point A on semicircle
+            const angleA = Math.PI/3;
+            const ax = radius * Math.cos(angleA);
+            const ay = radius * Math.sin(angleA);
+            addPointToScene(sceneData, ax, ay, 0x00f2fe, 0.15);
+            
+            // Add label for point A
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: px, y: py}, 0x43e97b);
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: qx, y: qy}, 0x43e97b);
+            
+            await teacher.speak("Let's take any point A on the semicircle and draw lines A P and A Q.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Show right angle
+            const angleAP = Math.atan2(py - ay, px - ax);
+            const angleAQ = Math.atan2(qy - ay, qx - ax);
+            addAngleToScene(sceneData, {x: ax, y: ay}, angleAP, angleAQ, 0.5, 0xff9a9e);
+            
+            // Add right angle marker
+            const rightAngleSize = 0.3;
+            const dirP = {x: Math.cos(angleAP), y: Math.sin(angleAP)};
+            const dirQ = {x: Math.cos(angleAQ), y: Math.sin(angleAQ)};
+            
+            const corner1 = {
+                x: ax + dirP.x * rightAngleSize,
+                y: ay + dirP.y * rightAngleSize
+            };
+            const corner2 = {
+                x: corner1.x + dirQ.x * rightAngleSize,
+                y: corner1.y + dirQ.y * rightAngleSize
+            };
+            const corner3 = {
+                x: ax + dirQ.x * rightAngleSize,
+                y: ay + dirQ.y * rightAngleSize
+            };
+            
+            addLineToScene(sceneData, corner1, corner2, 0xfbbf24);
+            addLineToScene(sceneData, corner2, corner3, 0xfbbf24);
+            
+            await teacher.speak("Angle P A Q is exactly ninety degrees - a right angle!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("This works because the angle at the centre is one hundred eighty degrees, so half of that is ninety degrees!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Theorem 9.9 - Concyclic Points
+        async function showTheorem99() {
+            const taskId = `theorem99-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Theorem 9.9</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.9 (Converse)</div>
+                    <div class="theorem-content">
+                        If a line segment joining two points subtends equal angles at two other points 
+                        lying on the same side of the line containing the line segment, 
+                        the four points lie on a circle (i.e., they are concyclic).
+                    </div>
+                </div>
+                <div class="threejs-container" id="theorem99-threejs"></div>
+                <div class="value-display">∠ACB = ∠ADB ⟹ A, B, C, D are concyclic</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('theorem99-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Theorem nine point nine is the converse: if a line segment subtends equal angles, the points lie on a circle!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Draw line segment AB
+            const radius = 3;
+            const angleA = Math.PI/6;
+            const angleB = 5*Math.PI/6;
+            
+            const ax = radius * Math.cos(angleA);
+            const ay = radius * Math.sin(angleA);
+            const bx = radius * Math.cos(angleB);
+            const by = radius * Math.sin(angleB);
+            
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: bx, y: by}, 0xfbbf24);
+            addPointToScene(sceneData, ax, ay, 0x43e97b, 0.15);
+            addPointToScene(sceneData, bx, by, 0x43e97b, 0.15);
+            
+            // Add labels for points A and B
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            addTextLabel(sceneData, 'B', bx + 0.3, by + 0.3);
+            
+            await teacher.speak("We start with a line segment A B.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add point C
+            const angleC = -Math.PI/3;
+            const cx = radius * Math.cos(angleC);
+            const cy = radius * Math.sin(angleC);
+            addPointToScene(sceneData, cx, cy, 0xf5576c, 0.15);
+            
+            // Add label for point C
+            addTextLabel(sceneData, 'C', cx + 0.3, cy + 0.3);
+            
+            addLineToScene(sceneData, {x: cx, y: cy}, {x: ax, y: ay}, 0x43e97b);
+            addLineToScene(sceneData, {x: cx, y: cy}, {x: bx, y: by}, 0x43e97b);
+            
+            const angleCA = Math.atan2(ay - cy, ax - cx);
+            const angleCB = Math.atan2(by - cy, bx - cx);
+            addAngleToScene(sceneData, {x: cx, y: cy}, angleCA, angleCB, 0.5, 0xff9a9e);
+            
+            await teacher.speak("Point C is positioned so that it makes angle A C B with the line segment.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            // Add point D
+            const angleD = -3*Math.PI/4;
+            const dx = radius * Math.cos(angleD);
+            const dy = radius * Math.sin(angleD);
+            addPointToScene(sceneData, dx, dy, 0x00f2fe, 0.15);
+            
+            // Add label for point D
+            addTextLabel(sceneData, 'D', dx + 0.3, dy + 0.3);
+            
+            addLineToScene(sceneData, {x: dx, y: dy}, {x: ax, y: ay}, 0x43e97b);
+            addLineToScene(sceneData, {x: dx, y: dy}, {x: bx, y: by}, 0x43e97b);
+            
+            const angleDA = Math.atan2(ay - dy, ax - dx);
+            const angleDB = Math.atan2(by - dy, bx - dx);
+            addAngleToScene(sceneData, {x: dx, y: dy}, angleDA, angleDB, 0.5, 0x38f9d7);
+            
+            await teacher.speak("Now we add point D on the same side, making angle A D B equal to angle A C B.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("Since these angles are equal, all four points A, B, C, and D must lie on a circle - they are concyclic!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Cyclic Quadrilateral Introduction
+        async function showCyclicQuad() {
+            const taskId = `cyclic-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Cyclic Quadrilaterals</h2>
+                <div class="theorem-box">
+                    <div class="theorem-content">
+                        A quadrilateral ABCD is called cyclic if all four vertices lie on a circle.
+                        Cyclic quadrilaterals have special angle properties!
+                    </div>
+                </div>
+                <div class="threejs-container" id="cyclic-threejs"></div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('cyclic-threejs');
+            const sceneData = createThreeJsCircleScene(container, { rotate: true });
+            
+            await teacher.speak("Now let's explore cyclic quadrilaterals - quadrilaterals with all vertices on a circle!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Create cyclic quadrilateral ABCD
+            const radius = 3;
+            const angleA = 0;
+            const angleB = Math.PI/2.5;
+            const angleC = Math.PI;
+            const angleD = -Math.PI/2.5;
+            
+            const ax = radius * Math.cos(angleA);
+            const ay = radius * Math.sin(angleA);
+            const bx = radius * Math.cos(angleB);
+            const by = radius * Math.sin(angleB);
+            const cx = radius * Math.cos(angleC);
+            const cy = radius * Math.sin(angleC);
+            const dx = radius * Math.cos(angleD);
+            const dy = radius * Math.sin(angleD);
+            
+            // Add vertices
+            addPointToScene(sceneData, ax, ay, 0x43e97b, 0.15);
+            addPointToScene(sceneData, bx, by, 0x43e97b, 0.15);
+            addPointToScene(sceneData, cx, cy, 0x43e97b, 0.15);
+            addPointToScene(sceneData, dx, dy, 0x43e97b, 0.15);
+            
+            // Add labels for all vertices
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            addTextLabel(sceneData, 'B', bx + 0.3, by + 0.3);
+            addTextLabel(sceneData, 'C', cx + 0.3, cy + 0.3);
+            addTextLabel(sceneData, 'D', dx + 0.3, dy + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("Here are four points A, B, C, and D on a circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Draw quadrilateral sides
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: bx, y: by}, 0xf5576c);
+            addLineToScene(sceneData, {x: bx, y: by}, {x: cx, y: cy}, 0xf5576c);
+            addLineToScene(sceneData, {x: cx, y: cy}, {x: dx, y: dy}, 0xf5576c);
+            addLineToScene(sceneData, {x: dx, y: dy}, {x: ax, y: ay}, 0xf5576c);
+            
+            await teacher.speak("When we connect them, we form a cyclic quadrilateral A B C D!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Notice the opposite angles A and C. These angles have a special relationship!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Theorem 9.10
+        async function showTheorem910() {
+            const taskId = `theorem910-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Theorem 9.10</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.10</div>
+                    <div class="theorem-content">
+                        The sum of either pair of opposite angles of a cyclic quadrilateral is 180°.
+                    </div>
+                </div>
+                <div class="threejs-container" id="theorem910-threejs"></div>
+                <div class="value-display">∠A + ∠C = 180° and ∠B + ∠D = 180°</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('theorem910-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Theorem nine point ten: In a cyclic quadrilateral, opposite angles add up to one hundred eighty degrees!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Create cyclic quadrilateral
+            const radius = 3;
+            const angleA = Math.PI/8;
+            const angleB = Math.PI/2 + Math.PI/8;
+            const angleC = Math.PI + Math.PI/8;
+            const angleD = -Math.PI/2 + Math.PI/8;
+            
+            const ax = radius * Math.cos(angleA);
+            const ay = radius * Math.sin(angleA);
+            const bx = radius * Math.cos(angleB);
+            const by = radius * Math.sin(angleB);
+            const cx = radius * Math.cos(angleC);
+            const cy = radius * Math.sin(angleC);
+            const dx = radius * Math.cos(angleD);
+            const dy = radius * Math.sin(angleD);
+            
+            // Draw quadrilateral
+            addPointToScene(sceneData, ax, ay, 0x43e97b, 0.15);
+            addPointToScene(sceneData, bx, by, 0x43e97b, 0.15);
+            addPointToScene(sceneData, cx, cy, 0x43e97b, 0.15);
+            addPointToScene(sceneData, dx, dy, 0x43e97b, 0.15);
+            
+            // Add labels for all vertices
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            addTextLabel(sceneData, 'B', bx + 0.3, by + 0.3);
+            addTextLabel(sceneData, 'C', cx + 0.3, cy + 0.3);
+            addTextLabel(sceneData, 'D', dx + 0.3, dy + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: bx, y: by}, 0xf5576c);
+            addLineToScene(sceneData, {x: bx, y: by}, {x: cx, y: cy}, 0xf5576c);
+            addLineToScene(sceneData, {x: cx, y: cy}, {x: dx, y: dy}, 0xf5576c);
+            addLineToScene(sceneData, {x: dx, y: dy}, {x: ax, y: ay}, 0xf5576c);
+            
+            await teacher.speak("Here's our cyclic quadrilateral A B C D.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("The opposite angles A and C always add up to one hundred eighty degrees! The same is true for angles B and D!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Theorem 9.11
+        async function showTheorem911() {
+            const taskId = `theorem911-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Theorem 9.11</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.11 (Converse)</div>
+                    <div class="theorem-content">
+                        If the sum of a pair of opposite angles of a quadrilateral is 180°, 
+                        the quadrilateral is cyclic.
+                    </div>
+                </div>
+                <div class="threejs-container" id="theorem911-threejs"></div>
+                <div class="value-display">∠A + ∠C = 180° ⟹ ABCD is cyclic</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('theorem911-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("The converse is also true: if opposite angles sum to one hundred eighty degrees, the quadrilateral must be cyclic!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Draw a quadrilateral with opposite angles summing to 180
+            const ax = 2.5, ay = 1.5;
+            const bx = -1, by = 2.5;
+            const cx = -2.5, cy = -1.5;
+            const dx = 1, dy = -2.5;
+            
+            addPointToScene(sceneData, ax, ay, 0x43e97b, 0.12);
+            addPointToScene(sceneData, bx, by, 0x43e97b, 0.12);
+            addPointToScene(sceneData, cx, cy, 0x43e97b, 0.12);
+            addPointToScene(sceneData, dx, dy, 0x43e97b, 0.12);
+            
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: bx, y: by}, 0xf5576c);
+            addLineToScene(sceneData, {x: bx, y: by}, {x: cx, y: cy}, 0xf5576c);
+            addLineToScene(sceneData, {x: cx, y: cy}, {x: dx, y: dy}, 0xf5576c);
+            addLineToScene(sceneData, {x: dx, y: dy}, {x: ax, y: ay}, 0xf5576c);
+            
+            await teacher.speak("Suppose we have a quadrilateral where opposite angles add up to one hundred eighty degrees.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("This property guarantees that all four vertices must lie on a circle!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Draw the circumcircle
+            const centerX = (ax + cx) / 2;
+            const centerY = (ay + cy) / 2;
+            const circleRadius = Math.sqrt(Math.pow(ax - centerX, 2) + Math.pow(ay - centerY, 2));
+            
+            // Show that a circle can be drawn through all vertices
+            await teacher.speak("We can draw a circle that passes through all four vertices, proving the quadrilateral is cyclic!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+
+
+        // Example
+        async function showExample() {
+            const taskId = `example-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Example</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Problem</div>
+                    <div class="theorem-content">
+                        Two circles intersect at two points A and B. 
+                        AD and AC are diameters to the two circles. 
+                        Prove that B lies on the line segment DC.
+                    </div>
+                </div>
+                <div class="threejs-container" id="example-threejs"></div>
+                <div class="proof-step">
+                    <strong>Given:</strong> Two intersecting circles with diameters AD and AC
+                </div>
+                <div class="proof-step">
+                    <strong>To Prove:</strong> B lies on line DC
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('example-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Example: Two circles intersect at points A and B. We need to prove B lies on line D C.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // First circle with center O1
+            const o1x = -1, o1y = 0;
+            const r1 = 2.5;
+            
+            // Add first circle's rim
+            const circle1Curve = new THREE.EllipseCurve(o1x, o1y, r1, r1, 0, 2 * Math.PI, false, 0);
+            const circle1Points = circle1Curve.getPoints(64);
+            const circle1Geometry = new THREE.BufferGeometry().setFromPoints(circle1Points);
+            const circle1Material = new THREE.LineBasicMaterial({ color: 0x4facfe, linewidth: 2 });
+            const circle1 = new THREE.Line(circle1Geometry, circle1Material);
+            sceneData.scene.add(circle1);
+            
+            addPointToScene(sceneData, o1x, o1y, 0xfbbf24, 0.08);
+            
+            // Add label for O1
+            addTextLabel(sceneData, 'O₁', o1x + 0.3, o1y + 0.3);
+            
+            await teacher.speak("Here's our first circle with center O one.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Second circle with center O2
+            const o2x = 1, o2y = 0;
+            const r2 = 2.5;
+            
+            const circle2Curve = new THREE.EllipseCurve(o2x, o2y, r2, r2, 0, 2 * Math.PI, false, 0);
+            const circle2Points = circle2Curve.getPoints(64);
+            const circle2Geometry = new THREE.BufferGeometry().setFromPoints(circle2Points);
+            const circle2Material = new THREE.LineBasicMaterial({ color: 0x43e97b, linewidth: 2 });
+            const circle2 = new THREE.Line(circle2Geometry, circle2Material);
+            sceneData.scene.add(circle2);
+            
+            addPointToScene(sceneData, o2x, o2y, 0xfbbf24, 0.08);
+            
+            // Add label for O2
+            addTextLabel(sceneData, 'O₂', o2x + 0.3, o2y + 0.3);
+            
+            await teacher.speak("And our second circle with center O two, intersecting the first.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Intersection points A and B
+            const ax = 0, ay = 2.3;
+            const bx = 0, by = -2.3;
+            
+            addPointToScene(sceneData, ax, ay, 0xf5576c, 0.15);
+            addPointToScene(sceneData, bx, by, 0xf5576c, 0.15);
+            
+            // Add labels for A and B
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            addTextLabel(sceneData, 'B', bx + 0.3, by + 0.3);
+            
+            await teacher.speak("The circles intersect at points A and B.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Diameter AD of first circle
+            const dx = o1x - (ax - o1x), dy = o1y - (ay - o1y);
+            addPointToScene(sceneData, dx, dy, 0x00f2fe, 0.12);
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: dx, y: dy}, 0xfbbf24);
+            
+            // Add label for D
+            addTextLabel(sceneData, 'D', dx + 0.3, dy + 0.3);
+            
+            await teacher.speak("A D is a diameter of the first circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Diameter AC of second circle
+            const cx = o2x - (ax - o2x), cy = o2y - (ay - o2y);
+            addPointToScene(sceneData, cx, cy, 0x38f9d7, 0.12);
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: cx, y: cy}, 0xfbbf24);
+            
+            // Add label for C
+            addTextLabel(sceneData, 'C', cx + 0.3, cy + 0.3);
+            
+            await teacher.speak("A C is a diameter of the second circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Join AB
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: bx, y: by}, 0xff9a9e);
+            
+            await teacher.speak("Now we join A B. Since A D is a diameter, angle A B D is ninety degrees - an angle in a semicircle!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            
+            await teacher.speak("Similarly, since A C is a diameter, angle A B C is also ninety degrees!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            // Show that DBC is a straight line
+            addLineToScene(sceneData, {x: dx, y: dy}, {x: cx, y: cy}, 0xf5576c);
+            
+            await teacher.speak("Since angle A B D plus angle A B C equals ninety plus ninety, which is one hundred eighty degrees, D B C must be a straight line! Therefore, B lies on line segment D C!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+
+        // Interactive Demo
+        async function showInteractiveDemo() {
+            const taskId = `interactive-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Interactive Exploration</h2>
+                <div class="threejs-container" id="interactive-threejs"></div>
+                <div class="interactive-controls">
+                    <div class="slider-control">
+                        <label>Point Position</label>
+                        <input type="range" id="point-position" min="0" max="100" value="50">
+                    </div>
+                    <div class="slider-control">
+                        <label>Arc Size</label>
+                        <input type="range" id="arc-size" min="30" max="150" value="90">
+                    </div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #fbbf24;"></div>
+                        <span>Arc</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff9a9e;"></div>
+                        <span>Angle at Centre</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #38f9d7;"></div>
+                        <span>Angle at Point</span>
+                    </div>
+                </div>
+                <div class="value-display" id="angle-values">∠Centre: 120° | ∠Point: 60°</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('interactive-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            let currentElements = [];
+            
+            function updateVisualization() {
+                // Clear previous elements
+                currentElements.forEach(elem => sceneData.scene.remove(elem));
+                currentElements = [];
+                sceneData.chords = [];
+                sceneData.arcs = [];
+                sceneData.angles = [];
+                sceneData.lines = [];
+                sceneData.points = [];
+                
+                const pointPos = document.getElementById('point-position').value / 100;
+                const arcSize = document.getElementById('arc-size').value / 100;
+                
+                const radius = 3;
+                const startAngle = 0;
+                const endAngle = arcSize * Math.PI * 1.5;
+                const pointAngle = Math.PI + pointPos * Math.PI;
+                
+                // Draw arc
+                const arc = addArcToScene(sceneData, startAngle, endAngle, 0xfbbf24, radius);
+                currentElements.push(arc);
+                
+                // Points P and Q
+                const px = radius * Math.cos(startAngle);
+                const py = radius * Math.sin(startAngle);
+                const qx = radius * Math.cos(endAngle);
+                const qy = radius * Math.sin(endAngle);
+                
+                const pointP = addPointToScene(sceneData, px, py, 0x43e97b, 0.12);
+                const pointQ = addPointToScene(sceneData, qx, qy, 0x43e97b, 0.12);
+                currentElements.push(pointP, pointQ);
+                
+                // Add labels for points P and Q
+                const labelP = addTextLabel(sceneData, 'P', px + 0.3, py + 0.3);
+                const labelQ = addTextLabel(sceneData, 'Q', qx + 0.3, qy + 0.3);
+                const labelO = addTextLabel(sceneData, 'O', 0.3, 0.3);
+                currentElements.push(labelP, labelQ, labelO);
+                
+                // Angle at centre
+                const lineOP = addLineToScene(sceneData, {x: 0, y: 0}, {x: px, y: py}, 0xf5576c);
+                const lineOQ = addLineToScene(sceneData, {x: 0, y: 0}, {x: qx, y: qy}, 0xf5576c);
+                const angleAtCentre = addAngleToScene(sceneData, {x: 0, y: 0}, startAngle, endAngle, 0.7, 0xff9a9e);
+                currentElements.push(lineOP, lineOQ, angleAtCentre);
+                
+                // Point A on circle
+                const ax = radius * Math.cos(pointAngle);
+                const ay = radius * Math.sin(pointAngle);
+                const pointA = addPointToScene(sceneData, ax, ay, 0x00f2fe, 0.15);
+                currentElements.push(pointA);
+                
+                // Add label for point A
+                const labelA = addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+                currentElements.push(labelA);
+                
+                // Lines AP and AQ
+                const lineAP = addLineToScene(sceneData, {x: ax, y: ay}, {x: px, y: py}, 0x43e97b);
+                const lineAQ = addLineToScene(sceneData, {x: ax, y: ay}, {x: qx, y: qy}, 0x43e97b);
+                currentElements.push(lineAP, lineAQ);
+                
+                // Angle at point A
+                const angleAP = Math.atan2(py - ay, px - ax);
+                const angleAQ = Math.atan2(qy - ay, qx - ax);
+                let normalizedAngleAP = angleAP;
+                let normalizedAngleAQ = angleAQ;
+                
+                if (normalizedAngleAQ < normalizedAngleAP) {
+                    normalizedAngleAQ += 2 * Math.PI;
+                }
+                
+                const angleAtPoint = addAngleToScene(sceneData, {x: ax, y: ay}, normalizedAngleAP, normalizedAngleAQ, 0.5, 0x38f9d7);
+                currentElements.push(angleAtPoint);
+                
+                // Calculate and display angles
+                const centreDegrees = Math.round((endAngle - startAngle) * 180 / Math.PI);
+                const pointDegrees = Math.round(centreDegrees / 2);
+                
+                document.getElementById('angle-values').textContent = 
+                    `∠Centre: ${centreDegrees}° | ∠Point: ${pointDegrees}°`;
+            }
+            
+            document.getElementById('point-position').addEventListener('input', updateVisualization);
+            document.getElementById('arc-size').addEventListener('input', updateVisualization);
+            
+            updateVisualization();
+            
+            await teacher.speak("Explore how the angle at the centre is always double the angle at any point on the circle!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Use the sliders to change the arc size and point position. Watch how the angles change!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Quiz
+        async function showQuiz() {
+            const taskId = `quiz-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            const questions = [
+                {
+                    question: "The angle subtended by an arc at the centre is:",
+                    options: [
+                        "Equal to the angle at any point on the circle",
+                        "Double the angle at any point on the remaining part of the circle",
+                        "Half the angle at any point on the circle",
+                        "Independent of the angle at points on the circle"
+                    ],
+                    correct: 1
+                },
+                {
+                    question: "An angle in a semicircle is always:",
+                    options: [
+                        "45°",
+                        "60°",
+                        "90°",
+                        "180°"
+                    ],
+                    correct: 2
+                },
+                {
+                    question: "In a cyclic quadrilateral, the sum of opposite angles is:",
+                    options: [
+                        "90°",
+                        "180°",
+                        "270°",
+                        "360°"
+                    ],
+                    correct: 1
+                },
+                {
+                    question: "Angles in the same segment of a circle are:",
+                    options: [
+                        "Complementary",
+                        "Supplementary",
+                        "Equal",
+                        "Always 90°"
+                    ],
+                    correct: 2
+                },
+                {
+                    question: "If two chords of a circle are equal, then:",
+                    options: [
+                        "Their corresponding arcs are congruent",
+                        "They are parallel",
+                        "They are perpendicular",
+                        "They subtend different angles at the centre"
+                    ],
+                    correct: 0
+                }
+            ];
+            
+            let currentQuestion = 0;
+            let score = 0;
+            
+            function showQuestion() {
+                const q = questions[currentQuestion];
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="geometry-title">Quiz Question ${currentQuestion + 1} of ${questions.length}</h2>
+                        <div class="question-box">
+                            <div class="question-text">${q.question}</div>
+                            <div class="quiz-options">
+                                ${q.options.map((option, index) => 
+                                    `<div class="quiz-option" data-index="${index}">${option}</div>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.querySelectorAll('.quiz-option').forEach(option => {
+                    option.addEventListener('click', function() {
+                        const selectedIndex = parseInt(this.getAttribute('data-index'));
+                        const isCorrect = selectedIndex === q.correct;
+                        
+                        if (isCorrect) {
+                            this.classList.add('correct');
+                            score++;
+                            teacher.speak("Correct! Well done!");
+                        } else {
+                            this.classList.add('incorrect');
+                            document.querySelectorAll('.quiz-option')[q.correct].classList.add('correct');
+                            teacher.speak("Not quite. The correct answer is highlighted.");
+                        }
+                        
+                        document.querySelectorAll('.quiz-option').forEach(opt => {
+                            opt.style.pointerEvents = 'none';
+                        });
+                        
+                        setTimeout(() => {
+                            currentQuestion++;
+                            if (currentQuestion < questions.length) {
+                                showQuestion();
+                            } else {
+                                showResults();
+                            }
+                        }, 2500);
+                    });
+                });
+            }
+            
+            function showResults() {
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="geometry-title">Quiz Complete! 🎉</h2>
+                        <div class="value-display">${score}/${questions.length}</div>
+                        <div class="question-box">
+                            <div class="question-text">
+                                ${score === questions.length ? 
+                                    "Perfect score! You've mastered angles and arcs!" :
+                                    score >= questions.length * 0.8 ?
+                                    "Excellent work! You understand the concepts very well!" :
+                                    score >= questions.length * 0.6 ?
+                                    "Good job! Review the theorems to strengthen your understanding." :
+                                    "Keep practicing! Go through the lessons again to improve."
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                teacher.speak(`Quiz complete! You scored ${score} out of ${questions.length}. ${
+                    score === questions.length ? 'Perfect score!' : 
+                    score >= questions.length * 0.8 ? 'Excellent work!' : 
+                    'Keep practicing!'
+                }`);
+            }
+            
+            await teacher.speak("Let's test your understanding of angles, arcs, and cyclic quadrilaterals!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            showQuestion();
+            
+            await wait(2000);
+            isPlaying = false;
+        }
+
+        // Content functions for complete lesson (don't call stopCurrentDemo)
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Angle Subtended by an Arc</h2>
+                <div class="threejs-container" id="intro-threejs"></div>
+                <p class="geometry-description">
+                    Discover the fascinating relationship between arcs, chords, and angles in circles!
+                </p>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('intro-threejs');
+            const sceneData = createThreeJsCircleScene(container, { rotate: true });
+            
+            await teacher.speak("Welcome to Section nine point four! Today we'll explore the beautiful relationships between arcs and the angles they create.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add a chord
+            const chordData = addChordToScene(sceneData, Math.PI/6, 5*Math.PI/6, 0xf5576c);
+            
+            // Add labels A, B, and O
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/6);
+            const y1 = radius * Math.sin(Math.PI/6);
+            const x2 = radius * Math.cos(5*Math.PI/6);
+            const y2 = radius * Math.sin(5*Math.PI/6);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("When we draw a chord A B in a circle, it divides the circle into two arcs.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Highlight minor arc
+            addArcToScene(sceneData, Math.PI/6, 5*Math.PI/6, 0xffff00, 3);
+            
+            await teacher.speak("The smaller arc is called the minor arc, shown here in yellow.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Highlight major arc
+            addArcToScene(sceneData, 5*Math.PI/6, Math.PI/6 + 2*Math.PI, 0xffffff, 3);
+            
+            await teacher.speak("And the larger arc is the major arc, shown in white. These arcs have special angle properties!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showEqualChordsContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Equal Chords and Congruent Arcs</h2>
+                <div class="theorem-box">
+                    <div class="theorem-content">
+                        If two chords of a circle are equal, then their corresponding arcs are congruent 
+                        and conversely, if two arcs are congruent, then their corresponding chords are equal.
+                    </div>
+                </div>
+                <div class="threejs-container" id="equal-threejs"></div>
+                <div class="value-display">AB = CD ⟺ Arc AB ≅ Arc CD</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('equal-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Let's explore the relationship between equal chords and congruent arcs!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // First chord
+            const chord1 = addChordToScene(sceneData, Math.PI/6, 4*Math.PI/6, 0xf5576c);
+            addArcToScene(sceneData, Math.PI/6, 4*Math.PI/6, 0xfbbf24, 3);
+            
+            // Add labels for first chord
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/6);
+            const y1 = radius * Math.sin(Math.PI/6);
+            const x2 = radius * Math.cos(4*Math.PI/6);
+            const y2 = radius * Math.sin(4*Math.PI/6);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("Here's our first chord A B with its corresponding arc.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Second equal chord
+            const chord2 = addChordToScene(sceneData, -Math.PI/6, -4*Math.PI/6, 0x43e97b);
+            addArcToScene(sceneData, -Math.PI/6, -4*Math.PI/6, 0x38f9d7, 3);
+            
+            // Add labels for second chord
+            const x3 = radius * Math.cos(-Math.PI/6);
+            const y3 = radius * Math.sin(-Math.PI/6);
+            const x4 = radius * Math.cos(-4*Math.PI/6);
+            const y4 = radius * Math.sin(-4*Math.PI/6);
+            
+            addTextLabel(sceneData, 'C', x3 + 0.3, y3 + 0.3);
+            addTextLabel(sceneData, 'D', x4 + 0.3, y4 + 0.3);
+            
+            await teacher.speak("Now we draw another chord C D of the same length. Notice that their arcs are congruent!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("This means if you could cut out one arc and place it on the other, they would match perfectly!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showArcSuperimposeContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Arc Superimposition</h2>
+                <div class="theorem-box">
+                    <div class="theorem-content">
+                        Equal chords make congruent arcs - one arc can be placed on another 
+                        without bending or twisting to superimpose it completely.
+                    </div>
+                </div>
+                <div class="threejs-container" id="superimpose-threejs"></div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('superimpose-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Let's see how congruent arcs superimpose on each other!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // First chord and arc
+            addChordToScene(sceneData, Math.PI/4, 3*Math.PI/4, 0xf5576c);
+            const arc1 = addArcToScene(sceneData, Math.PI/4, 3*Math.PI/4, 0xfbbf24, 3);
+            
+            // Add labels for first chord
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/4);
+            const y1 = radius * Math.sin(Math.PI/4);
+            const x2 = radius * Math.cos(3*Math.PI/4);
+            const y2 = radius * Math.sin(3*Math.PI/4);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("Here's chord A B with its arc.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Second chord and arc
+            addChordToScene(sceneData, -3*Math.PI/4, -Math.PI/4, 0x43e97b);
+            const arc2 = addArcToScene(sceneData, -3*Math.PI/4, -Math.PI/4, 0x00f2fe, 3.2);
+            
+            // Add labels for second chord
+            const x3 = radius * Math.cos(-3*Math.PI/4);
+            const y3 = radius * Math.sin(-3*Math.PI/4);
+            const x4 = radius * Math.cos(-Math.PI/4);
+            const y4 = radius * Math.sin(-Math.PI/4);
+            
+            addTextLabel(sceneData, 'C', x3 + 0.3, y3 + 0.3);
+            addTextLabel(sceneData, 'D', x4 + 0.3, y4 + 0.3);
+            
+            await teacher.speak("And here's an equal chord C D with its arc.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Animate arc2 moving to overlap arc1
+            await teacher.speak("Watch as we move arc C D to superimpose it on arc A B!");
+            if (!shouldContinue(taskId)) return;
+            
+            const startRotation = arc2.rotation.z;
+            const endRotation = startRotation + Math.PI;
+            const duration = 2000;
+            const startTime = Date.now();
+            
+            function animateSuperimpose() {
+                if (!shouldContinue(taskId)) return;
+                
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = progress * progress * (3 - 2 * progress); // smoothstep
+                
+                arc2.rotation.z = startRotation + (endRotation - startRotation) * eased;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animateSuperimpose);
+                }
+            }
+            
+            animateSuperimpose();
+            await wait(2500);
+            
+            await teacher.speak("Perfect match! The arcs superimpose completely, proving they are congruent!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showAngleCentreContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Angle Subtended at the Centre</h2>
+                <div class="theorem-box">
+                    <div class="theorem-content">
+                        The angle subtended by an arc at the centre is defined as the angle 
+                        subtended by the corresponding chord at the centre.
+                        The minor arc subtends the angle, and the major arc subtends the reflex angle.
+                    </div>
+                </div>
+                <div class="threejs-container" id="angle-centre-threejs"></div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('angle-centre-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Now let's understand what we mean by an angle subtended at the centre!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add arc PQ
+            const angle1 = Math.PI/6;
+            const angle2 = 2*Math.PI/3;
+            addArcToScene(sceneData, angle1, angle2, 0xfbbf24, 3);
+            
+            await teacher.speak("Here's an arc P Q on our circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1500);
+            
+            // Add points P and Q
+            const radius = 3;
+            const px = radius * Math.cos(angle1);
+            const py = radius * Math.sin(angle1);
+            const qx = radius * Math.cos(angle2);
+            const qy = radius * Math.sin(angle2);
+            
+            addPointToScene(sceneData, px, py, 0x43e97b);
+            addPointToScene(sceneData, qx, qy, 0x43e97b);
+            
+            // Add labels
+            addTextLabel(sceneData, 'P', px + 0.3, py + 0.3);
+            addTextLabel(sceneData, 'Q', qx + 0.3, qy + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await wait(1000);
+            
+            // Draw radii OP and OQ
+            addLineToScene(sceneData, {x: 0, y: 0}, {x: px, y: py}, 0xf5576c);
+            addLineToScene(sceneData, {x: 0, y: 0}, {x: qx, y: qy}, 0xf5576c);
+            
+            await teacher.speak("We connect the center O to points P and Q, forming radii O P and O Q.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Show angle at centre
+            addAngleToScene(sceneData, {x: 0, y: 0}, angle1, angle2, 0.8, 0xff9a9e);
+            
+            await teacher.speak("The angle P O Q is the angle subtended by the minor arc at the centre!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("And remember, congruent arcs subtend equal angles at the centre!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showTheorem97Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Theorem 9.7</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.7</div>
+                    <div class="theorem-content">
+                        The angle subtended by an arc at the centre is double the angle 
+                        subtended by it at any point on the remaining part of the circle.
+                    </div>
+                </div>
+                <div class="threejs-container" id="theorem97-threejs"></div>
+                <div class="value-display">∠POQ = 2∠PAQ</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('theorem97-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Here's a fundamental theorem: The angle at the centre is double the angle at any point on the circle!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Setup arc PQ
+            const angleP = Math.PI/6;
+            const angleQ = 5*Math.PI/6;
+            const radius = 3;
+            
+            // Add arc
+            addArcToScene(sceneData, angleP, angleQ, 0xfbbf24, 3);
+            
+            // Points P and Q
+            const px = radius * Math.cos(angleP);
+            const py = radius * Math.sin(angleP);
+            const qx = radius * Math.cos(angleQ);
+            const qy = radius * Math.sin(angleQ);
+            
+            addPointToScene(sceneData, px, py, 0x43e97b, 0.15);
+            addPointToScene(sceneData, qx, qy, 0x43e97b, 0.15);
+            
+            // Add labels
+            addTextLabel(sceneData, 'P', px + 0.3, py + 0.3);
+            addTextLabel(sceneData, 'Q', qx + 0.3, qy + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("We have arc P Q on our circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1500);
+            
+            // Draw radii to show angle at centre
+            addLineToScene(sceneData, {x: 0, y: 0}, {x: px, y: py}, 0xf5576c);
+            addLineToScene(sceneData, {x: 0, y: 0}, {x: qx, y: qy}, 0xf5576c);
+            addAngleToScene(sceneData, {x: 0, y: 0}, angleP, angleQ, 0.7, 0xff9a9e);
+            
+            await teacher.speak("The angle P O Q at the centre.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add point A on the circle
+            const angleA = -Math.PI/3;
+            const ax = radius * Math.cos(angleA);
+            const ay = radius * Math.sin(angleA);
+            addPointToScene(sceneData, ax, ay, 0x00f2fe, 0.15);
+            
+            // Add label for point A
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            
+            await teacher.speak("Now let's take any point A on the remaining part of the circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1500);
+            
+            // Draw lines AP and AQ
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: px, y: py}, 0x43e97b);
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: qx, y: qy}, 0x43e97b);
+            
+            // Show angle at point A (smaller)
+            const angleAP = Math.atan2(py - ay, px - ax);
+            const angleAQ = Math.atan2(qy - ay, qx - ax);
+            addAngleToScene(sceneData, {x: ax, y: ay}, angleAP, angleAQ, 0.5, 0x38f9d7);
+            
+            await teacher.speak("The angle P A Q at point A on the circle is exactly half of angle P O Q!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showProof97Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Proof of Theorem 9.7</h2>
+                <div class="threejs-container" id="proof97-threejs"></div>
+                <div class="proof-step">
+                    <strong>Given:</strong> Arc PQ subtending ∠POQ at centre O and ∠PAQ at point A
+                </div>
+                <div class="proof-step">
+                    <strong>To Prove:</strong> ∠POQ = 2∠PAQ
+                </div>
+                <div class="proof-step">
+                    <strong>Step 1:</strong> Join AO and extend it to point B
+                </div>
+                <div class="proof-step">
+                    <strong>Step 2:</strong> In △OAQ, ∠BOQ = ∠OAQ + ∠AQO (exterior angle)
+                </div>
+                <div class="proof-step">
+                    <strong>Step 3:</strong> Since OA = OQ (radii), ∠OAQ = ∠OQA
+                </div>
+                <div class="proof-step">
+                    <strong>Step 4:</strong> Therefore, ∠BOQ = 2∠OAQ
+                </div>
+                <div class="proof-step">
+                    <strong>Step 5:</strong> Similarly, ∠BOP = 2∠OAP
+                </div>
+                <div class="proof-step">
+                    <strong>Conclusion:</strong> ∠POQ = ∠BOP + ∠BOQ = 2(∠OAP + ∠OAQ) = 2∠PAQ
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('proof97-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Let's prove Theorem nine point seven step by step!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Setup
+            const angleP = Math.PI/5;
+            const angleQ = 4*Math.PI/5;
+            const angleA = -2*Math.PI/5;
+            const radius = 3;
+            
+            const px = radius * Math.cos(angleP);
+            const py = radius * Math.sin(angleP);
+            const qx = radius * Math.cos(angleQ);
+            const qy = radius * Math.sin(angleQ);
+            const ax = radius * Math.cos(angleA);
+            const ay = radius * Math.sin(angleA);
+            
+            // Add points
+            addPointToScene(sceneData, px, py, 0x43e97b, 0.15);
+            addPointToScene(sceneData, qx, qy, 0x43e97b, 0.15);
+            addPointToScene(sceneData, ax, ay, 0x00f2fe, 0.15);
+            
+            // Add labels
+            addTextLabel(sceneData, 'P', px + 0.3, py + 0.3);
+            addTextLabel(sceneData, 'Q', qx + 0.3, qy + 0.3);
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            // Add arc
+            addArcToScene(sceneData, angleP, angleQ, 0xfbbf24, 3);
+            
+            await teacher.speak("We start with arc P Q, centre O, and point A on the circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Join AO and extend to B
+            const angleB = angleA + Math.PI;
+            const bx = radius * Math.cos(angleB);
+            const by = radius * Math.sin(angleB);
+            addPointToScene(sceneData, bx, by, 0xf5576c, 0.12);
+            addLineToScene(sceneData, {x: bx, y: by}, {x: ax, y: ay}, 0xff9a9e);
+            
+            // Add label for point B
+            addTextLabel(sceneData, 'B', bx + 0.3, by + 0.3);
+            
+            await teacher.speak("Step one: We join A O and extend it to point B on the circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Draw triangle OAQ
+            addLineToScene(sceneData, {x: 0, y: 0}, {x: ax, y: ay}, 0xf5576c);
+            addLineToScene(sceneData, {x: 0, y: 0}, {x: qx, y: qy}, 0xf5576c);
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: qx, y: qy}, 0x43e97b);
+            
+            await teacher.speak("Now we have triangle O A Q. Since O A and O Q are radii, they're equal!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("In an isosceles triangle, base angles are equal, so angle O A Q equals angle O Q A.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("The exterior angle B O Q equals the sum of the two opposite interior angles, which gives us angle B O Q equals two times angle O A Q!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            
+            // Draw triangle OAP
+            addLineToScene(sceneData, {x: 0, y: 0}, {x: px, y: py}, 0xf5576c);
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: px, y: py}, 0x43e97b);
+            
+            await teacher.speak("Similarly, in triangle O A P, we get angle B O P equals two times angle O A P.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("Adding these together: angle P O Q equals angle B O P plus angle B O Q, which equals two times angle P A Q. Proved!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showTheorem98Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Theorem 9.8</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.8</div>
+                    <div class="theorem-content">
+                        Angles in the same segment of a circle are equal.
+                    </div>
+                </div>
+                <div class="threejs-container" id="theorem98-threejs"></div>
+                <div class="value-display">∠PAQ = ∠PCQ</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('theorem98-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Theorem nine point eight tells us that angles in the same segment are always equal!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Setup
+            const angleP = Math.PI/6;
+            const angleQ = 5*Math.PI/6;
+            const radius = 3;
+            
+            // Add chord PQ
+            addChordToScene(sceneData, angleP, angleQ, 0xf5576c);
+            
+            const px = radius * Math.cos(angleP);
+            const py = radius * Math.sin(angleP);
+            const qx = radius * Math.cos(angleQ);
+            const qy = radius * Math.sin(angleQ);
+            
+            // Add labels for chord endpoints
+            addTextLabel(sceneData, 'P', px + 0.3, py + 0.3);
+            addTextLabel(sceneData, 'Q', qx + 0.3, qy + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("We have chord P Q dividing the circle into two segments.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add point A in the segment
+            const angleA = -Math.PI/3;
+            const ax = radius * Math.cos(angleA);
+            const ay = radius * Math.sin(angleA);
+            addPointToScene(sceneData, ax, ay, 0x00f2fe, 0.15);
+            
+            // Add label for point A
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: px, y: py}, 0x43e97b);
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: qx, y: qy}, 0x43e97b);
+            
+            const angleAP = Math.atan2(py - ay, px - ax);
+            const angleAQ = Math.atan2(qy - ay, qx - ax);
+            addAngleToScene(sceneData, {x: ax, y: ay}, angleAP, angleAQ, 0.5, 0xff9a9e);
+            
+            await teacher.speak("Let's take point A in one segment and measure angle P A Q.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            // Add point C in the same segment
+            const angleC = -3*Math.PI/4;
+            const cx = radius * Math.cos(angleC);
+            const cy = radius * Math.sin(angleC);
+            addPointToScene(sceneData, cx, cy, 0x38f9d7, 0.15);
+            
+            // Add label for point C
+            addTextLabel(sceneData, 'C', cx + 0.3, cy + 0.3);
+            
+            addLineToScene(sceneData, {x: cx, y: cy}, {x: px, y: py}, 0x43e97b);
+            addLineToScene(sceneData, {x: cx, y: cy}, {x: qx, y: qy}, 0x43e97b);
+            
+            const angleCP = Math.atan2(py - cy, px - cx);
+            const angleCQ = Math.atan2(qy - cy, qx - cx);
+            addAngleToScene(sceneData, {x: cx, y: cy}, angleCP, angleCQ, 0.5, 0xfbbf24);
+            
+            await teacher.speak("Now take any other point C in the same segment. Angle P C Q is equal to angle P A Q!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("Why? Because both angles are half of the angle at the centre, so they must be equal!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showSemicircleContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Angle in a Semicircle</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Special Case</div>
+                    <div class="theorem-content">
+                        An angle in a semicircle is a right angle (90°).
+                        This is because the angle at the centre is 180°, 
+                        so the angle at any point on the semicircle is 180°/2 = 90°.
+                    </div>
+                </div>
+                <div class="threejs-container" id="semicircle-threejs"></div>
+                <div class="value-display">∠PAQ = 90°</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('semicircle-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Here's a beautiful special case: any angle in a semicircle is always a right angle!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Draw diameter PQ
+            const radius = 3;
+            addChordToScene(sceneData, 0, Math.PI, 0xfbbf24);
+            
+            const px = radius;
+            const py = 0;
+            const qx = -radius;
+            const qy = 0;
+            
+            // Add labels for diameter endpoints
+            addTextLabel(sceneData, 'P', px + 0.3, py + 0.3);
+            addTextLabel(sceneData, 'Q', qx + 0.3, qy + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            // Highlight semicircle
+            addArcToScene(sceneData, 0, Math.PI, 0xf5576c, 3);
+            
+            await teacher.speak("We start with diameter P Q, which creates a semicircle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add point A on semicircle
+            const angleA = Math.PI/3;
+            const ax = radius * Math.cos(angleA);
+            const ay = radius * Math.sin(angleA);
+            addPointToScene(sceneData, ax, ay, 0x00f2fe, 0.15);
+            
+            // Add label for point A
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: px, y: py}, 0x43e97b);
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: qx, y: qy}, 0x43e97b);
+            
+            await teacher.speak("Let's take any point A on the semicircle and draw lines A P and A Q.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Show right angle
+            const angleAP = Math.atan2(py - ay, px - ax);
+            const angleAQ = Math.atan2(qy - ay, qx - ax);
+            addAngleToScene(sceneData, {x: ax, y: ay}, angleAP, angleAQ, 0.5, 0xff9a9e);
+            
+            // Add right angle marker
+            const rightAngleSize = 0.3;
+            const dirP = {x: Math.cos(angleAP), y: Math.sin(angleAP)};
+            const dirQ = {x: Math.cos(angleAQ), y: Math.sin(angleAQ)};
+            
+            const corner1 = {
+                x: ax + dirP.x * rightAngleSize,
+                y: ay + dirP.y * rightAngleSize
+            };
+            const corner2 = {
+                x: corner1.x + dirQ.x * rightAngleSize,
+                y: corner1.y + dirQ.y * rightAngleSize
+            };
+            const corner3 = {
+                x: ax + dirQ.x * rightAngleSize,
+                y: ay + dirQ.y * rightAngleSize
+            };
+            
+            addLineToScene(sceneData, corner1, corner2, 0xfbbf24);
+            addLineToScene(sceneData, corner2, corner3, 0xfbbf24);
+            
+            await teacher.speak("Angle P A Q is exactly ninety degrees - a right angle!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("This works because the angle at the centre is one hundred eighty degrees, so half of that is ninety degrees!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showTheorem99Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Theorem 9.9</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.9 (Converse)</div>
+                    <div class="theorem-content">
+                        If a line segment joining two points subtends equal angles at two other points 
+                        lying on the same side of the line containing the line segment, 
+                        the four points lie on a circle (i.e., they are concyclic).
+                    </div>
+                </div>
+                <div class="threejs-container" id="theorem99-threejs"></div>
+                <div class="value-display">∠ACB = ∠ADB ⟹ A, B, C, D are concyclic</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('theorem99-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Theorem nine point nine is the converse: if a line segment subtends equal angles, the points lie on a circle!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Draw line segment AB
+            const radius = 3;
+            const angleA = Math.PI/6;
+            const angleB = 5*Math.PI/6;
+            
+            const ax = radius * Math.cos(angleA);
+            const ay = radius * Math.sin(angleA);
+            const bx = radius * Math.cos(angleB);
+            const by = radius * Math.sin(angleB);
+            
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: bx, y: by}, 0xfbbf24);
+            addPointToScene(sceneData, ax, ay, 0x43e97b, 0.15);
+            addPointToScene(sceneData, bx, by, 0x43e97b, 0.15);
+            
+            // Add labels for points A and B
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            addTextLabel(sceneData, 'B', bx + 0.3, by + 0.3);
+            
+            await teacher.speak("We start with a line segment A B.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add point C
+            const angleC = -Math.PI/3;
+            const cx = radius * Math.cos(angleC);
+            const cy = radius * Math.sin(angleC);
+            addPointToScene(sceneData, cx, cy, 0xf5576c, 0.15);
+            
+            // Add label for point C
+            addTextLabel(sceneData, 'C', cx + 0.3, cy + 0.3);
+            
+            addLineToScene(sceneData, {x: cx, y: cy}, {x: ax, y: ay}, 0x43e97b);
+            addLineToScene(sceneData, {x: cx, y: cy}, {x: bx, y: by}, 0x43e97b);
+            
+            const angleCA = Math.atan2(ay - cy, ax - cx);
+            const angleCB = Math.atan2(by - cy, bx - cx);
+            addAngleToScene(sceneData, {x: cx, y: cy}, angleCA, angleCB, 0.5, 0xff9a9e);
+            
+            await teacher.speak("Point C is positioned so that it makes angle A C B with the line segment.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            // Add point D
+            const angleD = -3*Math.PI/4;
+            const dx = radius * Math.cos(angleD);
+            const dy = radius * Math.sin(angleD);
+            addPointToScene(sceneData, dx, dy, 0x00f2fe, 0.15);
+            
+            // Add label for point D
+            addTextLabel(sceneData, 'D', dx + 0.3, dy + 0.3);
+            
+            addLineToScene(sceneData, {x: dx, y: dy}, {x: ax, y: ay}, 0x43e97b);
+            addLineToScene(sceneData, {x: dx, y: dy}, {x: bx, y: by}, 0x43e97b);
+            
+            const angleDA = Math.atan2(ay - dy, ax - dx);
+            const angleDB = Math.atan2(by - dy, bx - dx);
+            addAngleToScene(sceneData, {x: dx, y: dy}, angleDA, angleDB, 0.5, 0x38f9d7);
+            
+            await teacher.speak("Now we add point D on the same side, making angle A D B equal to angle A C B.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("Since these angles are equal, all four points A, B, C, and D must lie on a circle - they are concyclic!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showCyclicQuadContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Cyclic Quadrilaterals</h2>
+                <div class="theorem-box">
+                    <div class="theorem-content">
+                        A quadrilateral ABCD is called cyclic if all four vertices lie on a circle.
+                        Cyclic quadrilaterals have special angle properties!
+                    </div>
+                </div>
+                <div class="threejs-container" id="cyclic-threejs"></div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('cyclic-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Now let's explore cyclic quadrilaterals - quadrilaterals with all vertices on a circle!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Create cyclic quadrilateral ABCD
+            const radius = 3;
+            const angleA = 0;
+            const angleB = Math.PI/2.5;
+            const angleC = Math.PI;
+            const angleD = -Math.PI/2.5;
+            
+            const ax = radius * Math.cos(angleA);
+            const ay = radius * Math.sin(angleA);
+            const bx = radius * Math.cos(angleB);
+            const by = radius * Math.sin(angleB);
+            const cx = radius * Math.cos(angleC);
+            const cy = radius * Math.sin(angleC);
+            const dx = radius * Math.cos(angleD);
+            const dy = radius * Math.sin(angleD);
+            
+            // Add vertices
+            addPointToScene(sceneData, ax, ay, 0x43e97b, 0.15);
+            addPointToScene(sceneData, bx, by, 0x43e97b, 0.15);
+            addPointToScene(sceneData, cx, cy, 0x43e97b, 0.15);
+            addPointToScene(sceneData, dx, dy, 0x43e97b, 0.15);
+            
+            // Add labels for all vertices
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            addTextLabel(sceneData, 'B', bx + 0.3, by + 0.3);
+            addTextLabel(sceneData, 'C', cx + 0.3, cy + 0.3);
+            addTextLabel(sceneData, 'D', dx + 0.3, dy + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("Here are four points A, B, C, and D on a circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Draw quadrilateral sides
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: bx, y: by}, 0xf5576c);
+            addLineToScene(sceneData, {x: bx, y: by}, {x: cx, y: cy}, 0xf5576c);
+            addLineToScene(sceneData, {x: cx, y: cy}, {x: dx, y: dy}, 0xf5576c);
+            addLineToScene(sceneData, {x: dx, y: dy}, {x: ax, y: ay}, 0xf5576c);
+            
+            await teacher.speak("When we connect them, we form a cyclic quadrilateral A B C D!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Notice the opposite angles A and C. These angles have a special relationship!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showTheorem910Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Theorem 9.10</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.10</div>
+                    <div class="theorem-content">
+                        The sum of either pair of opposite angles of a cyclic quadrilateral is 180°.
+                    </div>
+                </div>
+                <div class="threejs-container" id="theorem910-threejs"></div>
+                <div class="value-display">∠A + ∠C = 180° and ∠B + ∠D = 180°</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('theorem910-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Theorem nine point ten: In a cyclic quadrilateral, opposite angles add up to one hundred eighty degrees!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Create cyclic quadrilateral
+            const radius = 3;
+            const angleA = Math.PI/8;
+            const angleB = Math.PI/2 + Math.PI/8;
+            const angleC = Math.PI + Math.PI/8;
+            const angleD = -Math.PI/2 + Math.PI/8;
+            
+            const ax = radius * Math.cos(angleA);
+            const ay = radius * Math.sin(angleA);
+            const bx = radius * Math.cos(angleB);
+            const by = radius * Math.sin(angleB);
+            const cx = radius * Math.cos(angleC);
+            const cy = radius * Math.sin(angleC);
+            const dx = radius * Math.cos(angleD);
+            const dy = radius * Math.sin(angleD);
+            
+            // Draw quadrilateral
+            addPointToScene(sceneData, ax, ay, 0x43e97b, 0.15);
+            addPointToScene(sceneData, bx, by, 0x43e97b, 0.15);
+            addPointToScene(sceneData, cx, cy, 0x43e97b, 0.15);
+            addPointToScene(sceneData, dx, dy, 0x43e97b, 0.15);
+            
+            // Add labels for all vertices
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            addTextLabel(sceneData, 'B', bx + 0.3, by + 0.3);
+            addTextLabel(sceneData, 'C', cx + 0.3, cy + 0.3);
+            addTextLabel(sceneData, 'D', dx + 0.3, dy + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: bx, y: by}, 0xf5576c);
+            addLineToScene(sceneData, {x: bx, y: by}, {x: cx, y: cy}, 0xf5576c);
+            addLineToScene(sceneData, {x: cx, y: cy}, {x: dx, y: dy}, 0xf5576c);
+            addLineToScene(sceneData, {x: dx, y: dy}, {x: ax, y: ay}, 0xf5576c);
+            
+            await teacher.speak("Here's our cyclic quadrilateral A B C D.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("The opposite angles A and C always add up to one hundred eighty degrees! The same is true for angles B and D!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showTheorem911Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Theorem 9.11</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.11 (Converse)</div>
+                    <div class="theorem-content">
+                        If the sum of a pair of opposite angles of a quadrilateral is 180°, 
+                        the quadrilateral is cyclic.
+                    </div>
+                </div>
+                <div class="threejs-container" id="theorem911-threejs"></div>
+                <div class="value-display">∠A + ∠C = 180° ⟹ ABCD is cyclic</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('theorem911-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("The converse is also true: if opposite angles sum to one hundred eighty degrees, the quadrilateral must be cyclic!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Draw a quadrilateral with opposite angles summing to 180
+            const ax = 2.5, ay = 1.5;
+            const bx = -1, by = 2.5;
+            const cx = -2.5, cy = -1.5;
+            const dx = 1, dy = -2.5;
+            
+            addPointToScene(sceneData, ax, ay, 0x43e97b, 0.12);
+            addPointToScene(sceneData, bx, by, 0x43e97b, 0.12);
+            addPointToScene(sceneData, cx, cy, 0x43e97b, 0.12);
+            addPointToScene(sceneData, dx, dy, 0x43e97b, 0.12);
+            
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: bx, y: by}, 0xf5576c);
+            addLineToScene(sceneData, {x: bx, y: by}, {x: cx, y: cy}, 0xf5576c);
+            addLineToScene(sceneData, {x: cx, y: cy}, {x: dx, y: dy}, 0xf5576c);
+            addLineToScene(sceneData, {x: dx, y: dy}, {x: ax, y: ay}, 0xf5576c);
+            
+            await teacher.speak("Suppose we have a quadrilateral where opposite angles add up to one hundred eighty degrees.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            await teacher.speak("This property guarantees that all four vertices must lie on a circle!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Draw the circumcircle
+            const centerX = (ax + cx) / 2;
+            const centerY = (ay + cy) / 2;
+            const circleRadius = Math.sqrt(Math.pow(ax - centerX, 2) + Math.pow(ay - centerY, 2));
+            
+            // Show that a circle can be drawn through all vertices
+            await teacher.speak("We can draw a circle that passes through all four vertices, proving the quadrilateral is cyclic!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showExampleContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Example</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Problem</div>
+                    <div class="theorem-content">
+                        Two circles intersect at two points A and B. 
+                        AD and AC are diameters to the two circles. 
+                        Prove that B lies on the line segment DC.
+                    </div>
+                </div>
+                <div class="threejs-container" id="example-threejs"></div>
+                <div class="proof-step">
+                    <strong>Given:</strong> Two intersecting circles with diameters AD and AC
+                </div>
+                <div class="proof-step">
+                    <strong>To Prove:</strong> B lies on line DC
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('example-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Example: Two circles intersect at points A and B. We need to prove B lies on line D C.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // First circle with center O1
+            const o1x = -1, o1y = 0;
+            const r1 = 2.5;
+            
+            // Add first circle's rim
+            const circle1Curve = new THREE.EllipseCurve(o1x, o1y, r1, r1, 0, 2 * Math.PI, false, 0);
+            const circle1Points = circle1Curve.getPoints(64);
+            const circle1Geometry = new THREE.BufferGeometry().setFromPoints(circle1Points);
+            const circle1Material = new THREE.LineBasicMaterial({ color: 0x4facfe, linewidth: 2 });
+            const circle1 = new THREE.Line(circle1Geometry, circle1Material);
+            sceneData.scene.add(circle1);
+            
+            addPointToScene(sceneData, o1x, o1y, 0xfbbf24, 0.08);
+            addTextLabel(sceneData, 'O₁', o1x + 0.3, o1y + 0.3);
+            
+            // Second circle with center O2
+            const o2x = 1, o2y = 0;
+            const r2 = 2.5;
+            
+            // Add second circle's rim
+            const circle2Curve = new THREE.EllipseCurve(o2x, o2y, r2, r2, 0, 2 * Math.PI, false, 0);
+            const circle2Points = circle2Curve.getPoints(64);
+            const circle2Geometry = new THREE.BufferGeometry().setFromPoints(circle2Points);
+            const circle2Material = new THREE.LineBasicMaterial({ color: 0x43e97b, linewidth: 2 });
+            const circle2 = new THREE.Line(circle2Geometry, circle2Material);
+            sceneData.scene.add(circle2);
+            
+            addPointToScene(sceneData, o2x, o2y, 0xfbbf24, 0.08);
+            addTextLabel(sceneData, 'O₂', o2x + 0.3, o2y + 0.3);
+            
+            // Intersection points A and B
+            const ax = 0, ay = 2.3;
+            const bx = 0, by = -2.3;
+            
+            addPointToScene(sceneData, ax, ay, 0xf5576c, 0.15);
+            addPointToScene(sceneData, bx, by, 0xf5576c, 0.15);
+            
+            // Add labels for A and B
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            addTextLabel(sceneData, 'B', bx + 0.3, by + 0.3);
+            
+            await teacher.speak("The circles intersect at points A and B.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Diameter AD of first circle
+            const dx = o1x - (ax - o1x), dy = o1y - (ay - o1y);
+            addPointToScene(sceneData, dx, dy, 0x00f2fe, 0.12);
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: dx, y: dy}, 0xfbbf24);
+            
+            // Add label for D
+            addTextLabel(sceneData, 'D', dx + 0.3, dy + 0.3);
+            
+            await teacher.speak("A D is a diameter of the first circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Diameter AC of second circle
+            const cx = o2x - (ax - o2x), cy = o2y - (ay - o2y);
+            addPointToScene(sceneData, cx, cy, 0x38f9d7, 0.12);
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: cx, y: cy}, 0xfbbf24);
+            
+            // Add label for C
+            addTextLabel(sceneData, 'C', cx + 0.3, cy + 0.3);
+            
+            await teacher.speak("A C is a diameter of the second circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Join AB
+            addLineToScene(sceneData, {x: ax, y: ay}, {x: bx, y: by}, 0xff9a9e);
+            
+            await teacher.speak("Now we join A B. Since A D is a diameter, angle A B D is ninety degrees - an angle in a semicircle!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            
+            await teacher.speak("Similarly, since A C is a diameter, angle A B C is also ninety degrees!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            
+            // Show that DBC is a straight line
+            addLineToScene(sceneData, {x: dx, y: dy}, {x: cx, y: cy}, 0xf5576c);
+            
+            await teacher.speak("Since angle A B D plus angle A B C equals ninety plus ninety, which is one hundred eighty degrees, D B C must be a straight line! Therefore, B lies on line segment D C!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        // Complete Lesson
+        async function showCompleteLesson() {
+            const taskId = `complete-${currentRunId}`;
+            stopCurrentDemo();
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Complete Lesson: Angle Subtended by an Arc</h2>
+                <div class="value-display">Let's Master Everything! 🚀</div>
+                <p class="geometry-description">
+                    We'll explore all concepts step by step with amazing 3D animations!
+                </p>
+            `;
+            
+            await teacher.speak("Welcome to the complete lesson on angles subtended by arcs! We'll discover all the theorems and work through examples together.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Let's start with the introduction to arcs and angles.");
+            if (!shouldContinue(taskId)) return;
+            await showIntroductionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await teacher.speak("Now let's understand equal chords and congruent arcs.");
+            if (!shouldContinue(taskId)) return;
+            await showEqualChordsContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await teacher.speak("Watch how arcs can superimpose on each other!");
+            if (!shouldContinue(taskId)) return;
+            await showArcSuperimposeContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await teacher.speak("Next, angles subtended at the centre.");
+            if (!shouldContinue(taskId)) return;
+            await showAngleCentreContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await teacher.speak("Here's Theorem nine point seven - a key result!");
+            if (!shouldContinue(taskId)) return;
+            await showTheorem97Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await showProof97Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await teacher.speak("Theorem nine point eight: Angles in the same segment are equal.");
+            if (!shouldContinue(taskId)) return;
+            await showTheorem98Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await teacher.speak("The special case: angle in a semicircle.");
+            if (!shouldContinue(taskId)) return;
+            await showSemicircleContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await teacher.speak("Now for Theorem nine point nine about concyclic points.");
+            if (!shouldContinue(taskId)) return;
+            await showTheorem99Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await teacher.speak("Let's explore cyclic quadrilaterals!");
+            if (!shouldContinue(taskId)) return;
+            await showCyclicQuadContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await teacher.speak("Theorem nine point ten about opposite angles in cyclic quadrilaterals.");
+            if (!shouldContinue(taskId)) return;
+            await showTheorem910Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await teacher.speak("And the converse: Theorem nine point eleven.");
+            if (!shouldContinue(taskId)) return;
+            await showTheorem911Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            await teacher.speak("Let's work through a complex example involving intersecting circles.");
+            if (!shouldContinue(taskId)) return;
+            await showExampleContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            const finalContent = createStageContent();
+            finalContent.innerHTML = `
+                <h2 class="geometry-title">Congratulations! 🎉</h2>
+                <div class="value-display">Lesson Complete!</div>
+                <p class="geometry-description">
+                    You've mastered angles subtended by arcs, all the theorems about cyclic quadrilaterals, 
+                    and solved complex examples! Try the interactive demo or test your knowledge with the quiz!
+                </p>
+            `;
+            
+            await teacher.speak("Outstanding! You've completed the full lesson on angles subtended by arcs. You now understand all the theorems, their proofs, and applications. Excellent work!");
+            
+            isPlaying = false;
+        }
+
+        function resetApplication() {
+            stopCurrentDemo();
+            
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="geometry-title">Welcome to Geometry Mastery! ✨</h2>
+                <div class="value-display">Let's Explore!</div>
+                <p class="geometry-description">
+                    Discover the fascinating world of angles, arcs, and cyclic quadrilaterals 
+                    with stunning 3D animations! Choose a lesson below to begin!
+                </p>
+                <div class="threejs-container" id="welcome-threejs"></div>
+            `;
+            
+            setTimeout(() => {
+                const container = document.getElementById('welcome-threejs');
+                if (container) {
+                    createThreeJsCircleScene(container, { rotate: true });
+                }
+            }, 100);
+            
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            currentDemo = null;
+            
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to explore the amazing world of angles and arcs with three D visualizations!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+            
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="geometry-title">Welcome to Geometry Mastery! ✨</h2>
+                <div class="value-display">3D Interactive Learning</div>
+                <p class="geometry-description">
+                    Experience geometry like never before with stunning Three.js animations!
+                    Learn about angles subtended by arcs and cyclic quadrilaterals!
+                </p>
+                <div class="threejs-container" id="welcome-threejs"></div>
+            `;
+            
+            setTimeout(() => {
+                const container = document.getElementById('welcome-threejs');
+                if (container) {
+                    createThreeJsCircleScene(container, { rotate: true });
+                }
+                teacher.speak("Welcome to Geometry Mastery! Explore the fascinating relationships between angles, arcs, and cyclic quadrilaterals with amazing three D animations!");
+            }, 500);
+            
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'equal-chords':
+                            showEqualChords();
+                            break;
+                        case 'arc-superimpose':
+                            showArcSuperimpose();
+                            break;
+                        case 'angle-centre':
+                            showAngleCentre();
+                            break;
+                        case 'theorem-9-7':
+                            showTheorem97();
+                            break;
+                        case 'proof-9-7':
+                            showProof97();
+                            break;
+                        case 'theorem-9-8':
+                            showTheorem98();
+                            break;
+                        case 'semicircle':
+                            showSemicircle();
+                            break;
+                        case 'theorem-9-9':
+                            showTheorem99();
+                            break;
+                        case 'cyclic-quad':
+                            showCyclicQuad();
+                            break;
+                        case 'theorem-9-10':
+                            showTheorem910();
+                            break;
+                        case 'theorem-9-11':
+                            showTheorem911();
+                            break;
+                        case 'example':
+                            showExample();
+                            break;
+                        case 'interactive':
+                            showInteractiveDemo();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+            
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                threeJsScenes.forEach(sceneData => {
+                    const container = sceneData.renderer.domElement.parentElement;
+                    if (container) {
+                        sceneData.camera.aspect = container.clientWidth / container.clientHeight;
+                        sceneData.camera.updateProjectionMatrix();
+                        sceneData.renderer.setSize(container.clientWidth, container.clientHeight);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

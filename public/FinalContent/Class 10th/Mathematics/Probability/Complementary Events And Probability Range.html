@@ -1,0 +1,2381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complementary Events and Probability Range</title>
+    <style>
+        :root {
+            --primary-blue: #3b82f6;
+            --secondary-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --accent-yellow: #fbbf24;
+            --accent-green: #10b981;
+            --accent-orange: #f97316;
+            --accent-red: #ef4444;
+            --text-light: #f8fafc;
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: var(--text-light);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-purple), var(--accent-pink));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .main-stage {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        #animationCanvas {
+            width: 100%;
+            height: 700px;
+            border-radius: 15px;
+            background: radial-gradient(circle at center, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
+            display: block;
+            cursor: crosshair;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-purple));
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+            min-width: 200px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(59, 130, 246, 0.4);
+        }
+
+        .control-btn.active {
+            background: linear-gradient(135deg, var(--accent-pink), #f43f5e);
+            box-shadow: 0 8px 25px rgba(236, 72, 153, 0.4);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-blue), var(--accent-pink));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        .narration-text {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin: 1rem 0;
+            border-left: 4px solid var(--accent-pink);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+        }
+
+        .concept-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .concept-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 15px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .concept-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-green);
+            box-shadow: 0 15px 30px rgba(16, 185, 129, 0.2);
+        }
+
+        .concept-title {
+            font-size: 1.4rem;
+            color: var(--accent-green);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .formula-display {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(236, 72, 153, 0.1));
+            border: 2px solid var(--primary-blue);
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .formula-text {
+            font-size: 1.1rem;
+            font-family: 'Courier New', monospace;
+            color: var(--primary-blue);
+            margin-bottom: 0.5rem;
+        }
+
+        .audio-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .audio-btn {
+            background: rgba(59, 130, 246, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .audio-btn:hover {
+            transform: scale(1.1);
+            background: var(--primary-blue);
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .slide-in {
+            animation: slideIn 0.8s ease-out;
+        }
+
+        @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 10px currentColor); }
+            50% { filter: drop-shadow(0 0 20px currentColor) drop-shadow(0 0 30px currentColor); }
+        }
+
+        .glowing {
+            animation: glow 2s infinite;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .controls { flex-direction: column; align-items: center; }
+            .control-btn { width: 100%; max-width: 300px; }
+            #animationCanvas { height: 500px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="audio-controls">
+        <button class="audio-btn" id="muteBtn" title="Mute/Unmute">🔊</button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Complementary Events & Probability Range</h1>
+            <p class="subtitle">Master probability fundamentals through immersive visual storytelling</p>
+        </div>
+
+        <div class="main-stage">
+            <canvas id="animationCanvas"></canvas>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="narration-text" id="narrationText">
+            Welcome to the fascinating world of probability! Discover complementary events and probability ranges through engaging animations.
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" onclick="AppManager.startCompleteLesson()">🎬 Complete Journey</button>
+            <button class="control-btn" onclick="AppManager.startSection('complement')">🔄 Complementary Events</button>
+            <button class="control-btn" onclick="AppManager.startSection('range')">📏 Probability Range</button>
+            <button class="control-btn" onclick="AppManager.startSection('examples')">🎲 Interactive Examples</button>
+            <button class="control-btn" onclick="AppManager.startSection('numberline')">📊 Probability Number Line</button>
+            <button class="control-btn" onclick="AppManager.reset()">🔄 Reset</button>
+        </div>
+
+        <div class="concept-cards">
+            <div class="concept-card">
+                <div class="concept-title">🔄 Complementary Events</div>
+                <p>When an event E occurs, its complement Ē represents all outcomes where E doesn't occur. Together, they cover all possible outcomes in the sample space.</p>
+                <div class="formula-display">
+                    <div class="formula-text">P(E) + P(Ē) = 1</div>
+                </div>
+            </div>
+            
+            <div class="concept-card">
+                <div class="concept-title">📏 Probability Range</div>
+                <p>All probabilities must fall between 0 and 1, inclusive. This fundamental constraint ensures mathematical consistency in probability theory.</p>
+                <div class="formula-display">
+                    <div class="formula-text">0 ≤ P(E) ≤ 1</div>
+                </div>
+            </div>
+            
+            <div class="concept-card">
+                <div class="concept-title">🎯 Impossible Events</div>
+                <p>Events that can never happen have a probability of 0. These represent empty sets in the sample space with no possible outcomes.</p>
+                <div class="formula-display">
+                    <div class="formula-text">P(Impossible) = 0</div>
+                </div>
+            </div>
+
+            <div class="concept-card">
+                <div class="concept-title">✅ Certain Events</div>
+                <p>Events that must always happen have a probability of 1. These represent the entire sample space where all outcomes satisfy the event condition.</p>
+                <div class="formula-display">
+                    <div class="formula-text">P(Certain) = 1</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('animationCanvas');
+        const ctx = canvas.getContext('2d');
+        let center = { x: 0, y: 0 };
+
+        // Voice synthesis
+        let isMuted = false;
+
+        // Animation state
+        let animationId = null;
+        let animationStep = 0;
+        let animationProgress = 0;
+
+        // Initialize canvas
+        function initCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            center = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 };
+        }
+
+        // Drawing utilities
+        class DrawingUtils {
+            static drawText(text, x, y, size = 16, color = '#f8fafc', font = 'Segoe UI', align = 'left', weight = 'normal') {
+                ctx.fillStyle = color;
+                ctx.font = `${weight} ${size}px ${font}`;
+                ctx.textAlign = align;
+                ctx.fillText(text, x, y);
+            }
+
+            static drawFormula(formula, x, y, size = 24, color = '#3b82f6') {
+                this.drawText(formula, x, y, size, color, 'Courier New', 'center', 'bold');
+            }
+
+            static drawBox(x, y, width, height, fillColor = 'rgba(59, 130, 246, 0.2)', strokeColor = '#3b82f6', strokeWidth = 2) {
+                ctx.fillStyle = fillColor;
+                ctx.fillRect(x, y, width, height);
+                
+                if (strokeWidth > 0) {
+                    ctx.strokeStyle = strokeColor;
+                    ctx.lineWidth = strokeWidth;
+                    ctx.strokeRect(x, y, width, height);
+                }
+            }
+
+            static drawCircle(x, y, radius, fillColor = '#ec4899', strokeColor = '#ec4899', strokeWidth = 2) {
+                ctx.fillStyle = fillColor;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                if (strokeWidth > 0) {
+                    ctx.strokeStyle = strokeColor;
+                    ctx.lineWidth = strokeWidth;
+                    ctx.stroke();
+                }
+            }
+
+            static drawLine(x1, y1, x2, y2, color = '#10b981', width = 2, dash = []) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                ctx.setLineDash(dash);
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            static drawArc(x, y, radius, startAngle, endAngle, color = '#3b82f6', width = 3) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, startAngle, endAngle);
+                ctx.stroke();
+            }
+
+            static drawPieSlice(x, y, radius, startAngle, endAngle, fillColor = '#3b82f6', strokeColor = '#fff', strokeWidth = 2) {
+                ctx.fillStyle = fillColor;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.arc(x, y, radius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fill();
+                
+                if (strokeWidth > 0) {
+                    ctx.strokeStyle = strokeColor;
+                    ctx.lineWidth = strokeWidth;
+                    ctx.stroke();
+                }
+            }
+
+            static drawCard(x, y, width, height, suit, value, faceUp = true) {
+                // Card background
+                ctx.fillStyle = faceUp ? '#fff' : '#1e293b';
+                ctx.fillRect(x, y, width, height);
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, width, height);
+
+                if (faceUp && suit && value) {
+                    // Card value and suit
+                    const isRed = suit === '♥' || suit === '♦';
+                    ctx.fillStyle = isRed ? '#ef4444' : '#000';
+                    ctx.font = 'bold 14px serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(value, x + width/2, y + height/2 - 5);
+                    ctx.fillText(suit, x + width/2, y + height/2 + 15);
+                }
+            }
+
+            static drawDie(x, y, size, value, color = '#fff') {
+                // Die background
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, size, size);
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, size, size);
+
+                // Draw dots based on value
+                ctx.fillStyle = '#000';
+                const dotSize = size / 15;
+                const positions = this.getDiePositions(x, y, size, value);
+                
+                positions.forEach(pos => {
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, dotSize, 0, 2 * Math.PI);
+                    ctx.fill();
+                });
+            }
+
+            static getDiePositions(x, y, size, value) {
+                const positions = [];
+                const offset = size / 4;
+                const center = { x: x + size/2, y: y + size/2 };
+                
+                switch(value) {
+                    case 1:
+                        positions.push(center);
+                        break;
+                    case 2:
+                        positions.push({x: x + offset, y: y + offset});
+                        positions.push({x: x + size - offset, y: y + size - offset});
+                        break;
+                    case 3:
+                        positions.push({x: x + offset, y: y + offset});
+                        positions.push(center);
+                        positions.push({x: x + size - offset, y: y + size - offset});
+                        break;
+                    case 4:
+                        positions.push({x: x + offset, y: y + offset});
+                        positions.push({x: x + size - offset, y: y + offset});
+                        positions.push({x: x + offset, y: y + size - offset});
+                        positions.push({x: x + size - offset, y: y + size - offset});
+                        break;
+                    case 5:
+                        positions.push({x: x + offset, y: y + offset});
+                        positions.push({x: x + size - offset, y: y + offset});
+                        positions.push(center);
+                        positions.push({x: x + offset, y: y + size - offset});
+                        positions.push({x: x + size - offset, y: y + size - offset});
+                        break;
+                    case 6:
+                        positions.push({x: x + offset, y: y + offset});
+                        positions.push({x: x + size - offset, y: y + offset});
+                        positions.push({x: x + offset, y: y + size/2});
+                        positions.push({x: x + size - offset, y: y + size/2});
+                        positions.push({x: x + offset, y: y + size - offset});
+                        positions.push({x: x + size - offset, y: y + size - offset});
+                        break;
+                }
+                return positions;
+            }
+
+            static drawNumberLine(x, y, width, min = 0, max = 1, markerValues = [], currentValue = null) {
+                // Main line
+                this.drawLine(x, y, x + width, y, '#f8fafc', 3);
+                
+                // End markers
+                this.drawLine(x, y - 10, x, y + 10, '#f8fafc', 2);
+                this.drawLine(x + width, y - 10, x + width, y + 10, '#f8fafc', 2);
+                
+                // End labels
+                this.drawText(min.toString(), x, y + 25, 14, '#f8fafc', 'Segoe UI', 'center');
+                this.drawText(max.toString(), x + width, y + 25, 14, '#f8fafc', 'Segoe UI', 'center');
+                
+                // Marker values
+                markerValues.forEach(value => {
+                    const markerX = x + (value - min) * width / (max - min);
+                    this.drawLine(markerX, y - 8, markerX, y + 8, '#fbbf24', 2);
+                    this.drawText(value.toFixed(2), markerX, y + 25, 12, '#fbbf24', 'Segoe UI', 'center');
+                });
+                
+                // Current value indicator
+                if (currentValue !== null) {
+                    const currentX = x + (currentValue - min) * width / (max - min);
+                    this.drawCircle(currentX, y, 8, '#ec4899', '#ec4899', 0);
+                    this.drawText(currentValue.toFixed(3), currentX, y - 20, 14, '#ec4899', 'Segoe UI', 'center', 'bold');
+                }
+            }
+
+            static animateNumber(startValue, endValue, progress, decimals = 2) {
+                const current = startValue + (endValue - startValue) * progress;
+                return current.toFixed(decimals);
+            }
+
+            static easeInOut(t) {
+                return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+            }
+
+            static easeOutBack(t) {
+                const c1 = 1.70158;
+                const c3 = c1 + 1;
+                return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+            }
+
+            static drawAnimatedEquation(equation, x, y, progress, size = 20, color = '#3b82f6') {
+                if (progress <= 0) return;
+                
+                ctx.font = `bold ${size}px Courier New`;
+                const textWidth = ctx.measureText(equation).width;
+                const startX = x - textWidth / 2;
+                
+                ctx.globalAlpha = Math.min(progress, 1);
+                this.drawText(equation, startX, y, size, color, 'Courier New', 'left', 'bold');
+                ctx.globalAlpha = 1;
+            }
+
+            static drawParticleEffect(x, y, progress, color = '#fbbf24') {
+                const particleCount = 15;
+                for (let i = 0; i < particleCount; i++) {
+                    const angle = (i / particleCount) * 2 * Math.PI;
+                    const distance = progress * 60;
+                    const particleX = x + Math.cos(angle) * distance;
+                    const particleY = y + Math.sin(angle) * distance;
+                    const size = 3 * (1 - progress);
+                    
+                    if (size > 0) {
+                        ctx.globalAlpha = 1 - progress;
+                        this.drawCircle(particleX, particleY, size, color, color, 0);
+                        ctx.globalAlpha = 1;
+                    }
+                }
+            }
+
+            static drawVennDiagram(x, y, radius, leftLabel, rightLabel, leftColor = '#3b82f6', rightColor = '#10b981', overlapColor = '#8b5cf6', progress = 1) {
+                const overlap = radius * 0.6;
+                const leftX = x - overlap/2;
+                const rightX = x + overlap/2;
+                
+                if (progress > 0) {
+                    ctx.globalAlpha = progress * 0.7;
+                    
+                    // Left circle
+                    this.drawCircle(leftX, y, radius, leftColor + '40', leftColor, 2);
+                    
+                    // Right circle
+                    this.drawCircle(rightX, y, radius, rightColor + '40', rightColor, 2);
+                    
+                    ctx.globalAlpha = 1;
+                    
+                    // Labels
+                    if (progress > 0.5) {
+                        this.drawText(leftLabel, leftX - radius/2, y, 16, leftColor, 'Segoe UI', 'center', 'bold');
+                        this.drawText(rightLabel, rightX + radius/2, y, 16, rightColor, 'Segoe UI', 'center', 'bold');
+                    }
+                }
+            }
+        }
+
+        // Animation sequences
+        class AnimationSequence {
+            constructor(steps) {
+                this.steps = steps;
+                this.currentStep = 0;
+                this.stepProgress = 0;
+                this.isActive = true;
+                this.totalDuration = 0;
+                this.elapsedTime = 0;
+                this.taskId = null;
+                this.runId = null;
+            }
+
+            update(deltaTime) {
+                if (!this.isActive || this.currentStep >= this.steps.length) return false;
+                // Guard against stale animations when tab/run changed
+                if (this.taskId !== null && this.runId !== null) {
+                    if (AppManager.currentTaskId !== this.taskId || AppManager.currentRunId !== this.runId) {
+                        return false;
+                    }
+                }
+
+                this.elapsedTime += deltaTime;
+                this.stepProgress += deltaTime / this.steps[this.currentStep].duration;
+                
+                if (this.stepProgress >= 1) {
+                    this.stepProgress = 1;
+                    this.steps[this.currentStep].draw(1);
+                    this.currentStep++;
+                    this.stepProgress = 0;
+                } else {
+                    this.steps[this.currentStep].draw(this.stepProgress);
+                }
+
+                return this.currentStep < this.steps.length;
+            }
+
+            destroy() {
+                this.isActive = false;
+            }
+
+            getTotalProgress() {
+                if (this.steps.length === 0) return 1;
+                return (this.currentStep + this.stepProgress) / this.steps.length;
+            }
+        }
+
+        // Main Application Manager
+        class AppManager {
+            static currentSection = null;
+            static activeButton = -1;
+            static lastTime = 0;
+            static currentTaskId = null;
+            static currentRunId = 0;
+
+            static destroy() {
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+                
+                if (this.currentSection) {
+                    this.currentSection.destroy();
+                    this.currentSection = null;
+                }
+
+                speechSynthesis.cancel();
+                this.clearCanvas();
+                this.updateProgress(0);
+            }
+
+            static startSection(type) {
+                this.destroy();
+                // establish new task/run identifiers
+                this.currentTaskId = type;
+                this.currentRunId = Date.now();
+                this.setActiveButton(this.getButtonIndex(type));
+                
+                switch(type) {
+                    case 'complement':
+                        this.currentSection = new ComplementaryEventsSection(this.currentTaskId, this.currentRunId);
+                        break;
+                    case 'range':
+                        this.currentSection = new ProbabilityRangeSection(this.currentTaskId, this.currentRunId);
+                        break;
+                    case 'examples':
+                        this.currentSection = new InteractiveExamplesSection(this.currentTaskId, this.currentRunId);
+                        break;
+                    case 'numberline':
+                        this.currentSection = new NumberLineSection(this.currentTaskId, this.currentRunId);
+                        break;
+                }
+                
+                if (this.currentSection) {
+                    this.currentSection.start();
+                }
+            }
+
+            static startCompleteLesson() {
+                this.destroy();
+                // new run for complete lesson, consistent task id
+                this.currentTaskId = 'complete';
+                this.currentRunId = Date.now();
+                this.setActiveButton(0);
+                this.currentSection = new CompleteLessonFlow(this.currentTaskId, this.currentRunId);
+                this.currentSection.start();
+            }
+
+            static reset() {
+                this.destroy();
+                this.setActiveButton(5);
+                this.clearCanvas();
+                document.getElementById('narrationText').textContent = 'Choose a section to begin exploring probability concepts.';
+                this.clearActiveButtons();
+            }
+
+            static getButtonIndex(type) {
+                const map = { 'complement': 1, 'range': 2, 'examples': 3, 'numberline': 4 };
+                return map[type] || 0;
+            }
+
+            static setActiveButton(index) {
+                this.activeButton = index;
+                document.querySelectorAll('.control-btn').forEach((btn, i) => {
+                    btn.classList.toggle('active', i === index);
+                });
+            }
+
+            static clearActiveButtons() {
+                document.querySelectorAll('.control-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+            }
+
+            static clearCanvas() {
+                ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+            }
+
+            static updateProgress(progress) {
+                document.getElementById('progressFill').style.width = `${progress}%`;
+            }
+
+            static startAnimation(sequence) {
+                this.lastTime = performance.now();
+                // Capture expected ids from sequence or current snapshot
+                const expectedTaskId = sequence.taskId ?? this.currentTaskId;
+                const expectedRunId = sequence.runId ?? this.currentRunId;
+                
+                const animate = (currentTime) => {
+                    if (!this.currentSection || !this.currentSection.isActive) return;
+                    // Stop if ids changed (tab switch or restart)
+                    if (this.currentTaskId !== expectedTaskId || this.currentRunId !== expectedRunId) return;
+                    
+                    const deltaTime = currentTime - this.lastTime;
+                    this.lastTime = currentTime;
+                    
+                    const shouldContinue = sequence.update(deltaTime);
+                    
+                    if (sequence.getTotalProgress) {
+                        this.updateProgress(sequence.getTotalProgress() * 100);
+                    }
+                    
+                    if (shouldContinue) {
+                        animationId = requestAnimationFrame(animate);
+                    }
+                };
+                
+                animationId = requestAnimationFrame(animate);
+            }
+
+            static speak(text, delay = 0) {
+                const expectedTaskId = this.currentTaskId;
+                const expectedRunId = this.currentRunId;
+                if (isMuted || !text) {
+                    if (this.currentTaskId === expectedTaskId && this.currentRunId === expectedRunId) {
+                        document.getElementById('narrationText').textContent = text || '';
+                    }
+                    return Promise.resolve();
+                }
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        // If a different task/run is active now, skip speaking
+                        if (this.currentTaskId !== expectedTaskId || this.currentRunId !== expectedRunId) {
+                            return resolve();
+                        }
+                        try {
+                            speechSynthesis.cancel();
+                            
+                            const utterance = new SpeechSynthesisUtterance(text);
+                            utterance.rate = 0.8;
+                            utterance.pitch = 1.0;
+                            utterance.volume = 0.9;
+                            
+                            utterance.onend = () => resolve();
+                            utterance.onerror = () => resolve();
+                            
+                            // Double-check at speak time
+                            if (this.currentTaskId !== expectedTaskId || this.currentRunId !== expectedRunId) {
+                                return resolve();
+                            }
+                            speechSynthesis.speak(utterance);
+                            if (this.currentTaskId === expectedTaskId && this.currentRunId === expectedRunId) {
+                                document.getElementById('narrationText').textContent = text;
+                            }
+                            
+                            setTimeout(() => resolve(), Math.max(3000, text.length * 100));
+                            
+                        } catch (error) {
+                            if (this.currentTaskId === expectedTaskId && this.currentRunId === expectedRunId) {
+                                document.getElementById('narrationText').textContent = text;
+                            }
+                            resolve();
+                        }
+                    }, delay);
+                });
+            }
+        }
+
+        // Base Section Class
+        class BaseSection {
+            constructor(name, taskId, runId) {
+                this.name = name;
+                this.isActive = true;
+                this.destroyed = false;
+                this.taskId = taskId;
+                this.runId = runId;
+            }
+
+            destroy() {
+                this.isActive = false;
+                this.destroyed = true;
+                speechSynthesis.cancel();
+            }
+
+            async start() {
+                if (this.destroyed || !this.isActive || !this.isCurrent()) return;
+                
+                try {
+                    await this.executeSteps();
+                } catch (error) {
+                    console.error('Section execution error:', error);
+                    await AppManager.speak("There was an issue with the presentation. Please try again.");
+                }
+            }
+
+            async executeSteps() {
+                // Override in child classes
+            }
+
+            async safeSpeak(text, delay = 0) {
+                if (this.destroyed || !this.isActive || !this.isCurrent()) return;
+                return await AppManager.speak(text, delay);
+            }
+
+            async safePause(ms) {
+                if (this.destroyed || !this.isActive || !this.isCurrent()) return;
+                return new Promise(resolve => setTimeout(() => {
+                    if (this.isCurrent()) resolve(); else resolve();
+                }, ms));
+            }
+
+            isCurrent() {
+                return AppManager.currentTaskId === this.taskId && AppManager.currentRunId === this.runId;
+            }
+        }
+
+        // Complementary Events Section
+        class ComplementaryEventsSection extends BaseSection {
+            constructor(taskId, runId) {
+                super('Complementary Events', taskId, runId);
+            }
+
+            async executeSteps() {
+                if (!this.isActive) return;
+                
+                await this.safeSpeak("Welcome to Complementary Events! Let's explore how events and their complements work together to form complete probability spaces.", 500);
+                
+                await this.showComplementIntroduction();
+                
+                if (!this.isActive) return;
+                await this.showVennDiagramVisualization();
+                
+                if (!this.isActive) return;
+                await this.showComplementFormula();
+                
+                if (!this.isActive) return;
+                await this.safeSpeak("Complementary events are fundamental to probability theory. They ensure that all possible outcomes are accounted for, with probabilities always summing to one.", 3000);
+            }
+
+            async showComplementIntroduction() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 6000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Complementary Events: E and Ē', center.x, 60, 32, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                            
+                            // Sample space visualization
+                            if (progress > 0.2) {
+                                const spaceProgress = (progress - 0.2) * 1.25;
+                                
+                                // Sample space rectangle
+                                const rectWidth = 400;
+                                const rectHeight = 300;
+                                const rectX = center.x - rectWidth/2;
+                                const rectY = center.y - rectHeight/2;
+                                
+                                ctx.globalAlpha = spaceProgress;
+                                DrawingUtils.drawBox(rectX, rectY, rectWidth, rectHeight, 'rgba(59, 130, 246, 0.1)', '#3b82f6', 3);
+                                DrawingUtils.drawText('Sample Space (S)', center.x, rectY - 20, 18, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                                ctx.globalAlpha = 1;
+                                
+                                // Event E
+                                if (spaceProgress > 0.3) {
+                                    const eventProgress = (spaceProgress - 0.3) * 1.43;
+                                    const eventWidth = rectWidth * 0.6 * eventProgress;
+                                    const eventHeight = rectHeight * 0.8 * eventProgress;
+                                    
+                                    ctx.globalAlpha = eventProgress;
+                                    DrawingUtils.drawBox(rectX + 20, rectY + 30, eventWidth, eventHeight, 'rgba(236, 72, 153, 0.4)', '#ec4899', 2);
+                                    
+                                    if (eventProgress > 0.5) {
+                                        DrawingUtils.drawText('Event E', rectX + 20 + eventWidth/2, rectY + 30 + eventHeight/2, 16, '#ec4899', 'Segoe UI', 'center', 'bold');
+                                    }
+                                    ctx.globalAlpha = 1;
+                                }
+                                
+                                // Complement Ē
+                                if (spaceProgress > 0.6) {
+                                    const compProgress = (spaceProgress - 0.6) * 2.5;
+                                    
+                                    ctx.globalAlpha = compProgress;
+                                    
+                                    // Shade the complement area
+                                    ctx.fillStyle = 'rgba(16, 185, 129, 0.3)';
+                                    ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+                                    
+                                    // Clear the event area to show complement
+                                    ctx.globalCompositeOperation = 'destination-out';
+                                    ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+                                    const eventWidth = rectWidth * 0.6;
+                                    const eventHeight = rectHeight * 0.8;
+                                    ctx.fillRect(rectX + 20, rectY + 30, eventWidth, eventHeight);
+                                    ctx.globalCompositeOperation = 'source-over';
+                                    
+                                    if (compProgress > 0.5) {
+                                        DrawingUtils.drawText('Event Ē (Complement)', rectX + rectWidth - 100, rectY + rectHeight - 50, 14, '#10b981', 'Segoe UI', 'center', 'bold');
+                                    }
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                            
+                            // Definition
+                            if (progress > 0.8) {
+                                const defProgress = (progress - 0.8) * 5;
+                                ctx.globalAlpha = defProgress;
+                                
+                                DrawingUtils.drawBox(center.x - 300, center.y + 200, 600, 80, 'rgba(139, 92, 246, 0.2)', '#8b5cf6', 2);
+                                DrawingUtils.drawText('Definition: Ē contains all outcomes in S that are NOT in E', center.x, center.y + 225, 16, '#8b5cf6', 'Segoe UI', 'center', 'bold');
+                                DrawingUtils.drawText('Together, E and Ē partition the entire sample space', center.x, center.y + 250, 14, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+                // tag sequence with current ids
+                sequence.taskId = this.taskId; sequence.runId = this.runId;
+                AppManager.startAnimation(sequence);
+                await this.safeSpeak("Complementary events form a fundamental concept in probability. Event E and its complement E-bar together cover the entire sample space with no overlap. The complement contains all outcomes where the original event does not occur.", 6000);
+            }
+
+            async showVennDiagramVisualization() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 8000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Venn Diagram: Complementary Events', center.x, 50, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Universal set
+                            const universeRadius = 200;
+                            const eventRadius = 120;
+                            
+                            if (progress > 0.1) {
+                                const universeProgress = (progress - 0.1) * 2;
+                                ctx.globalAlpha = Math.min(universeProgress, 1);
+                                
+                                DrawingUtils.drawCircle(center.x, center.y, universeRadius, 'rgba(59, 130, 246, 0.1)', '#3b82f6', 3);
+                                DrawingUtils.drawText('U (Universal Set)', center.x, center.y - universeRadius - 20, 16, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            // Event E
+                            if (progress > 0.3) {
+                                const eventProgress = (progress - 0.3) * 2;
+                                ctx.globalAlpha = Math.min(eventProgress, 1);
+                                
+                                const eventX = center.x - 40;
+                                DrawingUtils.drawCircle(eventX, center.y, eventRadius, 'rgba(236, 72, 153, 0.4)', '#ec4899', 3);
+                                DrawingUtils.drawText('E', eventX, center.y, 20, '#ec4899', 'Segoe UI', 'center', 'bold');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            // Complement shading
+                            if (progress > 0.5) {
+                                const compProgress = (progress - 0.5) * 2;
+                                ctx.globalAlpha = Math.min(compProgress, 1) * 0.3;
+                                
+                                // Draw complement as the area outside E but inside U
+                                ctx.fillStyle = '#10b981';
+                                ctx.beginPath();
+                                ctx.arc(center.x, center.y, universeRadius, 0, 2 * Math.PI);
+                                ctx.arc(center.x - 40, center.y, eventRadius, 0, 2 * Math.PI, true);
+                                ctx.fill();
+                                
+                                ctx.globalAlpha = 1;
+                                
+                                if (compProgress > 0.5) {
+                                    DrawingUtils.drawText('Ē', center.x + 80, center.y - 60, 20, '#10b981', 'Segoe UI', 'center', 'bold');
+                                }
+                            }
+                            
+                            // Properties
+                            if (progress > 0.7) {
+                                const propProgress = (progress - 0.7) * 3.33;
+                                
+                                const properties = [
+                                    'E ∪ Ē = U (Union covers everything)',
+                                    'E ∩ Ē = ∅ (No overlap, mutually exclusive)',
+                                    'P(E) + P(Ē) = 1 (Probabilities sum to 1)'
+                                ];
+                                
+                                properties.forEach((prop, index) => {
+                                    const propItemProgress = Math.max(0, Math.min(1, (propProgress - index * 0.3) * 2));
+                                    if (propItemProgress > 0) {
+                                        const y = center.y + 280 + index * 30;
+                                        ctx.globalAlpha = propItemProgress;
+                                        
+                                        DrawingUtils.drawCircle(center.x - 250, y - 5, 4, '#fbbf24');
+                                        DrawingUtils.drawText(prop, center.x - 230, y, 14, '#f8fafc', 'Segoe UI', 'left');
+                                        
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                ]);
+                sequence.taskId = this.taskId; sequence.runId = this.runId;
+                AppManager.startAnimation(sequence);
+                await this.safeSpeak("The Venn diagram clearly shows how complementary events work. Event E is shown in pink, while its complement E-bar is the green shaded area. Notice they are mutually exclusive with no overlap, yet together they cover the entire universal set.", 8000);
+            }
+
+            async showComplementFormula() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 7000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Fundamental Formula of Complements', center.x, 60, 28, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                            
+                            // Main formula
+                            if (progress > 0.2) {
+                                const formulaProgress = (progress - 0.2) * 1.5;
+                                
+                                DrawingUtils.drawBox(center.x - 200, 120, 400, 80, 'rgba(59, 130, 246, 0.1)', '#3b82f6', 3);
+                                DrawingUtils.drawAnimatedEquation('P(E) + P(Ē) = 1', center.x, 160, formulaProgress, 32, '#3b82f6');
+                            }
+                            
+                            // Alternative forms
+                            if (progress > 0.4) {
+                                const altProgress = (progress - 0.4) * 1.67;
+                                
+                                const alternatives = [
+                                    { formula: 'P(Ē) = 1 - P(E)', description: 'Calculate complement probability' },
+                                    { formula: 'P(E) = 1 - P(Ē)', description: 'Calculate event probability from complement' }
+                                ];
+                                
+                                alternatives.forEach((alt, index) => {
+                                    const altItemProgress = Math.max(0, Math.min(1, (altProgress - index * 0.3) * 2));
+                                    if (altItemProgress > 0) {
+                                        const y = 240 + index * 80;
+                                        
+                                        ctx.globalAlpha = altItemProgress;
+                                        DrawingUtils.drawBox(center.x - 250, y, 500, 60, 'rgba(236, 72, 153, 0.1)', '#ec4899', 2);
+                                        DrawingUtils.drawAnimatedEquation(alt.formula, center.x, y + 25, altItemProgress, 24, '#ec4899');
+                                        DrawingUtils.drawText(alt.description, center.x, y + 50, 14, '#f8fafc', 'Segoe UI', 'center');
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                            }
+                            
+                            // Practical example
+                            if (progress > 0.7) {
+                                const exampleProgress = (progress - 0.7) * 3.33;
+                                ctx.globalAlpha = exampleProgress;
+                                
+                                DrawingUtils.drawBox(center.x - 300, 420, 600, 100, 'rgba(16, 185, 129, 0.2)', '#10b981', 2);
+                                DrawingUtils.drawText('Example: If P(Rain) = 0.3, then P(No Rain) = 1 - 0.3 = 0.7', center.x, 450, 16, '#10b981', 'Segoe UI', 'center', 'bold');
+                                DrawingUtils.drawText('Notice: 0.3 + 0.7 = 1.0 ✓', center.x, 475, 14, '#f8fafc', 'Segoe UI', 'center');
+                                DrawingUtils.drawText('This ensures all weather possibilities are accounted for!', center.x, 495, 14, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+                sequence.taskId = this.taskId; sequence.runId = this.runId;
+                AppManager.startAnimation(sequence);
+                await this.safeSpeak("The complement formula P of E plus P of E-bar equals 1 is fundamental to probability theory. This means if you know the probability of an event, you can instantly calculate its complement by subtracting from one.", 7000);
+            }
+        }
+
+        // Probability Range Section
+        class ProbabilityRangeSection extends BaseSection {
+            constructor(taskId, runId) {
+                super('Probability Range', taskId, runId);
+            }
+
+            async executeSteps() {
+                if (!this.isActive) return;
+                
+                await this.safeSpeak("Let's explore the probability range - why all probabilities must fall between zero and one, and what these boundary values represent.", 500);
+                
+                await this.showRangeIntroduction();
+                
+                if (!this.isActive) return;
+                await this.showImpossibleAndCertainEvents();
+                
+                if (!this.isActive) return;
+                await this.showProbabilitySpectrum();
+                
+                if (!this.isActive) return;
+                await this.safeSpeak("The probability range from zero to one provides a complete framework for measuring uncertainty, from impossible events to certain outcomes.", 3000);
+            }
+
+            async showRangeIntroduction() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 7000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Probability Range: 0 ≤ P(E) ≤ 1', center.x, 60, 32, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                            
+                            // Number line setup
+                            const lineY = center.y;
+                            const lineWidth = 500;
+                            const lineX = center.x - lineWidth/2;
+                            
+                            if (progress > 0.2) {
+                                const lineProgress = (progress - 0.2) * 1.5;
+                                ctx.globalAlpha = lineProgress;
+                                
+                                DrawingUtils.drawNumberLine(lineX, lineY, lineWidth, 0, 1, [0.25, 0.5, 0.75]);
+                                DrawingUtils.drawText('Probability', center.x, lineY + 60, 18, '#f8fafc', 'Segoe UI', 'center', 'bold');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            // Boundary explanations
+                            if (progress > 0.4) {
+                                const boundaryProgress = (progress - 0.4) * 1.67;
+                                
+                                // Zero explanation
+                                if (boundaryProgress > 0) {
+                                    const zeroProgress = Math.min(boundaryProgress * 2, 1);
+                                    ctx.globalAlpha = zeroProgress;
+                                    
+                                    DrawingUtils.drawBox(lineX - 50, lineY + 100, 150, 80, 'rgba(239, 68, 68, 0.2)', '#ef4444', 2);
+                                    DrawingUtils.drawText('P(E) = 0', lineX + 25, lineY + 125, 16, '#ef4444', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('Impossible', lineX + 25, lineY + 145, 14, '#f8fafc', 'Segoe UI', 'center');
+                                    DrawingUtils.drawText('Never happens', lineX + 25, lineY + 165, 12, '#f8fafc', 'Segoe UI', 'center');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                                
+                                // One explanation
+                                if (boundaryProgress > 0.3) {
+                                    const oneProgress = Math.min((boundaryProgress - 0.3) * 1.43, 1);
+                                    ctx.globalAlpha = oneProgress;
+                                    
+                                    DrawingUtils.drawBox(lineX + lineWidth - 100, lineY + 100, 150, 80, 'rgba(16, 185, 129, 0.2)', '#10b981', 2);
+                                    DrawingUtils.drawText('P(E) = 1', lineX + lineWidth - 25, lineY + 125, 16, '#10b981', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('Certain', lineX + lineWidth - 25, lineY + 145, 14, '#f8fafc', 'Segoe UI', 'center');
+                                    DrawingUtils.drawText('Always happens', lineX + lineWidth - 25, lineY + 165, 12, '#f8fafc', 'Segoe UI', 'center');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                                
+                                // Middle explanation
+                                if (boundaryProgress > 0.6) {
+                                    const middleProgress = (boundaryProgress - 0.6) * 2.5;
+                                    ctx.globalAlpha = middleProgress;
+                                    
+                                    DrawingUtils.drawBox(center.x - 100, lineY - 120, 200, 80, 'rgba(251, 191, 36, 0.2)', '#fbbf24', 2);
+                                    DrawingUtils.drawText('0 < P(E) < 1', center.x, lineY - 95, 16, '#fbbf24', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('Uncertain events', center.x, lineY - 75, 14, '#f8fafc', 'Segoe UI', 'center');
+                                    DrawingUtils.drawText('May or may not happen', center.x, lineY - 55, 12, '#f8fafc', 'Segoe UI', 'center');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                            
+                            // Mathematical constraints
+                            if (progress > 0.8) {
+                                const constraintProgress = (progress - 0.8) * 5;
+                                ctx.globalAlpha = constraintProgress;
+                                
+                                DrawingUtils.drawBox(center.x - 250, lineY + 220, 500, 60, 'rgba(139, 92, 246, 0.2)', '#8b5cf6', 2);
+                                DrawingUtils.drawText('Mathematical Constraint: All probabilities must satisfy 0 ≤ P(E) ≤ 1', center.x, lineY + 250, 14, '#8b5cf6', 'Segoe UI', 'center', 'bold');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+                sequence.taskId = this.taskId; sequence.runId = this.runId;
+                AppManager.startAnimation(sequence);
+                await this.safeSpeak("Every probability must fall between zero and one, inclusive. Zero represents impossible events that never occur, one represents certain events that always happen, and values between represent varying degrees of uncertainty.", 7000);
+            }
+
+            async showImpossibleAndCertainEvents() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 10000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Impossible vs Certain Events', center.x, 40, 28, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Split screen layout
+                            const dividerX = center.x;
+                            
+                            // Impossible events side
+                            if (progress > 0.1) {
+                                const impossibleProgress = (progress - 0.1) * 1.5;
+                                
+                                if (impossibleProgress > 0) {
+                                    ctx.globalAlpha = impossibleProgress;
+                                    
+                                    // Left side header
+                                    DrawingUtils.drawBox(50, 80, dividerX - 70, 60, 'rgba(239, 68, 68, 0.2)', '#ef4444', 2);
+                                    DrawingUtils.drawText('Impossible Events', dividerX/2, 115, 20, '#ef4444', 'Segoe UI', 'center', 'bold');
+                                    
+                                    // Examples
+                                    const impossibleExamples = [
+                                        'Rolling a 7 on a standard die',
+                                        'Drawing a red card from black deck',
+                                        'Getting heads and tails simultaneously',
+                                        'Probability = 0'
+                                    ];
+                                    
+                                    impossibleExamples.forEach((example, index) => {
+                                        if (impossibleProgress > 0.2 + index * 0.15) {
+                                            const exampleProgress = Math.min((impossibleProgress - 0.2 - index * 0.15) * 3, 1);
+                                            ctx.globalAlpha = exampleProgress;
+                                            
+                                            const y = 170 + index * 40;
+                                            DrawingUtils.drawCircle(70, y - 5, 4, '#ef4444');
+                                            DrawingUtils.drawText(example, 90, y, 14, '#f8fafc', 'Segoe UI', 'left');
+                                            
+                                            ctx.globalAlpha = 1;
+                                        }
+                                    });
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                            
+                            // Divider line
+                            if (progress > 0.3) {
+                                const dividerProgress = (progress - 0.3) * 2;
+                                ctx.globalAlpha = dividerProgress;
+                                
+                                DrawingUtils.drawLine(dividerX, 80, dividerX, canvas.clientHeight - 100, '#8b5cf6', 3, [5, 5]);
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            // Certain events side
+                            if (progress > 0.5) {
+                                const certainProgress = (progress - 0.5) * 1.5;
+                                
+                                if (certainProgress > 0) {
+                                    ctx.globalAlpha = certainProgress;
+                                    
+                                    // Right side header
+                                    DrawingUtils.drawBox(dividerX + 20, 80, canvas.clientWidth - dividerX - 70, 60, 'rgba(16, 185, 129, 0.2)', '#10b981', 2);
+                                    DrawingUtils.drawText('Certain Events', dividerX + (canvas.clientWidth - dividerX)/2, 115, 20, '#10b981', 'Segoe UI', 'center', 'bold');
+                                    
+                                    // Examples
+                                    const certainExamples = [
+                                        'Rolling 1-6 on a standard die',
+                                        'Drawing a card from a deck',
+                                        'Sun rising tomorrow',
+                                        'Probability = 1'
+                                    ];
+                                    
+                                    certainExamples.forEach((example, index) => {
+                                        if (certainProgress > 0.2 + index * 0.15) {
+                                            const exampleProgress = Math.min((certainProgress - 0.2 - index * 0.15) * 3, 1);
+                                            ctx.globalAlpha = exampleProgress;
+                                            
+                                            const y = 170 + index * 40;
+                                            DrawingUtils.drawCircle(dividerX + 40, y - 5, 4, '#10b981');
+                                            DrawingUtils.drawText(example, dividerX + 60, y, 14, '#f8fafc', 'Segoe UI', 'left');
+                                            
+                                            ctx.globalAlpha = 1;
+                                        }
+                                    });
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                            
+                            // Visual demonstration with die
+                            if (progress > 0.8) {
+                                const demoProgress = (progress - 0.8) * 5;
+                                
+                                // Impossible die roll (7)
+                                if (demoProgress > 0) {
+                                    ctx.globalAlpha = demoProgress;
+                                    
+                                    DrawingUtils.drawDie(dividerX/2 - 30, 350, 60, 6);
+                                    DrawingUtils.drawText('?', dividerX/2 + 40, 385, 24, '#ef4444', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('No way to roll 7!', dividerX/2, 430, 12, '#ef4444', 'Segoe UI', 'center');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                                
+                                // Certain die roll (1-6)
+                                if (demoProgress > 0.3) {
+                                    const certainDemoProgress = (demoProgress - 0.3) * 1.43;
+                                    ctx.globalAlpha = certainDemoProgress;
+                                    
+                                    const diceValues = [1, 2, 3, 4, 5, 6];
+                                    diceValues.forEach((value, index) => {
+                                        const x = dividerX + 50 + (index % 3) * 70;
+                                        const y = 320 + Math.floor(index / 3) * 70;
+                                        DrawingUtils.drawDie(x, y, 40, value);
+                                    });
+                                    
+                                    DrawingUtils.drawText('Always get 1-6!', dividerX + canvas.clientWidth/4, 470, 12, '#10b981', 'Segoe UI', 'center');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                        }
+                    }
+                ]);
+                sequence.taskId = this.taskId; sequence.runId = this.runId;
+                AppManager.startAnimation(sequence);
+                await this.safeSpeak("Impossible events have probability zero - they can never occur, like rolling a seven on a standard six-sided die. Certain events have probability one - they always occur, like rolling a number between one and six on the same die.", 10000);
+            }
+
+            async showProbabilitySpectrum() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 8000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('The Probability Spectrum', center.x, 50, 28, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                            
+                            // Horizontal spectrum
+                            const spectrumY = center.y;
+                            const spectrumWidth = 600;
+                            const spectrumX = center.x - spectrumWidth/2;
+                            
+                            if (progress > 0.1) {
+                                const spectrumProgress = (progress - 0.1) * 1.5;
+                                
+                                // Gradient bar
+                                if (spectrumProgress > 0) {
+                                    ctx.globalAlpha = spectrumProgress;
+                                    
+                                    const gradient = ctx.createLinearGradient(spectrumX, spectrumY, spectrumX + spectrumWidth, spectrumY);
+                                    gradient.addColorStop(0, '#ef4444');
+                                    gradient.addColorStop(0.5, '#fbbf24');
+                                    gradient.addColorStop(1, '#10b981');
+                                    
+                                    ctx.fillStyle = gradient;
+                                    ctx.fillRect(spectrumX, spectrumY - 20, spectrumWidth, 40);
+                                    
+                                    ctx.strokeStyle = '#f8fafc';
+                                    ctx.lineWidth = 2;
+                                    ctx.strokeRect(spectrumX, spectrumY - 20, spectrumWidth, 40);
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                                
+                                // Scale markers
+                                if (spectrumProgress > 0.3) {
+                                    const markerProgress = (spectrumProgress - 0.3) * 1.43;
+                                    
+                                    const markers = [0, 0.25, 0.5, 0.75, 1];
+                                    markers.forEach((value, index) => {
+                                        if (markerProgress > index * 0.1) {
+                                            const markerX = spectrumX + value * spectrumWidth;
+                                            DrawingUtils.drawLine(markerX, spectrumY - 30, markerX, spectrumY + 30, '#f8fafc', 2);
+                                            DrawingUtils.drawText(value.toString(), markerX, spectrumY + 50, 14, '#f8fafc', 'Segoe UI', 'center', 'bold');
+                                        }
+                                    });
+                                }
+                            }
+                            
+                            // Examples with probabilities
+                            if (progress > 0.6) {
+                                const exampleProgress = (progress - 0.6) * 2.5;
+                                
+                                const examples = [
+                                    { prob: 0, text: 'Impossible', color: '#ef4444' },
+                                    { prob: 0.1, text: 'Very Unlikely', color: '#f97316' },
+                                    { prob: 0.5, text: 'Even Chance', color: '#fbbf24' },
+                                    { prob: 0.9, text: 'Very Likely', color: '#84cc16' },
+                                    { prob: 1, text: 'Certain', color: '#10b981' }
+                                ];
+                                
+                                examples.forEach((example, index) => {
+                                    const exampleItemProgress = Math.max(0, Math.min(1, (exampleProgress - index * 0.15) * 3));
+                                    if (exampleItemProgress > 0) {
+                                        const exampleX = spectrumX + example.prob * spectrumWidth;
+                                        const y = spectrumY + 100 + (index % 2) * 40;
+                                        
+                                        ctx.globalAlpha = exampleItemProgress;
+                                        
+                                        // Arrow pointing to position
+                                        DrawingUtils.drawLine(exampleX, spectrumY + 30, exampleX, y - 10, example.color, 2);
+                                        DrawingUtils.drawCircle(exampleX, y, 8, example.color);
+                                        
+                                        // Label
+                                        DrawingUtils.drawBox(exampleX - 50, y + 15, 100, 30, `rgba(${example.color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, 0.2)`, example.color, 1);
+                                        DrawingUtils.drawText(example.text, exampleX, y + 30, 12, example.color, 'Segoe UI', 'center', 'bold');
+                                        
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                ]);
+                sequence.taskId = this.taskId; sequence.runId = this.runId;
+                AppManager.startAnimation(sequence);
+                await this.safeSpeak("The probability spectrum shows the full range from impossible to certain. Notice how probabilities near 0.5 represent maximum uncertainty, while values approaching the extremes indicate increasing certainty in either direction.", 8000);
+            }
+        }
+        // Interactive Examples Section
+        class InteractiveExamplesSection extends BaseSection {
+            constructor(taskId, runId) {
+                super('Interactive Examples', taskId, runId);
+            }
+
+            async executeSteps() {
+                if (!this.isActive) return;
+                
+                await this.safeSpeak("Let's explore probability through real-world examples! We'll work through die rolls, card draws, tennis matches, and birthday probabilities.", 500);
+                
+                await this.showDieExample();
+                
+                if (!this.isActive) return;
+                await this.showCardExample();
+                
+                if (!this.isActive) return;
+                await this.showTennisExample();
+                
+                if (!this.isActive) return;
+                await this.showBirthdayExample();
+                
+                if (!this.isActive) return;
+                await this.safeSpeak("These examples demonstrate how complementary events and probability ranges apply to everyday situations, making abstract concepts concrete and meaningful.", 3000);
+            }
+
+            async showDieExample() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 10000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Example 1: Die Outcomes > 4 vs ≤ 4', center.x, 50, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Draw die faces
+                            const dieSize = 60;
+                            const startX = center.x - 180;
+                            const dieY = 120;
+                            
+                            if (progress > 0.1) {
+                                const diceProgress = (progress - 0.1) * 1.5;
+                                
+                                for (let i = 1; i <= 6; i++) {
+                                    const dieProgress = Math.max(0, Math.min(1, (diceProgress - (i-1) * 0.15) * 3));
+                                    if (dieProgress > 0) {
+                                        const x = startX + (i-1) * 70;
+                                        ctx.globalAlpha = dieProgress;
+                                        
+                                        let color = '#f8fafc';
+                                        if (i > 4) color = '#ec4899'; // Event E
+                                        else color = '#10b981'; // Complement
+                                        
+                                        DrawingUtils.drawDie(x, dieY, dieSize, i, color);
+                                        
+                                        ctx.globalAlpha = 1;
+                                    }
+                                }
+                            }
+                            
+                            // Event definitions
+                            if (progress > 0.4) {
+                                const eventProgress = (progress - 0.4) * 1.67;
+                                
+                                // Event E (> 4)
+                                if (eventProgress > 0) {
+                                    ctx.globalAlpha = eventProgress;
+                                    
+                                    DrawingUtils.drawBox(center.x - 300, 230, 250, 100, 'rgba(236, 72, 153, 0.2)', '#ec4899', 2);
+                                    DrawingUtils.drawText('Event E: Outcome > 4', center.x - 175, 255, 16, '#ec4899', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('Outcomes: {5, 6}', center.x - 175, 280, 14, '#f8fafc', 'Segoe UI', 'center');
+                                    DrawingUtils.drawText('P(E) = 2/6 = 1/3', center.x - 175, 305, 14, '#ec4899', 'Courier New', 'center', 'bold');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                                
+                                // Complement (≤ 4)
+                                if (eventProgress > 0.3) {
+                                    const compProgress = (eventProgress - 0.3) * 1.43;
+                                    ctx.globalAlpha = compProgress;
+                                    
+                                    DrawingUtils.drawBox(center.x + 50, 230, 250, 100, 'rgba(16, 185, 129, 0.2)', '#10b981', 2);
+                                    DrawingUtils.drawText('Event Ē: Outcome ≤ 4', center.x + 175, 255, 16, '#10b981', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('Outcomes: {1, 2, 3, 4}', center.x + 175, 280, 14, '#f8fafc', 'Segoe UI', 'center');
+                                    DrawingUtils.drawText('P(Ē) = 4/6 = 2/3', center.x + 175, 305, 14, '#10b981', 'Courier New', 'center', 'bold');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                            
+                            // Verification
+                            if (progress > 0.7) {
+                                const verifyProgress = (progress - 0.7) * 3.33;
+                                ctx.globalAlpha = verifyProgress;
+                                
+                                DrawingUtils.drawBox(center.x - 200, 360, 400, 80, 'rgba(59, 130, 246, 0.2)', '#3b82f6', 3);
+                                DrawingUtils.drawText('Verification: P(E) + P(Ē) = 1/3 + 2/3 = 1 ✓', center.x, 385, 16, '#3b82f6', 'Courier New', 'center', 'bold');
+                                DrawingUtils.drawText('All outcomes covered: {1,2,3,4,5,6} ✓', center.x, 415, 14, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            // Interactive probability visualization
+                            if (progress > 0.85) {
+                                const probProgress = (progress - 0.85) * 6.67;
+                                
+                                const pieY = 500;
+                                const pieRadius = 80;
+                                
+                                // Pie chart
+                                if (probProgress > 0) {
+                                    ctx.globalAlpha = probProgress;
+                                    
+                                    // P(E) = 1/3
+                                    DrawingUtils.drawPieSlice(center.x, pieY, pieRadius, 0, 2 * Math.PI / 3, '#ec4899', '#fff', 2);
+                                    
+                                    // P(Ē) = 2/3
+                                    DrawingUtils.drawPieSlice(center.x, pieY, pieRadius, 2 * Math.PI / 3, 2 * Math.PI, '#10b981', '#fff', 2);
+                                    
+                                    // Labels
+                                    DrawingUtils.drawText('E (1/3)', center.x + 30, pieY - 30, 12, '#ec4899', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('Ē (2/3)', center.x - 30, pieY + 30, 12, '#10b981', 'Segoe UI', 'center', 'bold');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                        }
+                    }
+                ]);
+                sequence.taskId = this.taskId; sequence.runId = this.runId;
+                AppManager.startAnimation(sequence);
+                await this.safeSpeak("Example 1: Rolling a die and getting a number greater than 4. Event E includes outcomes 5 and 6, with probability 2/6 or 1/3. The complement includes 1, 2, 3, and 4, with probability 4/6 or 2/3. Together they sum to 1.", 10000);
+            }
+
+            async showCardExample() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 12000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Example 2: Drawing Aces from a Deck', center.x, 50, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Deck representation
+                            if (progress > 0.1) {
+                                const deckProgress = (progress - 0.1) * 1.5;
+                                
+                                // Show some cards
+                                const cardWidth = 40;
+                                const cardHeight = 60;
+                                const startX = center.x - 200;
+                                
+                                // Aces
+                                const aces = ['A♠', 'A♥', 'A♦', 'A♣'];
+                                aces.forEach((ace, index) => {
+                                    const aceProgress = Math.max(0, Math.min(1, (deckProgress - index * 0.1) * 3));
+                                    if (aceProgress > 0) {
+                                        const x = startX + index * 50;
+                                        ctx.globalAlpha = aceProgress;
+                                        
+                                        DrawingUtils.drawCard(x, 100, cardWidth, cardHeight, ace.slice(1), ace.slice(0, 1), true);
+                                        
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                                
+                                // Some non-aces
+                                if (deckProgress > 0.5) {
+                                    const nonAceProgress = (deckProgress - 0.5) * 2;
+                                    const nonAces = ['K♠', 'Q♥', 'J♦', '10♣', '9♠'];
+                                    
+                                    nonAces.forEach((card, index) => {
+                                        if (nonAceProgress > index * 0.1) {
+                                            const x = startX + 250 + index * 30;
+                                            DrawingUtils.drawCard(x, 100, cardWidth * 0.8, cardHeight * 0.8, card.slice(-1), card.slice(0, -1), true);
+                                        }
+                                    });
+                                    
+                                    DrawingUtils.drawText('...', startX + 400, 130, 20, '#f8fafc', 'Segoe UI', 'center');
+                                }
+                            }
+                            
+                            // Event definitions
+                            if (progress > 0.3) {
+                                const eventProgress = (progress - 0.3) * 1.67;
+                                
+                                // Event E (Drawing an Ace)
+                                if (eventProgress > 0) {
+                                    ctx.globalAlpha = eventProgress;
+                                    
+                                    DrawingUtils.drawBox(center.x - 300, 200, 250, 120, 'rgba(236, 72, 153, 0.2)', '#ec4899', 2);
+                                    DrawingUtils.drawText('Event E: Drawing an Ace', center.x - 175, 225, 16, '#ec4899', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('Favorable outcomes: 4', center.x - 175, 250, 14, '#f8fafc', 'Segoe UI', 'center');
+                                    DrawingUtils.drawText('Total outcomes: 52', center.x - 175, 270, 14, '#f8fafc', 'Segoe UI', 'center');
+                                    DrawingUtils.drawText('P(E) = 4/52 = 1/13', center.x - 175, 295, 14, '#ec4899', 'Courier New', 'center', 'bold');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                                
+                                // Complement (Not an Ace)
+                                if (eventProgress > 0.3) {
+                                    const compProgress = (eventProgress - 0.3) * 1.43;
+                                    ctx.globalAlpha = compProgress;
+                                    
+                                    DrawingUtils.drawBox(center.x + 50, 200, 250, 120, 'rgba(16, 185, 129, 0.2)', '#10b981', 2);
+                                    DrawingUtils.drawText('Event Ē: Not an Ace', center.x + 175, 225, 16, '#10b981', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('Favorable outcomes: 48', center.x + 175, 250, 14, '#f8fafc', 'Segoe UI', 'center');
+                                    DrawingUtils.drawText('Total outcomes: 52', center.x + 175, 270, 14, '#f8fafc', 'Segoe UI', 'center');
+                                    DrawingUtils.drawText('P(Ē) = 48/52 = 12/13', center.x + 175, 295, 14, '#10b981', 'Courier New', 'center', 'bold');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                            
+                            // Calculation steps
+                            if (progress > 0.6) {
+                                const calcProgress = (progress - 0.6) * 2.5;
+                                
+                                const steps = [
+                                    'Step 1: Count favorable outcomes for each event',
+                                    'Step 2: Calculate P(E) = 4/52 = 1/13 ≈ 0.077',
+                                    'Step 3: Calculate P(Ē) = 1 - P(E) = 1 - 1/13 = 12/13 ≈ 0.923'
+                                ];
+                                
+                                steps.forEach((step, index) => {
+                                    const stepProgress = Math.max(0, Math.min(1, (calcProgress - index * 0.25) * 2));
+                                    if (stepProgress > 0) {
+                                        const y = 350 + index * 30;
+                                        ctx.globalAlpha = stepProgress;
+                                        
+                                        DrawingUtils.drawCircle(center.x - 250, y - 5, 4, '#fbbf24');
+                                        DrawingUtils.drawText(step, center.x - 230, y, 14, '#f8fafc', 'Segoe UI', 'left');
+                                        
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                            }
+                            
+                            // Verification
+                            if (progress > 0.85) {
+                                const verifyProgress = (progress - 0.85) * 6.67;
+                                ctx.globalAlpha = verifyProgress;
+                                
+                                DrawingUtils.drawBox(center.x - 200, 450, 400, 60, 'rgba(59, 130, 246, 0.2)', '#3b82f6', 3);
+                                DrawingUtils.drawText('Verification: 1/13 + 12/13 = 13/13 = 1 ✓', center.x, 475, 16, '#3b82f6', 'Courier New', 'center', 'bold');
+                                DrawingUtils.drawText('Much more likely to NOT draw an ace!', center.x, 495, 14, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+                sequence.taskId = this.taskId; sequence.runId = this.runId;
+                AppManager.startAnimation(sequence);
+                await this.safeSpeak("Example 2: Drawing an ace from a standard deck. There are 4 aces out of 52 cards, so P of ace equals 1/13. The complement, not drawing an ace, has probability 12/13. Notice how much more likely it is to not draw an ace.", 12000);
+            }
+
+            async showTennisExample() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 9000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Example 3: Tennis Match - Sangeeta vs Reshma', center.x, 50, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Tennis court representation
+                            if (progress > 0.1) {
+                                const courtProgress = (progress - 0.1) * 1.5;
+                                ctx.globalAlpha = courtProgress;
+                                
+                                // Simple court
+                                const courtWidth = 300;
+                                const courtHeight = 150;
+                                const courtX = center.x - courtWidth/2;
+                                const courtY = 120;
+                                
+                                DrawingUtils.drawBox(courtX, courtY, courtWidth, courtHeight, 'rgba(34, 197, 94, 0.2)', '#22c55e', 2);
+                                DrawingUtils.drawLine(courtX, courtY + courtHeight/2, courtX + courtWidth, courtY + courtHeight/2, '#fff', 2);
+                                DrawingUtils.drawLine(courtX + courtWidth/2, courtY + 20, courtX + courtWidth/2, courtY + courtHeight - 20, '#fff', 3);
+                                
+                                // Players
+                                DrawingUtils.drawCircle(courtX + 75, courtY + courtHeight/4, 15, '#ec4899');
+                                DrawingUtils.drawText('Sangeeta', courtX + 75, courtY + courtHeight/4 + 35, 12, '#ec4899', 'Segoe UI', 'center', 'bold');
+                                
+                                DrawingUtils.drawCircle(courtX + 225, courtY + 3*courtHeight/4, 15, '#10b981');
+                                DrawingUtils.drawText('Reshma', courtX + 225, courtY + 3*courtHeight/4 + 35, 12, '#10b981', 'Segoe UI', 'center', 'bold');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            // Given probability
+                            if (progress > 0.3) {
+                                const givenProgress = (progress - 0.3) * 1.67;
+                                ctx.globalAlpha = givenProgress;
+                                
+                                DrawingUtils.drawBox(center.x - 200, 300, 400, 60, 'rgba(251, 191, 36, 0.2)', '#fbbf24', 2);
+                                DrawingUtils.drawText('Given: P(Sangeeta wins) = 0.65', center.x, 325, 18, '#fbbf24', 'Courier New', 'center', 'bold');
+                                DrawingUtils.drawText('Find: P(Reshma wins)', center.x, 345, 16, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            // Solution
+                            if (progress > 0.5) {
+                                const solutionProgress = (progress - 0.5) * 2;
+                                
+                                // Event definitions
+                                if (solutionProgress > 0) {
+                                    ctx.globalAlpha = solutionProgress;
+                                    
+                                    DrawingUtils.drawBox(center.x - 300, 380, 250, 100, 'rgba(236, 72, 153, 0.2)', '#ec4899', 2);
+                                    DrawingUtils.drawText('Event S: Sangeeta wins', center.x - 175, 405, 14, '#ec4899', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('P(S) = 0.65', center.x - 175, 430, 16, '#ec4899', 'Courier New', 'center', 'bold');
+                                    DrawingUtils.drawText('(65% chance)', center.x - 175, 455, 12, '#f8fafc', 'Segoe UI', 'center');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                                
+                                if (solutionProgress > 0.3) {
+                                    const reshmaProgress = (solutionProgress - 0.3) * 1.43;
+                                    ctx.globalAlpha = reshmaProgress;
+                                    
+                                    DrawingUtils.drawBox(center.x + 50, 380, 250, 100, 'rgba(16, 185, 129, 0.2)', '#10b981', 2);
+                                    DrawingUtils.drawText('Event R: Reshma wins', center.x + 175, 405, 14, '#10b981', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('P(R) = 1 - 0.65 = 0.35', center.x + 175, 430, 14, '#10b981', 'Courier New', 'center', 'bold');
+                                    DrawingUtils.drawText('(35% chance)', center.x + 175, 455, 12, '#f8fafc', 'Segoe UI', 'center');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                            
+                            // Visual probability comparison
+                            if (progress > 0.75) {
+                                const compareProgress = (progress - 0.75) * 4;
+                                
+                                // Bar chart
+                                const barWidth = 60;
+                                const maxHeight = 100;
+                                
+                                // Sangeeta's bar
+                                const sangeeta_height = maxHeight * 0.65 * compareProgress;
+                                DrawingUtils.drawBox(center.x - 80, 500 + maxHeight - sangeeta_height, barWidth, sangeeta_height, 'rgba(236, 72, 153, 0.6)', '#ec4899', 2);
+                                
+                                // Reshma's bar
+                                const reshma_height = maxHeight * 0.35 * compareProgress;
+                                DrawingUtils.drawBox(center.x + 20, 500 + maxHeight - reshma_height, barWidth, reshma_height, 'rgba(16, 185, 129, 0.6)', '#10b981', 2);
+                                
+                                if (compareProgress > 0.5) {
+                                    DrawingUtils.drawText('0.65', center.x - 50, 490, 14, '#ec4899', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('0.35', center.x + 50, 520, 14, '#10b981', 'Segoe UI', 'center', 'bold');
+                                    
+                                    DrawingUtils.drawText('Sangeeta', center.x - 50, 620, 12, '#f8fafc', 'Segoe UI', 'center');
+                                    DrawingUtils.drawText('Reshma', center.x + 50, 620, 12, '#f8fafc', 'Segoe UI', 'center');
+                                }
+                            }
+                        }
+                    }
+                ]);
+                sequence.taskId = this.taskId; sequence.runId = this.runId;
+                AppManager.startAnimation(sequence);
+                await this.safeSpeak("Example 3: In a tennis match, if Sangeeta has a 65% chance of winning, then Reshma's probability of winning is simply 1 minus 0.65, which equals 0.35 or 35%. The two probabilities must sum to one since one player must win.", 9000);
+            }
+
+            async showBirthdayExample() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 11000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Example 4: Birthday Probability', center.x, 50, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Calendar representation
+                            if (progress > 0.1) {
+                                const calendarProgress = (progress - 0.1) * 1.5;
+                                
+                                // Simple calendar grid
+                                const gridSize = 20;
+                                const cols = 20;
+                                const rows = 18; // Approximately 365 days
+                                const startX = center.x - (cols * gridSize) / 2;
+                                const startY = 100;
+                                
+                                for (let row = 0; row < rows; row++) {
+                                    for (let col = 0; col < cols; col++) {
+                                        const dayNumber = row * cols + col + 1;
+                                        if (dayNumber <= 365) {
+                                            const cellProgress = Math.max(0, Math.min(1, (calendarProgress - dayNumber * 0.001) * 3));
+                                            if (cellProgress > 0) {
+                                                const x = startX + col * gridSize;
+                                                const y = startY + row * gridSize;
+                                                
+                                                ctx.globalAlpha = cellProgress * 0.7;
+                                                let color = '#3b82f6';
+                                                if (dayNumber === 150) color = '#ec4899'; // Highlight specific birthday
+                                                
+                                                DrawingUtils.drawBox(x, y, gridSize - 1, gridSize - 1, color + '40', color, 1);
+                                                ctx.globalAlpha = 1;
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                if (calendarProgress > 0.5) {
+                                    DrawingUtils.drawText('365 possible birthdays', center.x, startY + rows * gridSize + 20, 14, '#f8fafc', 'Segoe UI', 'center');
+                                }
+                            }
+                            
+                            // Problem setup
+                            if (progress > 0.3) {
+                                const problemProgress = (progress - 0.3) * 1.67;
+                                ctx.globalAlpha = problemProgress;
+                                
+                                DrawingUtils.drawBox(center.x - 300, 480, 600, 80, 'rgba(251, 191, 36, 0.2)', '#fbbf24', 2);
+                                DrawingUtils.drawText('Problem: What is the probability your birthday is NOT June 15th?', center.x, 505, 16, '#fbbf24', 'Segoe UI', 'center', 'bold');
+                                DrawingUtils.drawText('(Assuming all days equally likely)', center.x, 530, 14, '#f8fafc', 'Segoe UI', 'center');
+                                DrawingUtils.drawText('(Non-leap year: 365 days)', center.x, 550, 12, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            // Solution
+                            if (progress > 0.5) {
+                                const solutionProgress = (progress - 0.5) * 2;
+                                
+                                const steps = [
+                                    'Event E: Birthday IS June 15th',
+                                    'P(E) = 1/365 ≈ 0.00274',
+                                    'Event Ē: Birthday is NOT June 15th',
+                                    'P(Ē) = 1 - 1/365 = 364/365 ≈ 0.99726'
+                                ];
+                                
+                                steps.forEach((step, index) => {
+                                    const stepProgress = Math.max(0, Math.min(1, (solutionProgress - index * 0.2) * 2.5));
+                                    if (stepProgress > 0) {
+                                        const y = 580 + index * 25;
+                                        ctx.globalAlpha = stepProgress;
+                                        
+                                        let color = '#f8fafc';
+                                        if (step.includes('P(E)') && !step.includes('NOT')) color = '#ec4899';
+                                        if (step.includes('P(Ē)')) color = '#10b981';
+                                        
+                                        DrawingUtils.drawCircle(center.x - 280, y - 5, 4, color === '#f8fafc' ? '#8b5cf6' : color);
+                                        DrawingUtils.drawText(step, center.x - 260, y, 14, color, 'Segoe UI', 'left');
+                                        
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                            }
+                            
+                            // Final insight
+                            if (progress > 0.8) {
+                                const insightProgress = (progress - 0.8) * 5;
+                                ctx.globalAlpha = insightProgress;
+                                
+                                DrawingUtils.drawBox(center.x - 250, 700, 500, 60, 'rgba(139, 92, 246, 0.2)', '#8b5cf6', 3);
+                                DrawingUtils.drawText('Insight: 99.726% chance your birthday is NOT June 15th!', center.x, 725, 14, '#8b5cf6', 'Segoe UI', 'center', 'bold');
+                                DrawingUtils.drawText('Very high probability - almost certain!', center.x, 745, 12, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+                sequence.taskId = this.taskId; sequence.runId = this.runId;
+                AppManager.startAnimation(sequence);
+                await this.safeSpeak("Example 4: The probability your birthday is NOT June 15th is 364 out of 365, or approximately 99.726%. This demonstrates how complement probabilities can be much easier to calculate than the original event probability.", 11000);
+            }
+        }
+
+        // Number Line Section
+        class NumberLineSection extends BaseSection {
+            constructor(taskId, runId) {
+                super('Probability Number Line', taskId, runId);
+            }
+
+            async executeSteps() {
+                if (!this.isActive) return;
+                
+                await this.safeSpeak("Let's explore the probability number line - a powerful visualization tool that shows how all probabilities map onto the range from zero to one.", 500);
+                
+                await this.showNumberLineIntroduction();
+                
+                if (!this.isActive) return;
+                await this.showInteractiveNumberLine();
+                
+                if (!this.isActive) return;
+                await this.showComplementsOnNumberLine();
+                
+                if (!this.isActive) return;
+                await this.safeSpeak("The probability number line provides an intuitive way to visualize and compare probabilities, making abstract concepts concrete and relationships clear.", 3000);
+            }
+
+            async showNumberLineIntroduction() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 8000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('The Probability Number Line', center.x, 60, 32, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                            
+                            // Main number line
+                            const lineY = center.y - 50;
+                            const lineWidth = 600;
+                            const lineX = center.x - lineWidth/2;
+                            
+                            if (progress > 0.2) {
+                                const lineProgress = (progress - 0.2) * 1.5;
+                                ctx.globalAlpha = lineProgress;
+                                
+                                DrawingUtils.drawNumberLine(lineX, lineY, lineWidth, 0, 1, [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]);
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                            
+                            // Regions explanation
+                            if (progress > 0.4) {
+                                const regionProgress = (progress - 0.4) * 1.67;
+                                
+                                // Impossible region
+                                if (regionProgress > 0) {
+                                    ctx.globalAlpha = regionProgress;
+                                    
+                                    DrawingUtils.drawBox(lineX - 50, lineY + 50, 100, 80, 'rgba(239, 68, 68, 0.2)', '#ef4444', 2);
+                                    DrawingUtils.drawText('Impossible', lineX, lineY + 75, 14, '#ef4444', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('P = 0', lineX, lineY + 95, 12, '#ef4444', 'Courier New', 'center');
+                                    DrawingUtils.drawText('Never happens', lineX, lineY + 115, 10, '#f8fafc', 'Segoe UI', 'center');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                                
+                                // Uncertain region
+                                if (regionProgress > 0.3) {
+                                    const uncertainProgress = (regionProgress - 0.3) * 1.43;
+                                    ctx.globalAlpha = uncertainProgress;
+                                    
+                                    DrawingUtils.drawBox(center.x - 150, lineY + 50, 300, 80, 'rgba(251, 191, 36, 0.2)', '#fbbf24', 2);
+                                    DrawingUtils.drawText('Uncertain Events', center.x, lineY + 75, 14, '#fbbf24', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('0 < P < 1', center.x, lineY + 95, 12, '#fbbf24', 'Courier New', 'center');
+                                    DrawingUtils.drawText('May or may not happen', center.x, lineY + 115, 10, '#f8fafc', 'Segoe UI', 'center');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                                
+                                // Certain region
+                                if (regionProgress > 0.6) {
+                                    const certainProgress = (regionProgress - 0.6) * 2.5;
+                                    ctx.globalAlpha = certainProgress;
+                                    
+                                    DrawingUtils.drawBox(lineX + lineWidth - 50, lineY + 50, 100, 80, 'rgba(16, 185, 129, 0.2)', '#10b981', 2);
+                                    DrawingUtils.drawText('Certain', lineX + lineWidth, lineY + 75, 14, '#10b981', 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText('P = 1', lineX + lineWidth, lineY + 95, 12, '#10b981', 'Courier New', 'center');
+                                    DrawingUtils.drawText('Always happens', lineX + lineWidth, lineY + 115, 10, '#f8fafc', 'Segoe UI', 'center');
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            }
+                            
+                            // Key insights
+                            if (progress > 0.7) {
+                                const insightProgress = (progress - 0.7) * 3.33;
+                                
+                                const insights = [
+                                    'All probabilities must fall on this line',
+                                    'Distance from 0.5 indicates degree of certainty',
+                                    'Complementary events are symmetric around 0.5'
+                                ];
+                                
+                                insights.forEach((insight, index) => {
+                                    const insightItemProgress = Math.max(0, Math.min(1, (insightProgress - index * 0.25) * 2));
+                                    if (insightItemProgress > 0) {
+                                        const y = lineY + 180 + index * 25;
+                                        ctx.globalAlpha = insightItemProgress;
+                                        
+                                        DrawingUtils.drawCircle(center.x - 250, y - 5, 4, '#8b5cf6');
+                                        DrawingUtils.drawText(insight, center.x - 230, y, 14, '#f8fafc', 'Segoe UI', 'left');
+                                        
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                ]);
+                sequence.taskId = this.taskId; sequence.runId = this.runId;
+                AppManager.startAnimation(sequence);
+                await this.safeSpeak("The probability number line maps all possible probabilities from zero to one. Impossible events sit at zero, certain events at one, and uncertain events fill the space between. Distance from 0.5 indicates how certain or uncertain an event is.", 8000);
+            }
+
+            async showInteractiveNumberLine() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 12000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Interactive Probability Examples', center.x, 50, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Number line
+                            const lineY = 150;
+                            const lineWidth = 600;
+                            const lineX = center.x - lineWidth/2;
+                            
+                            DrawingUtils.drawNumberLine(lineX, lineY, lineWidth, 0, 1, [0.2, 0.4, 0.6, 0.8]);
+                            
+                            // Animated examples
+                            const examples = [
+                                { prob: 0.1, label: 'Rain tomorrow', color: '#f97316', description: 'Very unlikely' },
+                                { prob: 0.3, label: 'Drawing ace', color: '#eab308', description: 'Unlikely' },
+                                { prob: 0.5, label: 'Coin heads', color: '#fbbf24', description: 'Even chance' },
+                                { prob: 0.7, label: 'Sunny day', color: '#84cc16', description: 'Likely' },
+                                { prob: 0.9, label: 'Sun rises', color: '#10b981', description: 'Very likely' }
+                            ];
+                            
+                            examples.forEach((example, index) => {
+                                const exampleProgress = Math.max(0, Math.min(1, (progress - index * 0.15) * 2));
+                                if (exampleProgress > 0) {
+                                    const exampleX = lineX + example.prob * lineWidth;
+                                    const animatedProb = DrawingUtils.animateNumber(0, example.prob, exampleProgress, 2);
+                                    
+                                    ctx.globalAlpha = exampleProgress;
+                                    
+                                    // Position on line
+                                    DrawingUtils.drawCircle(exampleX, lineY, 8, example.color);
+                                    DrawingUtils.drawText(animatedProb, exampleX, lineY - 20, 12, example.color, 'Courier New', 'center', 'bold');
+                                    
+                                    // Label and description
+                                    const labelY = 220 + (index % 3) * 80;
+                                    const labelX = 100 + (index % 2) * 350;
+                                    
+                                    DrawingUtils.drawBox(labelX - 80, labelY - 20, 160, 60, `rgba(${example.color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, 0.2)`, example.color, 2);
+                                    DrawingUtils.drawText(example.label, labelX, labelY - 5, 14, example.color, 'Segoe UI', 'center', 'bold');
+                                    DrawingUtils.drawText(example.description, labelX, labelY + 15, 12, '#f8fafc', 'Segoe UI', 'center');
+                                    
+                                    // Connection line
+                                    DrawingUtils.drawLine(exampleX, lineY + 15, labelX, labelY - 25, example.color, 1, [2, 2]);
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            });
+                            
+                            // Uncertainty visualization
+                            if (progress > 0.8) {
+                                const uncertaintyProgress = (progress - 0.8) * 5;
+                                ctx.globalAlpha = uncertaintyProgress;
+                                
+                                // Draw uncertainty zones
+                                DrawingUtils.drawBox(lineX + lineWidth * 0.4, lineY + 80, lineWidth * 0.2, 20, 'rgba(251, 191, 36, 0.3)', '#fbbf24', 2);
+                                DrawingUtils.drawText('Maximum Uncertainty Zone', center.x, lineY + 110, 12, '#fbbf24', 'Segoe UI', 'center', 'bold');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+                sequence.taskId = this.taskId; sequence.runId = this.runId;
+                AppManager.startAnimation(sequence);
+                await this.safeSpeak("Here are real-world examples positioned on the probability line. Notice how probabilities near 0.5 represent maximum uncertainty, while those near the extremes indicate high confidence in either direction.", 12000);
+            }
+
+            async showComplementsOnNumberLine() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 10000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            DrawingUtils.drawText('Complementary Events on Number Line', center.x, 50, 26, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            // Number line
+                            const lineY = 200;
+                            const lineWidth = 600;
+                            const lineX = center.x - lineWidth/2;
+                            
+                            DrawingUtils.drawNumberLine(lineX, lineY, lineWidth, 0, 1, [0.25, 0.5, 0.75]);
+                            
+                            // Complementary pairs
+                            const pairs = [
+                                { p: 0.2, label: 'Rain', compLabel: 'No Rain' },
+                                { p: 0.35, label: 'Reshma wins', compLabel: 'Sangeeta wins' },
+                                { p: 0.7, label: 'Pass exam', compLabel: 'Fail exam' }
+                            ];
+                            
+                            pairs.forEach((pair, index) => {
+                                const pairProgress = Math.max(0, Math.min(1, (progress - index * 0.25) * 2));
+                                if (pairProgress > 0) {
+                                    const eventX = lineX + pair.p * lineWidth;
+                                    const compX = lineX + (1 - pair.p) * lineWidth;
+                                    
+                                    ctx.globalAlpha = pairProgress;
+                                    
+                                    // Event E
+                                    DrawingUtils.drawCircle(eventX, lineY, 10, '#ec4899');
+                                    DrawingUtils.drawText(pair.p.toFixed(2), eventX, lineY - 25, 12, '#ec4899', 'Courier New', 'center', 'bold');
+                                    DrawingUtils.drawText(pair.label, eventX, lineY + 35, 12, '#ec4899', 'Segoe UI', 'center', 'bold');
+                                    
+                                    // Complement Ē
+                                    DrawingUtils.drawCircle(compX, lineY, 10, '#10b981');
+                                    DrawingUtils.drawText((1 - pair.p).toFixed(2), compX, lineY - 25, 12, '#10b981', 'Courier New', 'center', 'bold');
+                                    DrawingUtils.drawText(pair.compLabel, compX, lineY + 35, 12, '#10b981', 'Segoe UI', 'center', 'bold');
+                                    
+                                    // Connection arc showing complement relationship
+                                    if (pairProgress > 0.5) {
+                                        const arcProgress = (pairProgress - 0.5) * 2;
+                                        ctx.globalAlpha = arcProgress;
+                                        
+                                        const midX = (eventX + compX) / 2;
+                                        const arcRadius = Math.abs(compX - eventX) / 2;
+                                        
+                                        DrawingUtils.drawArc(midX, lineY - 60, arcRadius, 0, Math.PI, '#8b5cf6', 2);
+                                        DrawingUtils.drawText('Complements', midX, lineY - 80, 12, '#8b5cf6', 'Segoe UI', 'center', 'bold');
+                                        
+                                        ctx.globalAlpha = 1;
+                                    }
+                                    
+                                    ctx.globalAlpha = 1;
+                                }
+                            });
+                            
+                            // Symmetry explanation
+                            if (progress > 0.8) {
+                                const symmetryProgress = (progress - 0.8) * 5;
+                                ctx.globalAlpha = symmetryProgress;
+                                
+                                // Center line at 0.5
+                                const centerX = lineX + lineWidth * 0.5;
+                                DrawingUtils.drawLine(centerX, lineY - 100, centerX, lineY + 80, '#fbbf24', 3, [5, 5]);
+                                DrawingUtils.drawText('0.5', centerX, lineY + 100, 14, '#fbbf24', 'Courier New', 'center', 'bold');
+                                
+                                DrawingUtils.drawBox(center.x - 200, lineY + 120, 400, 60, 'rgba(139, 92, 246, 0.2)', '#8b5cf6', 2);
+                                DrawingUtils.drawText('Complementary events are symmetric around 0.5', center.x, lineY + 145, 14, '#8b5cf6', 'Segoe UI', 'center', 'bold');
+                                DrawingUtils.drawText('Their probabilities always sum to 1', center.x, lineY + 165, 12, '#f8fafc', 'Segoe UI', 'center');
+                                
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                ]);
+                sequence.taskId = this.taskId; sequence.runId = this.runId;
+                AppManager.startAnimation(sequence);
+                await this.safeSpeak("Complementary events appear as symmetric pairs on the number line. Notice how they're positioned equidistantly from 0.5, and their probabilities always sum to exactly one. This symmetry makes complement calculations intuitive and visual.", 10000);
+            }
+        }
+
+        // Complete Lesson Flow
+        class CompleteLessonFlow extends BaseSection {
+            constructor(taskId, runId) {
+                super('Complete Lesson', taskId, runId);
+            }
+
+            async executeSteps() {
+                if (!this.isActive) return;
+                
+                await this.safeSpeak("Welcome to the complete journey through Complementary Events and Probability Range. We'll explore all concepts systematically, building understanding progressively.", 500);
+                
+                AppManager.updateProgress(5);
+                
+                // Introduction
+                await this.showLessonIntroduction();
+                
+                if (!this.isActive) return;
+                AppManager.updateProgress(20);
+                
+                // Complementary Events
+                const complementSection = new ComplementaryEventsSection(this.taskId, this.runId);
+                await complementSection.start();
+                complementSection.destroy();
+                
+                if (!this.isActive) return;
+                AppManager.updateProgress(45);
+                
+                // Probability Range
+                const rangeSection = new ProbabilityRangeSection(this.taskId, this.runId);
+                await rangeSection.start();
+                rangeSection.destroy();
+                
+                if (!this.isActive) return;
+                AppManager.updateProgress(70);
+                
+                // Interactive Examples
+                const examplesSection = new InteractiveExamplesSection(this.taskId, this.runId);
+                await examplesSection.start();
+                examplesSection.destroy();
+                
+                if (!this.isActive) return;
+                AppManager.updateProgress(90);
+                
+                // Number Line
+                const numberLineSection = new NumberLineSection(this.taskId, this.runId);
+                await numberLineSection.start();
+                numberLineSection.destroy();
+                
+                if (!this.isActive) return;
+                AppManager.updateProgress(100);
+                
+                await this.safeSpeak("Congratulations! You have mastered complementary events and probability ranges. You now understand how events and their complements work together to form complete probability spaces within the fundamental range of zero to one.", 3000);
+            }
+
+            async showLessonIntroduction() {
+                const sequence = new AnimationSequence([
+                    {
+                        duration: 6000,
+                        draw: (progress) => {
+                            AppManager.clearCanvas();
+                            
+                            // Epic title animation
+                            const titleY = 60 + Math.sin(progress * Math.PI) * 15;
+                            const titleScale = 1 + Math.sin(progress * Math.PI * 2) * 0.05;
+                            
+                            ctx.save();
+                            ctx.translate(center.x, titleY);
+                            ctx.scale(titleScale, titleScale);
+                            
+                            DrawingUtils.drawText('Complementary Events', 0, 0, 36, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                            DrawingUtils.drawText('& Probability Range', 0, 40, 28, '#ec4899', 'Segoe UI', 'center', 'bold');
+                            
+                            ctx.restore();
+                            
+                            // Concept preview
+                            if (progress > 0.3) {
+                                const previewProgress = (progress - 0.3) * 1.43;
+                                
+                                const concepts = [
+                                    { name: 'Complementary Events', icon: '🔄', color: '#3b82f6' },
+                                    { name: 'Probability Range', icon: '📏', color: '#10b981' },
+                                    { name: 'Real Examples', icon: '🎲', color: '#fbbf24' },
+                                    { name: 'Number Line', icon: '📊', color: '#8b5cf6' }
+                                ];
+                                
+                                concepts.forEach((concept, index) => {
+                                    const conceptProgress = Math.max(0, Math.min(1, (previewProgress - index * 0.2) * 2));
+                                    if (conceptProgress > 0) {
+                                        const x = center.x - 300 + index * 200;
+                                        const y = 200;
+                                        
+                                        const bounce = 1 + Math.sin(conceptProgress * Math.PI) * 0.1;
+                                        ctx.save();
+                                        ctx.translate(x, y);
+                                        ctx.scale(bounce, bounce);
+                                        
+                                        ctx.globalAlpha = conceptProgress;
+                                        DrawingUtils.drawBox(-60, -30, 120, 60, `rgba(${concept.color.slice(1).match(/.{2}/g).map(x => parseInt(x, 16)).join(', ')}, 0.2)`, concept.color, 2);
+                                        DrawingUtils.drawText(concept.name, 0, 0, 12, concept.color, 'Segoe UI', 'center', 'bold');
+                                        
+                                        ctx.restore();
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                            }
+                            
+                            // Learning objectives
+                            if (progress > 0.6) {
+                                const objectiveProgress = (progress - 0.6) * 2.5;
+                                
+                                const objectives = [
+                                    'Understand complementary event relationships',
+                                    'Master the probability range 0 ≤ P(E) ≤ 1',
+                                    'Apply concepts to real-world problems',
+                                    'Visualize probabilities on number lines'
+                                ];
+                                
+                                objectives.forEach((objective, index) => {
+                                    const objProgress = Math.max(0, Math.min(1, (objectiveProgress - index * 0.2) * 3));
+                                    if (objProgress > 0) {
+                                        const y = 300 + index * 30;
+                                        ctx.globalAlpha = objProgress;
+                                        
+                                        DrawingUtils.drawCircle(center.x - 200, y - 5, 4, '#ec4899');
+                                        DrawingUtils.drawText(objective, center.x - 180, y, 14, '#f8fafc', 'Segoe UI', 'left');
+                                        
+                                        ctx.globalAlpha = 1;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                ]);
+                sequence.taskId = this.taskId; sequence.runId = this.runId;
+                AppManager.startAnimation(sequence);
+                await this.safeSpeak("Prepare for an enlightening journey through probability fundamentals. We'll master complementary events, explore the complete probability range, and see how these concepts apply to everyday situations through interactive visualizations.", 6000);
+            }
+        }
+
+        // Audio controls
+        document.getElementById('muteBtn').addEventListener('click', () => {
+            isMuted = !isMuted;
+            document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊';
+            if (isMuted) {
+                speechSynthesis.cancel();
+            }
+        });
+
+        // Initialize
+        window.addEventListener('load', () => {
+            initCanvas();
+            AppManager.clearCanvas();
+            
+            // Welcome animation
+            const welcomeSequence = new AnimationSequence([
+                {
+                    duration: 3000,
+                    draw: (progress) => {
+                        AppManager.clearCanvas();
+                        
+                        const titleProgress = DrawingUtils.easeOutBack(progress);
+                        DrawingUtils.drawText('Welcome to Probability Fundamentals', center.x, center.y - 50, 24 * titleProgress, '#3b82f6', 'Segoe UI', 'center', 'bold');
+                        
+                        if (progress > 0.5) {
+                            const subtitleProgress = (progress - 0.5) * 2;
+                            ctx.globalAlpha = subtitleProgress;
+                            DrawingUtils.drawText('Explore complementary events and probability ranges', center.x, center.y + 20, 16, '#ec4899', 'Segoe UI', 'center');
+                            ctx.globalAlpha = 1;
+                        }
+                    }
+                }
+            ]);
+            
+            AppManager.startAnimation(welcomeSequence);
+            AppManager.speak("Welcome to Complementary Events and Probability Range! Discover the fundamental concepts of probability through engaging animations and real-world examples.");
+        });
+
+        window.addEventListener('resize', () => {
+            initCanvas();
+            AppManager.clearCanvas();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Second Law of Motion - Physics in Motion</title>
+    <!-- GSAP for realistic animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Physics2DPlugin.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(147, 51, 234, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(147, 51, 234, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3.2rem;
+            background: linear-gradient(45deg, #f093fb, #f5576c, #4facfe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.95;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Demo Stage */
+        .demo-stage {
+            background: linear-gradient(to bottom, #1a1a3e, #2d2d5f, #3d3d7a);
+            border-radius: 25px;
+            height: 500px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            border: 4px solid rgba(147, 51, 234, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Info Overlay */
+        .info-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 15px;
+            padding: 15px 20px;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: 50;
+            max-width: 450px;
+        }
+
+        .info-overlay.show {
+            opacity: 1;
+        }
+
+        .info-title {
+            font-size: 1.2rem;
+            color: #f093fb;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .info-text {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+
+        /* Physics Data Display */
+        .physics-data {
+            position: absolute;
+            bottom: 75%;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            padding: 12px 18px;
+            backdrop-filter: blur(10px);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: 50;
+        }
+
+        .physics-data.show {
+            opacity: 1;
+        }
+
+        .data-item {
+            margin: 4px 0;
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .data-label {
+            color: #4facfe;
+        }
+
+        .data-value {
+            color: #f5576c;
+            font-weight: 600;
+        }
+
+        /* Impact Comparison Demo */
+        .impact-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 40px;
+        }
+
+        .impact-demo.active {
+            display: flex;
+        }
+
+        .impact-scenario {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .scenario-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #f093fb;
+            text-align: center;
+        }
+
+        .impact-object {
+            position: relative;
+        }
+
+        /* Table Tennis Ball */
+        .ping-pong {
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle at 30% 30%, #fff, #f0f0f0, #ddd);
+            border-radius: 50%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            position: absolute;
+            left: -200px;
+        }
+
+        /* Cricket Ball */
+        .cricket-ball {
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle at 30% 30%, #d32f2f, #b71c1c, #8b0000);
+            border-radius: 50%;
+            position: absolute;
+            left: -200px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        .cricket-ball::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            background: #fff;
+            transform: translateY(-50%);
+        }
+
+        /* Velocity trails */
+        .velocity-trail {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.6));
+            opacity: 0;
+            z-index: -1;
+        }
+
+        .velocity-trail.show {
+            opacity: 1;
+            animation: trailFade 2s ease-out forwards;
+        }
+
+        @keyframes trailFade {
+            0% { opacity: 1; width: 0; }
+            50% { opacity: 0.8; width: 150px; }
+            100% { opacity: 0; width: 200px; }
+        }
+
+        /* Person/Target */
+        .person {
+            font-size: 60px;
+            position: relative;
+        }
+
+        /* Impact waves */
+        .impact-wave {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .impact-wave.show-light {
+            animation: waveLight 1s ease-out forwards;
+        }
+
+        .impact-wave.show-hard {
+            animation: waveHard 1s ease-out forwards;
+        }
+
+        @keyframes waveLight {
+            0% {
+                width: 20px;
+                height: 20px;
+                opacity: 1;
+                border-color: rgba(76, 175, 80, 0.8);
+            }
+            100% {
+                width: 100px;
+                height: 100px;
+                opacity: 0;
+                border-color: rgba(76, 175, 80, 0);
+            }
+        }
+
+        @keyframes waveHard {
+            0% {
+                width: 20px;
+                height: 20px;
+                opacity: 1;
+                border-color: rgba(244, 67, 54, 0.8);
+            }
+            100% {
+                width: 150px;
+                height: 150px;
+                opacity: 0;
+                border-color: rgba(244, 67, 54, 0);
+            }
+        }
+
+        .impact-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            font-weight: bold;
+            opacity: 0;
+        }
+
+        /* Momentum Demo */
+        .momentum-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .momentum-demo.active {
+            display: flex;
+        }
+
+        .momentum-equation {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #f093fb;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 20px rgba(240, 147, 251, 0.5), 0 0 40px rgba(0, 0, 0, 0.8);
+        }
+
+        .momentum-track {
+            position: relative;
+            width: 90%;
+            height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            gap: 20px;
+        }
+
+        .momentum-lane {
+            position: relative;
+            height: 60px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+        }
+
+        .momentum-box {
+            position: absolute;
+            left: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-weight: bold;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .small-mass {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #4caf50, #45a049);
+        }
+
+        .large-mass {
+            width: 120px;
+            height: 80px;
+            background: linear-gradient(135deg, #ff5722, #e64a19);
+        }
+
+        .velocity-arrow {
+            position: absolute;
+            right: -50px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 30px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .velocity-label {
+            font-size: 0.8rem;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .momentum-value {
+            position: absolute;
+            right: 20px;
+            font-size: 1.2rem;
+            color: #fff;
+            font-weight: bold;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 8px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        /* Animation pulse for momentum boxes */
+        .momentum-box.pulse {
+            animation: momentumPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes momentumPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Car Push Demo */
+        .car-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .car-demo.active {
+            display: flex;
+        }
+
+        .road {
+            position: absolute;
+            bottom: 100px;
+            width: 100%;
+            height: 60px;
+            background: linear-gradient(to bottom, #424242, #212121);
+            border-top: 3px solid #ffd54f;
+            border-bottom: 3px solid #ffd54f;
+        }
+
+        .road::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: repeating-linear-gradient(
+                to right,
+                #fff 0px,
+                #fff 30px,
+                transparent 30px,
+                transparent 60px
+            );
+            transform: translateY(-50%);
+        }
+
+        .car {
+            position: absolute;
+            bottom: 130px;
+            left: 50px;
+            width: 120px;
+            height: 60px;
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+            border-radius: 10px 30px 5px 5px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .car::before,
+        .car::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            width: 25px;
+            height: 25px;
+            background: #333;
+            border-radius: 50%;
+            border: 3px solid #666;
+        }
+
+        .car::before {
+            left: 15px;
+        }
+
+        .car::after {
+            right: 15px;
+        }
+
+        /* Wheel rotation */
+        .car.moving .car::before,
+        .car.moving .car::after {
+            animation: wheelRotate 1s linear infinite;
+        }
+
+        @keyframes wheelRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .push-person {
+            position: absolute;
+            bottom: 130px;
+            left: 10px;
+            font-size: 50px;
+        }
+
+        .force-indicator {
+            position: absolute;
+            bottom: 200px;
+            left: 100px;
+            padding: 10px 20px;
+            background: rgba(240, 147, 251, 0.9);
+            border-radius: 20px;
+            font-weight: bold;
+            opacity: 0;
+        }
+
+        .force-indicator.show {
+            animation: forceShow 3s ease forwards;
+        }
+
+        @keyframes forceShow {
+            0%, 100% { opacity: 0; }
+            20%, 80% { opacity: 1; }
+        }
+
+        /* Force visualization lines */
+        .force-lines {
+            position: absolute;
+            bottom: 150px;
+            left: 30px;
+            opacity: 0;
+        }
+
+        .force-lines.show {
+            opacity: 1;
+        }
+
+        .force-line {
+            width: 40px;
+            height: 2px;
+            background: #f5576c;
+            margin: 3px 0;
+            animation: forcePulse 1s ease-in-out infinite;
+        }
+
+        .force-line:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .force-line:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes forcePulse {
+            0%, 100% { transform: scaleX(0.5); opacity: 0.5; }
+            50% { transform: scaleX(1); opacity: 1; }
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            color: #6815bb;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #9333ea, #7c3aed);
+            border: none;
+            color: white;
+            padding: 16px 28px;
+            border-radius: 35px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(147, 51, 234, 0.3);
+            min-width: 180px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(147, 51, 234, 0.4);
+        }
+
+        .demo-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #f5576c, #f093fb);
+            box-shadow: 0 8px 25px rgba(245, 87, 108, 0.4);
+        }
+
+        /* Theory Section */
+        .theory-section {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(147, 51, 234, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .theory-title {
+            font-size: 1.8rem;
+            color: #f093fb;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .law-statement {
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.15), rgba(79, 172, 254, 0.15));
+            border-radius: 20px;
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid #f093fb;
+        }
+
+        .law-title {
+            font-size: 1.4rem;
+            color: #f093fb;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .law-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #e2e8f0;
+        }
+
+        .formula-box {
+            text-align: center;
+            padding: 20px;
+            background: rgba(147, 51, 234, 0.1);
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 2px solid rgba(147, 51, 234, 0.3);
+        }
+
+        .formula {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #f5576c;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+
+        .formula-description {
+            font-size: 1rem;
+            color: #e2e8f0;
+            margin-top: 10px;
+        }
+
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .example-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .example-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .example-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .example-title {
+            font-size: 1.2rem;
+            color: #f093fb;
+            margin-bottom: 10px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .example-text {
+            font-size: 1rem;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        /* Key Insights */
+        .insights-box {
+            background: rgba(79, 172, 254, 0.15);
+            border-radius: 20px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #4facfe;
+        }
+
+        .insights-title {
+            font-size: 1.3rem;
+            color: #4facfe;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .insight-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .insight-item {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: start;
+            gap: 10px;
+        }
+
+        .insight-item:last-child {
+            border-bottom: none;
+        }
+
+        .insight-bullet {
+            color: #4facfe;
+            font-size: 1.2rem;
+            margin-top: 2px;
+        }
+
+        .insight-text {
+            flex: 1;
+            line-height: 1.6;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .demo-stage {
+                height: 400px;
+            }
+            
+            .impact-demo {
+                flex-direction: column;
+                gap: 50px;
+                padding: 40px 20px;
+            }
+            
+            .momentum-objects {
+                flex-direction: column;
+                gap: 40px;
+            }
+            
+            .velocity-arrow {
+                right: -35px;
+                font-size: 24px;
+            }
+            
+            .momentum-equation {
+                font-size: 2rem;
+            }
+            
+            .car {
+                width: 100px;
+                height: 50px;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .examples-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .header p {
+                font-size: 1.1rem;
+            }
+            
+            .demo-stage {
+                height: 350px;
+            }
+            
+            .theory-section {
+                padding: 20px;
+            }
+            
+            .demo-btn {
+                min-width: 150px;
+                padding: 12px 20px;
+                font-size: 1rem;
+            }
+            
+            .momentum-equation {
+                font-size: 1.5rem;
+            }
+            
+            .momentum-box {
+                width: 70px;
+                height: 70px;
+            }
+            
+            .small-mass {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .large-mass {
+                width: 90px;
+                height: 90px;
+            }
+            
+            .car {
+                width: 80px;
+                height: 40px;
+            }
+            
+            .push-person {
+                font-size: 40px;
+            }
+            
+            .person {
+                font-size: 45px;
+            }
+            
+            .formula {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Newton's Second Law of Motion</h1>
+            <p>Explore how force, mass, and acceleration are connected through momentum and understand why different objects create different impacts.</p>
+        </div>
+
+        <!-- Demo Stage -->
+        <div class="demo-stage" id="stage">
+            <!-- Info Overlay -->
+            <div class="info-overlay" id="info-overlay">
+                <div class="info-title">Physics Concept</div>
+                <div class="info-text" id="info-text">Select a demonstration to explore Newton's Second Law</div>
+            </div>
+
+            <!-- Physics Data Display -->
+            <div class="physics-data" id="physics-data">
+                <div class="data-item">
+                    <span class="data-label">Mass:</span>
+                    <span class="data-value" id="mass-value">0 kg</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Velocity:</span>
+                    <span class="data-value" id="velocity-value">0 m/s</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Momentum:</span>
+                    <span class="data-value" id="momentum-value">0 kg⋅m/s</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Force:</span>
+                    <span class="data-value" id="force-value">0 N</span>
+                </div>
+            </div>
+
+            <!-- Impact Comparison Demo -->
+            <div class="impact-demo" id="impact-demo">
+                <div class="impact-scenario">
+                    <div class="scenario-title">Table Tennis Ball<br>(Low Mass, Low Velocity)</div>
+                    <div class="impact-object">
+                        <div class="velocity-trail" id="trail1"></div>
+                        <div class="ping-pong" id="ping-pong"></div>
+                        <div class="person" id="person1">🧑</div>
+                        <div class="impact-wave" id="wave1"></div>
+                        <div class="impact-effect" id="impact1">Tap!</div>
+                    </div>
+                </div>
+                <div class="impact-scenario">
+                    <div class="scenario-title">Cricket Ball<br>(Higher Mass, High Velocity)</div>
+                    <div class="impact-object">
+                        <div class="velocity-trail" id="trail2"></div>
+                        <div class="cricket-ball" id="cricket-ball"></div>
+                        <div class="person" id="person2">🧑</div>
+                        <div class="impact-wave" id="wave2"></div>
+                        <div class="impact-effect" id="impact2">OUCH!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Momentum Demo -->
+            <div class="momentum-demo" id="momentum-demo">
+                <div class="momentum-equation">p = m × v</div>
+                <div class="momentum-track">
+                    <div class="momentum-lane">
+                        <div class="momentum-box small-mass" id="box1">
+                            2 kg
+                            <div class="velocity-arrow">
+                                ➡️ <span class="velocity-label">5 m/s</span>
+                            </div>
+                        </div>
+                        <div class="momentum-value" id="momentum1">p = 10 kg⋅m/s</div>
+                    </div>
+                    <div class="momentum-lane">
+                        <div class="momentum-box large-mass" id="box2">
+                            5 kg
+                            <div class="velocity-arrow">
+                                ➡️ <span class="velocity-label">4 m/s</span>
+                            </div>
+                        </div>
+                        <div class="momentum-value" id="momentum2">p = 20 kg⋅m/s</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Car Push Demo -->
+            <div class="car-demo" id="car-demo">
+                <div class="road"></div>
+                <div class="push-person" id="pusher">💪</div>
+                <div class="car" id="car"></div>
+                <div class="force-indicator" id="force-indicator">Continuous Force</div>
+                <div class="force-lines" id="force-lines">
+                    <div class="force-line"></div>
+                    <div class="force-line"></div>
+                    <div class="force-line"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="demo-title">Explore the Second Law of Motion</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playFullLesson()">📚 Complete Lesson</button>
+                <button class="demo-btn" onclick="showImpactDemo()">💥 Impact Effects</button>
+                <button class="demo-btn" onclick="showMomentumDemo()">⚡ Momentum</button>
+                <button class="demo-btn" onclick="showCarDemo()">🚗 Force & Time</button>
+                <button class="demo-btn" onclick="resetAllClick()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Theory Section -->
+        <div class="theory-section">
+            <div class="theory-title">Understanding the Second Law</div>
+            
+            <div class="law-statement">
+                <div class="law-title">Newton's Second Law of Motion</div>
+                <div class="law-content">
+                    The rate of change of momentum of an object is proportional to the applied unbalanced force 
+                    in the direction of the force. In simpler terms, when a force acts on an object, it changes 
+                    the object's momentum, and this change depends on both the magnitude of the force and the 
+                    time during which it acts.
+                </div>
+            </div>
+
+            <div class="formula-box">
+                <div class="formula">p = m × v</div>
+                <div class="formula-description">
+                    Momentum (p) = Mass (m) × Velocity (v)<br>
+                    SI Unit: kilogram-metre per second (kg⋅m/s)
+                </div>
+            </div>
+
+            <div class="examples-grid">
+                <div class="example-card">
+                    <div class="example-icon">🏓</div>
+                    <div class="example-title">Table Tennis Ball</div>
+                    <div class="example-text">
+                        Light mass and moderate velocity result in low momentum. 
+                        Impact is negligible - doesn't hurt when it hits you.
+                    </div>
+                </div>
+                <div class="example-card">
+                    <div class="example-icon">🏏</div>
+                    <div class="example-title">Cricket Ball</div>
+                    <div class="example-text">
+                        Greater mass and high velocity create significant momentum. 
+                        Can cause injury due to large momentum change on impact.
+                    </div>
+                </div>
+                <div class="example-card">
+                    <div class="example-icon">🚚</div>
+                    <div class="example-title">Moving Truck</div>
+                    <div class="example-text">
+                        Enormous mass means huge momentum even at low speeds (5 m/s). 
+                        Extremely dangerous due to massive momentum.
+                    </div>
+                </div>
+                <div class="example-card">
+                    <div class="example-icon">🔫</div>
+                    <div class="example-title">Bullet</div>
+                    <div class="example-text">
+                        Small mass but extremely high velocity results in large momentum. 
+                        Deadly impact despite tiny size.
+                    </div>
+                </div>
+            </div>
+
+            <div class="insights-box">
+                <div class="insights-title">💡 Key Insights</div>
+                <ul class="insight-list">
+                    <li class="insight-item">
+                        <span class="insight-bullet">▸</span>
+                        <span class="insight-text">Momentum combines both mass and velocity - both matter for impact</span>
+                    </li>
+                    <li class="insight-item">
+                        <span class="insight-bullet">▸</span>
+                        <span class="insight-text">Force changes momentum - unbalanced forces cause acceleration</span>
+                    </li>
+                    <li class="insight-item">
+                        <span class="insight-bullet">▸</span>
+                        <span class="insight-text">Time matters - longer force application creates greater momentum change</span>
+                    </li>
+                    <li class="insight-item">
+                        <span class="insight-bullet">▸</span>
+                        <span class="insight-text">Direction is important - momentum is a vector quantity like velocity</span>
+                    </li>
+                    <li class="insight-item">
+                        <span class="insight-bullet">▸</span>
+                        <span class="insight-text">Real-world safety - understanding momentum helps design safer vehicles and equipment</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice System
+        class PhysicsTeacher {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.9, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+        }
+
+        // Global state management
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let isPlaying = false;
+        let animationTimeline = null;
+        let currentDemoAborted = false;
+        let activeAnimations = [];
+        let currentRunId = 0; // increments on every button click/demo start to guard UI updates
+        let currentTaskId = null; // Track current task ID
+
+        // Function to create new animation timeline
+        function createNewTimeline() {
+            // Kill all previous animations
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            // Kill all active animations
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            // Kill all tweens
+            gsap.killTweensOf("*");
+            
+            // Create new timeline
+            const newTimeline = gsap.timeline();
+            animationTimeline = newTimeline;
+            return newTimeline;
+        }
+
+        // Function to add animation to tracking
+        function trackAnimation(animation) {
+            if (animation) {
+                activeAnimations.push(animation);
+            }
+            return animation;
+        }
+
+        // Function to stop current demo
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++; // invalidate any pending UI updates from previous demos
+            
+            // Clear current task context
+            currentTaskId = null;
+            
+            // Immediately hide all UI elements synchronously
+            document.getElementById('info-overlay').classList.remove('show');
+            document.getElementById('physics-data').classList.remove('show');
+            document.getElementById('info-text').textContent = '';
+            document.getElementById('mass-value').textContent = '0 kg';
+            document.getElementById('velocity-value').textContent = '0 m/s';
+            document.getElementById('momentum-value').textContent = '0 kg⋅m/s';
+            document.getElementById('force-value').textContent = '0 N';
+            
+            // Stop teacher
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            // Kill all animations
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            
+            // Kill all tracked animations
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            
+            // Kill all GSAP tweens
+            gsap.killTweensOf("*");
+            
+            // Hide all demos immediately
+            document.querySelectorAll('.impact-demo, .momentum-demo, .car-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            isPlaying = false;
+        }
+
+        // Function to check if demo should continue
+        function shouldContinue(taskId = null) {
+            // If a specific task ID is provided, check if it matches current task
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        // Function to stop current teacher and create new one
+        function createNewTeacher(taskId = null) {
+            // Destroy previous teacher if exists
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            // Reset abort flag
+            currentDemoAborted = false;
+            // Set current task ID
+            currentTaskId = taskId;
+            // Create new teacher instance
+            currentTeacher = new PhysicsTeacher();
+            return currentTeacher;
+        }
+
+        // Helper functions for UI updates
+        function showInfo(text, runId) {
+            if (runId !== currentRunId || !shouldContinue()) return;
+            const overlay = document.getElementById('info-overlay');
+            const infoText = document.getElementById('info-text');
+            infoText.textContent = text;
+            overlay.classList.add('show');
+        }
+
+        function hideInfo(runId) {
+            if (runId !== currentRunId || !shouldContinue()) return;
+            document.getElementById('info-overlay').classList.remove('show');
+        }
+
+        function showPhysicsData(runId) {
+            if (runId !== currentRunId || !shouldContinue()) return;
+            document.getElementById('physics-data').classList.add('show');
+        }
+
+        function hidePhysicsData(runId) {
+            if (runId !== currentRunId || !shouldContinue()) return;
+            document.getElementById('physics-data').classList.remove('show');
+        }
+
+        function updatePhysicsData(mass, velocity, momentum, force, runId) {
+            if (runId !== currentRunId || !shouldContinue()) return;
+            document.getElementById('mass-value').textContent = mass;
+            document.getElementById('velocity-value').textContent = velocity;
+            document.getElementById('momentum-value').textContent = momentum;
+            document.getElementById('force-value').textContent = force;
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            const teacher = createNewTeacher('initialization');
+            teacher.speak("Welcome to Newton's Second Law of Motion! Let's explore how force, mass, and velocity combine to create momentum and understand why different objects have different impacts.");
+            showInfo("Welcome! Select a demonstration to explore Newton's Second Law", currentRunId);
+        });
+
+        // Complete Lesson
+        async function playFullLesson() {
+            const taskId = 'full-lesson';
+            // Stop any current demo
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            // Create new teacher for this demo
+            const teacher = createNewTeacher(taskId);
+            
+            // Full reset first
+            await resetAll();
+            
+            // Wait to ensure everything is cleared
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📚 Complete Lesson: Second Law of Motion");
+            
+            // Another small wait before showing new info
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            const runId = currentRunId;
+            showInfo("Starting comprehensive lesson on force, mass, and momentum", runId);
+            
+            // Introduction
+            await teacher.speak("The Second Law of Motion explains how forces change an object's motion through momentum. Let's explore this step by step!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Impact Demo
+            await showImpactDemoInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+            
+            // Momentum Demo
+            await teacher.speak("Now let's understand momentum - the quantity that combines mass and velocity.");
+            if (!shouldContinue(taskId)) return;
+            await showMomentumDemoInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(3000);
+            
+            // Car Demo
+            await teacher.speak("Finally, let's see how the duration of force application matters.");
+            if (!shouldContinue(taskId)) return;
+            await showCarDemoInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Remember: The Second Law states that force changes momentum. Greater force or longer application time creates greater change!");
+            
+            showInfo("Lesson Complete! F = Δp/Δt - Force equals rate of momentum change", runId);
+            
+            isPlaying = false;
+        }
+
+        // Impact Comparison Demo with GSAP
+        async function showImpactDemo() {
+            const taskId = 'impact-demo';
+            // Stop any current demo
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            // Create new teacher for this demo
+            const teacher = createNewTeacher(taskId);
+            await showImpactDemoInternal(teacher, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showImpactDemoInternal(teacher, taskId) {
+            // Full reset first
+            await resetAll();
+            
+            // Wait to ensure everything is cleared
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("💥 Comparing Impact Effects");
+            
+            document.getElementById('impact-demo').classList.add('active');
+            
+            // Another small wait before showing new info
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            const runId = currentRunId;
+            showInfo("Impact comparison: Different masses and velocities create different forces", runId);
+            showPhysicsData(runId);
+            
+            await teacher.speak("Let's compare the impact of a table tennis ball versus a cricket ball. Watch the difference!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Animate ping pong ball with GSAP
+            const pingPong = document.getElementById('ping-pong');
+            const trail1 = document.getElementById('trail1');
+            const person1 = document.getElementById('person1');
+            const impact1 = document.getElementById('impact1');
+            const wave1 = document.getElementById('wave1');
+            
+            updatePhysicsData("3 g", "10 m/s", "0.03 kg⋅m/s", "Low", runId);
+            showInfo("Table tennis ball: Low mass (3g) × moderate velocity = minimal momentum", runId);
+            
+            await wait(500);
+            
+            trail1.style.top = '50%';
+            trail1.style.left = '-200px';
+            trail1.classList.add('show');
+            
+            // GSAP animation for ping pong ball
+            const pingPongAnimation = trackAnimation(
+                gsap.timeline()
+                    .to(pingPong, {
+                        duration: 2,
+                        left: 0,
+                        ease: "power2.inOut",
+                        onUpdate: function() {
+                            if (currentDemoAborted) return;
+                            const progress = this.progress();
+                            const velocity = Math.round(10 * (1 - progress * 0.5));
+                            updatePhysicsData("3 g", `${velocity} m/s`, "0.03 kg⋅m/s", "Low", runId);
+                        }
+                    })
+                    .to(person1, {
+                        duration: 0.3,
+                        x: 5,
+                        ease: "elastic.out(1, 0.5)"
+                    }, "-=0.2")
+                    .to(person1, {
+                        duration: 0.2,
+                        x: 0,
+                        ease: "power2.out"
+                    })
+            );
+            
+            setTimeout(() => {
+                if (!shouldContinue(taskId)) return;
+                wave1.classList.add('show-light');
+                const impactAnimation = trackAnimation(
+                    gsap.fromTo(impact1, 
+                        { opacity: 0, scale: 0 },
+                        { 
+                            duration: 1,
+                            opacity: 1,
+                            scale: 1.2,
+                            ease: "elastic.out(1, 0.5)",
+                            onComplete: () => {
+                                gsap.to(impact1, { opacity: 0, duration: 0.5 });
+                            }
+                        }
+                    )
+                );
+            }, 1800);
+            
+            await teacher.speak("The table tennis ball has low mass and moderate speed - minimal impact!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Animate cricket ball with GSAP
+            const cricketBall = document.getElementById('cricket-ball');
+            const trail2 = document.getElementById('trail2');
+            const person2 = document.getElementById('person2');
+            const impact2 = document.getElementById('impact2');
+            const wave2 = document.getElementById('wave2');
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            updatePhysicsData("160 g", "40 m/s", "6.4 kg⋅m/s", "High", runId);
+            showInfo("Cricket ball: Higher mass (160g) × high velocity = significant momentum!", runId);
+            
+            trail2.style.top = '50%';
+            trail2.style.left = '-200px';
+            trail2.classList.add('show');
+            
+            // GSAP animation for cricket ball with physics
+            const cricketBallAnimation = trackAnimation(
+                gsap.timeline()
+                    .to(cricketBall, {
+                        duration: 1.5,
+                        left: 0,
+                        rotation: -720,
+                        ease: "power3.in",
+                        onUpdate: function() {
+                            if (currentDemoAborted) return;
+                            const progress = this.progress();
+                            const velocity = Math.round(40 * (1 - progress * 0.3));
+                            updatePhysicsData("160 g", `${velocity} m/s`, "6.4 kg⋅m/s", "High", runId);
+                        }
+                    })
+                    .to(person2, {
+                        duration: 0.4,
+                        x: 30,
+                        rotation: 5,
+                        ease: "power3.out"
+                    }, "-=0.3")
+                    .to(person2, {
+                        duration: 0.4,
+                        x: 0,
+                        rotation: 0,
+                        ease: "elastic.out(1, 0.3)"
+                    })
+            );
+            
+            setTimeout(() => {
+                if (!shouldContinue(taskId)) return;
+                wave2.classList.add('show-hard');
+                const impact2Animation = trackAnimation(
+                    gsap.fromTo(impact2,
+                        { opacity: 0, scale: 0 },
+                        {
+                            duration: 1,
+                            opacity: 1,
+                            scale: 1.5,
+                            ease: "back.out(1.7)",
+                            onComplete: () => {
+                                gsap.to(impact2, { opacity: 0, duration: 0.5 });
+                            }
+                        }
+                    )
+                );
+            }, 1300);
+            
+            await teacher.speak("The cricket ball has greater mass and high velocity - much stronger impact! This shows how momentum determines impact force.");
+            
+            showInfo("Key Concept: Impact force ∝ momentum change (Δp)", runId);
+        }
+
+        // Momentum Demo with enhanced visuals
+        async function showMomentumDemo() {
+            const taskId = 'momentum-demo';
+            // Stop any current demo
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            // Create new teacher for this demo
+            const teacher = createNewTeacher(taskId);
+            await showMomentumDemoInternal(teacher, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showMomentumDemoInternal(teacher, taskId) {
+            // Full reset first
+            await resetAll();
+            
+            // Wait to ensure everything is cleared
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("⚡ Understanding Momentum");
+            
+            document.getElementById('momentum-demo').classList.add('active');
+            
+            // Another small wait before showing new info
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            const runId = currentRunId;
+            showInfo("Momentum formula: p = m × v (mass times velocity)", runId);
+            showPhysicsData(runId);
+            
+            await teacher.speak("Momentum equals mass times velocity. Let's see how different combinations create different momentum values.");
+            if (!shouldContinue(taskId)) return;
+            
+            const box1 = document.getElementById('box1');
+            const box2 = document.getElementById('box2');
+            const momentum1 = document.getElementById('momentum1');
+            const momentum2 = document.getElementById('momentum2');
+            
+            // Animate first box moving horizontally
+            showInfo("Light object (2 kg) moving at 5 m/s", runId);
+            updatePhysicsData("2 kg", "5 m/s", "10 kg⋅m/s", "N/A", runId);
+            
+            const box1Animation = trackAnimation(
+                gsap.timeline()
+                    .to(box1, {
+                        duration: 3,
+                        left: "calc(100% - 200px)",
+                        ease: "none",
+                        onUpdate: function() {
+                            if (currentDemoAborted) return;
+                            const progress = this.progress();
+                            const position = Math.round(progress * 100);
+                            updatePhysicsData("2 kg", "5 m/s", "10 kg⋅m/s", `${position}% traveled`, runId);
+                        }
+                    })
+                    .to(box1, {
+                        duration: 1,
+                        left: 0,
+                        ease: "power2.inOut"
+                    })
+            );
+            
+            // Highlight momentum value
+            const momentum1Animation = trackAnimation(
+                gsap.fromTo(momentum1,
+                    { scale: 0.8 },
+                    { 
+                        duration: 1,
+                        scale: 1.2,
+                        ease: "elastic.out(1, 0.5)",
+                        yoyo: true,
+                        repeat: 1
+                    }
+                )
+            );
+            
+            await wait(1000);
+            await teacher.speak("The 2 kilogram object moving at 5 meters per second has momentum of 10 kilogram meters per second.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Animate second box moving horizontally (slower due to lower velocity)
+            showInfo("Heavy object (5 kg) moving at 4 m/s - notice it's slower but has MORE momentum!", runId);
+            updatePhysicsData("5 kg", "4 m/s", "20 kg⋅m/s", "N/A", runId);
+            
+            const box2Animation = trackAnimation(
+                gsap.timeline()
+                    .to(box2, {
+                        duration: 3.75, // Slower animation to show lower velocity
+                        left: "calc(100% - 240px)",
+                        ease: "none",
+                        onUpdate: function() {
+                            if (currentDemoAborted) return;
+                            const progress = this.progress();
+                            const position = Math.round(progress * 100);
+                            updatePhysicsData("5 kg", "4 m/s", "20 kg⋅m/s", `${position}% traveled`, runId);
+                        }
+                    })
+                    .to(box2, {
+                        duration: 1,
+                        left: 0,
+                        ease: "power2.inOut"
+                    })
+            );
+            
+            // Highlight momentum value
+            const momentum2Animation = trackAnimation(
+                gsap.fromTo(momentum2,
+                    { scale: 0.8 },
+                    { 
+                        duration: 1,
+                        scale: 1.3,
+                        ease: "elastic.out(1, 0.5)",
+                        yoyo: true,
+                        repeat: 1
+                    }
+                )
+            );
+            
+            await teacher.speak("The 5 kilogram object moving at 4 meters per second has momentum of 20 kilogram meters per second - double the momentum despite lower velocity!");
+            
+            showInfo("Key Insight: Both mass and velocity contribute equally to momentum", runId);
+        }
+
+        // Car Push Demo with realistic physics
+        async function showCarDemo() {
+            const taskId = 'car-demo';
+            // Stop any current demo
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            // Create new teacher for this demo
+            const teacher = createNewTeacher(taskId);
+            await showCarDemoInternal(teacher, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showCarDemoInternal(teacher, taskId) {
+            // Full reset first
+            await resetAll();
+            
+            // Wait to ensure everything is cleared
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🚗 Force Application Over Time");
+            
+            document.getElementById('car-demo').classList.add('active');
+            
+            // Another small wait before showing new info
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            const runId = currentRunId;
+            showInfo("Demonstrating: How duration of force affects momentum change", runId);
+            showPhysicsData(runId);
+            updatePhysicsData("1000 kg", "0 m/s", "0 kg⋅m/s", "0 N", runId);
+            
+            await teacher.speak("A car with a dead battery needs to be pushed. Watch how continuous force over time builds momentum.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(500);
+            
+            // Quick push with GSAP
+            const pusher = document.getElementById('pusher');
+            const car = document.getElementById('car');
+            const forceIndicator = document.getElementById('force-indicator');
+            const forceLines = document.getElementById('force-lines');
+            
+            showInfo("Quick push: Short duration = small momentum change", runId);
+            forceIndicator.textContent = 'Quick Push (0.5s)';
+            
+            const quickPushAnimation = trackAnimation(
+                gsap.timeline()
+                    .set(forceLines, { opacity: 1 })
+                    .to(pusher, {
+                        duration: 0.5,
+                        left: 100,
+                        ease: "power2.out"
+                    })
+                    .to(car, {
+                        duration: 2,
+                        left: 250,
+                        ease: "power3.out",
+                        onStart: () => {
+                            forceIndicator.classList.add('show');
+                            car.classList.add('moving');
+                            updatePhysicsData("1000 kg", "0.5 m/s", "500 kg⋅m/s", "100 N", runId);
+                        },
+                        onComplete: () => {
+                            car.classList.remove('moving');
+                        }
+                    }, "-=0.3")
+                    .set(forceLines, { opacity: 0 })
+            );
+            
+            await teacher.speak("A quick push barely moves the car - insufficient momentum change.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            
+            // Reset for continuous push
+            gsap.set([car, pusher], { left: 50 });
+            gsap.set(pusher, { left: 10 });
+            forceIndicator.classList.remove('show');
+            
+            await wait(1000);
+            
+            // Continuous push with GSAP
+            showInfo("Continuous push: Longer duration = greater momentum change", runId);
+            forceIndicator.textContent = 'Continuous Force (3s)';
+            forceLines.classList.add('show');
+            
+            const continuousPushAnimation = trackAnimation(
+                gsap.timeline()
+                    .to(pusher, {
+                        duration: 3,
+                        left: 200,
+                        ease: "power1.inOut"
+                    })
+                    .to(car, {
+                        duration: 3,
+                        left: "calc(100% - 170px)",
+                        ease: "power2.in",
+                        onStart: () => {
+                            forceIndicator.classList.add('show');
+                            car.classList.add('moving');
+                        },
+                        onUpdate: function() {
+                            if (currentDemoAborted) return;
+                            const progress = this.progress();
+                            const velocity = (progress * 5).toFixed(1);
+                            const momentum = (1000 * velocity).toFixed(0);
+                            updatePhysicsData("1000 kg", `${velocity} m/s`, `${momentum} kg⋅m/s`, "100 N", runId);
+                        },
+                        onComplete: () => {
+                            car.classList.remove('moving');
+                        }
+                    }, "-=3")
+            );
+            
+            await teacher.speak("But a continuous push over time builds up enough momentum to start the engine! Time of force application matters!");
+            
+            showInfo("Result: Δp = F × Δt (Impulse-Momentum theorem)", runId);
+            
+            await wait(2000);
+        }
+
+        // Helper Functions
+        async function resetAll() {
+            // Kill any running GSAP animations
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            gsap.killTweensOf("*");
+            
+            // Stop any current speech
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            
+            // Hide all demos
+            document.querySelectorAll('.impact-demo, .momentum-demo, .car-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            // Reset info overlays and data displays
+            hideInfo(currentRunId);
+            hidePhysicsData(currentRunId);
+            updateTitle("Explore the Second Law of Motion");
+            updatePhysicsData("0 kg", "0 m/s", "0 kg⋅m/s", "0 N", currentRunId);
+            
+            // Reset impact demo
+            const pingPong = document.getElementById('ping-pong');
+            const cricketBall = document.getElementById('cricket-ball');
+            const person1 = document.getElementById('person1');
+            const person2 = document.getElementById('person2');
+            const impact1 = document.getElementById('impact1');
+            const impact2 = document.getElementById('impact2');
+            const trail1 = document.getElementById('trail1');
+            const trail2 = document.getElementById('trail2');
+            const wave1 = document.getElementById('wave1');
+            const wave2 = document.getElementById('wave2');
+            
+            trail1.classList.remove('show');
+            trail2.classList.remove('show');
+            wave1.classList.remove('show-light', 'show-hard');
+            wave2.classList.remove('show-light', 'show-hard');
+            
+            gsap.set([pingPong, cricketBall], { left: -200, rotation: 0 });
+            gsap.set([person1, person2], { x: 0, rotation: 0 });
+            gsap.set([impact1, impact2], { opacity: 0, scale: 1 });
+            
+            // Reset momentum demo
+            const box1 = document.getElementById('box1');
+            const box2 = document.getElementById('box2');
+            const momentum1 = document.getElementById('momentum1');
+            const momentum2 = document.getElementById('momentum2');
+            
+            box1.classList.remove('pulse');
+            box2.classList.remove('pulse');
+            gsap.set([box1, box2], { scale: 1, left: 0 });
+            gsap.set([momentum1, momentum2], { scale: 1 });
+            
+            // Reset car demo
+            const car = document.getElementById('car');
+            const pusher = document.getElementById('pusher');
+            const forceIndicator = document.getElementById('force-indicator');
+            const forceLines = document.getElementById('force-lines');
+            
+            car.classList.remove('moving');
+            forceIndicator.classList.remove('show');
+            forceLines.classList.remove('show');
+            
+            gsap.set(car, { left: 50 });
+            gsap.set(pusher, { left: 10 });
+            
+            await wait(300);
+        }
+
+        function updateTitle(title) {
+            document.getElementById('demo-title').textContent = title;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Reset Button Handler - ensures same behavior as other buttons
+        async function resetAllClick() {
+            // Stop any running demo and invalidate previous run
+            stopCurrentDemo();
+            isPlaying = false;
+            // Perform full reset
+            await resetAll();
+        }
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+            
+            // If audio is disabled, stop current speech
+            if (!globalAudioEnabled && currentTeacher) {
+                currentTeacher.stop();
+            }
+        });
+    </script>
+</body>
+</html>

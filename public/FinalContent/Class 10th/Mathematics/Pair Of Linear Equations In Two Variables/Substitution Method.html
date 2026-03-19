@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Substitution Method for Linear Equations</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(126, 87, 194, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(126, 87, 194, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3.2rem;
+            background: linear-gradient(45deg, #00ff88, #00bbff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .animation-stage {
+            background: linear-gradient(to bottom, #1a1a2e 0%, #16213e 100%);
+            border-radius: 25px;
+            height: 600px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            border: 4px solid rgba(0, 255, 136, 0.4);
+        }
+
+        .grid-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.3;
+        }
+
+        .stage-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            overflow: hidden;
+        }
+
+        .animation-scene {
+            display: none;
+            opacity: 0;
+            transition: opacity 1s ease;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 30px;
+            overflow: hidden;
+        }
+
+        .animation-scene.visible {
+            display: flex;
+            opacity: 1;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .welcome-scene {
+            text-align: center;
+        }
+
+        .welcome-title {
+            font-size: 2.5rem;
+            color: #00ff88;
+            margin-bottom: 20px;
+            animation: titleGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+            50% { text-shadow: 0 0 20px rgba(0, 255, 136, 0.8); }
+        }
+
+        .content-box {
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .step-container {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 187, 255, 0.1));
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin: 8px 0;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideUp 0.5s ease forwards;
+        }
+
+        .step-container:nth-child(2) { animation-delay: 0.2s; }
+        .step-container:nth-child(3) { animation-delay: 0.4s; }
+        .step-container:nth-child(4) { animation-delay: 0.6s; }
+
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .step-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #00ff88, #00bbff);
+            color: #1a1a2e;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            line-height: 35px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .step-title {
+            font-size: 1.2rem;
+            color: #00ff88;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .step-content {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #e2e8f0;
+        }
+
+        .equation-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            border-radius: 12px;
+            padding: 12px 15px;
+            margin: 10px 0;
+            font-size: 1.3rem;
+            font-family: 'Courier New', monospace;
+            color: #ffd700;
+        }
+
+        .highlight {
+            color: #00ff88;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .solution-box {
+            background: linear-gradient(135deg, rgba(255, 105, 180, 0.2), rgba(255, 215, 0, 0.2));
+            border: 3px solid rgba(255, 215, 0, 0.5);
+            border-radius: 20px;
+            padding: 20px;
+            margin: 15px 0;
+            text-align: center;
+            transform: scale(0);
+            animation: solutionPop 0.5s ease forwards 0.6s;
+        }
+
+        @keyframes solutionPop {
+            to { transform: scale(1); }
+        }
+
+        .solution-title {
+            font-size: 1.5rem;
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .solution-value {
+            font-size: 1.8rem;
+            color: #ff69b4;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .info-display {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 15px 20px;
+            text-align: center;
+            font-size: 1.1rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            backdrop-filter: blur(10px);
+            margin: 20px 0;
+            border: 2px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .info-display.visible {
+            opacity: 1;
+        }
+
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            color: #00ff88;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #764ba2, #667eea);
+            border: none;
+            color: white;
+            padding: 16px 28px;
+            border-radius: 35px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(118, 75, 162, 0.3);
+            min-width: 180px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(118, 75, 162, 0.4);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #00ff88, #00bbff);
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.4);
+        }
+
+        .analysis {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(0, 255, 136, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .analysis-title {
+            font-size: 1.6rem;
+            color: #00ff88;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .analysis-content {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            text-align: center;
+            color: #e2e8f0;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .animation-stage {
+                height: 500px;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Substitution Method</h1>
+            <p>Master the algebraic technique for solving linear equations by substitution - perfect for finding exact solutions!</p>
+        </div>
+
+        <div class="animation-stage">
+            <div class="grid-background"></div>
+            
+            <div class="stage-content">
+                <div class="animation-scene visible" id="welcome-scene">
+                    <div class="welcome-scene">
+                        <h2 class="welcome-title">The Substitution Method</h2>
+                        <p style="font-size: 1.3rem; color: #00bbff; line-height: 1.8;">
+                            An algebraic approach to find exact solutions<br>
+                            when graphical methods aren't practical!
+                        </p>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="method-steps">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.8rem; color: #ffd700; margin-bottom: 20px;">Three Steps to Success</h2>
+                        <div class="step-container">
+                            <div class="step-number">1</div>
+                            <div class="step-title">Express One Variable</div>
+                            <div class="step-content">
+                                Find one variable (y) in terms of the other (x)
+                            </div>
+                        </div>
+                        <div class="step-container">
+                            <div class="step-number">2</div>
+                            <div class="step-title">Substitute</div>
+                            <div class="step-content">
+                                Substitute into the other equation and solve
+                            </div>
+                        </div>
+                        <div class="step-container">
+                            <div class="step-number">3</div>
+                            <div class="step-title">Back-Substitute</div>
+                            <div class="step-content">
+                                Find the other variable using the first result
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example4-problem">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.8rem; color: #00ff88; margin-bottom: 15px;">Example 4: Basic Substitution</h2>
+                        <p style="font-size: 1.1rem; margin-bottom: 20px;">
+                            Solve the system:
+                        </p>
+                        <div class="equation-box">
+                            7x - 15y = 2
+                        </div>
+                        <div class="equation-box">
+                            x + 2y = 3
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example4-step1">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.6rem; color: #00ff88; margin-bottom: 15px;">Step 1: Express x in terms of y</h2>
+                        <p style="font-size: 1.1rem; margin-bottom: 12px;">From: x + 2y = 3</p>
+                        <div class="equation-box">
+                            <span class="highlight">x = 3 - 2y</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example4-step2">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.6rem; color: #00ff88; margin-bottom: 15px;">Step 2: Substitute & Solve</h2>
+                        <div class="equation-box">
+                            7(<span class="highlight">3 - 2y</span>) - 15y = 2
+                        </div>
+                        <div class="equation-box">
+                            21 - 14y - 15y = 2
+                        </div>
+                        <div class="equation-box">
+                            -29y = -19
+                        </div>
+                        <div class="equation-box">
+                            <span class="highlight">y = 19/29</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example4-step3">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.6rem; color: #00ff88; margin-bottom: 15px;">Step 3: Find x</h2>
+                        <p style="font-size: 1.1rem; margin-bottom: 10px;">x = 3 - 2(19/29)</p>
+                        <div class="equation-box">
+                            x = 87/29 - 38/29
+                        </div>
+                        <div class="equation-box">
+                            <span class="highlight">x = 49/29</span>
+                        </div>
+                        <div class="solution-box">
+                            <div class="solution-title">Solution</div>
+                            <div class="solution-value">
+                                x = 49/29, y = 19/29
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example5-problem">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.7rem; color: #ffd700; margin-bottom: 15px;">Example 5: Aftab's Age Problem</h2>
+                        <p style="font-size: 1.05rem; margin-bottom: 15px; line-height: 1.6;">
+                            "Seven years ago, I was seven times as old as you."<br>
+                            "Three years from now, I'll be three times as old as you."
+                        </p>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example5-equations">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.6rem; color: #00ff88; margin-bottom: 15px;">Setting up equations</h2>
+                        <p style="font-size: 1.05rem; margin-bottom: 12px;">
+                            Let s = Aftab's age, t = daughter's age
+                        </p>
+                        <div class="equation-box" style="font-size: 1.2rem;">
+                            s - 7 = 7(t - 7) → s - 7t + 42 = 0
+                        </div>
+                        <div class="equation-box" style="font-size: 1.2rem;">
+                            s + 3 = 3(t + 3) → s - 3t = 6
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example5-solution">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.6rem; color: #00ff88; margin-bottom: 15px;">Solving</h2>
+                        <p style="font-size: 1.05rem; margin-bottom: 10px;">From s - 3t = 6:</p>
+                        <div class="equation-box">
+                            <span class="highlight">s = 3t + 6</span>
+                        </div>
+                        <p style="font-size: 1.05rem; margin: 10px 0;">Substitute into s - 7t + 42 = 0:</p>
+                        <div class="equation-box">
+                            (3t + 6) - 7t + 42 = 0
+                        </div>
+                        <div class="equation-box">
+                            -4t + 48 = 0 → <span class="highlight">t = 12</span>
+                        </div>
+                        <p style="font-size: 1.05rem; margin: 10px 0;">Then: s = 3(12) + 6</p>
+                        <div class="equation-box">
+                            <span class="highlight">s = 42</span>
+                        </div>
+                        <div class="solution-box">
+                            <div class="solution-title">Answer</div>
+                            <div class="solution-value">
+                                Aftab: 42 years, Daughter: 12 years
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example6-infinite">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.7rem; color: #ff69b4; margin-bottom: 15px;">Example 6: Infinite Solutions</h2>
+                        <p style="font-size: 1.05rem; margin-bottom: 12px;">
+                            2 pencils + 3 erasers = ₹9<br>
+                            4 pencils + 6 erasers = ₹18
+                        </p>
+                        <div class="equation-box">
+                            2x + 3y = 9 → x = (9 - 3y)/2
+                        </div>
+                        <p style="font-size: 1.05rem; margin: 10px 0;">Substitute into 4x + 6y = 18:</p>
+                        <div class="equation-box">
+                            4(9 - 3y)/2 + 6y = 18
+                        </div>
+                        <div class="equation-box">
+                            18 - 6y + 6y = 18
+                        </div>
+                        <div class="equation-box" style="color: #00ff88;">
+                            18 = 18 ✓ (Always true!)
+                        </div>
+                        <div class="solution-box">
+                            <div class="solution-title">Result</div>
+                            <div class="solution-value" style="font-size: 1.4rem;">
+                                Infinitely Many Solutions
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example7-nosolution">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.7rem; color: #ff6b6b; margin-bottom: 15px;">Example 7: No Solution</h2>
+                        <p style="font-size: 1.05rem; margin-bottom: 12px;">
+                            Will these railway tracks cross?
+                        </p>
+                        <div class="equation-box">
+                            x + 2y - 4 = 0 → x = 4 - 2y
+                        </div>
+                        <p style="font-size: 1.05rem; margin: 10px 0;">Substitute into 2x + 4y - 12 = 0:</p>
+                        <div class="equation-box">
+                            2(4 - 2y) + 4y - 12 = 0
+                        </div>
+                        <div class="equation-box">
+                            8 - 4y + 4y - 12 = 0
+                        </div>
+                        <div class="equation-box" style="color: #ff6b6b;">
+                            -4 = 0 ✗ (False!)
+                        </div>
+                        <div class="solution-box" style="border-color: rgba(255, 107, 107, 0.5);">
+                            <div class="solution-title" style="color: #ff6b6b;">Result</div>
+                            <div class="solution-value" style="font-size: 1.4rem;">
+                                No Solution - Parallel!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-display visible" id="info-display">
+            Click any button below to explore the substitution method!
+        </div>
+
+        <div class="controls">
+            <div class="controls-title" id="lesson-title">Master the Substitution Method</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playCompleteLesson()">📚 Complete Lesson</button>
+                <button class="demo-btn" onclick="showMethodSteps()">📋 Method Steps</button>
+                <button class="demo-btn" onclick="showExample4()">🔢 Example 4</button>
+                <button class="demo-btn" onclick="showExample5()">👨‍👧 Age Problem</button>
+                <button class="demo-btn" onclick="showExample6()">∞ Infinite Solutions</button>
+                <button class="demo-btn" onclick="showExample7()">🚫 No Solution</button>
+                <button class="demo-btn" onclick="resetAll()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <div class="analysis">
+            <div class="analysis-title">🔑 Key Insight</div>
+            <div class="analysis-content" id="analysis-content">
+                The substitution method gives exact algebraic solutions, perfect for non-integral answers like fractions or irrational numbers that are hard to read from graphs!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Narrator {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.95, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+            }
+        }
+
+        let globalAudioEnabled = true;
+        let currentNarrator = null;
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let currentTaskId = null;
+        let currentRunId = null;
+        let animationTimeouts = [];
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentTaskId = null;
+            
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            updateInfo("Click any button below to explore the substitution method!");
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null, runId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            if (runId && currentRunId && runId !== currentRunId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewNarrator(taskId = null, runId = null) {
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentRunId = runId || Date.now();
+            currentNarrator = new Narrator();
+            return currentNarrator;
+        }
+
+        function switchToScene(sceneId, taskId = null, runId = null) {
+            if (!shouldContinue(taskId, runId)) return;
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            const timeout = setTimeout(() => {
+                if (!shouldContinue(taskId, runId)) return;
+                const scene = document.getElementById(sceneId);
+                if (scene) {
+                    scene.classList.add('visible');
+                }
+            }, 300);
+            
+            animationTimeouts.push(timeout);
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        function updateInfo(text) {
+            const info = document.getElementById('info-display');
+            info.textContent = text;
+            info.classList.add('visible');
+        }
+
+        function updateAnalysis(text) {
+            document.getElementById('analysis-content').textContent = text;
+        }
+
+        function updateTitle(title) {
+            document.getElementById('lesson-title').textContent = title;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        async function playCompleteLesson() {
+            const taskId = 'complete-lesson';
+            const runId = Date.now();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("📚 Complete Substitution Method");
+            updateInfo("Starting comprehensive lesson...");
+            
+            await narrator.speak("Welcome to the substitution method! This algebraic approach helps us find exact solutions when graphing isn't practical.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            // Method Steps
+            switchToScene('method-steps', taskId, runId);
+            updateInfo("Learning the three-step process");
+            await narrator.speak("The substitution method has three clear steps that work every time.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            await narrator.speak("Step one: express one variable in terms of the other. Step two: substitute to get one equation. Step three: back-substitute to find the second variable.");
+            await wait(1000);
+            if (!shouldContinue(taskId, runId)) return;
+
+            // Example 4
+            switchToScene('example4-problem', taskId, runId);
+            updateInfo("Example 4: Basic substitution");
+            await narrator.speak("We need to solve 7x minus 15y equals 2, and x plus 2y equals 3.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example4-step1', taskId, runId);
+            updateInfo("Step 1: Express x in terms of y");
+            await narrator.speak("From x plus 2y equals 3, we rearrange to get x equals 3 minus 2y.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example4-step2', taskId, runId);
+            updateInfo("Step 2: Substitute and solve");
+            await narrator.speak("Substituting into the first equation: 7 times the quantity 3 minus 2y minus 15y equals 2. This simplifies to y equals 19 over 29.");
+            await wait(3500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example4-step3', taskId, runId);
+            updateInfo("Step 3: Find the other variable");
+            await narrator.speak("Substituting y equals 19 over 29 back, we get x equals 49 over 29. Solution complete!");
+            await wait(1500);
+            if (!shouldContinue(taskId, runId)) return;
+
+            // Example 5
+            switchToScene('example5-problem', taskId, runId);
+            updateInfo("Real-world application");
+            await narrator.speak("Aftab says: Seven years ago, I was seven times as old as you were. Three years from now, I'll be three times as old as you will be.");
+            await wait(4000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example5-equations', taskId, runId);
+            updateInfo("Setting up equations");
+            await narrator.speak("Let s be Aftab's age and t be his daughter's age. This gives us two equations based on past and future ages.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+
+            switchToScene('example5-solution', taskId, runId);
+            updateInfo("Solving the age problem");
+            await narrator.speak("From s minus 3t equals 6, we get s equals 3t plus 6. Substituting and solving, we find t equals 12 and s equals 42.");
+            await wait(1500);
+            if (!shouldContinue(taskId, runId)) return;
+
+            // Example 6
+            switchToScene('example6-infinite', taskId, runId);
+            updateTitle("∞ Example 6: Infinite Solutions");
+            updateInfo("When equations represent the same line");
+            await narrator.speak("Two pencils and three erasers cost 9 rupees. Four pencils and six erasers cost 18 rupees.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            await narrator.speak("Notice the second equation is just double the first! When we substitute, we get 18 equals 18, which is always true.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            await narrator.speak("This means infinitely many solutions - we can't find unique prices!");
+            await wait(1000);
+            if (!shouldContinue(taskId, runId)) return;
+
+            // Example 7
+            switchToScene('example7-nosolution', taskId, runId);
+            updateTitle("🚫 Example 7: No Solution");
+            updateInfo("When lines are parallel");
+            await narrator.speak("Two railway tracks are represented by these equations. Will they cross?");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            await narrator.speak("Using substitution, we get negative 4 equals 0, which is false! This means the tracks are parallel.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            await narrator.speak("The rails will never cross - they have no solution!");
+            await wait(1000);
+            if (!shouldContinue(taskId, runId)) return;
+
+            updateInfo("Lesson complete! You've mastered substitution!");
+            updateAnalysis("You've learned to solve systems algebraically using substitution - giving exact answers that graphing can't always provide!");
+            
+            isPlaying = false;
+        }
+
+        async function showMethodSteps() {
+            const taskId = 'method';
+            const runId = Date.now();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("📋 The Three-Step Method");
+            switchToScene('method-steps', taskId, runId);
+            updateInfo("Understanding the substitution process");
+            
+            await narrator.speak("The substitution method has three clear steps that work every time.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("Step one: express one variable in terms of the other. Step two: substitute to get one equation. Step three: back-substitute to find the second variable.");
+            
+            updateAnalysis("These three steps - express, substitute, and back-substitute - form the foundation of the substitution method!");
+            
+            isPlaying = false;
+        }
+
+        async function showExample4() {
+            const taskId = 'example4';
+            const runId = Date.now();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("🔢 Example 4: Basic Substitution");
+            
+            switchToScene('example4-problem', taskId, runId);
+            updateInfo("Setting up the problem");
+            await narrator.speak("We need to solve 7x minus 15y equals 2, and x plus 2y equals 3.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example4-step1', taskId, runId);
+            updateInfo("Step 1: Express x in terms of y");
+            await narrator.speak("From x plus 2y equals 3, we rearrange to get x equals 3 minus 2y.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example4-step2', taskId, runId);
+            updateInfo("Step 2: Substitute and solve for y");
+            await narrator.speak("Substituting into the first equation: 7 times the quantity 3 minus 2y minus 15y equals 2. This simplifies to y equals 19 over 29.");
+            await wait(3500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example4-step3', taskId, runId);
+            updateInfo("Step 3: Back-substitute to find x");
+            await narrator.speak("Substituting y equals 19 over 29 back, we get x equals 49 over 29. Solution complete!");
+            
+            updateAnalysis("Solution: x = 49/29, y = 19/29. Notice how substitution gives us exact fractional answers!");
+            
+            isPlaying = false;
+        }
+
+        async function showExample5() {
+            const taskId = 'example5';
+            const runId = Date.now();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("👨‍👧 Example 5: Age Problem");
+            
+            switchToScene('example5-problem', taskId, runId);
+            updateInfo("Understanding the problem");
+            await narrator.speak("Aftab says: Seven years ago, I was seven times as old as you were. Three years from now, I'll be three times as old as you will be.");
+            await wait(4000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example5-equations', taskId, runId);
+            updateInfo("Setting up equations");
+            await narrator.speak("Let s be Aftab's age and t be his daughter's age. This gives us two equations based on past and future ages.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example5-solution', taskId, runId);
+            updateInfo("Solving by substitution");
+            await narrator.speak("From s minus 3t equals 6, we get s equals 3t plus 6. Substituting and solving, we find t equals 12 and s equals 42.");
+            
+            updateAnalysis("Aftab is 42 years old and his daughter is 12. We can verify: 7 years ago, 35 = 7 × 5, and in 3 years, 45 = 3 × 15!");
+            
+            isPlaying = false;
+        }
+
+        async function showExample6() {
+            const taskId = 'example6';
+            const runId = Date.now();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(4);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("∞ Example 6: Infinite Solutions");
+            switchToScene('example6-infinite', taskId, runId);
+            updateInfo("When equations represent the same line");
+            
+            await narrator.speak("Two pencils and three erasers cost 9 rupees. Four pencils and six erasers cost 18 rupees.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("Notice the second equation is just double the first! When we substitute, we get 18 equals 18, which is always true.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("This means infinitely many solutions - we can't find unique prices!");
+            
+            updateAnalysis("When substitution gives a true statement like 18 = 18, the system has infinitely many solutions - the equations are equivalent!");
+            
+            isPlaying = false;
+        }
+
+        async function showExample7() {
+            const taskId = 'example7';
+            const runId = Date.now();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(5);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("🚫 Example 7: No Solution");
+            switchToScene('example7-nosolution', taskId, runId);
+            updateInfo("When lines are parallel");
+            
+            await narrator.speak("Two railway tracks are represented by these equations. Will they cross?");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("Using substitution, we get negative 4 equals 0, which is false! This means the tracks are parallel.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("The rails will never cross - they have no solution!");
+            
+            updateAnalysis("When substitution gives a false statement like -4 = 0, the system has no solution - the lines are parallel!");
+            
+            isPlaying = false;
+        }
+
+        async function resetAll() {
+            if (currentNarrator) currentNarrator.stop();
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            await wait(50);
+            document.getElementById('welcome-scene').classList.add('visible');
+            
+            updateTitle("Master the Substitution Method");
+            updateInfo("Click any button below to explore the substitution method!");
+            updateAnalysis("The substitution method gives exact algebraic solutions, perfect for non-integral answers like fractions or irrational numbers that are hard to read from graphs!");
+            
+            setActiveButton(-1);
+            
+            await wait(50);
+        }
+
+        window.addEventListener('load', () => {
+            document.getElementById('welcome-scene').classList.add('visible');
+            const narrator = createNewNarrator('initialization');
+            narrator.speak("Welcome to the substitution method! Learn how to solve linear equations algebraically with precision.");
+        });
+
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            if (currentNarrator) {
+                currentNarrator.isEnabled = globalAudioEnabled;
+                if (!globalAudioEnabled) {
+                    currentNarrator.stop();
+                }
+            }
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+        });
+    </script>
+</body>
+</html>

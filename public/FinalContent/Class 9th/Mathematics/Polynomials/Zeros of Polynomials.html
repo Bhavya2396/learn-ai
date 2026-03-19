@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zeros of Polynomials - Interactive Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --equation-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            --solution-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 10px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: var(--equation-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 3px;
+        }
+
+        .header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            gap: 15px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 15px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 550px;
+            transition: all 0.3s ease;
+        }
+
+        .stage-content {
+            width: 100%;
+            max-width: 900px;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+            overflow: hidden;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1) translateY(0); }
+            to { opacity: 0; transform: scale(0.95) translateY(-20px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 12px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 10px 20px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--equation-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--equation-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .math-title {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .math-description {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 15px auto;
+            line-height: 1.6;
+            padding: 10px;
+        }
+
+        .formula-box {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 18px;
+            margin: 15px auto;
+            backdrop-filter: blur(10px);
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .formula {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-accent);
+            font-family: 'Courier New', monospace;
+        }
+
+        .value-display {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-accent);
+            text-align: center;
+            margin: 15px 0;
+            text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+        }
+
+        .content-card {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 18px;
+            margin: 12px 0;
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        .content-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
+        }
+
+        .example-box {
+            background: linear-gradient(135deg, rgba(67, 233, 123, 0.1), rgba(56, 249, 215, 0.1));
+            border: 2px solid rgba(67, 233, 123, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 12px 0;
+        }
+
+        .comparison-grid {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 20px 0;
+            justify-content: center;
+            align-items: stretch;
+        }
+
+        .comparison-grid .content-card {
+            flex: 1 1 280px;
+            min-width: 250px;
+            max-width: 350px;
+        }
+
+        .quiz-option {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        .quiz-option.correct {
+            background: var(--success-gradient);
+            border-color: transparent;
+        }
+
+        .quiz-option.incorrect {
+            background: var(--secondary-gradient);
+            border-color: transparent;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--glass-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-gradient);
+            transition: width 0.5s ease;
+        }
+
+        .action-btn {
+            background: var(--success-gradient);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin: 10px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(67, 233, 123, 0.4);
+        }
+
+        .highlight-text {
+            color: var(--text-accent);
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+            margin: 20px auto;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(251, 191, 36, 0.8); }
+        }
+
+        .glow-effect {
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        .interactive-input {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 12px 20px;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            text-align: center;
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .interactive-input:focus {
+            outline: none;
+            border-color: var(--text-accent);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+        }
+
+        .term-btn {
+            background: var(--primary-gradient);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 15px 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: 'Courier New', monospace;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .term-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+            background: var(--accent-gradient);
+        }
+
+        .term-btn:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        .zero-badge {
+            display: inline-block;
+            background: var(--success-gradient);
+            color: white;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .calculation-step {
+            background: rgba(79, 172, 254, 0.1);
+            border-left: 4px solid #4facfe;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="header">
+        <h1>Zeros of Polynomials</h1>
+        <p>Master the concept of polynomial zeros through interactive learning</p>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage">
+            <div id="stage-content" class="stage-content active"></div>
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">📚 Complete Lesson</button>
+            <button class="demo-btn" data-demo="definition">📖 Definition</button>
+            <button class="demo-btn" data-demo="finding-values">🔢 Finding Values</button>
+            <button class="demo-btn" data-demo="finding-zeros">🎯 Finding Zeros</button>
+            <button class="demo-btn" data-demo="linear-zeros">📏 Linear Zeros</button>
+            <button class="demo-btn" data-demo="verification">✅ Verification Demo</button>
+            <button class="demo-btn" data-demo="examples">💡 Examples</button>
+            <button class="demo-btn" data-demo="visualization">📊 Visualization</button>
+            <button class="demo-btn" data-demo="interactive">🎮 Interactive Demo</button>
+            <button class="demo-btn" data-demo="quiz">🏆 Quiz Time</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+    </div>
+
+    <script>
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let currentDemo = null;
+        let quizScore = 0;
+        let currentQuizQuestion = 0;
+
+        // Text-to-Speech Teacher
+        class Teacher {
+            constructor() {
+                this.synthesis = window.speechSynthesis;
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+            }
+
+            speak(text) {
+                if (!this.isEnabled || !this.synthesis) return;
+
+                this.stop();
+
+                this.currentUtterance = new SpeechSynthesisUtterance(text);
+                this.currentUtterance.rate = 0.9;
+                this.currentUtterance.pitch = 1;
+                this.currentUtterance.volume = 1;
+
+                const voices = this.synthesis.getVoices();
+                const preferredVoice = voices.find(voice => 
+                    voice.lang.startsWith('en') && voice.name.includes('Female')
+                ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+
+                if (preferredVoice) {
+                    this.currentUtterance.voice = preferredVoice;
+                }
+
+                this.synthesis.speak(this.currentUtterance);
+            }
+
+            stop() {
+                if (this.synthesis) {
+                    this.synthesis.cancel();
+                }
+            }
+        }
+
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            currentTeacher = new Teacher();
+            return currentTeacher;
+        }
+
+        function transitionToNextStep(content) {
+            const stageContent = document.getElementById('stage-content');
+            stageContent.style.animation = 'fadeOut 0.3s ease-out';
+            
+            setTimeout(() => {
+                stageContent.innerHTML = content;
+                stageContent.style.animation = 'fadeIn 0.5s ease-out';
+            }, 300);
+        }
+
+        function stopCurrentDemo() {
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+        }
+
+        // Complete Lesson
+        function showCompleteLesson() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+            let step = 0;
+
+            const steps = [
+                {
+                    content: `
+                        <h2 class="math-title">Welcome! 🎉</h2>
+                        <div class="value-display">Zeros of Polynomials</div>
+                        <div class="math-description">
+                            Learn how to find and verify zeros of polynomials!
+                        </div>
+                        <div class="formula-box">
+                            <p style="font-size: 1.2rem; color: #43e97b;">
+                                ✓ Understanding Zeros<br>
+                                ✓ Finding Values<br>
+                                ✓ Solving for Zeros<br>
+                                ✓ Verification Methods
+                            </p>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Start Learning →</button>
+                    `,
+                    speech: "Welcome! Let's explore zeros of polynomials. A zero is a special value where the polynomial equals zero. We'll learn how to find them and verify them!"
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 10px;">Definition of Zeros 📖</h2>
+                        <div style="width: 100%; max-width: 700px; padding: 0 15px;">
+                            <div class="content-card" style="padding: 18px;">
+                                <div class="formula-box" style="padding: 15px;">
+                                    <h3 style="color: #fbbf24; font-size: 1.2rem; margin-bottom: 12px;">Zero of a Polynomial</h3>
+                                    <p style="color: #e2e8f0; font-size: 1rem; line-height: 1.6; margin-bottom: 15px;">
+                                        A number <span class="highlight-text">c</span> is called a <span class="highlight-text">zero</span> of polynomial p(x) if:
+                                    </p>
+                                    <p class="formula" style="font-size: 1.6rem; margin: 15px 0;">p(c) = 0</p>
+                                </div>
+                                <div style="margin-top: 20px; padding: 15px; background: rgba(79, 172, 254, 0.1); border-radius: 12px;">
+                                    <h4 style="color: #4facfe; font-size: 1rem; margin-bottom: 10px;">Also Known As:</h4>
+                                    <p style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.8;">
+                                        • Root of the equation p(x) = 0<br>
+                                        • Solution of the polynomial equation<br>
+                                        • X-intercept (when graphed)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Continue →</button>
+                    `,
+                    speech: "A zero of a polynomial p of x is a number c where p of c equals zero. It's also called the root of the equation, or the x-intercept when graphed."
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 10px;">Finding Values 🔢</h2>
+                        <div style="width: 100%; max-width: 700px; padding: 0 15px;">
+                            <div class="content-card" style="padding: 15px;">
+                                <h3 style="color: #4facfe; font-size: 1.1rem; margin-bottom: 12px; text-align: center;">
+                                    For p(x) = 5x³ - 2x² + 3x - 2
+                                </h3>
+                                
+                                <div class="example-box" style="margin: 10px 0; padding: 12px;">
+                                    <h4 style="color: #fbbf24; font-size: 1rem; margin-bottom: 8px;">Calculate p(1):</h4>
+                                    <div class="calculation-step" style="padding: 10px;">
+                                        <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                            p(1) = 5(1)³ - 2(1)² + 3(1) - 2<br>
+                                            p(1) = 5(1) - 2(1) + 3 - 2<br>
+                                            p(1) = 5 - 2 + 3 - 2<br>
+                                            <span class="highlight-text" style="font-size: 1.1rem;">p(1) = 4</span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="example-box" style="margin: 10px 0; padding: 12px;">
+                                    <h4 style="color: #fbbf24; font-size: 1rem; margin-bottom: 8px;">Calculate p(0):</h4>
+                                    <div class="calculation-step" style="padding: 10px;">
+                                        <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                            p(0) = 5(0)³ - 2(0)² + 3(0) - 2<br>
+                                            p(0) = 0 - 0 + 0 - 2<br>
+                                            <span class="highlight-text" style="font-size: 1.1rem;">p(0) = -2</span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div style="margin-top: 12px; padding: 10px; background: rgba(67, 233, 123, 0.15); border-radius: 8px;">
+                                    <p style="color: #43e97b; font-size: 0.9rem; text-align: center;">
+                                        💡 To find p(c), substitute c for x and calculate
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Next →</button>
+                    `,
+                    speech: "To find the value of a polynomial at any point, substitute that value for x. For example, p of 1 equals 4, and p of 0 equals negative 2."
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 10px;">Finding Zeros 🎯</h2>
+                        <div style="width: 100%; max-width: 700px; padding: 0 15px;">
+                            <div class="content-card" style="padding: 15px;">
+                                <h3 style="color: #43e97b; font-size: 1.1rem; margin-bottom: 12px;">Key Facts About Zeros</h3>
+                                
+                                <div class="example-box" style="margin: 10px 0; padding: 12px;">
+                                    <h4 style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 8px;">📏 Linear Polynomials</h4>
+                                    <p style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.6;">
+                                        • Has <span class="highlight-text">exactly one zero</span><br>
+                                        • For ax + b = 0, zero is <span class="highlight-text">x = -b/a</span>
+                                    </p>
+                                </div>
+
+                                <div class="example-box" style="margin: 10px 0; padding: 12px;">
+                                    <h4 style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 8px;">🔢 Constant Polynomials</h4>
+                                    <p style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.6;">
+                                        • Non-zero constant: <span class="highlight-text">No zeros</span><br>
+                                        • Example: p(x) = 5 has no zeros
+                                    </p>
+                                </div>
+
+                                <div class="example-box" style="margin: 10px 0; padding: 12px;">
+                                    <h4 style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 8px;">⭕ Zero Polynomial</h4>
+                                    <p style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.6;">
+                                        • p(x) = 0 for all x<br>
+                                        • <span class="highlight-text">Every real number</span> is a zero
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Continue →</button>
+                    `,
+                    speech: "A linear polynomial has exactly one zero. Non-zero constants have no zeros. The zero polynomial has every real number as a zero."
+                },
+                {
+                    content: `
+                        <h2 class="math-title">Linear Polynomial Zeros 📏</h2>
+                        <div style="width: 100%; max-width: 700px; padding: 0 20px;">
+                            <div class="content-card" style="padding: 20px;">
+                                <div class="formula-box" style="margin-bottom: 25px;">
+                                    <h3 style="color: #4facfe; font-size: 1.3rem; margin-bottom: 15px;">General Form</h3>
+                                    <p class="formula" style="font-size: 1.5rem; margin: 15px 0;">p(x) = ax + b</p>
+                                    <p style="color: #e2e8f0; font-size: 1rem; margin-top: 15px;">where a ≠ 0</p>
+                                </div>
+
+                                <div class="example-box">
+                                    <h4 style="color: #fbbf24; font-size: 1.2rem; margin-bottom: 15px;">Finding the Zero:</h4>
+                                    <div class="calculation-step">
+                                        <p style="color: #e2e8f0; font-size: 1rem; line-height: 2;">
+                                            Set ax + b = 0<br>
+                                            ax = -b<br>
+                                            <span class="highlight-text" style="font-size: 1.3rem;">x = -b/a</span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div style="margin-top: 25px; padding: 20px; background: rgba(67, 233, 123, 0.15); border-radius: 12px;">
+                                    <h4 style="color: #43e97b; font-size: 1.1rem; margin-bottom: 12px;">Remember:</h4>
+                                    <p style="color: #e2e8f0; font-size: 1rem;">
+                                        Every linear polynomial has <span class="highlight-text">exactly one zero</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Next →</button>
+                    `,
+                    speech: "A linear polynomial a x plus b has exactly one zero. To find it, set a x plus b equal to zero and solve: x equals negative b over a."
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 10px;">Verification Demo ✅</h2>
+                        <div style="width: 100%; max-width: 700px; padding: 0 15px;">
+                            <div class="content-card" style="padding: 15px;">
+                                <h3 style="color: #4facfe; font-size: 1.1rem; margin-bottom: 12px; text-align: center;">
+                                    Verify if 2 and 0 are zeros of x² - 2x
+                                </h3>
+
+                                <div class="example-box" style="margin: 10px 0; padding: 12px;">
+                                    <h4 style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 8px;">Check x = 2:</h4>
+                                    <div class="calculation-step" style="padding: 10px;">
+                                        <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                            p(2) = (2)² - 2(2)<br>
+                                            p(2) = 4 - 4<br>
+                                            <span class="highlight-text">p(2) = 0</span> ✓
+                                        </p>
+                                    </div>
+                                    <div style="margin-top: 8px; padding: 10px; background: rgba(67, 233, 123, 0.2); border-radius: 8px;">
+                                        <p style="color: #43e97b; font-weight: 600; font-size: 0.9rem;">Yes! 2 is a zero</p>
+                                    </div>
+                                </div>
+
+                                <div class="example-box" style="margin: 10px 0; padding: 12px;">
+                                    <h4 style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 8px;">Check x = 0:</h4>
+                                    <div class="calculation-step" style="padding: 10px;">
+                                        <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                            p(0) = (0)² - 2(0)<br>
+                                            p(0) = 0 - 0<br>
+                                            <span class="highlight-text">p(0) = 0</span> ✓
+                                        </p>
+                                    </div>
+                                    <div style="margin-top: 8px; padding: 10px; background: rgba(67, 233, 123, 0.2); border-radius: 8px;">
+                                        <p style="color: #43e97b; font-weight: 600; font-size: 0.9rem;">Yes! 0 is a zero</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Continue →</button>
+                    `,
+                    speech: "Let's verify if 2 and 0 are zeros of x squared minus 2x. Substituting 2: we get zero. Substituting 0: we also get zero. Both are confirmed as zeros!"
+                },
+                {
+                    content: `
+                        <h2 class="math-title">Examples 💡</h2>
+                        <div style="width: 100%; max-width: 750px; padding: 0 20px;">
+                            <div class="content-card" style="padding: 20px;">
+                                <div class="example-box" style="margin-bottom: 20px;">
+                                    <h3 style="color: #fbbf24; font-size: 1.2rem; margin-bottom: 15px;">Example 1: Find the zero of p(x) = 2x + 1</h3>
+                                    <div class="calculation-step">
+                                        <p style="color: #e2e8f0; font-size: 1rem; margin-bottom: 10px;"><strong>Solution:</strong></p>
+                                        <p style="color: #cbd5e0; font-size: 0.95rem; line-height: 1.8;">
+                                            Set 2x + 1 = 0<br>
+                                            2x = -1<br>
+                                            <span class="highlight-text">x = -½</span>
+                                        </p>
+                                    </div>
+                                    <span class="zero-badge">Zero: x = -½</span>
+                                </div>
+
+                                <div class="example-box" style="margin-bottom: 20px;">
+                                    <h3 style="color: #fbbf24; font-size: 1.2rem; margin-bottom: 15px;">Example 2: Find the zero of p(x) = 3x - 6</h3>
+                                    <div class="calculation-step">
+                                        <p style="color: #e2e8f0; font-size: 1rem; margin-bottom: 10px;"><strong>Solution:</strong></p>
+                                        <p style="color: #cbd5e0; font-size: 0.95rem; line-height: 1.8;">
+                                            Set 3x - 6 = 0<br>
+                                            3x = 6<br>
+                                            <span class="highlight-text">x = 2</span>
+                                        </p>
+                                    </div>
+                                    <span class="zero-badge">Zero: x = 2</span>
+                                </div>
+
+                                <div class="example-box">
+                                    <h3 style="color: #fbbf24; font-size: 1.2rem; margin-bottom: 15px;">Example 3: Find the zero of p(x) = -4x + 8</h3>
+                                    <div class="calculation-step">
+                                        <p style="color: #e2e8f0; font-size: 1rem; margin-bottom: 10px;"><strong>Solution:</strong></p>
+                                        <p style="color: #cbd5e0; font-size: 0.95rem; line-height: 1.8;">
+                                            Set -4x + 8 = 0<br>
+                                            -4x = -8<br>
+                                            <span class="highlight-text">x = 2</span>
+                                        </p>
+                                    </div>
+                                    <span class="zero-badge">Zero: x = 2</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Continue →</button>
+                    `,
+                    speech: "Let's look at some examples. For 2x plus 1, the zero is negative one-half. For 3x minus 6, the zero is 2. For negative 4x plus 8, the zero is also 2."
+                },
+                {
+                    content: `
+                        <h2 class="math-title">Visualization 📊</h2>
+                        <div style="width: 100%; max-width: 700px; padding: 0 20px;">
+                            <div class="content-card" style="padding: 20px;">
+                                <p style="color: #e2e8f0; font-size: 1rem; text-align: center; margin-bottom: 20px;">
+                                    Graph showing zeros as x-intercepts
+                                </p>
+                                <div class="chart-container">
+                                    <canvas id="zerosChart-complete"></canvas>
+                                </div>
+                                <div style="margin-top: 20px; padding: 15px; background: rgba(67, 233, 123, 0.15); border-radius: 10px;">
+                                    <p style="color: #43e97b; font-size: 0.95rem; text-align: center;">
+                                        💡 Zeros are where the graph crosses the x-axis (y = 0)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Next →</button>
+                    `,
+                    speech: "This graph shows x squared minus 2x. Notice where it crosses the x-axis at x equals 0 and x equals 2. These are the zeros of the polynomial.",
+                    onShow: function() {
+                        setTimeout(() => {
+                            const ctx = document.getElementById('zerosChart-complete');
+                            if (ctx) {
+                                const chartCtx = ctx.getContext('2d');
+                                
+                                // Generate data for x² - 2x (zeros at 0 and 2)
+                                const xValues = [];
+                                const yValues = [];
+                                for (let x = -1; x <= 3; x += 0.1) {
+                                    xValues.push(x.toFixed(1));
+                                    yValues.push(x * x - 2 * x);
+                                }
+
+                                new Chart(chartCtx, {
+                                    type: 'line',
+                                    data: {
+                                        labels: xValues,
+                                        datasets: [{
+                                            label: 'p(x) = x² - 2x',
+                                            data: yValues,
+                                            borderColor: '#4facfe',
+                                            backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                                            borderWidth: 3,
+                                            tension: 0.4,
+                                            pointRadius: 0
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: true,
+                                        plugins: {
+                                            legend: {
+                                                labels: { color: '#e2e8f0', font: { size: 14 } }
+                                            }
+                                        },
+                                        scales: {
+                                            x: {
+                                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                                ticks: { color: '#e2e8f0' }
+                                            },
+                                            y: {
+                                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                                ticks: { color: '#e2e8f0' }
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        }, 500);
+                    }
+                },
+                {
+                    content: `
+                        <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 10px;">Find the Zero! 🎮</h2>
+                        <div style="width: 100%; max-width: 650px; padding: 0 15px;">
+                            <div class="content-card" style="padding: 15px;">
+                                <p style="font-size: 0.95rem; color: #e2e8f0; margin-bottom: 12px; text-align: center;">
+                                    🎯 Enter a linear polynomial to find its zero:
+                                </p>
+                                
+                                <div style="background: rgba(251, 191, 36, 0.1); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                                    <p style="color: #fbbf24; font-size: 0.9rem; margin-bottom: 10px; text-align: center; font-weight: 600;">
+                                        Format: ax + b
+                                    </p>
+                                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+                                        <input type="number" id="coeff-a-complete" class="interactive-input" 
+                                               placeholder="a" 
+                                               style="width: 120px; padding: 10px; font-size: 1rem;" />
+                                        <span style="font-size: 1.2rem; color: #fbbf24;">x +</span>
+                                        <input type="number" id="coeff-b-complete" class="interactive-input" 
+                                               placeholder="b" 
+                                               style="width: 120px; padding: 10px; font-size: 1rem;" />
+                                    </div>
+                                    <p style="color: #cbd5e0; font-size: 0.8rem; text-align: center; margin-top: 8px;">
+                                        💡 Example: For 2x + 1, enter a=2 and b=1
+                                    </p>
+                                </div>
+
+                                <button class="action-btn" style="font-size: 1rem; padding: 12px 28px;" onclick="calculateZeroComplete()">🎯 Find the Zero!</button>
+                                
+                                <div id="zero-result-complete" style="margin-top: 12px;"></div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()" style="margin-top: 15px;">Finish →</button>
+                    `,
+                    speech: "Enter the coefficients of a linear polynomial a x plus b, and I'll help you find its zero!",
+                    onShow: function() {
+                        window.calculateZeroComplete = function() {
+                            const a = parseFloat(document.getElementById('coeff-a-complete').value);
+                            const b = parseFloat(document.getElementById('coeff-b-complete').value);
+
+                            if (isNaN(a) || isNaN(b)) {
+                                teacher.speak("Please enter valid numbers for both coefficients!");
+                                return;
+                            }
+
+                            if (a === 0) {
+                                const result = `
+                                    <div class="content-card" style="padding: 15px; background: rgba(245, 87, 108, 0.2);">
+                                        <h3 style="color: #f5576c; font-size: 1.1rem; margin-bottom: 10px;">⚠️ Not a Linear Polynomial</h3>
+                                        <p style="color: #e2e8f0; font-size: 0.9rem;">
+                                            When a = 0, this is a constant polynomial, not linear!
+                                        </p>
+                                    </div>
+                                `;
+                                document.getElementById('zero-result-complete').innerHTML = result;
+                                teacher.speak("When a equals zero, this is not a linear polynomial!");
+                                return;
+                            }
+
+                            const zero = -b / a;
+                            
+                            const result = `
+                                <div class="content-card glow-effect" style="padding: 15px;">
+                                    <h3 style="color: #fbbf24; font-size: 1.1rem; margin-bottom: 10px;">Solution:</h3>
+                                    <div class="calculation-step" style="padding: 10px;">
+                                        <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                            For p(x) = ${a}x + ${b}<br>
+                                            Set ${a}x + ${b} = 0<br>
+                                            ${a}x = ${-b}<br>
+                                            <span class="highlight-text" style="font-size: 1.1rem;">x = ${zero.toFixed(4)}</span>
+                                        </p>
+                                    </div>
+                                    <div style="margin-top: 12px; text-align: center;">
+                                        <span class="zero-badge" style="font-size: 1rem;">Zero: x = ${zero.toFixed(4)}</span>
+                                    </div>
+                                </div>
+                            `;
+
+                            document.getElementById('zero-result-complete').innerHTML = result;
+                            teacher.speak(`The zero of ${a} x plus ${b} is x equals ${zero.toFixed(2)}`);
+                        };
+                    }
+                }
+            ];
+
+            window.nextStep = function() {
+                step++;
+                if (step < steps.length) {
+                    transitionToNextStep(steps[step].content);
+                    setTimeout(() => {
+                        teacher.speak(steps[step].speech);
+                        if (steps[step].onShow) {
+                            steps[step].onShow();
+                        }
+                    }, 800);
+                } else {
+                    const finalContent = `
+                        <h2 class="math-title">Congratulations! 🎉</h2>
+                        <div class="value-display">Lesson Complete!</div>
+                        <div class="math-description">
+                            You've mastered the basics of polynomial zeros!
+                        </div>
+                        <div class="formula-box glow-effect">
+                            <p style="font-size: 1.2rem; color: #43e97b;">
+                                ✓ Understanding Zeros<br>
+                                ✓ Finding Values<br>
+                                ✓ Solving for Zeros<br>
+                                ✓ Examples & Applications
+                            </p>
+                        </div>
+                    `;
+                    transitionToNextStep(finalContent);
+                    teacher.speak("Congratulations! You have successfully completed the lesson on zeros of polynomials!");
+                }
+            };
+
+            transitionToNextStep(steps[0].content);
+            setTimeout(() => {
+                teacher.speak(steps[0].speech);
+                if (steps[0].onShow) {
+                    steps[0].onShow();
+                }
+            }, 500);
+        }
+
+        // Definition
+        function showDefinition() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 10px;">Definition of Zeros 📖</h2>
+                <div style="width: 100%; max-width: 700px; padding: 0 15px;">
+                    <div class="content-card" style="padding: 18px;">
+                        <div class="formula-box" style="padding: 15px;">
+                            <h3 style="color: #fbbf24; font-size: 1.2rem; margin-bottom: 12px;">Zero of a Polynomial</h3>
+                            <p style="color: #e2e8f0; font-size: 1rem; line-height: 1.6; margin-bottom: 15px;">
+                                A number <span class="highlight-text">c</span> is called a <span class="highlight-text">zero</span> of polynomial p(x) if:
+                            </p>
+                            <p class="formula" style="font-size: 1.6rem; margin: 15px 0;">p(c) = 0</p>
+                        </div>
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(79, 172, 254, 0.1); border-radius: 12px;">
+                            <h4 style="color: #4facfe; font-size: 1rem; margin-bottom: 10px;">Also Known As:</h4>
+                            <p style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.8;">
+                                • Root of the equation p(x) = 0<br>
+                                • Solution of the polynomial equation<br>
+                                • X-intercept (when graphed)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("A zero of a polynomial p of x is a number c where p of c equals zero. It's also called the root of the equation, or the x-intercept when graphed.");
+            }, 500);
+        }
+
+        // Finding Values
+        function showFindingValues() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 10px;">Finding Values 🔢</h2>
+                <div style="width: 100%; max-width: 700px; padding: 0 15px;">
+                    <div class="content-card" style="padding: 15px;">
+                        <h3 style="color: #4facfe; font-size: 1.1rem; margin-bottom: 12px; text-align: center;">
+                            For p(x) = 5x³ - 2x² + 3x - 2
+                        </h3>
+                        
+                        <div class="example-box" style="margin: 10px 0; padding: 12px;">
+                            <h4 style="color: #fbbf24; font-size: 1rem; margin-bottom: 8px;">Calculate p(1):</h4>
+                            <div class="calculation-step" style="padding: 10px;">
+                                <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                    p(1) = 5(1)³ - 2(1)² + 3(1) - 2<br>
+                                    p(1) = 5(1) - 2(1) + 3 - 2<br>
+                                    p(1) = 5 - 2 + 3 - 2<br>
+                                    <span class="highlight-text" style="font-size: 1.1rem;">p(1) = 4</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="example-box" style="margin: 10px 0; padding: 12px;">
+                            <h4 style="color: #fbbf24; font-size: 1rem; margin-bottom: 8px;">Calculate p(0):</h4>
+                            <div class="calculation-step" style="padding: 10px;">
+                                <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                    p(0) = 5(0)³ - 2(0)² + 3(0) - 2<br>
+                                    p(0) = 0 - 0 + 0 - 2<br>
+                                    <span class="highlight-text" style="font-size: 1.1rem;">p(0) = -2</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 12px; padding: 10px; background: rgba(67, 233, 123, 0.15); border-radius: 8px;">
+                            <p style="color: #43e97b; font-size: 0.9rem; text-align: center;">
+                                💡 To find p(c), substitute c for x and calculate
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("To find the value of a polynomial at any point, substitute that value for x. For example, p of 1 equals 4, and p of 0 equals negative 2.");
+            }, 500);
+        }
+
+        // Finding Zeros
+        function showFindingZeros() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 10px;">Finding Zeros 🎯</h2>
+                <div style="width: 100%; max-width: 700px; padding: 0 15px;">
+                    <div class="content-card" style="padding: 15px;">
+                        <h3 style="color: #43e97b; font-size: 1.1rem; margin-bottom: 12px;">Key Facts About Zeros</h3>
+                        
+                        <div class="example-box" style="margin: 10px 0; padding: 12px;">
+                            <h4 style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 8px;">📏 Linear Polynomials</h4>
+                            <p style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.6;">
+                                • Has <span class="highlight-text">exactly one zero</span><br>
+                                • For ax + b = 0, zero is <span class="highlight-text">x = -b/a</span>
+                            </p>
+                        </div>
+
+                        <div class="example-box" style="margin: 10px 0; padding: 12px;">
+                            <h4 style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 8px;">🔢 Constant Polynomials</h4>
+                            <p style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.6;">
+                                • Non-zero constant: <span class="highlight-text">No zeros</span><br>
+                                • Example: p(x) = 5 has no zeros
+                            </p>
+                        </div>
+
+                        <div class="example-box" style="margin: 10px 0; padding: 12px;">
+                            <h4 style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 8px;">⭕ Zero Polynomial</h4>
+                            <p style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.6;">
+                                • p(x) = 0 for all x<br>
+                                • <span class="highlight-text">Every real number</span> is a zero
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("A linear polynomial has exactly one zero. Non-zero constants have no zeros. The zero polynomial has every real number as a zero.");
+            }, 500);
+        }
+
+        // Linear Zeros
+        function showLinearZeros() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">Linear Polynomial Zeros 📏</h2>
+                <div style="width: 100%; max-width: 700px; padding: 0 20px;">
+                    <div class="content-card" style="padding: 20px;">
+                        <div class="formula-box" style="margin-bottom: 25px;">
+                            <h3 style="color: #4facfe; font-size: 1.3rem; margin-bottom: 15px;">General Form</h3>
+                            <p class="formula" style="font-size: 1.5rem; margin: 15px 0;">p(x) = ax + b</p>
+                            <p style="color: #e2e8f0; font-size: 1rem; margin-top: 15px;">where a ≠ 0</p>
+                        </div>
+
+                        <div class="example-box">
+                            <h4 style="color: #fbbf24; font-size: 1.2rem; margin-bottom: 15px;">Finding the Zero:</h4>
+                            <div class="calculation-step">
+                                <p style="color: #e2e8f0; font-size: 1rem; line-height: 2;">
+                                    Set ax + b = 0<br>
+                                    ax = -b<br>
+                                    <span class="highlight-text" style="font-size: 1.3rem;">x = -b/a</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 25px; padding: 20px; background: rgba(67, 233, 123, 0.15); border-radius: 12px;">
+                            <h4 style="color: #43e97b; font-size: 1.1rem; margin-bottom: 12px;">Remember:</h4>
+                            <p style="color: #e2e8f0; font-size: 1rem;">
+                                Every linear polynomial has <span class="highlight-text">exactly one zero</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("A linear polynomial a x plus b has exactly one zero. To find it, set a x plus b equal to zero and solve: x equals negative b over a.");
+            }, 500);
+        }
+
+        // Verification Demo
+        function showVerification() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 10px;">Verification Demo ✅</h2>
+                <div style="width: 100%; max-width: 700px; padding: 0 15px;">
+                    <div class="content-card" style="padding: 15px;">
+                        <h3 style="color: #4facfe; font-size: 1.1rem; margin-bottom: 12px; text-align: center;">
+                            Verify if 2 and 0 are zeros of x² - 2x
+                        </h3>
+
+                        <div class="example-box" style="margin: 10px 0; padding: 12px;">
+                            <h4 style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 8px;">Check x = 2:</h4>
+                            <div class="calculation-step" style="padding: 10px;">
+                                <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                    p(2) = (2)² - 2(2)<br>
+                                    p(2) = 4 - 4<br>
+                                    <span class="highlight-text">p(2) = 0</span> ✓
+                                </p>
+                            </div>
+                            <div style="margin-top: 8px; padding: 10px; background: rgba(67, 233, 123, 0.2); border-radius: 8px;">
+                                <p style="color: #43e97b; font-weight: 600; font-size: 0.9rem;">Yes! 2 is a zero</p>
+                            </div>
+                        </div>
+
+                        <div class="example-box" style="margin: 10px 0; padding: 12px;">
+                            <h4 style="color: #fbbf24; font-size: 0.95rem; margin-bottom: 8px;">Check x = 0:</h4>
+                            <div class="calculation-step" style="padding: 10px;">
+                                <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                    p(0) = (0)² - 2(0)<br>
+                                    p(0) = 0 - 0<br>
+                                    <span class="highlight-text">p(0) = 0</span> ✓
+                                </p>
+                            </div>
+                            <div style="margin-top: 8px; padding: 10px; background: rgba(67, 233, 123, 0.2); border-radius: 8px;">
+                                <p style="color: #43e97b; font-weight: 600; font-size: 0.9rem;">Yes! 0 is a zero</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("Let's verify if 2 and 0 are zeros of x squared minus 2x. Substituting 2: we get zero. Substituting 0: we also get zero. Both are confirmed as zeros!");
+            }, 500);
+        }
+
+        // Examples
+        function showExamples() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">Examples 💡</h2>
+                <div style="width: 100%; max-width: 750px; padding: 0 20px;">
+                    <div class="content-card" style="padding: 20px;">
+                        <div class="example-box" style="margin-bottom: 20px;">
+                            <h3 style="color: #fbbf24; font-size: 1.2rem; margin-bottom: 15px;">Example 1: Find the zero of p(x) = 2x + 1</h3>
+                            <div class="calculation-step">
+                                <p style="color: #e2e8f0; font-size: 1rem; margin-bottom: 10px;"><strong>Solution:</strong></p>
+                                <p style="color: #cbd5e0; font-size: 0.95rem; line-height: 1.8;">
+                                    Set 2x + 1 = 0<br>
+                                    2x = -1<br>
+                                    <span class="highlight-text">x = -½</span>
+                                </p>
+                            </div>
+                            <span class="zero-badge">Zero: x = -½</span>
+                        </div>
+
+                        <div class="example-box" style="margin-bottom: 20px;">
+                            <h3 style="color: #fbbf24; font-size: 1.2rem; margin-bottom: 15px;">Example 2: Find the zero of p(x) = 3x - 6</h3>
+                            <div class="calculation-step">
+                                <p style="color: #e2e8f0; font-size: 1rem; margin-bottom: 10px;"><strong>Solution:</strong></p>
+                                <p style="color: #cbd5e0; font-size: 0.95rem; line-height: 1.8;">
+                                    Set 3x - 6 = 0<br>
+                                    3x = 6<br>
+                                    <span class="highlight-text">x = 2</span>
+                                </p>
+                            </div>
+                            <span class="zero-badge">Zero: x = 2</span>
+                        </div>
+
+                        <div class="example-box">
+                            <h3 style="color: #fbbf24; font-size: 1.2rem; margin-bottom: 15px;">Example 3: Find the zero of p(x) = -4x + 8</h3>
+                            <div class="calculation-step">
+                                <p style="color: #e2e8f0; font-size: 1rem; margin-bottom: 10px;"><strong>Solution:</strong></p>
+                                <p style="color: #cbd5e0; font-size: 0.95rem; line-height: 1.8;">
+                                    Set -4x + 8 = 0<br>
+                                    -4x = -8<br>
+                                    <span class="highlight-text">x = 2</span>
+                                </p>
+                            </div>
+                            <span class="zero-badge">Zero: x = 2</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            setTimeout(() => {
+                teacher.speak("Let's look at some examples. For 2x plus 1, the zero is negative one-half. For 3x minus 6, the zero is 2. For negative 4x plus 8, the zero is also 2.");
+            }, 500);
+        }
+
+        // Visualization
+        function showVisualization() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">Visualization 📊</h2>
+                <div style="width: 100%; max-width: 700px; padding: 0 20px;">
+                    <div class="content-card" style="padding: 20px;">
+                        <p style="color: #e2e8f0; font-size: 1rem; text-align: center; margin-bottom: 20px;">
+                            Graph showing zeros as x-intercepts
+                        </p>
+                        <div class="chart-container">
+                            <canvas id="zerosChart"></canvas>
+                        </div>
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(67, 233, 123, 0.15); border-radius: 10px;">
+                            <p style="color: #43e97b; font-size: 0.95rem; text-align: center;">
+                                💡 Zeros are where the graph crosses the x-axis (y = 0)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            setTimeout(() => {
+                const ctx = document.getElementById('zerosChart').getContext('2d');
+                
+                // Generate data for x² - 2x (zeros at 0 and 2)
+                const xValues = [];
+                const yValues = [];
+                for (let x = -1; x <= 3; x += 0.1) {
+                    xValues.push(x.toFixed(1));
+                    yValues.push(x * x - 2 * x);
+                }
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: xValues,
+                        datasets: [{
+                            label: 'p(x) = x² - 2x',
+                            data: yValues,
+                            borderColor: '#4facfe',
+                            backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            pointRadius: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#e2e8f0', font: { size: 14 } }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#e2e8f0' }
+                            },
+                            y: {
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#e2e8f0' }
+                            }
+                        }
+                    }
+                });
+
+                teacher.speak("This graph shows x squared minus 2x. Notice where it crosses the x-axis at x equals 0 and x equals 2. These are the zeros of the polynomial.");
+            }, 500);
+        }
+
+        // Interactive Demo
+        function showInteractiveDemo() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title" style="font-size: 1.4rem; margin-bottom: 10px;">Find the Zero! 🎮</h2>
+                <div style="width: 100%; max-width: 650px; padding: 0 15px;">
+                    <div class="content-card" style="padding: 15px;">
+                        <p style="font-size: 0.95rem; color: #e2e8f0; margin-bottom: 12px; text-align: center;">
+                            🎯 Enter a linear polynomial to find its zero:
+                        </p>
+                        
+                        <div style="background: rgba(251, 191, 36, 0.1); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                            <p style="color: #fbbf24; font-size: 0.9rem; margin-bottom: 10px; text-align: center; font-weight: 600;">
+                                Format: ax + b
+                            </p>
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+                                <input type="number" id="coeff-a" class="interactive-input" 
+                                       placeholder="a" 
+                                       style="width: 120px; padding: 10px; font-size: 1rem;" />
+                                <span style="font-size: 1.2rem; color: #fbbf24;">x +</span>
+                                <input type="number" id="coeff-b" class="interactive-input" 
+                                       placeholder="b" 
+                                       style="width: 120px; padding: 10px; font-size: 1rem;" />
+                            </div>
+                            <p style="color: #cbd5e0; font-size: 0.8rem; text-align: center; margin-top: 8px;">
+                                💡 Example: For 2x + 1, enter a=2 and b=1
+                            </p>
+                        </div>
+
+                        <button class="action-btn" style="font-size: 1rem; padding: 12px 28px;" onclick="calculateZero()">🎯 Find the Zero!</button>
+                        
+                        <div id="zero-result" style="margin-top: 12px;"></div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            window.calculateZero = function() {
+                const a = parseFloat(document.getElementById('coeff-a').value);
+                const b = parseFloat(document.getElementById('coeff-b').value);
+
+                if (isNaN(a) || isNaN(b)) {
+                    teacher.speak("Please enter valid numbers for both coefficients!");
+                    return;
+                }
+
+                if (a === 0) {
+                    const result = `
+                        <div class="content-card" style="padding: 15px; background: rgba(245, 87, 108, 0.2);">
+                            <h3 style="color: #f5576c; font-size: 1.1rem; margin-bottom: 10px;">⚠️ Not a Linear Polynomial</h3>
+                            <p style="color: #e2e8f0; font-size: 0.9rem;">
+                                When a = 0, this is a constant polynomial, not linear!
+                            </p>
+                        </div>
+                    `;
+                    document.getElementById('zero-result').innerHTML = result;
+                    teacher.speak("When a equals zero, this is not a linear polynomial!");
+                    return;
+                }
+
+                const zero = -b / a;
+                
+                const result = `
+                    <div class="content-card glow-effect" style="padding: 15px;">
+                        <h3 style="color: #fbbf24; font-size: 1.1rem; margin-bottom: 10px;">Solution:</h3>
+                        <div class="calculation-step" style="padding: 10px;">
+                            <p style="color: #cbd5e0; font-size: 0.85rem; line-height: 1.5;">
+                                For p(x) = ${a}x + ${b}<br>
+                                Set ${a}x + ${b} = 0<br>
+                                ${a}x = ${-b}<br>
+                                <span class="highlight-text" style="font-size: 1.1rem;">x = ${zero.toFixed(4)}</span>
+                            </p>
+                        </div>
+                        <div style="margin-top: 12px; text-align: center;">
+                            <span class="zero-badge" style="font-size: 1rem;">Zero: x = ${zero.toFixed(4)}</span>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('zero-result').innerHTML = result;
+                teacher.speak(`The zero of ${a} x plus ${b} is x equals ${zero.toFixed(2)}`);
+            };
+
+            setTimeout(() => {
+                teacher.speak("Enter the coefficients of a linear polynomial a x plus b, and I'll help you find its zero!");
+            }, 500);
+        }
+
+        // Quiz
+        function showQuiz() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+            quizScore = 0;
+            currentQuizQuestion = 0;
+
+            const questions = [
+                {
+                    question: "What is a zero of a polynomial?",
+                    options: [
+                        "A value where p(x) = 0",
+                        "The coefficient of x",
+                        "The constant term",
+                        "The degree of the polynomial"
+                    ],
+                    correct: 0,
+                    explanation: "A zero is a value of x where the polynomial equals zero."
+                },
+                {
+                    question: "How many zeros does a linear polynomial have?",
+                    options: [
+                        "None",
+                        "Exactly one",
+                        "Two",
+                        "Infinite"
+                    ],
+                    correct: 1,
+                    explanation: "A linear polynomial has exactly one zero."
+                },
+                {
+                    question: "What is the zero of p(x) = 3x - 9?",
+                    options: [
+                        "x = -3",
+                        "x = 0",
+                        "x = 3",
+                        "x = 9"
+                    ],
+                    correct: 2,
+                    explanation: "Setting 3x - 9 = 0 gives x = 3."
+                },
+                {
+                    question: "Does the polynomial p(x) = 5 have any zeros?",
+                    options: [
+                        "Yes, x = 5",
+                        "Yes, x = 0",
+                        "No zeros",
+                        "Infinite zeros"
+                    ],
+                    correct: 2,
+                    explanation: "A non-zero constant polynomial has no zeros."
+                },
+                {
+                    question: "For p(x) = -2x + 4, what is the zero?",
+                    options: [
+                        "x = -2",
+                        "x = 0",
+                        "x = 2",
+                        "x = 4"
+                    ],
+                    correct: 2,
+                    explanation: "Setting -2x + 4 = 0 gives -2x = -4, so x = 2."
+                }
+            ];
+
+            function showQuestion() {
+                const q = questions[currentQuizQuestion];
+                const content = `
+                    <h2 class="math-title" style="font-size: 1.5rem; margin-bottom: 12px;">Quiz Time! 🏆</h2>
+                    <div style="width: 100%; max-width: 700px; padding: 0 20px;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${(currentQuizQuestion / questions.length) * 100}%"></div>
+                        </div>
+                        <div class="content-card" style="padding: 20px;">
+                            <p style="font-size: 1rem; color: #e2e8f0; margin-bottom: 10px;">
+                                Question ${currentQuizQuestion + 1} of ${questions.length}
+                            </p>
+                            <h3 style="color: #fbbf24; font-size: 1.2rem; margin: 15px 0;">
+                                ${q.question}
+                            </h3>
+                            <div id="quiz-options">
+                                ${q.options.map((opt, idx) => `
+                                    <div class="quiz-option" onclick="checkAnswer(${idx})" style="padding: 15px; margin: 10px 0; font-size: 1rem;">
+                                        ${opt}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="value-display" style="font-size: 2rem; margin-top: 15px;">
+                            Score: ${quizScore} / ${questions.length}
+                        </div>
+                    </div>
+                `;
+                transitionToNextStep(content);
+            }
+
+            window.checkAnswer = function(selectedIdx) {
+                const q = questions[currentQuizQuestion];
+                const options = document.querySelectorAll('.quiz-option');
+                
+                options.forEach(opt => opt.style.pointerEvents = 'none');
+                
+                if (selectedIdx === q.correct) {
+                    options[selectedIdx].classList.add('correct');
+                    quizScore++;
+                    teacher.speak("Correct! " + q.explanation);
+                } else {
+                    options[selectedIdx].classList.add('incorrect');
+                    options[q.correct].classList.add('correct');
+                    teacher.speak("Incorrect. " + q.explanation);
+                }
+
+                setTimeout(() => {
+                    currentQuizQuestion++;
+                    if (currentQuizQuestion < questions.length) {
+                        showQuestion();
+                    } else {
+                        showQuizResults();
+                    }
+                }, 3000);
+            };
+
+            function showQuizResults() {
+                const percentage = (quizScore / questions.length) * 100;
+                const content = `
+                    <h2 class="math-title">Quiz Complete! 🎉</h2>
+                    <div style="width: 100%; max-width: 700px; padding: 0 20px;">
+                        <div class="value-display" style="font-size: 2.5rem;">${quizScore} / ${questions.length}</div>
+                        <div class="content-card glow-effect" style="padding: 25px;">
+                            <p style="font-size: 1.4rem; color: ${percentage >= 75 ? '#43e97b' : '#f5576c'};">
+                                ${percentage}% Correct
+                            </p>
+                            <p style="font-size: 1.05rem; color: #e2e8f0; margin-top: 15px;">
+                                ${percentage >= 75 ? 'Excellent work! You understand zeros of polynomials!' : 
+                                  'Good effort! Review the concepts and try again!'}
+                            </p>
+                        </div>
+                    </div>
+                `;
+                transitionToNextStep(content);
+                teacher.speak(`Quiz complete! You scored ${quizScore} out of ${questions.length}. ${percentage >= 75 ? 'Excellent work!' : 'Keep practicing!'}`);
+            }
+
+            showQuestion();
+            teacher.speak("Let's test your knowledge! Answer these questions about zeros of polynomials.");
+        }
+
+        // Reset
+        function resetApplication() {
+            stopCurrentDemo();
+            quizScore = 0;
+            currentQuizQuestion = 0;
+
+            const content = `
+                <h2 class="math-title">Welcome! ✨</h2>
+                <div class="value-display">Interactive Learning</div>
+                <div class="math-description">
+                    Explore zeros of polynomials with stunning animations 
+                    and interactive visualizations!
+                </div>
+                <div class="formula-box">
+                    <p style="font-size: 1.2rem; color: #43e97b;">
+                        Finding Zeros | Verification | Applications
+                    </p>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            currentDemo = null;
+
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to explore zeros of polynomials!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+
+            const initialContent = `
+                <h2 class="math-title">Welcome! ✨</h2>
+                <div class="value-display">Zeros of Polynomials</div>
+                <div class="math-description">
+                    Experience mathematics like never before! Learn about polynomial 
+                    zeros with stunning animations and interactive demos!
+                </div>
+                <div class="formula-box">
+                    <p style="font-size: 1.2rem; color: #43e97b;">
+                        Definition | Finding Values | Finding Zeros<br>
+                        Verification | Examples | Applications
+                    </p>
+                </div>
+            `;
+
+            transitionToNextStep(initialContent);
+
+            setTimeout(() => {
+                teacher.speak("Welcome to Zeros of Polynomials! Discover how to find and verify zeros with amazing visualizations!");
+            }, 500);
+
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'definition':
+                            showDefinition();
+                            break;
+                        case 'finding-values':
+                            showFindingValues();
+                            break;
+                        case 'finding-zeros':
+                            showFindingZeros();
+                            break;
+                        case 'linear-zeros':
+                            showLinearZeros();
+                            break;
+                        case 'verification':
+                            showVerification();
+                            break;
+                        case 'examples':
+                            showExamples();
+                            break;
+                        case 'visualization':
+                            showVisualization();
+                            break;
+                        case 'interactive':
+                            showInteractiveDemo();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

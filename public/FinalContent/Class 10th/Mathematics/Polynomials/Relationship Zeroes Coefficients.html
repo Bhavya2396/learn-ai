@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relationship Between Zeroes and Coefficients</title>
+    <style>
+        :root {
+            --primary-blue: #3b82f6;
+            --secondary-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --accent-yellow: #fbbf24;
+            --accent-green: #10b981;
+            --accent-orange: #f97316;
+            --accent-red: #ef4444;
+            --theorem-gold: #ffd700;
+            --proof-emerald: #50e3c2;
+            --text-light: #f8fafc;
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: var(--text-light);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            background: linear-gradient(45deg, var(--theorem-gold), var(--accent-orange), var(--accent-pink));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 1rem;
+        }
+
+        .main-stage {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        #animationCanvas {
+            width: 100%;
+            height: 750px;
+            border-radius: 15px;
+            background: radial-gradient(circle at center, rgba(255, 215, 0, 0.05) 0%, transparent 70%);
+            display: block;
+            cursor: crosshair;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, var(--theorem-gold), var(--accent-orange));
+            border: none;
+            color: var(--bg-dark);
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+            min-width: 180px;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(255, 215, 0, 0.4);
+        }
+
+        .control-btn.active {
+            background: linear-gradient(135deg, var(--accent-pink), #f43f5e);
+            color: white;
+            box-shadow: 0 8px 25px rgba(236, 72, 153, 0.4);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--theorem-gold), var(--accent-pink));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        .narration-text {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin: 1rem 0;
+            border-left: 4px solid var(--accent-pink);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+        }
+
+        .concept-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .concept-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 15px;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .concept-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--theorem-gold);
+            box-shadow: 0 15px 30px rgba(255, 215, 0, 0.2);
+        }
+
+        .concept-title {
+            font-size: 1.4rem;
+            color: var(--theorem-gold);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .formula-display {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(236, 72, 153, 0.1));
+            border: 2px solid var(--theorem-gold);
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .formula-text {
+            font-size: 1.3rem;
+            font-family: 'Courier New', monospace;
+            color: var(--theorem-gold);
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .audio-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .audio-btn {
+            background: rgba(255, 215, 0, 0.9);
+            border: none;
+            color: var(--bg-dark);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .audio-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.5);
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="audio-controls">
+        <button class="audio-btn" id="muteBtn">🔊</button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Relationship Between Zeroes and Coefficients</h1>
+            <p class="subtitle">Discovering Patterns in Quadratic Polynomials</p>
+        </div>
+
+        <div class="main-stage">
+            <canvas id="animationCanvas"></canvas>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="narration-text" id="narrationText">
+                Welcome! Explore the fascinating relationship between zeroes and coefficients.
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" onclick="AppManager.startSection('complete')">🎬 Complete Journey</button>
+            <button class="control-btn" onclick="AppManager.startSection('pattern')">🔍 Discover Pattern</button>
+            <button class="control-btn" onclick="AppManager.startSection('derivation')">📐 Formula Derivation</button>
+            <button class="control-btn" onclick="AppManager.startSection('formula')">⭐ The Formula</button>
+            <button class="control-btn" onclick="AppManager.startSection('examples')">📝 Worked Examples</button>
+            <button class="control-btn" onclick="AppManager.startSection('practice')">💪 Practice</button>
+            <button class="control-btn" onclick="AppManager.reset()">🔄 Reset</button>
+        </div>
+
+        <!-- Concept Cards -->
+        <div class="concept-cards">
+            <div class="concept-card">
+                <div class="concept-title">📊 Sum of Zeroes</div>
+                <div class="formula-display">
+                    <div class="formula-text">α + β = -b/a</div>
+                    <div style="color: #94a3b8;">= -(Coefficient of x) / (Coefficient of x²)</div>
+                </div>
+                <p style="margin-top: 1rem;">
+                    For polynomial ax² + bx + c,<br>
+                    the sum of zeroes equals<br>
+                    negative coefficient of x divided by coefficient of x²
+                </p>
+            </div>
+
+            <div class="concept-card">
+                <div class="concept-title">✖️ Product of Zeroes</div>
+                <div class="formula-display">
+                    <div class="formula-text">αβ = c/a</div>
+                    <div style="color: #94a3b8;">= (Constant term) / (Coefficient of x²)</div>
+                </div>
+                <p style="margin-top: 1rem;">
+                    For polynomial ax² + bx + c,<br>
+                    the product of zeroes equals<br>
+                    constant term divided by coefficient of x²
+                </p>
+            </div>
+
+            <div class="concept-card">
+                <div class="concept-title">🎯 Key Formula</div>
+                <div class="formula-display">
+                    <div class="formula-text">ax² + bx + c = a(x - α)(x - β)</div>
+                </div>
+                <p style="margin-top: 1rem;">
+                    If α and β are zeroes, then:<br>
+                    • The polynomial can be written in factored form<br>
+                    • Expanding gives us the relationship formulas
+                </p>
+            </div>
+
+            <div class="concept-card">
+                <div class="concept-title">🔄 Reverse Process</div>
+                <div class="formula-display">
+                    <div class="formula-text">Given: α + β and αβ</div>
+                    <div style="color: #94a3b8; margin-top: 0.5rem;">Find: x² - (α + β)x + αβ</div>
+                </div>
+                <p style="margin-top: 1rem;">
+                    From sum and product, we can form the polynomial:<br>
+                    x² - (sum of zeroes)x + (product of zeroes)
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('animationCanvas');
+        const ctx = canvas.getContext('2d');
+        let center = { x: 0, y: 0 };
+
+        // State management
+        let globalAudioEnabled = true;
+        let currentNarrator = null;
+        let isPlaying = false;
+        let currentDemo = null;
+        let currentDemoAborted = false;
+        let currentRunId = 0;
+        let currentTaskId = null;
+        let animationTimeouts = [];
+
+        // Initialize canvas
+        function initCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            center = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 };
+        }
+
+        // Voice System
+        class CoefficientsNarrator {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.85, pitch: 1.0, volume: 0.9 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+        }
+
+        // State management functions
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            AppManager.clearCanvas();
+            AppManager.updateProgress(0);
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewNarrator(taskId = null) {
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentNarrator = new CoefficientsNarrator();
+            return currentNarrator;
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        function updateNarration(text) {
+            document.getElementById('narrationText').textContent = text;
+        }
+
+        // Drawing Utilities
+        class DrawingUtils {
+            static clearCanvas() {
+                ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+            }
+
+            static drawText(text, x, y, size, color, font = 'Segoe UI', align = 'center', weight = 'normal') {
+                ctx.font = `${weight} ${size}px ${font}`;
+                ctx.fillStyle = color;
+                ctx.textAlign = align;
+                ctx.textBaseline = 'middle';
+                ctx.fillText(text, x, y);
+            }
+
+            static drawBox(x, y, width, height, color, fillColor = null) {
+                if (fillColor) {
+                    ctx.fillStyle = fillColor;
+                    ctx.fillRect(x, y, width, height);
+                }
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, width, height);
+            }
+
+            static drawArrow(x1, y1, x2, y2, color, width = 2) {
+                const headLength = 10;
+                const angle = Math.atan2(y2 - y1, x2 - x1);
+                
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(x2, y2);
+                ctx.lineTo(x2 - headLength * Math.cos(angle - Math.PI / 6), y2 - headLength * Math.sin(angle - Math.PI / 6));
+                ctx.moveTo(x2, y2);
+                ctx.lineTo(x2 - headLength * Math.cos(angle + Math.PI / 6), y2 - headLength * Math.sin(angle + Math.PI / 6));
+                ctx.stroke();
+            }
+
+            static drawFactorization(polynomial, factors, zeroes, step, yStart) {
+                const colors = ['#3b82f6', '#ec4899', '#10b981', '#fbbf24'];
+                
+                // Original polynomial
+                if (step >= 0) {
+                    this.drawText(polynomial, center.x, yStart, 24, '#ffd700', 'Courier New', 'center', 'bold');
+                }
+                
+                // Factored form
+                if (step >= 1) {
+                    this.drawText('=', center.x, yStart + 50, 24, '#94a3b8');
+                    this.drawText(factors, center.x, yStart + 50, 22, colors[0], 'Courier New', 'center', 'bold');
+                }
+                
+                // Zeroes
+                if (step >= 2) {
+                    this.drawText('Zeroes:', center.x, yStart + 100, 20, '#ffd700', 'Segoe UI', 'center', 'bold');
+                    zeroes.forEach((zero, i) => {
+                        const alpha = Math.min(1, (step - 2 - i * 0.3) * 3);
+                        ctx.globalAlpha = alpha;
+                        this.drawText(`x = ${zero}`, center.x, yStart + 140 + i * 35, 20, colors[i + 1], 'Courier New', 'center', 'normal');
+                        ctx.globalAlpha = 1;
+                    });
+                }
+            }
+
+            static drawFormula(title, formula, description, yPos, highlight = false) {
+                const boxWidth = 500;
+                const boxHeight = 120;
+                const boxX = center.x - boxWidth / 2;
+                
+                const borderColor = highlight ? '#ffd700' : '#3b82f6';
+                const bgColor = highlight ? 'rgba(255, 215, 0, 0.1)' : 'rgba(59, 130, 246, 0.1)';
+                
+                this.drawBox(boxX, yPos, boxWidth, boxHeight, borderColor, bgColor);
+                
+                this.drawText(title, center.x, yPos + 25, 18, '#ffd700', 'Segoe UI', 'center', 'bold');
+                this.drawText(formula, center.x, yPos + 60, 24, '#10b981', 'Courier New', 'center', 'bold');
+                this.drawText(description, center.x, yPos + 95, 14, '#94a3b8', 'Segoe UI', 'center', 'normal');
+            }
+
+            static drawVerification(sumCalc, sumResult, productCalc, productResult, step, yStart) {
+                if (step >= 0) {
+                    // Sum verification
+                    this.drawText('Sum of zeroes:', center.x - 200, yStart, 20, '#ffd700', 'Segoe UI', 'left', 'bold');
+                    if (step >= 1) {
+                        this.drawText(sumCalc, center.x - 200, yStart + 35, 17, '#3b82f6', 'Courier New', 'left', 'normal');
+                    }
+                    if (step >= 2) {
+                        this.drawText(`= ${sumResult}`, center.x - 200, yStart + 65, 17, '#10b981', 'Courier New', 'left', 'bold');
+                        this.drawText('✓', center.x + 150, yStart + 35, 28, '#10b981', 'Segoe UI', 'center', 'bold');
+                    }
+                }
+                
+                if (step >= 3) {
+                    // Product verification - made more visible
+                    this.drawText('Product of zeroes:', center.x - 200, yStart + 115, 20, '#ffd700', 'Segoe UI', 'left', 'bold');
+                    if (step >= 4) {
+                        this.drawText(productCalc, center.x - 200, yStart + 150, 17, '#ec4899', 'Courier New', 'left', 'normal');
+                    }
+                    if (step >= 5) {
+                        this.drawText(`= ${productResult}`, center.x - 200, yStart + 180, 17, '#10b981', 'Courier New', 'left', 'bold');
+                        this.drawText('✓', center.x + 150, yStart + 150, 28, '#10b981', 'Segoe UI', 'center', 'bold');
+                    }
+                }
+            }
+        }
+
+        // Demo Functions
+        async function showPatternDemo(taskId) {
+            const narrator = currentNarrator;
+            let example = 0;
+            let step = 0;
+            
+            function drawFrame() {
+                if (!shouldContinue(taskId)) return;
+                
+                DrawingUtils.clearCanvas();
+                DrawingUtils.drawText('Discovering the Pattern', center.x, 40, 28, '#ffd700', 'Segoe UI', 'center', 'bold');
+                
+                if (example === 0) {
+                    // Example 1: 2x² - 8x + 6
+                    DrawingUtils.drawText('Example 1:', center.x, 80, 20, '#ec4899', 'Segoe UI', 'center', 'bold');
+                    DrawingUtils.drawFactorization(
+                        'p(x) = 2x² - 8x + 6',
+                        '2(x - 1)(x - 3)',
+                        ['1', '3'],
+                        step,
+                        120
+                    );
+                    
+                    if (step >= 3) {
+                        DrawingUtils.drawVerification(
+                            '1 + 3 = 4 = -(-8)/2',
+                            '-b/a',
+                            '1 × 3 = 3 = 6/2',
+                            'c/a',
+                            step - 3,
+                            320
+                        );
+                    }
+                } else if (example === 1) {
+                    // Example 2: 3x² + 5x - 2
+                    DrawingUtils.drawText('Example 2:', center.x, 80, 20, '#ec4899', 'Segoe UI', 'center', 'bold');
+                    DrawingUtils.drawFactorization(
+                        'p(x) = 3x² + 5x - 2',
+                        '(3x - 1)(x + 2)',
+                        ['1/3', '-2'],
+                        step,
+                        120
+                    );
+                    
+                    if (step >= 3) {
+                        DrawingUtils.drawVerification(
+                            '1/3 + (-2) = -5/3 = -(5)/3',
+                            '-b/a',
+                            '(1/3) × (-2) = -2/3',
+                            'c/a',
+                            step - 3,
+                            320
+                        );
+                    }
+                }
+                
+                if (shouldContinue(taskId)) {
+                    requestAnimationFrame(drawFrame);
+                }
+            }
+            
+            drawFrame();
+            
+            // Example 1 - Show first, then narrate
+            step = 0;
+            await wait(800);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("Let's discover an amazing pattern by examining the polynomial 2x squared minus 8x plus 6.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 1;
+            await wait(800);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("First, we factorize it as 2 times x minus 1 times x minus 3.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 2;
+            await wait(800);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("The zeroes are 1 and 3.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 3;
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("Now observe: the sum of zeroes 1 plus 3 equals 4, which equals negative coefficient of x divided by coefficient of x squared.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 4;
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 5;
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 6;
+            await wait(800);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 7;
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 8;
+            await narrator.speak("And the product of zeroes, 1 times 3 equals 3, which equals the constant term divided by coefficient of x squared.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Example 2 - Show first, then narrate
+            example = 1;
+            step = 0;
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("Let's verify this pattern with another example: 3x squared plus 5x minus 2.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 1;
+            await wait(800);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("Factorizing gives us 3x minus 1 times x plus 2.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 2;
+            await wait(800);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("The zeroes are 1 over 3 and negative 2.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 3;
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("Again, the sum 1 over 3 plus negative 2 equals negative 5 over 3, which matches negative b over a.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 4;
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 5;
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 6;
+            await wait(800);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 7;
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 8;
+            await narrator.speak("And the product 1 over 3 times negative 2 equals negative 2 over 3, which equals c over a. The pattern holds!");
+            await wait(500);
+        }
+
+        async function showDerivationDemo(taskId) {
+            const narrator = currentNarrator;
+            let step = 0;
+            
+            function drawFrame() {
+                if (!shouldContinue(taskId)) return;
+                
+                DrawingUtils.clearCanvas();
+                DrawingUtils.drawText('General Formula Derivation', center.x, 40, 28, '#ffd700', 'Segoe UI', 'center', 'bold');
+                
+                const yStart = 100;
+                
+                if (step >= 0) {
+                    DrawingUtils.drawText('Let α and β be zeroes of:', center.x, yStart, 18, '#94a3b8', 'Segoe UI', 'center', 'normal');
+                    DrawingUtils.drawText('p(x) = ax² + bx + c', center.x, yStart + 35, 24, '#ffd700', 'Courier New', 'center', 'bold');
+                }
+                
+                if (step >= 1) {
+                    DrawingUtils.drawText('Since α and β are zeroes:', center.x, yStart + 90, 16, '#94a3b8', 'Segoe UI', 'center', 'normal');
+                    DrawingUtils.drawText('ax² + bx + c = k(x - α)(x - β)', center.x, yStart + 120, 20, '#3b82f6', 'Courier New', 'center', 'bold');
+                }
+                
+                if (step >= 2) {
+                    DrawingUtils.drawText('Expand right side:', center.x, yStart + 170, 16, '#94a3b8', 'Segoe UI', 'center', 'normal');
+                    DrawingUtils.drawText('= k[x² - (α + β)x + αβ]', center.x, yStart + 200, 18, '#ec4899', 'Courier New', 'center', 'bold');
+                    DrawingUtils.drawText('= kx² - k(α + β)x + kαβ', center.x, yStart + 230, 18, '#ec4899', 'Courier New', 'center', 'bold');
+                }
+                
+                if (step >= 3) {
+                    DrawingUtils.drawText('Compare coefficients:', center.x, yStart + 280, 16, '#ffd700', 'Segoe UI', 'center', 'bold');
+                    const alpha = Math.min(1, (step - 3) * 2);
+                    ctx.globalAlpha = alpha;
+                    DrawingUtils.drawText('a = k', center.x - 150, yStart + 315, 16, '#10b981', 'Courier New', 'left', 'normal');
+                    DrawingUtils.drawText('b = -k(α + β)', center.x - 150, yStart + 345, 16, '#10b981', 'Courier New', 'left', 'normal');
+                    DrawingUtils.drawText('c = kαβ', center.x - 150, yStart + 375, 16, '#10b981', 'Courier New', 'left', 'normal');
+                    ctx.globalAlpha = 1;
+                }
+                
+                if (step >= 4) {
+                    const alpha = Math.min(1, (step - 4) * 2);
+                    ctx.globalAlpha = alpha;
+                    DrawingUtils.drawText('∴ Therefore:', center.x, yStart + 420, 20, '#ffd700', 'Segoe UI', 'center', 'bold');
+                    DrawingUtils.drawBox(center.x - 180, yStart + 445, 360, 110, '#ffd700', 'rgba(255, 215, 0, 0.1)');
+                    DrawingUtils.drawText('α + β = -b/a', center.x, yStart + 480, 24, '#10b981', 'Courier New', 'center', 'bold');
+                    DrawingUtils.drawText('αβ = c/a', center.x, yStart + 520, 24, '#10b981', 'Courier New', 'center', 'bold');
+                    ctx.globalAlpha = 1;
+                }
+                
+                if (shouldContinue(taskId)) {
+                    requestAnimationFrame(drawFrame);
+                }
+            }
+            
+            drawFrame();
+            
+            // Show first, then narrate
+            step = 0;
+            await wait(800);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("Now let's derive the general formula. Let alpha and beta be the zeroes of the polynomial ax squared plus bx plus c.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 1;
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("Since alpha and beta are zeroes, we can write the polynomial as k times x minus alpha times x minus beta.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 2;
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("Expanding the right side gives us kx squared minus k times alpha plus beta times x, plus k alpha beta.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 3;
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("Comparing coefficients with ax squared plus bx plus c, we get: a equals k, b equals negative k times alpha plus beta, and c equals k alpha beta.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 4;
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("From these equations, we derive our fundamental formulas: alpha plus beta equals negative b over a, and alpha beta equals c over a.");
+            await wait(500);
+        }
+
+        async function showFormulaDemo(taskId) {
+            const narrator = currentNarrator;
+            let step = 0;
+            
+            function drawFrame() {
+                if (!shouldContinue(taskId)) return;
+                
+                DrawingUtils.clearCanvas();
+                
+                const pulse = 0.9 + Math.sin(Date.now() * 0.003) * 0.1;
+                ctx.save();
+                ctx.globalAlpha = pulse;
+                DrawingUtils.drawText('The Fundamental Formula', center.x, 60, 32, '#ffd700', 'Segoe UI', 'center', 'bold');
+                ctx.restore();
+                
+                DrawingUtils.drawText('For quadratic polynomial ax² + bx + c (a ≠ 0):', center.x, 110, 18, '#94a3b8', 'Segoe UI', 'center', 'normal');
+                
+                if (step >= 0) {
+                    DrawingUtils.drawFormula(
+                        'Sum of Zeroes',
+                        'α + β = -b/a',
+                        '= -(Coefficient of x) / (Coefficient of x²)',
+                        150,
+                        step >= 1
+                    );
+                }
+                
+                if (step >= 2) {
+                    DrawingUtils.drawFormula(
+                        'Product of Zeroes',
+                        'αβ = c/a',
+                        '= (Constant term) / (Coefficient of x²)',
+                        310,
+                        step >= 3
+                    );
+                }
+                
+                if (step >= 4) {
+                    const examples = [
+                        'Example: x² + 5x + 6',
+                        'Sum = -5/1 = -5',
+                        'Product = 6/1 = 6',
+                        'Zeroes: -2 and -3 ✓'
+                    ];
+                    
+                    examples.forEach((ex, i) => {
+                        const alpha = Math.min(1, (step - 4 - i * 0.2) * 3);
+                        ctx.globalAlpha = alpha;
+                        DrawingUtils.drawText(ex, center.x, 490 + i * 35, 18, i === 3 ? '#10b981' : '#3b82f6', 'Courier New', 'center', 'normal');
+                        ctx.globalAlpha = 1;
+                    });
+                }
+                
+                if (shouldContinue(taskId)) {
+                    requestAnimationFrame(drawFrame);
+                }
+            }
+            
+            drawFrame();
+            
+            // Show first, then narrate
+            step = 0;
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("Here are the fundamental formulas for the relationship between zeroes and coefficients of quadratic polynomials.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 1;
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("The sum of zeroes alpha plus beta equals negative b over a, which is negative coefficient of x divided by coefficient of x squared.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 2;
+            await wait(800);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 3;
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("The product of zeroes alpha beta equals c over a, which is the constant term divided by coefficient of x squared.");
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 4;
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            await narrator.speak("For example, in x squared plus 5x plus 6, the sum is negative 5, product is 6, giving us zeroes negative 2 and negative 3.");
+            await wait(500);
+        }
+
+        async function showExamplesDemo(taskId) {
+            const narrator = currentNarrator;
+            let example = 0;
+            let step = 0;
+            
+            function drawFrame() {
+                if (!shouldContinue(taskId)) return;
+                
+                DrawingUtils.clearCanvas();
+                DrawingUtils.drawText('Worked Examples', center.x, 40, 28, '#ffd700', 'Segoe UI', 'center', 'bold');
+                
+                if (example === 0) {
+                    // Example 1: x² + 7x + 10
+                    DrawingUtils.drawText('Example 1: x² + 7x + 10', center.x, 85, 22, '#ec4899', 'Courier New', 'center', 'bold');
+                    
+                    if (step >= 0) {
+                        DrawingUtils.drawFactorization(
+                            'x² + 7x + 10',
+                            '(x + 2)(x + 5)',
+                            ['-2', '-5'],
+                            step,
+                            130
+                        );
+                    }
+                    
+                    if (step >= 3) {
+                        DrawingUtils.drawVerification(
+                            '(-2) + (-5) = -7 = -(7)/1',
+                            '✓',
+                            '(-2)(-5) = 10 = 10/1',
+                            '✓',
+                            step - 3,
+                            320
+                        );
+                    }
+                } else if (example === 1) {
+                    // Example 2: x² - 3
+                    DrawingUtils.drawText('Example 2: x² - 3', center.x, 85, 22, '#ec4899', 'Courier New', 'center', 'bold');
+                    
+                    if (step >= 0) {
+                        DrawingUtils.drawFactorization(
+                            'x² - 3',
+                            '(x - √3)(x + √3)',
+                            ['√3', '-√3'],
+                            step,
+                            130
+                        );
+                    }
+                    
+                    if (step >= 3) {
+                        DrawingUtils.drawVerification(
+                            '√3 + (-√3) = 0 = -(0)/1',
+                            '✓',
+                            '(√3)(-√3) = -3 = -3/1',
+                            '✓',
+                            step - 3,
+                            320
+                        );
+                    }
+                } else if (example === 2) {
+                    // Example 3: Reverse problem
+                    DrawingUtils.drawText('Example 3: Form Polynomial', center.x, 85, 22, '#ec4899', 'Segoe UI', 'center', 'bold');
+                    
+                    if (step >= 0) {
+                        DrawingUtils.drawText('Given: Sum = -3, Product = 2', center.x, 140, 20, '#ffd700', 'Segoe UI', 'center', 'bold');
+                    }
+                    
+                    if (step >= 1) {
+                        DrawingUtils.drawText('Using: α + β = -b/a and αβ = c/a', center.x, 190, 18, '#94a3b8', 'Courier New', 'center', 'normal');
+                    }
+                    
+                    if (step >= 2) {
+                        DrawingUtils.drawText('If a = 1, then:', center.x, 240, 18, '#3b82f6', 'Segoe UI', 'center', 'normal');
+                        DrawingUtils.drawText('b = 3  (since -b/a = -3)', center.x, 275, 18, '#10b981', 'Courier New', 'center', 'normal');
+                        DrawingUtils.drawText('c = 2  (since c/a = 2)', center.x, 305, 18, '#10b981', 'Courier New', 'center', 'normal');
+                    }
+                    
+                    if (step >= 3) {
+                        DrawingUtils.drawBox(center.x - 150, 350, 300, 80, '#ffd700', 'rgba(255, 215, 0, 0.1)');
+                        DrawingUtils.drawText('Polynomial:', center.x, 370, 18, '#ffd700', 'Segoe UI', 'center', 'bold');
+                        DrawingUtils.drawText('x² + 3x + 2', center.x, 405, 26, '#10b981', 'Courier New', 'center', 'bold');
+                    }
+                    
+                    if (step >= 4) {
+                        DrawingUtils.drawText('Verification: (x + 1)(x + 2) = x² + 3x + 2 ✓', center.x, 460, 16, '#3b82f6', 'Courier New', 'center', 'normal');
+                        DrawingUtils.drawText('Zeroes: -1, -2  →  Sum: -3 ✓  Product: 2 ✓', center.x, 490, 16, '#10b981', 'Courier New', 'center', 'normal');
+                    }
+                }
+                
+                if (shouldContinue(taskId)) {
+                    requestAnimationFrame(drawFrame);
+                }
+            }
+            
+            drawFrame();
+            
+            // Example 1
+            await narrator.speak("Let's work through some examples. Example 1: Find zeroes of x squared plus 7x plus 10 and verify the relationship.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 1;
+            await narrator.speak("Factorizing: x squared plus 7x plus 10 equals x plus 2 times x plus 5.");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 2;
+            await narrator.speak("The zeroes are negative 2 and negative 5.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 3;
+            await narrator.speak("Verifying: sum equals negative 7, which matches negative 7 over 1.");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 4;
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 5;
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 6;
+            await wait(800);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 7;
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 8;
+            await narrator.speak("And product equals 10, which matches 10 over 1. Verified!");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Example 2
+            example = 1;
+            step = 0;
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Example 2: Find zeroes of x squared minus 3.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 1;
+            await narrator.speak("Using difference of squares: x squared minus 3 equals x minus root 3 times x plus root 3.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 2;
+            await narrator.speak("The zeroes are root 3 and negative root 3.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 3;
+            await narrator.speak("Sum: root 3 plus negative root 3 equals 0.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 4;
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 5;
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 6;
+            await wait(800);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 7;
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 8;
+            await narrator.speak("Product: root 3 times negative root 3 equals negative 3. Both verified!");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Example 3
+            example = 2;
+            step = 0;
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Example 3: Form a polynomial given sum of zeroes is negative 3 and product is 2.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 1;
+            await narrator.speak("We use the formulas: alpha plus beta equals negative b over a, and alpha beta equals c over a.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 2;
+            await narrator.speak("Choosing a equals 1, we get b equals 3 and c equals 2.");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 3;
+            await narrator.speak("Therefore, the polynomial is x squared plus 3x plus 2.");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 4;
+            await narrator.speak("We can verify by factoring: x plus 1 times x plus 2 gives us x squared plus 3x plus 2. Perfect!");
+            await wait(3500);
+        }
+
+        async function showPracticeDemo(taskId) {
+            const narrator = currentNarrator;
+            let problem = 0;
+            let step = 0;
+            
+            function drawFrame() {
+                if (!shouldContinue(taskId)) return;
+                
+                DrawingUtils.clearCanvas();
+                DrawingUtils.drawText('Practice Problems', center.x, 40, 28, '#ffd700', 'Segoe UI', 'center', 'bold');
+                
+                if (problem === 0) {
+                    DrawingUtils.drawText('Problem 1: x² - 2x - 8', center.x, 85, 22, '#ec4899', 'Courier New', 'center', 'bold');
+                    
+                    if (step >= 0) {
+                        DrawingUtils.drawFactorization(
+                            'x² - 2x - 8',
+                            '(x - 4)(x + 2)',
+                            ['4', '-2'],
+                            step,
+                            130
+                        );
+                    }
+                    
+                    if (step >= 3) {
+                        DrawingUtils.drawVerification(
+                            '4 + (-2) = 2 = -(-2)/1',
+                            '✓',
+                            '4 × (-2) = -8 = -8/1',
+                            '✓',
+                            step - 3,
+                            320
+                        );
+                    }
+                } else if (problem === 1) {
+                    DrawingUtils.drawText('Problem 2: 4s² - 4s + 1', center.x, 85, 22, '#ec4899', 'Courier New', 'center', 'bold');
+                    
+                    if (step >= 0) {
+                        DrawingUtils.drawFactorization(
+                            '4s² - 4s + 1',
+                            '(2s - 1)²',
+                            ['1/2', '1/2'],
+                            step,
+                            130
+                        );
+                    }
+                    
+                    if (step >= 3) {
+                        DrawingUtils.drawVerification(
+                            '1/2 + 1/2 = 1 = -(-4)/4',
+                            '✓',
+                            '(1/2)(1/2) = 1/4',
+                            '✓',
+                            step - 3,
+                            320
+                        );
+                    }
+                } else if (problem === 2) {
+                    DrawingUtils.drawText('Problem 3: Form polynomial', center.x, 85, 22, '#ec4899', 'Segoe UI', 'center', 'bold');
+                    DrawingUtils.drawText('Sum = 1/4, Product = -1', center.x, 125, 20, '#ffd700', 'Segoe UI', 'center', 'bold');
+                    
+                    if (step >= 1) {
+                        DrawingUtils.drawText('Choose a = 4:', center.x, 180, 18, '#3b82f6', 'Segoe UI', 'center', 'normal');
+                        DrawingUtils.drawText('α + β = 1/4 = -b/4  →  b = -1', center.x, 215, 18, '#10b981', 'Courier New', 'center', 'normal');
+                        DrawingUtils.drawText('αβ = -1 = c/4  →  c = -4', center.x, 245, 18, '#10b981', 'Courier New', 'center', 'normal');
+                    }
+                    
+                    if (step >= 2) {
+                        DrawingUtils.drawBox(center.x - 150, 290, 300, 80, '#ffd700', 'rgba(255, 215, 0, 0.1)');
+                        DrawingUtils.drawText('Answer:', center.x, 310, 18, '#ffd700', 'Segoe UI', 'center', 'bold');
+                        DrawingUtils.drawText('4x² - x - 4', center.x, 345, 26, '#10b981', 'Courier New', 'center', 'bold');
+                    }
+                }
+                
+                if (shouldContinue(taskId)) {
+                    requestAnimationFrame(drawFrame);
+                }
+            }
+            
+            drawFrame();
+            
+            // Problem 1
+            await narrator.speak("Let's practice! Problem 1: Find zeroes of x squared minus 2x minus 8 and verify.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 1;
+            await narrator.speak("Factorizing gives x minus 4 times x plus 2.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 2;
+            await narrator.speak("Zeroes are 4 and negative 2.");
+            await wait(1500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 3;
+            await wait(500);
+            step = 6;
+            await narrator.speak("Verification: Sum equals 2, Product equals negative 8. Both match!");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Problem 2
+            problem = 1;
+            step = 0;
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Problem 2: Find zeroes of 4s squared minus 4s plus 1.");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 1;
+            await narrator.speak("This is a perfect square: 2s minus 1 squared.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 2;
+            await narrator.speak("Both zeroes are 1 over 2, repeated.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 3;
+            await wait(500);
+            step = 6;
+            await narrator.speak("Sum: 1 half plus 1 half equals 1. Product: 1 half times 1 half equals 1 over 4. Verified!");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Problem 3
+            problem = 2;
+            step = 0;
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Problem 3: Form a polynomial with sum 1 over 4 and product negative 1.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 1;
+            await narrator.speak("Choosing a equals 4, we get b equals negative 1 and c equals negative 4.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            step = 2;
+            await narrator.speak("The polynomial is 4x squared minus x minus 4.");
+            await wait(2500);
+        }
+
+        // Complete Journey
+        async function showCompleteJourney() {
+            const taskId = `complete-journey-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            AppManager.setActiveButton(0);
+            AppManager.updateProgress(0);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            updateNarration("Welcome to the complete journey exploring the relationship between zeroes and coefficients!");
+            await narrator.speak("Welcome! We'll discover the beautiful relationship between zeroes and coefficients of quadratic polynomials.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Welcome animation
+            DrawingUtils.clearCanvas();
+            const pulse = 0.9 + Math.sin(Date.now() * 0.003) * 0.1;
+            ctx.globalAlpha = pulse;
+            DrawingUtils.drawText('Complete Journey', center.x, center.y - 60, 36, '#ffd700', 'Segoe UI', 'center', 'bold');
+            ctx.globalAlpha = 1;
+            DrawingUtils.drawText('Zeroes & Coefficients', center.x, center.y - 10, 22, '#ec4899', 'Segoe UI', 'center', 'bold');
+            DrawingUtils.drawText('Discovering the patterns...', center.x, center.y + 30, 16, '#94a3b8', 'Segoe UI', 'center');
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Part 1: Pattern
+            AppManager.updateProgress(10);
+            updateNarration("Part 1: Discovering the Pattern");
+            await narrator.speak("Let's begin by discovering an amazing pattern in quadratic polynomials.");
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showPatternDemo(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            AppManager.updateProgress(25);
+            
+            // Part 2: Derivation
+            updateNarration("Part 2: Deriving the General Formula");
+            await narrator.speak("Now let's derive the general formula that explains this pattern.");
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showDerivationDemo(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            AppManager.updateProgress(45);
+            
+            // Part 3: Formula
+            updateNarration("Part 3: The Fundamental Formula");
+            await narrator.speak("Here are the fundamental formulas we've derived.");
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showFormulaDemo(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            AppManager.updateProgress(65);
+            
+            // Part 4: Examples
+            updateNarration("Part 4: Worked Examples");
+            await narrator.speak("Let's see how to apply these formulas with detailed examples.");
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showExamplesDemo(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            AppManager.updateProgress(85);
+            
+            // Part 5: Practice
+            updateNarration("Part 5: Practice Problems");
+            await narrator.speak("Finally, let's practice with some problems to master this concept.");
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showPracticeDemo(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            AppManager.updateProgress(100);
+            
+            // Completion
+            stopCurrentDemo();
+            DrawingUtils.clearCanvas();
+            
+            const scale = 0.9 + Math.sin(Date.now() * 0.002) * 0.1;
+            ctx.save();
+            ctx.translate(center.x, center.y - 120);
+            ctx.scale(scale, scale);
+            DrawingUtils.drawText('🎉 Journey Complete!', 0, 0, 36, '#ffd700', 'Segoe UI', 'center', 'bold');
+            ctx.restore();
+            
+            DrawingUtils.drawText('You have mastered the relationship!', center.x, center.y - 50, 20, '#10b981', 'Segoe UI', 'center', 'normal');
+            
+            const topics = [
+                '✓ Pattern Discovery',
+                '✓ Formula Derivation',
+                '✓ Key Formulas',
+                '✓ Worked Examples',
+                '✓ Practice Problems'
+            ];
+            
+            topics.forEach((topic, i) => {
+                DrawingUtils.drawText(topic, center.x, center.y + i * 35, 16, '#3b82f6', 'Segoe UI', 'center', 'normal');
+            });
+            
+            DrawingUtils.drawText('α + β = -b/a  |  αβ = c/a', center.x, center.y + 200, 20, '#ffd700', 'Courier New', 'center', 'bold');
+            
+            updateNarration('Complete journey finished! You now understand the relationship between zeroes and coefficients.');
+            await narrator.speak("Congratulations! You've mastered the relationship between zeroes and coefficients. Remember: sum equals negative b over a, product equals c over a.");
+            
+            currentDemo = null;
+            isPlaying = false;
+        }
+
+        // Application Manager
+        class AppManager {
+            static updateProgress(progress) {
+                document.getElementById('progressFill').style.width = `${progress}%`;
+            }
+
+            static setActiveButton(index) {
+                document.querySelectorAll('.control-btn').forEach((btn, i) => {
+                    btn.classList.toggle('active', i === index);
+                });
+            }
+
+            static clearCanvas() {
+                ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+            }
+
+            static async startSection(section) {
+                stopCurrentDemo();
+                
+                const sections = {
+                    complete: { index: 0, func: showCompleteJourney },
+                    pattern: { index: 1, func: null },
+                    derivation: { index: 2, func: null },
+                    formula: { index: 3, func: null },
+                    examples: { index: 4, func: null },
+                    practice: { index: 5, func: null }
+                };
+                
+                if (section in sections) {
+                    this.setActiveButton(sections[section].index);
+                    
+                    if (section === 'complete') {
+                        await showCompleteJourney();
+                    } else {
+                        const taskId = `${section}-${currentRunId}`;
+                        currentDemoAborted = false;
+                        currentTaskId = taskId;
+                        const narrator = createNewNarrator(taskId);
+                        
+                        if (section === 'pattern') {
+                            updateNarration("Discovering patterns in quadratic polynomials through examples.");
+                            this.updateProgress(20);
+                            await showPatternDemo(taskId);
+                        } else if (section === 'derivation') {
+                            updateNarration("Deriving the general formula from first principles.");
+                            this.updateProgress(40);
+                            await showDerivationDemo(taskId);
+                        } else if (section === 'formula') {
+                            updateNarration("The fundamental formulas for sum and product of zeroes.");
+                            this.updateProgress(60);
+                            await showFormulaDemo(taskId);
+                        } else if (section === 'examples') {
+                            updateNarration("Working through detailed examples step by step.");
+                            this.updateProgress(80);
+                            await showExamplesDemo(taskId);
+                        } else if (section === 'practice') {
+                            updateNarration("Practice problems to master the concept.");
+                            this.updateProgress(100);
+                            await showPracticeDemo(taskId);
+                        }
+                    }
+                }
+            }
+
+            static reset() {
+                stopCurrentDemo();
+                this.clearCanvas();
+                this.updateProgress(0);
+                this.setActiveButton(6);
+                updateNarration('Welcome! Explore the fascinating relationship between zeroes and coefficients.');
+                
+                DrawingUtils.drawText('Zeroes & Coefficients', center.x, center.y - 50, 36, '#ffd700', 'Segoe UI', 'center', 'bold');
+                DrawingUtils.drawText('Select a topic to begin!', center.x, center.y + 50, 24, '#94a3b8', 'Segoe UI', 'center', 'normal');
+            }
+        }
+
+        // Audio Controls
+        document.getElementById('muteBtn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            if (currentNarrator) {
+                currentNarrator.isEnabled = globalAudioEnabled;
+                if (!globalAudioEnabled) {
+                    currentNarrator.stop();
+                }
+            }
+            document.getElementById('muteBtn').textContent = globalAudioEnabled ? '🔊' : '🔇';
+        });
+
+        // Initialize
+        window.addEventListener('load', () => {
+            initCanvas();
+            AppManager.reset();
+        });
+
+        window.addEventListener('resize', () => {
+            initCanvas();
+            if (currentDemo === null) {
+                AppManager.reset();
+            }
+        });
+    </script>
+</body>
+</html>

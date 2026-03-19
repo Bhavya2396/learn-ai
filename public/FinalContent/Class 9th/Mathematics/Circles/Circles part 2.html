@@ -1,0 +1,3027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry: Perpendicular from Centre to Chord - Interactive Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --geometry-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --perpendicular-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header - Compact */
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--perpendicular-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Layout */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Demo Stage - Takes most space */
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+        }
+
+        /* Stage Content */
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Controls - Below Demo */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--perpendicular-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--perpendicular-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Geometry Canvas */
+        .geometry-canvas {
+            width: 100%;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .geometry-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .geometry-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .geometry-description {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 20px auto;
+            line-height: 1.6;
+        }
+
+        /* Three.js Container */
+        .threejs-container {
+            width: 100%;
+            height: 400px;
+            border-radius: 15px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            width: 100%;
+            height: 350px;
+            margin: 20px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        /* Value Display */
+        .value-display {
+            font-size: 3rem;
+            font-weight: 700;
+            background: var(--perpendicular-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin: 20px 0;
+            text-shadow: 0 2px 10px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Theorem Boxes */
+        .theorem-box {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .theorem-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-accent);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .theorem-content {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .proof-step {
+            background: rgba(67, 233, 123, 0.1);
+            border-left: 4px solid #43e97b;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        /* Activity Box */
+        .activity-box {
+            background: rgba(245, 87, 108, 0.1);
+            border: 2px solid rgba(245, 87, 108, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .activity-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #f5576c;
+            margin-bottom: 10px;
+        }
+
+        /* Interactive Controls */
+        .interactive-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .slider-control {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .slider-control label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .slider-control input[type="range"] {
+            width: 120px;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--perpendicular-gradient);
+            cursor: pointer;
+        }
+
+        /* Quiz Styles */
+        .quiz-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .question-box {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .question-text {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .quiz-option {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: left;
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .quiz-option.correct {
+            background: rgba(67, 233, 123, 0.2);
+            border-color: #43e97b;
+        }
+
+        .quiz-option.incorrect {
+            background: rgba(245, 87, 108, 0.2);
+            border-color: #f5576c;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 15px;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        /* Folding Animation */
+        .paper-fold {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fold-line {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent, #fbbf24, transparent);
+            transform: translateX(-50%);
+            animation: foldGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes foldGlow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* Theory Section Styles */
+        .theory-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .theory-section-title {
+            font-size: 1.8rem;
+            text-align: center;
+            margin-bottom: 30px;
+            background: var(--perpendicular-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        .theory-content {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .theory-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(15px);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theory-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .theory-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--perpendicular-gradient);
+            border-radius: 15px 15px 0 0;
+        }
+
+        .theory-card h3 {
+            font-size: 1.4rem;
+            color: var(--text-accent);
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .theorem-statement {
+            font-size: 1.05rem;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+            text-align: center;
+            font-style: italic;
+        }
+
+        .theorem-details {
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid var(--text-accent);
+        }
+
+        .theorem-details strong {
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.5rem; }
+            .geometry-title { font-size: 1.2rem; }
+            .value-display { font-size: 2rem; }
+            .demo-btn { padding: 10px 18px; font-size: 0.85rem; }
+            .geometry-canvas { height: 300px; }
+            .threejs-container { height: 350px; }
+            
+            .theory-section {
+                padding: 20px;
+            }
+            
+            .theory-section-title {
+                font-size: 1.5rem;
+            }
+            
+            .theory-card {
+                padding: 20px;
+            }
+            
+            .theory-card h3 {
+                font-size: 1.2rem;
+            }
+            
+            .theorem-statement {
+                font-size: 1rem;
+            }
+            
+            .theorem-details {
+                font-size: 0.9rem;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="header">
+        <h1>✨ Geometry Mastery: Perpendicular from Centre to Chord</h1>
+        <p>Interactive 3D Visualizations & Animated Learning Experience</p>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage" id="demo-stage"></div>
+        
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">📚 Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">🎯 Introduction</button>
+            <button class="demo-btn" data-demo="activity">📝 Paper Folding Activity</button>
+            <button class="demo-btn" data-demo="theorem-9-3">⊥ Theorem 9.3</button>
+            <button class="demo-btn" data-demo="proof">🔍 Proof Animation</button>
+            <button class="demo-btn" data-demo="converse">🔄 Converse Theorem 9.4</button>
+            <button class="demo-btn" data-demo="distance">📏 Distance Concept</button>
+            <button class="demo-btn" data-demo="equal-chords">⚖️ Equal Chords Theorem</button>
+            <button class="demo-btn" data-demo="equidistant">📐 Equidistant Theorem</button>
+            <button class="demo-btn" data-demo="example">💡 Example Problem</button>
+            <button class="demo-btn" data-demo="interactive">🎮 Interactive Demo</button>
+            <button class="demo-btn" data-demo="quiz">🎯 Quiz Challenge</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+
+        <!-- Theory Section -->
+        <div class="theory-section">
+            <h2 class="theory-section-title">📖 Theory Reference</h2>
+            <div class="theory-content">
+                
+                <!-- Theorem 9.3 -->
+                <div class="theory-card">
+                    <h3>Theorem 9.3</h3>
+                    <p class="theorem-statement">
+                        <strong>Statement:</strong> The perpendicular from the centre of a circle to a chord bisects the chord.
+                    </p>
+                    <p class="theorem-details">
+                        <strong>Given:</strong> A circle with centre O and chord AB. OM is perpendicular to AB.<br>
+                        <strong>To Prove:</strong> AM = MB<br>
+                        <strong>Result:</strong> The perpendicular from centre bisects the chord into two equal parts.
+                    </p>
+                </div>
+
+                <!-- Theorem 9.4 -->
+                <div class="theory-card">
+                    <h3>Theorem 9.4 (Converse)</h3>
+                    <p class="theorem-statement">
+                        <strong>Statement:</strong> The line drawn through the centre of a circle to bisect a chord is perpendicular to the chord.
+                    </p>
+                    <p class="theorem-details">
+                        <strong>Given:</strong> A circle with centre O and chord AB. M is the midpoint of AB, so AM = MB.<br>
+                        <strong>To Prove:</strong> OM ⊥ AB<br>
+                        <strong>Result:</strong> The line from centre to the midpoint of a chord is perpendicular to the chord.
+                    </p>
+                </div>
+
+                <!-- Theorem 9.5 -->
+                <div class="theory-card">
+                    <h3>Theorem 9.5</h3>
+                    <p class="theorem-statement">
+                        <strong>Statement:</strong> Equal chords of a circle (or of congruent circles) are equidistant from the centre (or centres).
+                    </p>
+                    <p class="theorem-details">
+                        <strong>Given:</strong> A circle with centre O. Chords AB and CD are equal in length (AB = CD).<br>
+                        <strong>To Prove:</strong> OM = ON (where OM ⊥ AB and ON ⊥ CD)<br>
+                        <strong>Result:</strong> Equal chords are at equal distances from the centre.
+                    </p>
+                </div>
+
+                <!-- Theorem 9.6 -->
+                <div class="theory-card">
+                    <h3>Theorem 9.6 (Converse)</h3>
+                    <p class="theorem-statement">
+                        <strong>Statement:</strong> Chords equidistant from the centre of a circle are equal in length.
+                    </p>
+                    <p class="theorem-details">
+                        <strong>Given:</strong> A circle with centre O. Chords AB and CD are equidistant from O (OM = ON).<br>
+                        <strong>To Prove:</strong> AB = CD<br>
+                        <strong>Result:</strong> Chords at equal distances from centre are equal in length.
+                    </p>
+                </div>
+
+                <!-- Distance Definition -->
+                <div class="theory-card">
+                    <h3>Distance from Point to Line</h3>
+                    <p class="theorem-statement">
+                        <strong>Definition:</strong> The length of the perpendicular from a point to a line is the distance of the line from the point.
+                    </p>
+                    <p class="theorem-details">
+                        <strong>Key Properties:</strong><br>
+                        • The perpendicular distance is always the shortest distance from a point to a line<br>
+                        • Any other line segment from the point to the line will be longer than the perpendicular distance<br>
+                        • This concept is fundamental in geometry and is used in many theorems and proofs
+                    </p>
+                </div>
+
+                <!-- Proof Method -->
+                <div class="theory-card">
+                    <h3>Proof Method: RHS Congruence</h3>
+                    <p class="theorem-statement">
+                        <strong>Method:</strong> Right-Hand-Side (RHS) Congruence Rule for proving Theorem 9.3
+                    </p>
+                    <p class="theorem-details">
+                        <strong>Proof Steps:</strong><br>
+                        1. Join OA and OB to form triangles OMA and OMB<br>
+                        2. OA = OB (both are radii of the circle)<br>
+                        3. OM = OM (common side)<br>
+                        4. ∠OMA = ∠OMB = 90° (OM is perpendicular to AB)<br>
+                        5. Therefore, △OMA ≅ △OMB (by RHS congruence rule)<br>
+                        6. Hence, AM = BM (by CPCT - Corresponding Parts of Congruent Triangles)
+                    </p>
+                </div>
+
+                <!-- Key Properties -->
+                <div class="theory-card">
+                    <h3>Key Properties and Relationships</h3>
+                    <p class="theorem-statement">
+                        <strong>Important Properties:</strong>
+                    </p>
+                    <p class="theorem-details">
+                        <strong>Bisection Property:</strong> The perpendicular from the centre of a circle to a chord always bisects the chord into two equal parts.<br><br>
+                        
+                        <strong>Equidistance Property:</strong> If two chords are equal in length, then they are equidistant from the centre of the circle.<br><br>
+                        
+                        <strong>Converse Property:</strong> If two chords are equidistant from the centre, then they are equal in length.<br><br>
+                        
+                        <strong>Distance Property:</strong> The perpendicular distance from the centre to a chord is always the shortest distance.<br><br>
+                        
+                        <strong>Symmetry Property:</strong> The perpendicular creates two congruent right-angled triangles, showing the symmetrical nature of the relationship.
+                    </p>
+                </div>
+
+                <!-- Applications -->
+                <div class="theory-card">
+                    <h3>Applications and Uses</h3>
+                    <p class="theorem-statement">
+                        <strong>Real-world Applications:</strong>
+                    </p>
+                    <p class="theorem-details">
+                        <strong>Construction:</strong> Finding the centre of a circle using perpendicular bisectors of chords.<br><br>
+                        
+                        <strong>Problem Solving:</strong> Proving that chords are equal or finding unknown lengths in circle problems.<br><br>
+                        
+                        <strong>Geometry:</strong> Foundation for many other circle theorems and geometric proofs.<br><br>
+                        
+                        <strong>Trigonometry:</strong> Calculating distances and angles in circular problems.<br><br>
+                        
+                        <strong>Engineering:</strong> Designing circular structures, wheels, and mechanical components.<br><br>
+                        
+                        <strong>Architecture:</strong> Creating symmetrical designs and calculating structural elements in circular buildings.
+                    </p>
+                </div>
+
+                <!-- Important Notes -->
+                <div class="theory-card">
+                    <h3>Important Notes and Tips</h3>
+                    <p class="theorem-statement">
+                        <strong>Study Tips:</strong>
+                    </p>
+                    <p class="theorem-details">
+                        <strong>Remember:</strong> The perpendicular from centre to chord always bisects the chord, regardless of the chord's position or length.<br><br>
+                        
+                        <strong>Key Insight:</strong> Equal chords create equal distances from centre, and vice versa.<br><br>
+                        
+                        <strong>Proof Strategy:</strong> Use RHS congruence when you have right angles and equal sides.<br><br>
+                        
+                        <strong>Common Mistakes:</strong> Don't confuse the perpendicular distance with other line segments from centre to chord.<br><br>
+                        
+                        <strong>Practice:</strong> Draw multiple examples with different chord positions to understand the concept better.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let activeTasks = new Set();
+        let currentRunId = 0;
+        let isPlaying = false;
+        let currentDemo = null;
+        let threeJsScenes = [];
+        let currentDemoAborted = false;
+        let currentTaskId = null;
+
+        // Speech Teacher
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            
+            const teacher = {
+                isEnabled: globalAudioEnabled,
+                taskId: taskId,
+                currentUtterance: null,
+                
+                speak: function(text) {
+                    return new Promise((resolve) => {
+                        if (!this.isEnabled || (this.taskId && !activeTasks.has(this.taskId)) || currentDemoAborted) {
+                            resolve();
+                            return;
+                        }
+                        
+                        if ('speechSynthesis' in window) {
+                            const utterance = new SpeechSynthesisUtterance(text);
+                            utterance.rate = 0.9;
+                            utterance.pitch = 1.0;
+                            utterance.volume = 0.8;
+                            
+                            this.currentUtterance = utterance;
+                            
+                            utterance.onend = () => {
+                                this.currentUtterance = null;
+                                resolve();
+                            };
+                            
+                            utterance.onerror = () => {
+                                this.currentUtterance = null;
+                                resolve();
+                            };
+                            
+                            speechSynthesis.speak(utterance);
+                        } else {
+                            resolve();
+                        }
+                    });
+                },
+                
+                stop: function() {
+                    if (this.currentUtterance) {
+                        speechSynthesis.cancel();
+                        this.currentUtterance = null;
+                    }
+                }
+            };
+            
+            currentTeacher = teacher;
+            return teacher;
+        }
+
+        // Utility functions
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted && activeTasks.has(taskId);
+        }
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            activeTasks.clear();
+            
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            
+            // Clean up Three.js scenes
+            threeJsScenes.forEach(sceneData => {
+                if (sceneData.animationId) {
+                    cancelAnimationFrame(sceneData.animationId);
+                }
+                if (sceneData.renderer && sceneData.renderer.domElement && sceneData.renderer.domElement.parentNode) {
+                    sceneData.renderer.domElement.parentNode.removeChild(sceneData.renderer.domElement);
+                }
+                if (sceneData.renderer) {
+                    sceneData.renderer.dispose();
+                }
+            });
+            threeJsScenes = [];
+        }
+
+        function createStageContent() {
+            const stage = document.getElementById('demo-stage');
+            stage.innerHTML = '';
+            
+            const content = document.createElement('div');
+            content.className = 'stage-content active';
+            stage.appendChild(content);
+            
+            return content;
+        }
+
+        // Three.js Scene Creation
+        function createThreeJsCircleScene(container, config = {}) {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setClearColor(0x000000, 0);
+            container.appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+            
+            // Create circle
+            const circleGeometry = new THREE.RingGeometry(2.9, 3.1, 64);
+            const circleMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x4facfe,
+                transparent: true,
+                opacity: 0.8
+            });
+            const circle = new THREE.Mesh(circleGeometry, circleMaterial);
+            scene.add(circle);
+            
+            // Create center point
+            const centerGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+            const centerMaterial = new THREE.MeshPhongMaterial({ color: 0xfbbf24 });
+            const centerPoint = new THREE.Mesh(centerGeometry, centerMaterial);
+            scene.add(centerPoint);
+            
+            // Create disc (for transparency)
+            const discGeometry = new THREE.CircleGeometry(3, 64);
+            const discMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x667eea,
+                transparent: true,
+                opacity: 0.1
+            });
+            const disc = new THREE.Mesh(discGeometry, discMaterial);
+            scene.add(disc);
+            
+            camera.position.z = 8;
+            
+            const sceneData = {
+                scene,
+                camera,
+                renderer,
+                circle,
+                disc,
+                centerPoint,
+                chords: [],
+                perpendiculars: [],
+                points: [],
+                triangles: [],
+                animationId: null
+            };
+            
+            // Animation loop
+            function animate() {
+                sceneData.animationId = requestAnimationFrame(animate);
+                
+                if (config.rotate) {
+                    circle.rotation.z += 0.005;
+                    disc.rotation.z += 0.005;
+                }
+                
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+            threeJsScenes.push(sceneData);
+            return sceneData;
+        }
+
+        // Add chord to Three.js scene
+        function addChordToScene(sceneData, angle1, angle2, color = 0xf5576c, label = '') {
+            const radius = 3;
+            const x1 = radius * Math.cos(angle1);
+            const y1 = radius * Math.sin(angle1);
+            const x2 = radius * Math.cos(angle2);
+            const y2 = radius * Math.sin(angle2);
+            
+            const points = [
+                new THREE.Vector3(x1, y1, 0),
+                new THREE.Vector3(x2, y2, 0)
+            ];
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ 
+                color: color,
+                linewidth: 3
+            });
+            const chord = new THREE.Line(geometry, material);
+            sceneData.scene.add(chord);
+            sceneData.chords.push(chord);
+            
+            // Add points at endpoints
+            const pointGeometry = new THREE.SphereGeometry(0.12, 16, 16);
+            const pointMaterial = new THREE.MeshPhongMaterial({ color: 0x43e97b });
+            
+            const point1 = new THREE.Mesh(pointGeometry, pointMaterial);
+            point1.position.set(x1, y1, 0);
+            sceneData.scene.add(point1);
+            sceneData.points.push(point1);
+            
+            const point2 = new THREE.Mesh(pointGeometry, pointMaterial);
+            point2.position.set(x2, y2, 0);
+            sceneData.scene.add(point2);
+            sceneData.points.push(point2);
+            
+            return { chord, point1, point2, midpoint: { x: (x1 + x2) / 2, y: (y1 + y2) / 2 } };
+        }
+
+        // Add text labels to Three.js scene
+        function addTextLabel(sceneData, text, x, y, z = 0.1, color = 0xffffff) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 128;
+            canvas.height = 128;
+            
+            context.fillStyle = '#ffffff';
+            context.font = 'Bold 64px Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(text, 64, 64);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(material);
+            sprite.position.set(x, y, z);
+            sprite.scale.set(1.0, 1.0, 1);
+            
+            sceneData.scene.add(sprite);
+            return sprite;
+        }
+
+        // Add perpendicular from center to chord
+        function addPerpendicularToScene(sceneData, chord, color = 0xff9a9e) {
+            const midX = chord.midpoint.x;
+            const midY = chord.midpoint.y;
+            
+            const points = [
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(midX, midY, 0)
+            ];
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ 
+                color: color,
+                linewidth: 4
+            });
+            const perpendicular = new THREE.Line(geometry, material);
+            sceneData.scene.add(perpendicular);
+            sceneData.perpendiculars.push(perpendicular);
+            
+            // Add midpoint
+            const midpointGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+            const midpointMaterial = new THREE.MeshPhongMaterial({ color: 0xff9a9e });
+            const midpointMesh = new THREE.Mesh(midpointGeometry, midpointMaterial);
+            midpointMesh.position.set(midX, midY, 0);
+            sceneData.scene.add(midpointMesh);
+            sceneData.points.push(midpointMesh);
+            
+            return { perpendicular, midpoint: midpointMesh };
+        }
+
+        // Add triangle highlighting
+        function addTriangleToScene(sceneData, p1, p2, p3, color = 0x43e97b) {
+            const points = [
+                new THREE.Vector3(p1.x, p1.y, 0),
+                new THREE.Vector3(p2.x, p2.y, 0),
+                new THREE.Vector3(p3.x, p3.y, 0),
+                new THREE.Vector3(p1.x, p1.y, 0)
+            ];
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ 
+                color: color,
+                linewidth: 2
+            });
+            const triangle = new THREE.Line(geometry, material);
+            sceneData.scene.add(triangle);
+            sceneData.triangles.push(triangle);
+            
+            return triangle;
+        }
+
+        // Introduction with 3D Animation
+        async function showIntroduction() {
+            const taskId = `intro-${currentRunId}`;
+            stopCurrentDemo();
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Perpendicular from Centre to Chord</h2>
+                <div class="threejs-container" id="intro-threejs"></div>
+                <p class="geometry-description">
+                    Discover the beautiful relationship between the center of a circle and its chords!
+                </p>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('intro-threejs');
+            const sceneData = createThreeJsCircleScene(container, { rotate: true });
+            
+            await teacher.speak("Welcome! Today we'll explore the fascinating relationship between the center of a circle and its chords.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add chord
+            const chord1 = addChordToScene(sceneData, Math.PI/6, 5*Math.PI/6, 0xf5576c);
+            
+            // Add labels A and B
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/6);
+            const y1 = radius * Math.sin(Math.PI/6);
+            const x2 = radius * Math.cos(5*Math.PI/6);
+            const y2 = radius * Math.sin(5*Math.PI/6);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("When we draw a chord in a circle, we can create a special line from the center.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add perpendicular
+            const perp = addPerpendicularToScene(sceneData, chord1, 0xff9a9e);
+            const midX = chord1.midpoint.x;
+            const midY = chord1.midpoint.y;
+            addTextLabel(sceneData, 'M', midX + 0.3, midY + 0.3);
+            
+            await teacher.speak("This perpendicular line from the center to the chord has amazing properties that we'll discover together!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Paper Folding Activity
+        async function showActivity() {
+            const taskId = `activity-${currentRunId}`;
+            stopCurrentDemo();
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Paper Folding Activity</h2>
+                <div class="activity-box">
+                    <div class="activity-title">🎨 Interactive Paper Folding Simulation</div>
+                    <div class="paper-fold">
+                        <div class="fold-line"></div>
+                        <div class="threejs-container" id="activity-threejs"></div>
+                    </div>
+                </div>
+                <div class="theorem-box">
+                    <div class="theorem-content">
+                        Draw a circle on tracing paper. Let O be its centre. Draw a chord AB. 
+                        Fold the paper along a line through O so that a portion of the chord falls on the other.
+                    </div>
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('activity-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Let's do an exciting paper folding activity! Imagine we have a circle drawn on tracing paper.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add chord AB
+            const chordAB = addChordToScene(sceneData, Math.PI/4, 3*Math.PI/4, 0xf5576c);
+            
+            // Add labels A, B, and O
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/4);
+            const y1 = radius * Math.sin(Math.PI/4);
+            const x2 = radius * Math.cos(3*Math.PI/4);
+            const y2 = radius * Math.sin(3*Math.PI/4);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("First, we draw a chord A B on our circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add fold line (perpendicular from center)
+            const perp = addPerpendicularToScene(sceneData, chordAB, 0xfbbf24);
+            const midX = chordAB.midpoint.x;
+            const midY = chordAB.midpoint.y;
+            addTextLabel(sceneData, 'M', midX + 0.3, midY + 0.3);
+            
+            await teacher.speak("Now we fold the paper along a line through the center O. The crease cuts the chord at point M.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Amazing discovery! When we fold, point B coincides with point A, which means M A equals M B!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Theorem 9.3 Demonstration
+        async function showTheorem93() {
+            const taskId = `theorem93-${currentRunId}`;
+            stopCurrentDemo();
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Theorem 9.3</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.3</div>
+                    <div class="theorem-content">
+                        The perpendicular from the centre of a circle to a chord bisects the chord.
+                    </div>
+                </div>
+                <div class="threejs-container" id="theorem93-threejs"></div>
+                <div class="value-display">OM ⊥ AB and AM = MB</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('theorem93-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Here's Theorem nine point three: The perpendicular from the centre of a circle to a chord bisects the chord.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add chord
+            const chord = addChordToScene(sceneData, Math.PI/6, 5*Math.PI/6, 0xf5576c);
+            
+            // Add labels A and B
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/6);
+            const y1 = radius * Math.sin(Math.PI/6);
+            const x2 = radius * Math.cos(5*Math.PI/6);
+            const y2 = radius * Math.sin(5*Math.PI/6);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            
+            await teacher.speak("Let's see this in action. We have a chord A B in our circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add perpendicular
+            const perp = addPerpendicularToScene(sceneData, chord, 0xff9a9e);
+            
+            // Add label M at midpoint
+            const midX = chord.midpoint.x;
+            const midY = chord.midpoint.y;
+            addTextLabel(sceneData, 'M', midX + 0.3, midY + 0.3);
+            
+            await teacher.speak("When we draw a perpendicular from the center O to the chord, it creates point M.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("This perpendicular line divides the chord into two equal parts: A M equals M B!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Proof Animation
+        async function showProof() {
+            const taskId = `proof-${currentRunId}`;
+            stopCurrentDemo();
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Proof by Triangle Congruence</h2>
+                <div class="threejs-container" id="proof-threejs"></div>
+                <div class="proof-step">
+                    <strong>Step 1:</strong> Join OA and OB to form triangles OMA and OMB
+                </div>
+                <div class="proof-step">
+                    <strong>Step 2:</strong> OA = OB (radii of the circle)
+                </div>
+                <div class="proof-step">
+                    <strong>Step 3:</strong> OM = OM (common side)
+                </div>
+                <div class="proof-step">
+                    <strong>Step 4:</strong> ∠OMA = ∠OMB = 90° (OM ⊥ AB)
+                </div>
+                <div class="proof-step">
+                    <strong>Step 5:</strong> △OMA ≅ △OMB (RHS congruence)
+                </div>
+                <div class="proof-step">
+                    <strong>Conclusion:</strong> AM = BM (CPCT)
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('proof-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Let's prove this theorem step by step using triangle congruence!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add chord
+            const chord = addChordToScene(sceneData, Math.PI/5, 4*Math.PI/5, 0xf5576c);
+            const chordPoints = sceneData.points.slice(-2);
+            
+            // Add labels A, B, and O
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/5);
+            const y1 = radius * Math.sin(Math.PI/5);
+            const x2 = radius * Math.cos(4*Math.PI/5);
+            const y2 = radius * Math.sin(4*Math.PI/5);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("Step 1: We join O A and O B to form two triangles.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add perpendicular and get midpoint
+            const perp = addPerpendicularToScene(sceneData, chord, 0xff9a9e);
+            const midpoint = perp.midpoint;
+            addTextLabel(sceneData, 'M', midpoint.position.x + 0.3, midpoint.position.y + 0.3);
+            
+            // Add radii OA and OB
+            const radiusOA = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(chordPoints[0].position.x, chordPoints[0].position.y, 0)
+            ]);
+            const radiusOB = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(chordPoints[1].position.x, chordPoints[1].position.y, 0)
+            ]);
+            
+            const radiusMaterial = new THREE.LineBasicMaterial({ color: 0x43e97b, linewidth: 2 });
+            const lineOA = new THREE.Line(radiusOA, radiusMaterial);
+            const lineOB = new THREE.Line(radiusOB, radiusMaterial);
+            
+            sceneData.scene.add(lineOA);
+            sceneData.scene.add(lineOB);
+            
+            await wait(2000);
+            
+            // Highlight triangles
+            addTriangleToScene(sceneData, 
+                { x: 0, y: 0 }, 
+                { x: midpoint.position.x, y: midpoint.position.y }, 
+                { x: chordPoints[0].position.x, y: chordPoints[0].position.y }, 
+                0x43e97b
+            );
+            
+            await teacher.speak("Step 2: O A equals O B because they are both radii of the circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            addTriangleToScene(sceneData, 
+                { x: 0, y: 0 }, 
+                { x: midpoint.position.x, y: midpoint.position.y }, 
+                { x: chordPoints[1].position.x, y: chordPoints[1].position.y }, 
+                0xfbbf24
+            );
+            
+            await teacher.speak("Step 3: O M equals O M as it's the common side of both triangles.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Step 4: Angle O M A equals angle O M B, both are 90 degrees since O M is perpendicular to A B.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Step 5: By R H S congruence, triangle O M A is congruent to triangle O M B.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Therefore, A M equals B M by corresponding parts of congruent triangles. The perpendicular bisects the chord!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Converse Theorem 9.4
+        async function showConverse() {
+            const taskId = `converse-${currentRunId}`;
+            stopCurrentDemo();
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Converse Theorem 9.4</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.4 (Converse)</div>
+                    <div class="theorem-content">
+                        The line drawn through the centre of a circle to bisect a chord is perpendicular to the chord.
+                    </div>
+                </div>
+                <div class="threejs-container" id="converse-threejs"></div>
+                <div class="value-display">If AM = MB, then OM ⊥ AB</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('converse-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Now let's explore the converse: If a line from the centre bisects a chord, then it's perpendicular to the chord.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add chord
+            const chord = addChordToScene(sceneData, Math.PI/4, 3*Math.PI/4, 0xf5576c);
+            
+            // Add labels A, B, and O
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/4);
+            const y1 = radius * Math.sin(Math.PI/4);
+            const x2 = radius * Math.cos(3*Math.PI/4);
+            const y2 = radius * Math.sin(3*Math.PI/4);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("Starting with a chord A B, we know that M is the midpoint where A M equals M B.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add line from center to midpoint
+            const perp = addPerpendicularToScene(sceneData, chord, 0xff9a9e);
+            const midX = chord.midpoint.x;
+            const midY = chord.midpoint.y;
+            addTextLabel(sceneData, 'M', midX + 0.3, midY + 0.3);
+            
+            await teacher.speak("When we draw a line from the center O to this midpoint M, it must be perpendicular to the chord!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Distance Concept
+        async function showDistance() {
+            const taskId = `distance-${currentRunId}`;
+            stopCurrentDemo();
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Distance from Point to Line</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Definition</div>
+                    <div class="theorem-content">
+                        The length of the perpendicular from a point to a line is the distance of the line from the point.
+                    </div>
+                </div>
+                <div class="threejs-container" id="distance-threejs"></div>
+                <div class="chart-container">
+                    <canvas id="distance-chart"></canvas>
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('distance-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Let's understand what distance means in geometry. The distance from a point to a line is always the shortest path.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add a chord
+            const chord = addChordToScene(sceneData, Math.PI/6, 5*Math.PI/6, 0xf5576c);
+            
+            // Add multiple lines from center to different points on chord
+            const chordLength = 2 * 3 * Math.cos(Math.PI/6); // Length of chord
+            const numLines = 5;
+            
+            for (let i = 0; i < numLines; i++) {
+                const t = i / (numLines - 1);
+                const x1 = 3 * Math.cos(Math.PI/6);
+                const y1 = 3 * Math.sin(Math.PI/6);
+                const x2 = 3 * Math.cos(5*Math.PI/6);
+                const y2 = 3 * Math.sin(5*Math.PI/6);
+                
+                const pointX = x1 + t * (x2 - x1);
+                const pointY = y1 + t * (y2 - y1);
+                
+                const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(pointX, pointY, 0)
+                ]);
+                
+                const color = i === 2 ? 0xff9a9e : 0x666666; // Highlight perpendicular
+                const lineMaterial = new THREE.LineBasicMaterial({ 
+                    color: color, 
+                    linewidth: i === 2 ? 3 : 1,
+                    opacity: i === 2 ? 1 : 0.5,
+                    transparent: true
+                });
+                const line = new THREE.Line(lineGeometry, lineMaterial);
+                sceneData.scene.add(line);
+            }
+            
+            await teacher.speak("Among all possible lines from the center to the chord, the perpendicular is the shortest!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Create distance chart
+            const ctx = document.getElementById('distance-chart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Point 1', 'Point 2', 'Perpendicular', 'Point 4', 'Point 5'],
+                    datasets: [{
+                        label: 'Distance from Center',
+                        data: [2.8, 2.2, 1.5, 2.2, 2.8],
+                        borderColor: '#ff9a9e',
+                        backgroundColor: 'rgba(255, 154, 158, 0.1)',
+                        pointBackgroundColor: ['#666666', '#666666', '#ff9a9e', '#666666', '#666666'],
+                        pointBorderColor: ['#666666', '#666666', '#ff9a9e', '#666666', '#666666'],
+                        pointRadius: [4, 4, 8, 4, 4],
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            await teacher.speak("This chart shows how the perpendicular distance is always the minimum distance from a point to a line.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Equal Chords Theorem 9.5
+        async function showEqualChords() {
+            const taskId = `equal-${currentRunId}`;
+            stopCurrentDemo();
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Equal Chords Theorem 9.5</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.5</div>
+                    <div class="theorem-content">
+                        Equal chords of a circle (or of congruent circles) are equidistant from the centre (or centres).
+                    </div>
+                </div>
+                <div class="threejs-container" id="equal-threejs"></div>
+                <div class="value-display">AB = CD ⟹ OM = ON</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('equal-threejs');
+            const sceneData = createThreeJsCircleScene(container, { rotate: true });
+            
+            await teacher.speak("Theorem nine point five states that equal chords are equidistant from the center of the circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add first chord
+            const chord1 = addChordToScene(sceneData, Math.PI/6, 5*Math.PI/6, 0xf5576c);
+            const perp1 = addPerpendicularToScene(sceneData, chord1, 0xff9a9e);
+            
+            // Add labels for first chord
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/6);
+            const y1 = radius * Math.sin(Math.PI/6);
+            const x2 = radius * Math.cos(5*Math.PI/6);
+            const y2 = radius * Math.sin(5*Math.PI/6);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            addTextLabel(sceneData, 'M', chord1.midpoint.x + 0.3, chord1.midpoint.y + 0.3);
+            
+            await teacher.speak("Here's our first chord A B with its perpendicular distance O M from the center.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add second equal chord
+            const chord2 = addChordToScene(sceneData, -Math.PI/6, -5*Math.PI/6, 0x43e97b);
+            const perp2 = addPerpendicularToScene(sceneData, chord2, 0x38f9d7);
+            
+            // Add labels for second chord
+            const x3 = radius * Math.cos(-Math.PI/6);
+            const y3 = radius * Math.sin(-Math.PI/6);
+            const x4 = radius * Math.cos(-5*Math.PI/6);
+            const y4 = radius * Math.sin(-5*Math.PI/6);
+            
+            addTextLabel(sceneData, 'C', x3 + 0.3, y3 + 0.3);
+            addTextLabel(sceneData, 'D', x4 + 0.3, y4 + 0.3);
+            addTextLabel(sceneData, 'N', chord2.midpoint.x + 0.3, chord2.midpoint.y + 0.3);
+            
+            await teacher.speak("Now we add another chord C D of the same length. Notice that its distance O N from the center is also equal!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Equidistant Chords Theorem 9.6
+        async function showEquidistant() {
+            const taskId = `equidistant-${currentRunId}`;
+            stopCurrentDemo();
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Equidistant Chords Theorem 9.6</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.6 (Converse)</div>
+                    <div class="theorem-content">
+                        Chords equidistant from the centre of a circle are equal in length.
+                    </div>
+                </div>
+                <div class="threejs-container" id="equidistant-threejs"></div>
+                <div class="value-display">OM = ON ⟹ AB = CD</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('equidistant-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("The converse is also true: If chords are equidistant from the center, then they are equal in length.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Demonstrate with equal distances first
+            const distance = 1.5;
+            
+            // First chord
+            const angle1 = Math.PI/4;
+            const chord1 = addChordToScene(sceneData, angle1 - 0.7, angle1 + 0.7, 0xf5576c);
+            const perp1 = addPerpendicularToScene(sceneData, chord1, 0xff9a9e);
+            
+            // Add labels for first chord
+            const radius = 3;
+            const x1 = radius * Math.cos(angle1 - 0.7);
+            const y1 = radius * Math.sin(angle1 - 0.7);
+            const x2 = radius * Math.cos(angle1 + 0.7);
+            const y2 = radius * Math.sin(angle1 + 0.7);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            addTextLabel(sceneData, 'M', chord1.midpoint.x + 0.3, chord1.midpoint.y + 0.3);
+            
+            await teacher.speak("Starting with equal distances from the center...");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Second chord at same distance
+            const angle2 = -Math.PI/4;
+            const chord2 = addChordToScene(sceneData, angle2 - 0.7, angle2 + 0.7, 0x43e97b);
+            const perp2 = addPerpendicularToScene(sceneData, chord2, 0x38f9d7);
+            
+            // Add labels for second chord
+            const x3 = radius * Math.cos(angle2 - 0.7);
+            const y3 = radius * Math.sin(angle2 - 0.7);
+            const x4 = radius * Math.cos(angle2 + 0.7);
+            const y4 = radius * Math.sin(angle2 + 0.7);
+            
+            addTextLabel(sceneData, 'C', x3 + 0.3, y3 + 0.3);
+            addTextLabel(sceneData, 'D', x4 + 0.3, y4 + 0.3);
+            addTextLabel(sceneData, 'N', chord2.midpoint.x + 0.3, chord2.midpoint.y + 0.3);
+            
+            await teacher.speak("When the perpendicular distances are equal, the chord lengths are automatically equal too!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Example Problem
+        async function showExample() {
+            const taskId = `example-${currentRunId}`;
+            stopCurrentDemo();
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Example Problem</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Problem</div>
+                    <div class="theorem-content">
+                        If two intersecting chords of a circle make equal angles with the diameter 
+                        passing through their point of intersection, prove that the chords are equal.
+                    </div>
+                </div>
+                <div class="threejs-container" id="example-threejs"></div>
+                <div class="proof-step">
+                    Given: ∠AEQ = ∠DEQ (equal angles with diameter)
+                </div>
+                <div class="proof-step">
+                    To Prove: AB = CD (chords are equal)
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('example-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Let's solve a challenging example problem using our theorems about perpendiculars and chords!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add diameter PQ
+            const diameter = addChordToScene(sceneData, 0, Math.PI, 0xfbbf24);
+            
+            // Add labels for diameter
+            const radius = 3;
+            const px = radius * Math.cos(0);
+            const py = radius * Math.sin(0);
+            const qx = radius * Math.cos(Math.PI);
+            const qy = radius * Math.sin(Math.PI);
+            
+            addTextLabel(sceneData, 'P', px + 0.3, py + 0.3);
+            addTextLabel(sceneData, 'Q', qx + 0.3, qy + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("We start with a diameter P Q passing through the center.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add intersecting chords
+            const chord1 = addChordToScene(sceneData, Math.PI/6, 4*Math.PI/6, 0xf5576c);
+            const chord2 = addChordToScene(sceneData, -Math.PI/6, -4*Math.PI/6, 0x43e97b);
+            
+            // Add labels for chords
+            const ax = radius * Math.cos(Math.PI/6);
+            const ay = radius * Math.sin(Math.PI/6);
+            const bx = radius * Math.cos(4*Math.PI/6);
+            const by = radius * Math.sin(4*Math.PI/6);
+            const cx = radius * Math.cos(-Math.PI/6);
+            const cy = radius * Math.sin(-Math.PI/6);
+            const dx = radius * Math.cos(-4*Math.PI/6);
+            const dy = radius * Math.sin(-4*Math.PI/6);
+            
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            addTextLabel(sceneData, 'B', bx + 0.3, by + 0.3);
+            addTextLabel(sceneData, 'C', cx + 0.3, cy + 0.3);
+            addTextLabel(sceneData, 'D', dx + 0.3, dy + 0.3);
+            
+            await teacher.speak("Here are our two intersecting chords A B and C D that make equal angles with the diameter.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add perpendiculars from center to chords
+            const perp1 = addPerpendicularToScene(sceneData, chord1, 0xff9a9e);
+            const perp2 = addPerpendicularToScene(sceneData, chord2, 0x38f9d7);
+            
+            addTextLabel(sceneData, 'M', chord1.midpoint.x + 0.3, chord1.midpoint.y + 0.3);
+            addTextLabel(sceneData, 'N', chord2.midpoint.x + 0.3, chord2.midpoint.y + 0.3);
+            
+            await teacher.speak("By drawing perpendiculars from the center to each chord and using angle relationships, we can prove these perpendiculars are equal. Therefore, the chords are equal!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Interactive Demo
+        async function showInteractiveDemo() {
+            const taskId = `interactive-${currentRunId}`;
+            stopCurrentDemo();
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Interactive Exploration</h2>
+                <div class="threejs-container" id="interactive-threejs"></div>
+                <div class="interactive-controls">
+                    <div class="slider-control">
+                        <label>Chord Position</label>
+                        <input type="range" id="chord-position" min="0" max="100" value="50">
+                    </div>
+                    <div class="slider-control">
+                        <label>Chord Length</label>
+                        <input type="range" id="chord-length" min="30" max="150" value="90">
+                    </div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f5576c;"></div>
+                        <span>Chord</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff9a9e;"></div>
+                        <span>Perpendicular</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #43e97b;"></div>
+                        <span>Equal Segments</span>
+                    </div>
+                </div>
+                <div class="value-display" id="distance-value">Distance: 1.5</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('interactive-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            let currentChord = null;
+            let currentPerp = null;
+            let currentLabels = [];
+            
+            function updateChord() {
+                // Clear previous chord, perpendicular, and labels
+                if (currentChord) {
+                    sceneData.chords.forEach(chord => sceneData.scene.remove(chord));
+                    sceneData.perpendiculars.forEach(perp => sceneData.scene.remove(perp));
+                    sceneData.points.forEach(point => sceneData.scene.remove(point));
+                    currentLabels.forEach(label => sceneData.scene.remove(label));
+                    sceneData.chords = [];
+                    sceneData.perpendiculars = [];
+                    sceneData.points = [];
+                    currentLabels = [];
+                }
+                
+                const position = document.getElementById('chord-position').value / 100;
+                const length = document.getElementById('chord-length').value / 100;
+                
+                const angle = position * Math.PI * 2;
+                const halfAngle = length * Math.PI / 2;
+                
+                currentChord = addChordToScene(sceneData, angle - halfAngle, angle + halfAngle, 0xf5576c);
+                currentPerp = addPerpendicularToScene(sceneData, currentChord, 0xff9a9e);
+                
+                // Add labels
+                const radius = 3;
+                const x1 = radius * Math.cos(angle - halfAngle);
+                const y1 = radius * Math.sin(angle - halfAngle);
+                const x2 = radius * Math.cos(angle + halfAngle);
+                const y2 = radius * Math.sin(angle + halfAngle);
+                
+                const labelA = addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+                const labelB = addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+                const labelO = addTextLabel(sceneData, 'O', 0.3, 0.3);
+                const labelM = addTextLabel(sceneData, 'M', currentChord.midpoint.x + 0.3, currentChord.midpoint.y + 0.3);
+                
+                currentLabels = [labelA, labelB, labelO, labelM];
+                
+                // Calculate and display distance
+                const distance = Math.sqrt(currentChord.midpoint.x ** 2 + currentChord.midpoint.y ** 2);
+                document.getElementById('distance-value').textContent = `Distance: ${distance.toFixed(2)}`;
+            }
+            
+            document.getElementById('chord-position').addEventListener('input', updateChord);
+            document.getElementById('chord-length').addEventListener('input', updateChord);
+            
+            updateChord();
+            
+            await teacher.speak("Explore how changing the chord position and length affects the perpendicular distance from the center!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Notice how the perpendicular always bisects the chord, regardless of position or length!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            isPlaying = false;
+        }
+
+        // Quiz
+        async function showQuiz() {
+            const taskId = `quiz-${currentRunId}`;
+            stopCurrentDemo();
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            const questions = [
+                {
+                    question: "What does the perpendicular from the center of a circle to a chord do?",
+                    options: [
+                        "Divides the chord into unequal parts",
+                        "Bisects the chord",
+                        "Makes the chord longer",
+                        "Has no special property"
+                    ],
+                    correct: 1
+                },
+                {
+                    question: "If two chords are equal in length, they are:",
+                    options: [
+                        "Equidistant from the center",
+                        "Always parallel",
+                        "Always perpendicular",
+                        "Always intersecting"
+                    ],
+                    correct: 0
+                },
+                {
+                    question: "The distance from a point to a line is defined as:",
+                    options: [
+                        "Any line segment from the point to the line",
+                        "The longest line segment from the point to the line",
+                        "The perpendicular distance from the point to the line",
+                        "The diagonal distance"
+                    ],
+                    correct: 2
+                }
+            ];
+            
+            let currentQuestion = 0;
+            let score = 0;
+            
+            function showQuestion() {
+                const q = questions[currentQuestion];
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="geometry-title">Quiz Question ${currentQuestion + 1}</h2>
+                        <div class="question-box">
+                            <div class="question-text">${q.question}</div>
+                            <div class="quiz-options">
+                                ${q.options.map((option, index) => 
+                                    `<div class="quiz-option" data-index="${index}">${option}</div>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add click handlers
+                document.querySelectorAll('.quiz-option').forEach(option => {
+                    option.addEventListener('click', function() {
+                        const selectedIndex = parseInt(this.getAttribute('data-index'));
+                        const isCorrect = selectedIndex === q.correct;
+                        
+                        if (isCorrect) {
+                            this.classList.add('correct');
+                            score++;
+                            teacher.speak("Correct! Well done!");
+                        } else {
+                            this.classList.add('incorrect');
+                            document.querySelectorAll('.quiz-option')[q.correct].classList.add('correct');
+                            teacher.speak("That's not quite right. The correct answer is highlighted.");
+                        }
+                        
+                        // Disable all options
+                        document.querySelectorAll('.quiz-option').forEach(opt => {
+                            opt.style.pointerEvents = 'none';
+                        });
+                        
+                        setTimeout(() => {
+                            currentQuestion++;
+                            if (currentQuestion < questions.length) {
+                                showQuestion();
+                            } else {
+                                showResults();
+                            }
+                        }, 2000);
+                    });
+                });
+            }
+            
+            function showResults() {
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="geometry-title">Quiz Complete! 🎉</h2>
+                        <div class="value-display">${score}/${questions.length}</div>
+                        <div class="question-box">
+                            <div class="question-text">
+                                ${score === questions.length ? 
+                                    "Perfect score! You've mastered perpendiculars and chords!" :
+                                    score >= questions.length * 0.7 ?
+                                    "Great job! You understand the key concepts well!" :
+                                    "Good effort! Review the lessons to strengthen your understanding."
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                teacher.speak(`Quiz complete! You scored ${score} out of ${questions.length}. ${score === questions.length ? 'Perfect!' : 'Keep practicing!'}`);
+            }
+            
+            await teacher.speak("Let's test your understanding with some questions about perpendiculars and chords!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            showQuestion();
+            
+            await wait(2000);
+            isPlaying = false;
+        }
+
+        // Content functions for complete lesson (don't call stopCurrentDemo)
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Perpendicular from Centre to Chord</h2>
+                <div class="threejs-container" id="intro-threejs"></div>
+                <p class="geometry-description">
+                    Discover the beautiful relationship between the center of a circle and its chords!
+                </p>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('intro-threejs');
+            const sceneData = createThreeJsCircleScene(container, { rotate: true });
+            
+            await teacher.speak("Welcome! Today we'll explore the fascinating relationship between the center of a circle and its chords.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add chord
+            const chord1 = addChordToScene(sceneData, Math.PI/6, 5*Math.PI/6, 0xf5576c);
+            
+            // Add labels A and B
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/6);
+            const y1 = radius * Math.sin(Math.PI/6);
+            const x2 = radius * Math.cos(5*Math.PI/6);
+            const y2 = radius * Math.sin(5*Math.PI/6);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("When we draw a chord in a circle, we can create a special line from the center.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add perpendicular
+            const perp = addPerpendicularToScene(sceneData, chord1, 0xff9a9e);
+            const midX = chord1.midpoint.x;
+            const midY = chord1.midpoint.y;
+            addTextLabel(sceneData, 'M', midX + 0.3, midY + 0.3);
+            
+            await teacher.speak("This perpendicular line from the center to the chord has amazing properties that we'll discover together!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showActivityContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Paper Folding Activity</h2>
+                <div class="activity-box">
+                    <div class="activity-title">🎨 Interactive Paper Folding Simulation</div>
+                    <div class="paper-fold">
+                        <div class="fold-line"></div>
+                        <div class="threejs-container" id="activity-threejs"></div>
+                    </div>
+                </div>
+                <div class="theorem-box">
+                    <div class="theorem-content">
+                        Draw a circle on tracing paper. Let O be its centre. Draw a chord AB. 
+                        Fold the paper along a line through O so that a portion of the chord falls on the other.
+                    </div>
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('activity-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Let's do an exciting paper folding activity! Imagine we have a circle drawn on tracing paper.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add chord AB
+            const chordAB = addChordToScene(sceneData, Math.PI/4, 3*Math.PI/4, 0xf5576c);
+            
+            // Add labels A, B, and O
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/4);
+            const y1 = radius * Math.sin(Math.PI/4);
+            const x2 = radius * Math.cos(3*Math.PI/4);
+            const y2 = radius * Math.sin(3*Math.PI/4);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("First, we draw a chord A B on our circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add fold line (perpendicular from center)
+            const perp = addPerpendicularToScene(sceneData, chordAB, 0xfbbf24);
+            const midX = chordAB.midpoint.x;
+            const midY = chordAB.midpoint.y;
+            addTextLabel(sceneData, 'M', midX + 0.3, midY + 0.3);
+            
+            await teacher.speak("Now we fold the paper along a line through the center O. The crease cuts the chord at point M.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Amazing discovery! When we fold, point B coincides with point A, which means M A equals M B!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showTheorem93Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Theorem 9.3</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.3</div>
+                    <div class="theorem-content">
+                        The perpendicular from the centre of a circle to a chord bisects the chord.
+                    </div>
+                </div>
+                <div class="threejs-container" id="theorem93-threejs"></div>
+                <div class="value-display">OM ⊥ AB and AM = MB</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('theorem93-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Here's Theorem nine point three: The perpendicular from the centre of a circle to a chord bisects the chord.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add chord
+            const chord = addChordToScene(sceneData, Math.PI/6, 5*Math.PI/6, 0xf5576c);
+            
+            // Add labels A and B
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/6);
+            const y1 = radius * Math.sin(Math.PI/6);
+            const x2 = radius * Math.cos(5*Math.PI/6);
+            const y2 = radius * Math.sin(5*Math.PI/6);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            
+            await teacher.speak("Let's see this in action. We have a chord A B in our circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add perpendicular
+            const perp = addPerpendicularToScene(sceneData, chord, 0xff9a9e);
+            
+            // Add label M at midpoint
+            const midX = chord.midpoint.x;
+            const midY = chord.midpoint.y;
+            addTextLabel(sceneData, 'M', midX + 0.3, midY + 0.3);
+            
+            await teacher.speak("When we draw a perpendicular from the center O to the chord, it creates point M.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("This perpendicular line divides the chord into two equal parts: A M equals M B!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showProofContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Proof by Triangle Congruence</h2>
+                <div class="threejs-container" id="proof-threejs"></div>
+                <div class="proof-step">
+                    <strong>Step 1:</strong> Join OA and OB to form triangles OMA and OMB
+                </div>
+                <div class="proof-step">
+                    <strong>Step 2:</strong> OA = OB (radii of the circle)
+                </div>
+                <div class="proof-step">
+                    <strong>Step 3:</strong> OM = OM (common side)
+                </div>
+                <div class="proof-step">
+                    <strong>Step 4:</strong> ∠OMA = ∠OMB = 90° (OM ⊥ AB)
+                </div>
+                <div class="proof-step">
+                    <strong>Step 5:</strong> △OMA ≅ △OMB (RHS congruence)
+                </div>
+                <div class="proof-step">
+                    <strong>Conclusion:</strong> AM = BM (CPCT)
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('proof-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Let's prove this theorem step by step using triangle congruence!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add chord
+            const chord = addChordToScene(sceneData, Math.PI/5, 4*Math.PI/5, 0xf5576c);
+            const chordPoints = sceneData.points.slice(-2);
+            
+            // Add labels A, B, and O
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/5);
+            const y1 = radius * Math.sin(Math.PI/5);
+            const x2 = radius * Math.cos(4*Math.PI/5);
+            const y2 = radius * Math.sin(4*Math.PI/5);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("Step 1: We join O A and O B to form two triangles.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add perpendicular and get midpoint
+            const perp = addPerpendicularToScene(sceneData, chord, 0xff9a9e);
+            const midpoint = perp.midpoint;
+            addTextLabel(sceneData, 'M', midpoint.position.x + 0.3, midpoint.position.y + 0.3);
+            
+            // Add radii OA and OB
+            const radiusOA = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(chordPoints[0].position.x, chordPoints[0].position.y, 0)
+            ]);
+            const radiusOB = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(chordPoints[1].position.x, chordPoints[1].position.y, 0)
+            ]);
+            
+            const radiusMaterial = new THREE.LineBasicMaterial({ color: 0x43e97b, linewidth: 2 });
+            const lineOA = new THREE.Line(radiusOA, radiusMaterial);
+            const lineOB = new THREE.Line(radiusOB, radiusMaterial);
+            
+            sceneData.scene.add(lineOA);
+            sceneData.scene.add(lineOB);
+            
+            await wait(2000);
+            
+            // Highlight triangles
+            addTriangleToScene(sceneData, 
+                { x: 0, y: 0 }, 
+                { x: midpoint.position.x, y: midpoint.position.y }, 
+                { x: chordPoints[0].position.x, y: chordPoints[0].position.y }, 
+                0x43e97b
+            );
+            
+            await teacher.speak("Step 2: O A equals O B because they are both radii of the circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            addTriangleToScene(sceneData, 
+                { x: 0, y: 0 }, 
+                { x: midpoint.position.x, y: midpoint.position.y }, 
+                { x: chordPoints[1].position.x, y: chordPoints[1].position.y }, 
+                0xfbbf24
+            );
+            
+            await teacher.speak("Step 3: O M equals O M as it's the common side of both triangles.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Step 4: Angle O M A equals angle O M B, both are 90 degrees since O M is perpendicular to A B.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Step 5: By R H S congruence, triangle O M A is congruent to triangle O M B.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            await teacher.speak("Therefore, A M equals B M by corresponding parts of congruent triangles. The perpendicular bisects the chord!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showConverseContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Converse Theorem 9.4</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.4 (Converse)</div>
+                    <div class="theorem-content">
+                        The line drawn through the centre of a circle to bisect a chord is perpendicular to the chord.
+                    </div>
+                </div>
+                <div class="threejs-container" id="converse-threejs"></div>
+                <div class="value-display">If AM = MB, then OM ⊥ AB</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('converse-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Now let's explore the converse: If a line from the centre bisects a chord, then it's perpendicular to the chord.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add chord
+            const chord = addChordToScene(sceneData, Math.PI/4, 3*Math.PI/4, 0xf5576c);
+            
+            // Add labels A, B, and O
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/4);
+            const y1 = radius * Math.sin(Math.PI/4);
+            const x2 = radius * Math.cos(3*Math.PI/4);
+            const y2 = radius * Math.sin(3*Math.PI/4);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("Starting with a chord A B, we know that M is the midpoint where A M equals M B.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add line from center to midpoint
+            const perp = addPerpendicularToScene(sceneData, chord, 0xff9a9e);
+            const midX = chord.midpoint.x;
+            const midY = chord.midpoint.y;
+            addTextLabel(sceneData, 'M', midX + 0.3, midY + 0.3);
+            
+            await teacher.speak("When we draw a line from the center O to this midpoint M, it must be perpendicular to the chord!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showDistanceContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Distance from Point to Line</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Definition</div>
+                    <div class="theorem-content">
+                        The length of the perpendicular from a point to a line is the distance of the line from the point.
+                    </div>
+                </div>
+                <div class="threejs-container" id="distance-threejs"></div>
+                <div class="chart-container">
+                    <canvas id="distance-chart"></canvas>
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('distance-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Let's understand what distance means in geometry. The distance from a point to a line is always the shortest path.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add a chord
+            const chord = addChordToScene(sceneData, Math.PI/6, 5*Math.PI/6, 0xf5576c);
+            
+            // Add multiple lines from center to different points on chord
+            const chordLength = 2 * 3 * Math.cos(Math.PI/6); // Length of chord
+            const numLines = 5;
+            
+            for (let i = 0; i < numLines; i++) {
+                const t = i / (numLines - 1);
+                const x1 = 3 * Math.cos(Math.PI/6);
+                const y1 = 3 * Math.sin(Math.PI/6);
+                const x2 = 3 * Math.cos(5*Math.PI/6);
+                const y2 = 3 * Math.sin(5*Math.PI/6);
+                
+                const pointX = x1 + t * (x2 - x1);
+                const pointY = y1 + t * (y2 - y1);
+                
+                const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(pointX, pointY, 0)
+                ]);
+                
+                const color = i === 2 ? 0xff9a9e : 0x666666; // Highlight perpendicular
+                const lineMaterial = new THREE.LineBasicMaterial({ 
+                    color: color, 
+                    linewidth: i === 2 ? 3 : 1,
+                    opacity: i === 2 ? 1 : 0.5,
+                    transparent: true
+                });
+                const line = new THREE.Line(lineGeometry, lineMaterial);
+                sceneData.scene.add(line);
+            }
+            
+            await teacher.speak("Among all possible lines from the center to the chord, the perpendicular is the shortest!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Create distance chart
+            const ctx = document.getElementById('distance-chart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Point 1', 'Point 2', 'Perpendicular', 'Point 4', 'Point 5'],
+                    datasets: [{
+                        label: 'Distance from Center',
+                        data: [2.8, 2.2, 1.5, 2.2, 2.8],
+                        borderColor: '#ff9a9e',
+                        backgroundColor: 'rgba(255, 154, 158, 0.1)',
+                        pointBackgroundColor: ['#666666', '#666666', '#ff9a9e', '#666666', '#666666'],
+                        pointBorderColor: ['#666666', '#666666', '#ff9a9e', '#666666', '#666666'],
+                        pointRadius: [4, 4, 8, 4, 4],
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            await teacher.speak("This chart shows how the perpendicular distance is always the minimum distance from a point to a line.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showEqualChordsContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Equal Chords Theorem 9.5</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.5</div>
+                    <div class="theorem-content">
+                        Equal chords of a circle (or of congruent circles) are equidistant from the centre (or centres).
+                    </div>
+                </div>
+                <div class="threejs-container" id="equal-threejs"></div>
+                <div class="value-display">AB = CD ⟹ OM = ON</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('equal-threejs');
+            const sceneData = createThreeJsCircleScene(container, { rotate: true });
+            
+            await teacher.speak("Theorem nine point five states that equal chords are equidistant from the center of the circle.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add first chord
+            const chord1 = addChordToScene(sceneData, Math.PI/6, 5*Math.PI/6, 0xf5576c);
+            const perp1 = addPerpendicularToScene(sceneData, chord1, 0xff9a9e);
+            
+            // Add labels for first chord
+            const radius = 3;
+            const x1 = radius * Math.cos(Math.PI/6);
+            const y1 = radius * Math.sin(Math.PI/6);
+            const x2 = radius * Math.cos(5*Math.PI/6);
+            const y2 = radius * Math.sin(5*Math.PI/6);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            addTextLabel(sceneData, 'M', chord1.midpoint.x + 0.3, chord1.midpoint.y + 0.3);
+            
+            await teacher.speak("Here's our first chord A B with its perpendicular distance O M from the center.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add second equal chord
+            const chord2 = addChordToScene(sceneData, -Math.PI/6, -5*Math.PI/6, 0x43e97b);
+            const perp2 = addPerpendicularToScene(sceneData, chord2, 0x38f9d7);
+            
+            // Add labels for second chord
+            const x3 = radius * Math.cos(-Math.PI/6);
+            const y3 = radius * Math.sin(-Math.PI/6);
+            const x4 = radius * Math.cos(-5*Math.PI/6);
+            const y4 = radius * Math.sin(-5*Math.PI/6);
+            
+            addTextLabel(sceneData, 'C', x3 + 0.3, y3 + 0.3);
+            addTextLabel(sceneData, 'D', x4 + 0.3, y4 + 0.3);
+            addTextLabel(sceneData, 'N', chord2.midpoint.x + 0.3, chord2.midpoint.y + 0.3);
+            
+            await teacher.speak("Now we add another chord C D of the same length. Notice that its distance O N from the center is also equal!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showEquidistantContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Equidistant Chords Theorem 9.6</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Theorem 9.6 (Converse)</div>
+                    <div class="theorem-content">
+                        Chords equidistant from the centre of a circle are equal in length.
+                    </div>
+                </div>
+                <div class="threejs-container" id="equidistant-threejs"></div>
+                <div class="value-display">OM = ON ⟹ AB = CD</div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('equidistant-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("The converse is also true: If chords are equidistant from the center, then they are equal in length.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Demonstrate with equal distances first
+            const distance = 1.5;
+            
+            // First chord
+            const angle1 = Math.PI/4;
+            const chord1 = addChordToScene(sceneData, angle1 - 0.7, angle1 + 0.7, 0xf5576c);
+            const perp1 = addPerpendicularToScene(sceneData, chord1, 0xff9a9e);
+            
+            // Add labels for first chord
+            const radius = 3;
+            const x1 = radius * Math.cos(angle1 - 0.7);
+            const y1 = radius * Math.sin(angle1 - 0.7);
+            const x2 = radius * Math.cos(angle1 + 0.7);
+            const y2 = radius * Math.sin(angle1 + 0.7);
+            
+            addTextLabel(sceneData, 'A', x1 + 0.3, y1 + 0.3);
+            addTextLabel(sceneData, 'B', x2 + 0.3, y2 + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            addTextLabel(sceneData, 'M', chord1.midpoint.x + 0.3, chord1.midpoint.y + 0.3);
+            
+            await teacher.speak("Starting with equal distances from the center...");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Second chord at same distance
+            const angle2 = -Math.PI/4;
+            const chord2 = addChordToScene(sceneData, angle2 - 0.7, angle2 + 0.7, 0x43e97b);
+            const perp2 = addPerpendicularToScene(sceneData, chord2, 0x38f9d7);
+            
+            // Add labels for second chord
+            const x3 = radius * Math.cos(angle2 - 0.7);
+            const y3 = radius * Math.sin(angle2 - 0.7);
+            const x4 = radius * Math.cos(angle2 + 0.7);
+            const y4 = radius * Math.sin(angle2 + 0.7);
+            
+            addTextLabel(sceneData, 'C', x3 + 0.3, y3 + 0.3);
+            addTextLabel(sceneData, 'D', x4 + 0.3, y4 + 0.3);
+            addTextLabel(sceneData, 'N', chord2.midpoint.x + 0.3, chord2.midpoint.y + 0.3);
+            
+            await teacher.speak("When the perpendicular distances are equal, the chord lengths are automatically equal too!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        async function showExampleContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="geometry-title">Example Problem</h2>
+                <div class="theorem-box">
+                    <div class="theorem-title">Problem</div>
+                    <div class="theorem-content">
+                        If two intersecting chords of a circle make equal angles with the diameter 
+                        passing through their point of intersection, prove that the chords are equal.
+                    </div>
+                </div>
+                <div class="threejs-container" id="example-threejs"></div>
+                <div class="proof-step">
+                    Given: ∠AEQ = ∠DEQ (equal angles with diameter)
+                </div>
+                <div class="proof-step">
+                    To Prove: AB = CD (chords are equal)
+                </div>
+            `;
+            
+            await wait(100);
+            const container = document.getElementById('example-threejs');
+            const sceneData = createThreeJsCircleScene(container);
+            
+            await teacher.speak("Let's solve a challenging example problem using our theorems about perpendiculars and chords!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            
+            // Add diameter PQ
+            const diameter = addChordToScene(sceneData, 0, Math.PI, 0xfbbf24);
+            
+            // Add labels for diameter
+            const radius = 3;
+            const px = radius * Math.cos(0);
+            const py = radius * Math.sin(0);
+            const qx = radius * Math.cos(Math.PI);
+            const qy = radius * Math.sin(Math.PI);
+            
+            addTextLabel(sceneData, 'P', px + 0.3, py + 0.3);
+            addTextLabel(sceneData, 'Q', qx + 0.3, qy + 0.3);
+            addTextLabel(sceneData, 'O', 0.3, 0.3);
+            
+            await teacher.speak("We start with a diameter P Q passing through the center.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add intersecting chords
+            const chord1 = addChordToScene(sceneData, Math.PI/6, 4*Math.PI/6, 0xf5576c);
+            const chord2 = addChordToScene(sceneData, -Math.PI/6, -4*Math.PI/6, 0x43e97b);
+            
+            // Add labels for chords
+            const ax = radius * Math.cos(Math.PI/6);
+            const ay = radius * Math.sin(Math.PI/6);
+            const bx = radius * Math.cos(4*Math.PI/6);
+            const by = radius * Math.sin(4*Math.PI/6);
+            const cx = radius * Math.cos(-Math.PI/6);
+            const cy = radius * Math.sin(-Math.PI/6);
+            const dx = radius * Math.cos(-4*Math.PI/6);
+            const dy = radius * Math.sin(-4*Math.PI/6);
+            
+            addTextLabel(sceneData, 'A', ax + 0.3, ay + 0.3);
+            addTextLabel(sceneData, 'B', bx + 0.3, by + 0.3);
+            addTextLabel(sceneData, 'C', cx + 0.3, cy + 0.3);
+            addTextLabel(sceneData, 'D', dx + 0.3, dy + 0.3);
+            
+            await teacher.speak("Here are our two intersecting chords A B and C D that make equal angles with the diameter.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            
+            // Add perpendiculars from center to chords
+            const perp1 = addPerpendicularToScene(sceneData, chord1, 0xff9a9e);
+            const perp2 = addPerpendicularToScene(sceneData, chord2, 0x38f9d7);
+            
+            addTextLabel(sceneData, 'M', chord1.midpoint.x + 0.3, chord1.midpoint.y + 0.3);
+            addTextLabel(sceneData, 'N', chord2.midpoint.x + 0.3, chord2.midpoint.y + 0.3);
+            
+            await teacher.speak("By drawing perpendiculars from the center to each chord and using angle relationships, we can prove these perpendiculars are equal. Therefore, the chords are equal!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+        }
+
+        // Complete Lesson
+        async function showCompleteLesson() {
+            const taskId = `complete-${currentRunId}`;
+            stopCurrentDemo();
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            activeTasks.add(taskId);
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            // Welcome message
+            const welcomeContent = createStageContent();
+            welcomeContent.innerHTML = `
+                <h2 class="geometry-title">Complete Lesson: Perpendicular from Centre to Chord</h2>
+                <div class="value-display">Let's Master Everything! 🚀</div>
+                <p class="geometry-description">
+                    We'll explore all concepts step by step with amazing 3D animations and interactive demonstrations!
+                </p>
+            `;
+            
+            await teacher.speak("Welcome to the complete lesson on perpendiculars from the center to chords! We'll discover amazing geometric relationships together.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Introduction
+            await teacher.speak("Let's start with the basic introduction.");
+            if (!shouldContinue(taskId)) return;
+            await showIntroductionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Activity
+            await teacher.speak("Now let's try the paper folding activity.");
+            if (!shouldContinue(taskId)) return;
+            await showActivityContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Theorem 9.3
+            await teacher.speak("Here's the important Theorem nine point three.");
+            if (!shouldContinue(taskId)) return;
+            await showTheorem93Content(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Proof
+            await teacher.speak("Let's see the detailed proof.");
+            if (!shouldContinue(taskId)) return;
+            await showProofContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Converse
+            await teacher.speak("Now for the converse theorem.");
+            if (!shouldContinue(taskId)) return;
+            await showConverseContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Distance
+            await teacher.speak("Let's understand the concept of distance.");
+            if (!shouldContinue(taskId)) return;
+            await showDistanceContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Equal Chords
+            await teacher.speak("Here's the equal chords theorem.");
+            if (!shouldContinue(taskId)) return;
+            await showEqualChordsContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Equidistant
+            await teacher.speak("And its converse about equidistant chords.");
+            if (!shouldContinue(taskId)) return;
+            await showEquidistantContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Example
+            await teacher.speak("Let's solve an example problem.");
+            if (!shouldContinue(taskId)) return;
+            await showExampleContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            // Final message
+            const finalContent = createStageContent();
+            finalContent.innerHTML = `
+                <h2 class="geometry-title">Congratulations! 🎉</h2>
+                <div class="value-display">Lesson Complete!</div>
+                <p class="geometry-description">
+                    You've mastered the beautiful relationships between perpendiculars, chords, and circles! 
+                    Try the interactive demo or test your knowledge with the quiz.
+                </p>
+            `;
+            
+            await teacher.speak("Outstanding! You've completed the full lesson on perpendiculars from the center to chords. You now understand all the theorems, their proofs, and applications. Excellent work!");
+            
+            isPlaying = false;
+        }
+
+        function resetApplication() {
+            stopCurrentDemo();
+            
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="geometry-title">Welcome to Geometry Mastery! ✨</h2>
+                <div class="value-display">Let's Explore!</div>
+                <p class="geometry-description">
+                    Discover the fascinating relationships between perpendiculars, chords, and circles with stunning 3D animations! 
+                    Choose a lesson below to begin your geometric journey!
+                </p>
+                <div class="threejs-container" id="welcome-threejs"></div>
+            `;
+            
+            setTimeout(() => {
+                const container = document.getElementById('welcome-threejs');
+                if (container) {
+                    createThreeJsCircleScene(container, { rotate: true });
+                }
+            }, 100);
+            
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            currentDemo = null;
+            
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to explore the amazing world of perpendiculars and chords with three D visualizations!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+            
+            // Show welcome animation
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="geometry-title">Welcome to Geometry Mastery! ✨</h2>
+                <div class="value-display">3D Interactive Learning</div>
+                <p class="geometry-description">
+                    Experience geometry like never before with stunning Three.js animations and interactive Chart.js visualizations!
+                </p>
+                <div class="threejs-container" id="welcome-threejs"></div>
+            `;
+            
+            setTimeout(() => {
+                const container = document.getElementById('welcome-threejs');
+                if (container) {
+                    createThreeJsCircleScene(container, { rotate: true });
+                }
+                teacher.speak("Welcome to Geometry Mastery! Explore the fascinating relationships between perpendiculars and chords with amazing three D animations!");
+            }, 500);
+            
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'activity':
+                            showActivity();
+                            break;
+                        case 'theorem-9-3':
+                            showTheorem93();
+                            break;
+                        case 'proof':
+                            showProof();
+                            break;
+                        case 'converse':
+                            showConverse();
+                            break;
+                        case 'distance':
+                            showDistance();
+                            break;
+                        case 'equal-chords':
+                            showEqualChords();
+                            break;
+                        case 'equidistant':
+                            showEquidistant();
+                            break;
+                        case 'example':
+                            showExample();
+                            break;
+                        case 'interactive':
+                            showInteractiveDemo();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+            
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+            
+            // Handle window resize for Three.js scenes
+            window.addEventListener('resize', () => {
+                threeJsScenes.forEach(sceneData => {
+                    const container = sceneData.renderer.domElement.parentElement;
+                    if (container) {
+                        sceneData.camera.aspect = container.clientWidth / container.clientHeight;
+                        sceneData.camera.updateProjectionMatrix();
+                        sceneData.renderer.setSize(container.clientWidth, container.clientHeight);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algebraic Identities - Interactive Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --equation-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            --solution-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: var(--text-primary);
+            min-height: 100svh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 10px 15px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 1.6rem;
+            background: var(--equation-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 3px;
+        }
+
+        .header p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            gap: 12px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .demo-stage {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 10px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: auto;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            flex: 1;
+            min-height: 0;
+            transition: none;
+        }
+
+        .demo-stage::-webkit-scrollbar {
+            display: none;
+        }
+
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+            overflow: auto;
+            padding: 0;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            overflow: auto;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1) translateY(0); }
+            to { opacity: 0; transform: scale(0.95) translateY(-20px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .controls {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 10px 12px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 10px 20px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--equation-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--equation-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .math-title {
+            font-size: 1.3rem;
+            color: var(--text-accent);
+            margin-bottom: 6px;
+            text-align: center;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .value-display {
+            font-size: 1.4rem;
+            background: var(--success-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            text-align: center;
+            margin: 5px 0;
+            line-height: 1.2;
+        }
+
+        .math-description {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.3;
+            max-width: 800px;
+            margin: 0 auto 8px;
+        }
+
+        .formula-box {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 8px 10px;
+            margin: 5px 0;
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-primary);
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .identity-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin: 4px 0;
+            transition: var(--transition);
+        }
+
+        .identity-item:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .identity-item.basic {
+            border-color: #43e97b;
+        }
+
+        .identity-item.extended {
+            border-color: #4facfe;
+        }
+
+        .identity-item.application {
+            border-color: #fbbf24;
+        }
+
+        .identity-formula {
+            font-size: 0.95rem;
+            color: #43e97b;
+            font-weight: 600;
+            margin-bottom: 3px;
+            line-height: 1.3;
+        }
+
+        .identity-name {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            line-height: 1.2;
+        }
+
+        .step-container {
+            width: 100%;
+            max-width: 900px;
+            margin: 6px 0;
+        }
+
+        .step-box {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            display: flex;
+            border-radius: 10px;
+            padding: 8px 10px;
+            margin: 5px 0;
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        .step-box:hover {
+            transform: scale(1.01);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        .step-number {
+            display: inline-block;
+            background: var(--primary-gradient);
+            color: white;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 26px;
+            font-weight: 700;
+            margin-right: 8px;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .highlight {
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        .content-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 8px 10px;
+            margin: 5px 0;
+            width: 100%;
+            max-width: 900px;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .example-box {
+            background: linear-gradient(135deg, rgba(67, 233, 123, 0.1) 0%, rgba(56, 249, 215, 0.1) 100%);
+            border-left: 3px solid #43e97b;
+            border-radius: 6px;
+            padding: 6px 8px;
+            margin: 4px 0;
+        }
+
+        .example-box p {
+            margin: 2px 0;
+            font-size: 0.8rem;
+            line-height: 1.3;
+        }
+
+        .visualization-container {
+            width: 100%;
+            max-width: 900px;
+            margin: 8px 0;
+            padding: 8px;
+            background: var(--glass-bg);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .algebra-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 8px;
+            margin: 8px 0;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .grid-card {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .grid-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .grid-card-title {
+            font-size: 1rem;
+            color: var(--text-accent);
+            margin-bottom: 6px;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .grid-card-formula {
+            font-size: 0.85rem;
+            color: #43e97b;
+            margin: 4px 0;
+            line-height: 1.2;
+        }
+
+        .grid-card p {
+            font-size: 0.75rem;
+            line-height: 1.2;
+        }
+
+        .interactive-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            width: 100%;
+            max-width: 200px;
+            margin: 5px;
+            transition: var(--transition);
+        }
+
+        .interactive-input:focus {
+            outline: none;
+            border-color: #43e97b;
+            box-shadow: 0 0 15px rgba(67, 233, 123, 0.3);
+        }
+
+        .calc-button {
+            background: var(--success-gradient);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin: 5px;
+        }
+
+        .calc-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(67, 233, 123, 0.4);
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 14px 32px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin: 20px auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .action-btn:hover::before {
+            left: 100%;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+        }
+
+        .action-btn::after {
+            content: '→';
+            margin-left: 4px;
+            transition: transform 0.3s;
+        }
+
+        .action-btn:hover::after {
+            transform: translateX(4px);
+        }
+
+        .quiz-option {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin: 5px 0;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.85rem;
+            line-height: 1.3;
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        .quiz-option.correct {
+            background: linear-gradient(135deg, rgba(67, 233, 123, 0.3) 0%, rgba(56, 249, 215, 0.3) 100%);
+            border-color: #43e97b;
+        }
+
+        .quiz-option.incorrect {
+            background: linear-gradient(135deg, rgba(245, 87, 108, 0.3) 0%, rgba(240, 147, 251, 0.3) 100%);
+            border-color: #f5576c;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-gradient);
+            transition: width 0.5s ease;
+        }
+
+        .content-card h3 {
+            font-size: 1rem;
+            margin-bottom: 6px;
+            line-height: 1.2;
+        }
+
+        .content-card p {
+            font-size: 0.8rem;
+            margin: 3px 0;
+            line-height: 1.3;
+        }
+
+        .formula-box p {
+            font-size: 0.85rem;
+            margin: 3px 0;
+            line-height: 1.3;
+        }
+
+        .glow-effect {
+            animation: pulse 2s infinite;
+        }
+
+        .application-section {
+            width: 100%;
+            max-width: 900px;
+            margin: 5px 0;
+        }
+
+        .application-title {
+            font-size: 1rem;
+            color: #4facfe;
+            margin: 6px 0 4px 0;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.2rem;
+            }
+
+            .header p {
+                font-size: 0.7rem;
+            }
+
+            .math-title {
+                font-size: 1.1rem;
+            }
+
+            .value-display {
+                font-size: 1.15rem;
+            }
+
+            .demo-btn {
+                padding: 6px 10px;
+                font-size: 0.7rem;
+            }
+
+            .algebra-grid {
+                grid-template-columns: 1fr;
+                gap: 5px;
+            }
+
+            .demo-stage {
+                flex: 1;
+                min-height: 0;
+                padding: 8px;
+            }
+
+            .identity-formula {
+                font-size: 0.8rem;
+            }
+
+            .step-content {
+                font-size: 0.7rem;
+            }
+
+            .controls {
+                padding: 8px;
+                gap: 4px;
+            }
+
+            .main-container {
+                padding: 8px;
+                gap: 8px;
+            }
+
+            .header {
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>✨ Algebraic Identities ✨</h1>
+        <p>Master the Power of Algebraic Transformations</p>
+    </div>
+
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage" id="demo-stage">
+            <div class="stage-content active" id="stage-content">
+                <!-- Content will be dynamically loaded here -->
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">📚 Complete Lesson</button>
+            <button class="demo-btn" data-demo="basic">🎯 Basic Identities</button>
+            <button class="demo-btn" data-demo="extended">🚀 Extended Identities</button>
+            <button class="demo-btn" data-demo="computation">🧮 Computation</button>
+            <button class="demo-btn" data-demo="factorization">🔧 Factorization</button>
+            <button class="demo-btn" data-demo="expansion">📐 Expansion</button>
+            <button class="demo-btn" data-demo="special">⭐ Special Cases</button>
+            <button class="demo-btn" data-demo="interactive">🎮 Interactive Demo</button>
+            <button class="demo-btn" data-demo="visualization">📊 Visualization</button>
+            <button class="demo-btn" data-demo="quiz">🏆 Quiz</button>
+            <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+        </div>
+    </div>
+
+    <script>
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let currentDemo = null;
+        let quizScore = 0;
+        let currentQuizQuestion = 0;
+        let animationInterval = null;
+
+        // Text-to-Speech Teacher
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+
+            const teacher = {
+                synth: window.speechSynthesis,
+                utterance: null,
+                isEnabled: globalAudioEnabled,
+
+                speak: function(text) {
+                    if (!this.isEnabled || !this.synth) return;
+
+                    this.stop();
+                    this.utterance = new SpeechSynthesisUtterance(text);
+                    this.utterance.rate = 0.9;
+                    this.utterance.pitch = 1;
+                    this.utterance.volume = 0.8;
+
+                    const voices = this.synth.getVoices();
+                    const preferredVoice = voices.find(voice => 
+                        voice.lang.startsWith('en') && 
+                        (voice.name.includes('Google') || voice.name.includes('Female'))
+                    );
+                    if (preferredVoice) {
+                        this.utterance.voice = preferredVoice;
+                    }
+
+                    this.synth.speak(this.utterance);
+                },
+
+                stop: function() {
+                    if (this.synth) {
+                        this.synth.cancel();
+                    }
+                }
+            };
+
+            currentTeacher = teacher;
+            return teacher;
+        }
+
+        function transitionToNextStep(htmlContent) {
+            const stage = document.getElementById('stage-content');
+            
+            stage.style.animation = 'fadeOut 0.3s ease-out';
+            
+            setTimeout(() => {
+                stage.innerHTML = htmlContent;
+                stage.style.animation = 'fadeIn 0.5s ease-out';
+            }, 300);
+        }
+
+        function stopCurrentDemo() {
+            if (animationInterval) {
+                clearInterval(animationInterval);
+                animationInterval = null;
+            }
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+        }
+
+        // Complete Lesson
+        function showCompleteLesson() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+            let step = 0;
+
+            const steps = [
+                {
+                    title: "Introduction to Algebraic Identities 📖",
+                    content: `
+                        <div class="content-card">
+                            <h3 style="color: #4facfe; font-size: 1.3rem; margin-bottom: 15px;">What are Algebraic Identities?</h3>
+                            <p style="font-size: 1.05rem; color: #e2e8f0; line-height: 1.8; margin-bottom: 15px;">
+                                Algebraic identities are <span class="highlight">equations that are true for all values</span> of the variables. 
+                                They are fundamental tools in algebra that help us simplify expressions, perform calculations quickly, 
+                                and solve complex problems efficiently.
+                            </p>
+                            <div class="example-box">
+                                <p style="color: #fbbf24; font-weight: 600; margin-bottom: 8px;">Why are they important?</p>
+                                <p style="color: #e2e8f0;">✓ Speed up calculations</p>
+                                <p style="color: #e2e8f0;">✓ Simplify complex expressions</p>
+                                <p style="color: #e2e8f0;">✓ Solve equations efficiently</p>
+                                <p style="color: #e2e8f0;">✓ Foundation for higher mathematics</p>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Start Learning →</button>
+                    `,
+                    speech: "Welcome to Algebraic Identities! These are special equations that are always true, no matter what values we use for the variables. They're like mathematical shortcuts that make calculations faster and easier!"
+                },
+                {
+                    title: "Basic Identities 🎯",
+                    content: `
+                        <h3 style="color: #43e97b; font-size: 1.3rem; margin-bottom: 15px;">Four Fundamental Identities</h3>
+                        <div class="step-container">
+                            <div class="identity-item basic">
+                                <div class="identity-formula">(x + y)² = x² + 2xy + y²</div>
+                                <div class="identity-name">Square of a Sum</div>
+                            </div>
+                            <div class="identity-item basic">
+                                <div class="identity-formula">(x - y)² = x² - 2xy + y²</div>
+                                <div class="identity-name">Square of a Difference</div>
+                            </div>
+                            <div class="identity-item basic">
+                                <div class="identity-formula">x² - y² = (x + y)(x - y)</div>
+                                <div class="identity-name">Difference of Squares</div>
+                            </div>
+                            <div class="identity-item basic">
+                                <div class="identity-formula">(x + a)(x + b) = x² + (a + b)x + ab</div>
+                                <div class="identity-name">Product of Binomials</div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Continue →</button>
+                    `,
+                    speech: "Here are the four basic identities. The first is the square of a sum. The second is the square of a difference. The third is the difference of squares. And the fourth helps us multiply two binomials quickly!"
+                },
+                {
+                    title: "Extended Identities 🚀",
+                    content: `
+                        <h3 style="color: #4facfe; font-size: 1.3rem; margin-bottom: 15px;">Advanced Identities</h3>
+                        <div class="step-container">
+                            <div class="identity-item extended">
+                                <div class="identity-formula">(x + y + z)² = x² + y² + z² + 2xy + 2yz + 2zx</div>
+                                <div class="identity-name">Square of Three Terms</div>
+                            </div>
+                            <div class="identity-item extended">
+                                <div class="identity-formula">(x + y)³ = x³ + y³ + 3xy(x + y)</div>
+                                <div class="identity-name">Cube of a Sum</div>
+                            </div>
+                            <div class="identity-item extended">
+                                <div class="identity-formula">(x - y)³ = x³ - y³ - 3xy(x - y)</div>
+                                <div class="identity-name">Cube of a Difference</div>
+                            </div>
+                            <div class="identity-item extended">
+                                <div class="identity-formula">x³ + y³ + z³ - 3xyz = (x + y + z)(x² + y² + z² - xy - yz - zx)</div>
+                                <div class="identity-name">Sum of Cubes with Three Variables</div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Next →</button>
+                    `,
+                    speech: "Now let's explore extended identities! These are more advanced but equally powerful. Notice how they build upon the basic identities you just learned!"
+                },
+                {
+                    title: "Application: Fast Computation 🧮",
+                    content: `
+                        <div class="application-section">
+                            <h3 class="application-title">Example: 105 × 106</h3>
+                            <div class="step-box">
+                                <span class="step-number">1</span>
+                                <div class="step-content">
+                                    Rewrite as: <span class="highlight">(100 + 5)(100 + 6)</span>
+                                </div>
+                            </div>
+                            <div class="step-box">
+                                <span class="step-number">2</span>
+                                <div class="step-content">
+                                    Apply identity: <span class="highlight">(x + a)(x + b) = x² + (a + b)x + ab</span><br>
+                                    where x = 100, a = 5, b = 6
+                                </div>
+                            </div>
+                            <div class="step-box">
+                                <span class="step-number">3</span>
+                                <div class="step-content">
+                                    Calculate: <span class="highlight">100² + (5 + 6)×100 + 5×6</span>
+                                </div>
+                            </div>
+                            <div class="step-box">
+                                <span class="step-number">4</span>
+                                <div class="step-content">
+                                    = 10,000 + 1,100 + 30 = <span class="highlight">11,130</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Continue →</button>
+                    `,
+                    speech: "Let's see how identities speed up calculations! To multiply 105 by 106, we rewrite them as 100 plus 5 and 100 plus 6, then apply our identity. The answer is 11,130!"
+                },
+                {
+                    title: "Application: Factorization 🔧",
+                    content: `
+                        <div class="application-section">
+                            <h3 class="application-title">Example: 49a² + 70ab + 25b²</h3>
+                            <div class="step-box">
+                                <span class="step-number">1</span>
+                                <div class="step-content">
+                                    Identify: <span class="highlight">49a² = (7a)²</span> and <span class="highlight">25b² = (5b)²</span>
+                                </div>
+                            </div>
+                            <div class="step-box">
+                                <span class="step-number">2</span>
+                                <div class="step-content">
+                                    Check middle term: <span class="highlight">70ab = 2 × 7a × 5b</span> ✓
+                                </div>
+                            </div>
+                            <div class="step-box">
+                                <span class="step-number">3</span>
+                                <div class="step-content">
+                                    Recognize pattern: <span class="highlight">(7a)² + 2(7a)(5b) + (5b)²</span>
+                                </div>
+                            </div>
+                            <div class="step-box">
+                                <span class="step-number">4</span>
+                                <div class="step-content">
+                                    Apply identity: <span class="highlight">(7a + 5b)²</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Next →</button>
+                    `,
+                    speech: "Now let's use identities for factorization! We recognize this as a perfect square trinomial and factor it as 7a plus 5b, all squared!"
+                },
+                {
+                    title: "Application: Expansion 📐",
+                    content: `
+                        <div class="application-section">
+                            <h3 class="application-title">Example: (3a + 4b + 5c)²</h3>
+                            <div class="step-box">
+                                <span class="step-number">1</span>
+                                <div class="step-content">
+                                    Apply: <span class="highlight">(x + y + z)² = x² + y² + z² + 2xy + 2yz + 2zx</span>
+                                </div>
+                            </div>
+                            <div class="step-box">
+                                <span class="step-number">2</span>
+                                <div class="step-content">
+                                    Square each term: <span class="highlight">(3a)² + (4b)² + (5c)²</span><br>
+                                    = 9a² + 16b² + 25c²
+                                </div>
+                            </div>
+                            <div class="step-box">
+                                <span class="step-number">3</span>
+                                <div class="step-content">
+                                    Add double products:<br>
+                                    <span class="highlight">2(3a)(4b) + 2(4b)(5c) + 2(3a)(5c)</span><br>
+                                    = 24ab + 40bc + 30ac
+                                </div>
+                            </div>
+                            <div class="step-box">
+                                <span class="step-number">4</span>
+                                <div class="step-content">
+                                    Final result: <span class="highlight">9a² + 16b² + 25c² + 24ab + 40bc + 30ac</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Continue →</button>
+                    `,
+                    speech: "For expansion with three terms, we square each term and add all the double products. This gives us our expanded form with six terms!"
+                },
+                {
+                    title: "Visualization 📊",
+                    content: `
+                        <div class="math-description">Visual comparison of identities</div>
+                        <div class="visualization-container">
+                            <canvas id="identityChart" style="max-width: 800px; max-height: 400px;"></canvas>
+                        </div>
+                        <div class="algebra-grid">
+                            <div class="grid-card">
+                                <div class="grid-card-title">Perfect Squares</div>
+                                <div class="grid-card-formula">(a ± b)²</div>
+                                <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 8px;">
+                                    Always positive
+                                </p>
+                            </div>
+                            <div class="grid-card">
+                                <div class="grid-card-title">Difference of Squares</div>
+                                <div class="grid-card-formula">a² - b²</div>
+                                <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 8px;">
+                                    Can be positive or negative
+                                </p>
+                            </div>
+                            <div class="grid-card">
+                                <div class="grid-card-title">Perfect Cubes</div>
+                                <div class="grid-card-formula">(a ± b)³</div>
+                                <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 8px;">
+                                    Follows sign of (a ± b)
+                                </p>
+                            </div>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Next →</button>
+                    `,
+                    speech: "Here is a quick visualization comparing several identities using the same values."
+                },
+                {
+                    title: "Special Cases ⭐",
+                    content: `
+                        <div class="math-description">Amazing special properties!</div>
+                        <div class="content-card">
+                            <h3 class="application-title">Case 1: When x + y + z = 0</h3>
+                            <div class="example-box">
+                                <p style="color: #fbbf24; font-size: 0.85rem;"><span class="highlight">x³ + y³ + z³ = 3xyz</span></p>
+                                <p style="color: #e2e8f0; font-size: 0.75rem;">Example: If 2+3+(-5)=0, then 8+27+(-125)=-90 = 3(2)(3)(-5)</p>
+                            </div>
+                        </div>
+                        <div class="content-card">
+                            <h3 class="application-title">Case 2: Computing 104³</h3>
+                            <div class="step-box">
+                                <span class="step-number">1</span>
+                                <div class="step-content">(100 + 4)³ = 100³ + 3(100²)(4) + 3(100)(4²) + 4³</div>
+                            </div>
+                            <div class="step-box">
+                                <span class="step-number">2</span>
+                                <div class="step-content">= 1,000,000 + 120,000 + 4,800 + 64 = <span class="highlight">1,124,864</span></div>
+                            </div>
+                        </div>
+                        <div class="example-box">
+                            <p style="color: #fbbf24; font-weight: 600; font-size: 0.8rem;">🌟 More Patterns:</p>
+                            <p style="color: #e2e8f0; font-size: 0.75rem;">(x+y)² + (x-y)² = 2(x²+y²)  |  (x+y)² - (x-y)² = 4xy</p>
+                        </div>
+                        <button class="action-btn" onclick="nextStep()">Finish →</button>
+                    `,
+                    speech: "These special cases are fascinating! When three numbers sum to zero, their cubes have a beautiful relationship!"
+                }
+            ];
+
+            window.nextStep = function() {
+                step++;
+                if (step < steps.length) {
+                    const currentStep = steps[step];
+                    const fullContent = `
+                        <h2 class="math-title">${currentStep.title}</h2>
+                        ${currentStep.content}
+                    `;
+                    transitionToNextStep(fullContent);
+                    setTimeout(() => {
+                        const ctx = document.getElementById('identityChart');
+                        if (ctx) {
+                            new Chart(ctx, {
+                                type: 'bar',
+                                data: {
+                                    labels: ['(x+y)²', '(x-y)²', 'x²-y²', '(x+y)³', '(x-y)³'],
+                                    datasets: [{
+                                        label: 'Value for x=5, y=3',
+                                        data: [64, 4, 16, 512, 8],
+                                        backgroundColor: [
+                                            'rgba(67, 233, 123, 0.7)',
+                                            'rgba(79, 172, 254, 0.7)',
+                                            'rgba(251, 191, 36, 0.7)',
+                                            'rgba(245, 87, 108, 0.7)',
+                                            'rgba(240, 147, 251, 0.7)'
+                                        ],
+                                        borderColor: [
+                                            'rgba(67, 233, 123, 1)',
+                                            'rgba(79, 172, 254, 1)',
+                                            'rgba(251, 191, 36, 1)',
+                                            'rgba(245, 87, 108, 1)',
+                                            'rgba(240, 147, 251, 1)'
+                                        ],
+                                        borderWidth: 2
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: true,
+                                    plugins: {
+                                        legend: {
+                                            labels: {
+                                                color: '#e2e8f0',
+                                                font: { size: 14 }
+                                            }
+                                        },
+                                        title: {
+                                            display: true,
+                                            text: 'Comparing Identity Values',
+                                            color: '#fbbf24',
+                                            font: { size: 18, weight: 'bold' }
+                                        }
+                                    },
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true,
+                                            ticks: { color: '#e2e8f0' },
+                                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                                        },
+                                        x: {
+                                            ticks: { color: '#e2e8f0' },
+                                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                        teacher.speak(currentStep.speech);
+                    }, 500);
+                } else {
+                    const finalContent = `
+                        <h2 class="math-title">Lesson Complete! 🎉</h2>
+                        <div class="value-display">Congratulations!</div>
+                        <div class="content-card glow-effect">
+                            <p style="font-size: 1.2rem; color: #43e97b; text-align: center;">
+                                You've mastered the fundamentals of algebraic identities!
+                            </p>
+                            <p style="font-size: 1rem; color: #e2e8f0; text-align: center; margin-top: 15px;">
+                                Practice these identities regularly to become faster and more confident in algebra!
+                            </p>
+                        </div>
+                    `;
+                    transitionToNextStep(finalContent);
+                    teacher.speak("Excellent work! You've completed the lesson on algebraic identities. Keep practicing to master these powerful tools!");
+                }
+            };
+
+            const firstContent = `
+                <h2 class="math-title">${steps[0].title}</h2>
+                ${steps[0].content}
+            `;
+            transitionToNextStep(firstContent);
+            setTimeout(() => teacher.speak(steps[0].speech), 500);
+        }
+
+        // Basic Identities
+        function showBasicIdentities() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">Basic Algebraic Identities 🎯</h2>
+                <div class="math-description">Four fundamental formulas</div>
+                <div class="step-container">
+                    <div class="identity-item basic">
+                        <div class="identity-formula">(x + y)² = x² + 2xy + y²</div>
+                        <div class="identity-name">Square of a Sum</div>
+                    </div>
+                    <div class="identity-item basic">
+                        <div class="identity-formula">(x - y)² = x² - 2xy + y²</div>
+                        <div class="identity-name">Square of a Difference</div>
+                    </div>
+                    <div class="identity-item basic">
+                        <div class="identity-formula">x² - y² = (x + y)(x - y)</div>
+                        <div class="identity-name">Difference of Squares</div>
+                    </div>
+                    <div class="identity-item basic">
+                        <div class="identity-formula">(x + a)(x + b) = x² + (a + b)x + ab</div>
+                        <div class="identity-name">Product of Binomials</div>
+                    </div>
+                </div>
+                <div class="example-box">
+                    <p style="color: #fbbf24; font-weight: 600;">💡 Examples:</p>
+                    <p style="color: #e2e8f0;">(5+3)²=64  |  (7-2)²=25  |  100²-99²=199</p>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            teacher.speak("These are the four basic algebraic identities. Master these, and you'll have a powerful toolkit for algebra!");
+        }
+
+        // Extended Identities
+        function showExtendedIdentities() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">Extended Algebraic Identities 🚀</h2>
+                <div class="math-description">Advanced formulas for complex expressions</div>
+                <div class="step-container">
+                    <div class="identity-item extended">
+                        <div class="identity-formula">(x + y + z)² = x² + y² + z² + 2xy + 2yz + 2zx</div>
+                        <div class="identity-name">Square of Three Terms</div>
+                    </div>
+                    <div class="identity-item extended">
+                        <div class="identity-formula">(x + y)³ = x³ + y³ + 3xy(x + y)</div>
+                        <div class="identity-name">Cube of a Sum</div>
+                    </div>
+                    <div class="identity-item extended">
+                        <div class="identity-formula">(x - y)³ = x³ - y³ - 3xy(x - y)</div>
+                        <div class="identity-name">Cube of a Difference</div>
+                    </div>
+                    <div class="identity-item extended">
+                        <div class="identity-formula">x³ + y³ + z³ - 3xyz = (x+y+z)(x²+y²+z²-xy-yz-zx)</div>
+                        <div class="identity-name">Sum of Cubes</div>
+                    </div>
+                </div>
+                <div class="content-card">
+                    <p style="color: #43e97b; font-size: 0.8rem; margin: 3px 0;">x³ + y³ = (x+y)(x²-xy+y²)</p>
+                    <p style="color: #43e97b; font-size: 0.8rem; margin: 3px 0;">x³ - y³ = (x-y)(x²+xy+y²)</p>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            teacher.speak("Now let's explore extended identities! These help with expressions involving three variables and cubic powers!");
+        }
+
+        // Computation Application
+        function showComputation() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">Fast Computation with Identities 🧮</h2>
+                <div class="math-description">Calculate products mentally!</div>
+                <div class="application-section">
+                    <h3 class="application-title">Example 1: 105 × 106</h3>
+                    <div class="step-box">
+                        <span class="step-number">1</span>
+                        <div class="step-content">(100+5)(100+6)</div>
+                    </div>
+                    <div class="step-box">
+                        <span class="step-number">2</span>
+                        <div class="step-content">100²+(5+6)×100+5×6 = 10,000+1,100+30 = <span class="highlight">11,130</span></div>
+                    </div>
+                </div>
+                <div class="application-section">
+                    <h3 class="application-title">Example 2: 103²</h3>
+                    <div class="step-box">
+                        <span class="step-number">1</span>
+                        <div class="step-content">(100+3)²</div>
+                    </div>
+                    <div class="step-box">
+                        <span class="step-number">2</span>
+                        <div class="step-content">100²+2(100)(3)+3² = 10,000+600+9 = <span class="highlight">10,609</span></div>
+                    </div>
+                </div>
+                <div class="application-section">
+                    <h3 class="application-title">Example 3: 99 × 101</h3>
+                    <div class="step-box">
+                        <span class="step-number">1</span>
+                        <div class="step-content">(100-1)(100+1)</div>
+                    </div>
+                    <div class="step-box">
+                        <span class="step-number">2</span>
+                        <div class="step-content">100²-1² = 10,000-1 = <span class="highlight">9,999</span></div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            teacher.speak("Let's see how identities make computation lightning fast! You can multiply numbers near 100 in your head!");
+        }
+
+        // Factorization Application
+        function showFactorization() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">Factorization Using Identities 🔧</h2>
+                <div class="math-description">Recognize patterns and factor instantly!</div>
+                <div class="application-section">
+                    <h3 class="application-title">Example 1: 49a² + 70ab + 25b²</h3>
+                    <div class="step-box">
+                        <span class="step-number">1</span>
+                        <div class="step-content">49a² = (7a)² and 25b² = (5b)²</div>
+                    </div>
+                    <div class="step-box">
+                        <span class="step-number">2</span>
+                        <div class="step-content">70ab = 2 × 7a × 5b ✓</div>
+                    </div>
+                    <div class="step-box">
+                        <span class="step-number">3</span>
+                        <div class="step-content">Answer: <span class="highlight">(7a + 5b)²</span></div>
+                    </div>
+                </div>
+                <div class="application-section">
+                    <h3 class="application-title">Example 2: x² - 16</h3>
+                    <div class="step-box">
+                        <span class="step-number">1</span>
+                        <div class="step-content">x² - 16 = x² - 4²</div>
+                    </div>
+                    <div class="step-box">
+                        <span class="step-number">2</span>
+                        <div class="step-content">Answer: <span class="highlight">(x + 4)(x - 4)</span></div>
+                    </div>
+                </div>
+                <div class="application-section">
+                    <h3 class="application-title">Example 3: 8x³ + 27</h3>
+                    <div class="step-box">
+                        <span class="step-number">1</span>
+                        <div class="step-content">8x³ = (2x)³ and 27 = 3³</div>
+                    </div>
+                    <div class="step-box">
+                        <span class="step-number">2</span>
+                        <div class="step-content">Answer: <span class="highlight">(2x + 3)(4x² - 6x + 9)</span></div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            teacher.speak("Factorization becomes easy when you recognize identity patterns! Look for perfect squares and difference of squares!");
+        }
+
+        // Expansion Application
+        function showExpansion() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">Expansion Using Identities 📐</h2>
+                <div class="math-description">Expand expressions efficiently!</div>
+                <div class="application-section">
+                    <h3 class="application-title">Example 1: (3a + 4b + 5c)²</h3>
+                    <div class="step-box">
+                        <span class="step-number">1</span>
+                        <div class="step-content">Use: (x+y+z)² = x²+y²+z²+2xy+2yz+2zx</div>
+                    </div>
+                    <div class="step-box">
+                        <span class="step-number">2</span>
+                        <div class="step-content">Square terms: 9a² + 16b² + 25c²</div>
+                    </div>
+                    <div class="step-box">
+                        <span class="step-number">3</span>
+                        <div class="step-content">Double products: 24ab + 40bc + 30ac</div>
+                    </div>
+                    <div class="step-box">
+                        <span class="step-number">4</span>
+                        <div class="step-content">Answer: <span class="highlight">9a²+16b²+25c²+24ab+40bc+30ac</span></div>
+                    </div>
+                </div>
+                <div class="application-section">
+                    <h3 class="application-title">Example 2: (2x - 3y)³</h3>
+                    <div class="step-box">
+                        <span class="step-number">1</span>
+                        <div class="step-content">Use: (x-y)³ = x³ - 3x²y + 3xy² - y³</div>
+                    </div>
+                    <div class="step-box">
+                        <span class="step-number">2</span>
+                        <div class="step-content">Calculate: 8x³ - 36x²y + 54xy² - 27y³</div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            teacher.speak("Expanding complex expressions is systematic with identities! Square each term, then add the cross products!");
+        }
+
+        // Special Cases
+        function showSpecialCases() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">Special Cases and Shortcuts ⭐</h2>
+                <div class="math-description">Amazing special properties!</div>
+                <div class="content-card">
+                    <h3 class="application-title">Case 1: When x + y + z = 0</h3>
+                    <div class="example-box">
+                        <p style="color: #fbbf24; font-size: 0.85rem;"><span class="highlight">x³ + y³ + z³ = 3xyz</span></p>
+                        <p style="color: #e2e8f0; font-size: 0.75rem;">Example: If 2+3+(-5)=0, then 8+27+(-125)=-90 = 3(2)(3)(-5)</p>
+                    </div>
+                </div>
+                <div class="content-card">
+                    <h3 class="application-title">Case 2: Computing 104³</h3>
+                    <div class="step-box">
+                        <span class="step-number">1</span>
+                        <div class="step-content">(100 + 4)³ = 100³ + 3(100²)(4) + 3(100)(4²) + 4³</div>
+                    </div>
+                    <div class="step-box">
+                        <span class="step-number">2</span>
+                        <div class="step-content">= 1,000,000 + 120,000 + 4,800 + 64 = <span class="highlight">1,124,864</span></div>
+                    </div>
+                </div>
+                <div class="example-box">
+                    <p style="color: #fbbf24; font-weight: 600; font-size: 0.8rem;">🌟 More Patterns:</p>
+                    <p style="color: #e2e8f0; font-size: 0.75rem;">(x+y)² + (x-y)² = 2(x²+y²)  |  (x+y)² - (x-y)² = 4xy</p>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            teacher.speak("These special cases are fascinating! When three numbers sum to zero, their cubes have a beautiful relationship!");
+        }
+
+        // Interactive Demo
+        function showInteractiveDemo() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">Interactive Calculator 🎮</h2>
+                <div class="math-description">Test identities with your values!</div>
+                <div class="content-card">
+                    <h3 style="color: #4facfe; font-size: 0.95rem; margin-bottom: 8px;">(x + y)²</h3>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                        <input type="number" id="sum-x" class="interactive-input" placeholder="x" value="5">
+                        <input type="number" id="sum-y" class="interactive-input" placeholder="y" value="3">
+                        <button class="calc-button" onclick="calculateSquareSum()">Calculate</button>
+                        <div id="sum-result" style="font-size: 0.9rem; color: #43e97b; margin-top: 5px;"></div>
+                    </div>
+                </div>
+                <div class="content-card">
+                    <h3 style="color: #4facfe; font-size: 0.95rem; margin-bottom: 8px;">x² - y²</h3>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                        <input type="number" id="diff-x" class="interactive-input" placeholder="x" value="10">
+                        <input type="number" id="diff-y" class="interactive-input" placeholder="y" value="6">
+                        <button class="calc-button" onclick="calculateDiffSquares()">Calculate</button>
+                        <div id="diff-result" style="font-size: 0.9rem; color: #43e97b; margin-top: 5px;"></div>
+                    </div>
+                </div>
+                <div class="content-card">
+                    <h3 style="color: #4facfe; font-size: 0.95rem; margin-bottom: 8px;">(x + y)³</h3>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                        <input type="number" id="cube-x" class="interactive-input" placeholder="x" value="2">
+                        <input type="number" id="cube-y" class="interactive-input" placeholder="y" value="1">
+                        <button class="calc-button" onclick="calculateCubeSum()">Calculate</button>
+                        <div id="cube-result" style="font-size: 0.9rem; color: #43e97b; margin-top: 5px;"></div>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+            teacher.speak("Let's make this interactive! Enter any numbers and see how the identities work!");
+        }
+
+        // Calculator Functions
+        window.calculateSquareSum = function() {
+            const x = parseFloat(document.getElementById('sum-x').value);
+            const y = parseFloat(document.getElementById('sum-y').value);
+            
+            if (isNaN(x) || isNaN(y)) {
+                document.getElementById('sum-result').innerHTML = '❌ Enter valid numbers';
+                return;
+            }
+
+            const direct = Math.pow(x + y, 2);
+            const identity = x*x + 2*x*y + y*y;
+
+            document.getElementById('sum-result').innerHTML = `
+                <div style="text-align: center;">
+                    <p style="color: #fbbf24; margin: 2px 0; font-size: 0.85rem;">(${x}+${y})² = ${direct}</p>
+                    <p style="color: #43e97b; margin: 2px 0; font-size: 0.8rem;">${x}²+2(${x})(${y})+${y}² = ${identity}</p>
+                    <p style="color: #4facfe; margin: 3px 0; font-weight: 600; font-size: 0.8rem;">✓ Match!</p>
+                </div>
+            `;
+
+            if (currentTeacher) {
+                currentTeacher.speak(`The square of ${x} plus ${y} equals ${direct}!`);
+            }
+        };
+
+        window.calculateDiffSquares = function() {
+            const x = parseFloat(document.getElementById('diff-x').value);
+            const y = parseFloat(document.getElementById('diff-y').value);
+            
+            if (isNaN(x) || isNaN(y)) {
+                document.getElementById('diff-result').innerHTML = '❌ Enter valid numbers';
+                return;
+            }
+
+            const direct = x*x - y*y;
+            const identity = (x + y) * (x - y);
+
+            document.getElementById('diff-result').innerHTML = `
+                <div style="text-align: center;">
+                    <p style="color: #fbbf24; margin: 2px 0; font-size: 0.85rem;">${x}²-${y}² = ${direct}</p>
+                    <p style="color: #43e97b; margin: 2px 0; font-size: 0.8rem;">(${x}+${y})(${x}-${y}) = ${identity}</p>
+                    <p style="color: #4facfe; margin: 3px 0; font-weight: 600; font-size: 0.8rem;">✓ Match!</p>
+                </div>
+            `;
+
+            if (currentTeacher) {
+                currentTeacher.speak(`${x} squared minus ${y} squared equals ${direct}!`);
+            }
+        };
+
+        window.calculateCubeSum = function() {
+            const x = parseFloat(document.getElementById('cube-x').value);
+            const y = parseFloat(document.getElementById('cube-y').value);
+            
+            if (isNaN(x) || isNaN(y)) {
+                document.getElementById('cube-result').innerHTML = '❌ Enter valid numbers';
+                return;
+            }
+
+            const direct = Math.pow(x + y, 3);
+            const identity = x*x*x + 3*x*x*y + 3*x*y*y + y*y*y;
+
+            document.getElementById('cube-result').innerHTML = `
+                <div style="text-align: center;">
+                    <p style="color: #fbbf24; margin: 2px 0; font-size: 0.85rem;">(${x}+${y})³ = ${direct}</p>
+                    <p style="color: #43e97b; margin: 2px 0; font-size: 0.8rem;">${x}³+3(${x}²)(${y})+3(${x})(${y}²)+${y}³ = ${identity}</p>
+                    <p style="color: #4facfe; margin: 3px 0; font-weight: 600; font-size: 0.8rem;">✓ Match!</p>
+                </div>
+            `;
+
+            if (currentTeacher) {
+                currentTeacher.speak(`The cube of ${x} plus ${y} equals ${direct}!`);
+            }
+        };
+
+        // Visualization
+        function showVisualization() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+
+            const content = `
+                <h2 class="math-title">Identity Relationships 📊</h2>
+                <div class="math-description">
+                    Visual comparison of identities
+                </div>
+                <div class="visualization-container">
+                    <canvas id="identityChart" style="max-width: 800px; max-height: 400px;"></canvas>
+                </div>
+                <div class="algebra-grid">
+                    <div class="grid-card">
+                        <div class="grid-card-title">Perfect Squares</div>
+                        <div class="grid-card-formula">(a ± b)²</div>
+                        <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 8px;">
+                            Always positive
+                        </p>
+                    </div>
+                    <div class="grid-card">
+                        <div class="grid-card-title">Difference of Squares</div>
+                        <div class="grid-card-formula">a² - b²</div>
+                        <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 8px;">
+                            Can be positive or negative
+                        </p>
+                    </div>
+                    <div class="grid-card">
+                        <div class="grid-card-title">Perfect Cubes</div>
+                        <div class="grid-card-formula">(a ± b)³</div>
+                        <p style="color: #e2e8f0; font-size: 0.9rem; margin-top: 8px;">
+                            Follows sign of (a ± b)
+                        </p>
+                    </div>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            setTimeout(() => {
+                const ctx = document.getElementById('identityChart');
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['(x+y)²', '(x-y)²', 'x²-y²', '(x+y)³', '(x-y)³'],
+                            datasets: [{
+                                label: 'Value for x=5, y=3',
+                                data: [64, 4, 16, 512, 8],
+                                backgroundColor: [
+                                    'rgba(67, 233, 123, 0.7)',
+                                    'rgba(79, 172, 254, 0.7)',
+                                    'rgba(251, 191, 36, 0.7)',
+                                    'rgba(245, 87, 108, 0.7)',
+                                    'rgba(240, 147, 251, 0.7)'
+                                ],
+                                borderColor: [
+                                    'rgba(67, 233, 123, 1)',
+                                    'rgba(79, 172, 254, 1)',
+                                    'rgba(251, 191, 36, 1)',
+                                    'rgba(245, 87, 108, 1)',
+                                    'rgba(240, 147, 251, 1)'
+                                ],
+                                borderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: '#e2e8f0',
+                                        font: { size: 14 }
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Comparing Identity Values',
+                                    color: '#fbbf24',
+                                    font: { size: 18, weight: 'bold' }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { color: '#e2e8f0' },
+                                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                                },
+                                x: {
+                                    ticks: { color: '#e2e8f0' },
+                                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                                }
+                            }
+                        }
+                    });
+                }
+            }, 500);
+
+            teacher.speak("This visualization compares different identities using the same values. Notice how squares are always positive, while cubes can be negative!");
+        }
+
+        // Quiz
+        function showQuiz() {
+            stopCurrentDemo();
+            const teacher = createNewTeacher();
+            quizScore = 0;
+            currentQuizQuestion = 0;
+
+            const questions = [
+                {
+                    question: "What is (x + y)² equal to?",
+                    options: [
+                        "x² + y²",
+                        "x² + 2xy + y²",
+                        "x² - 2xy + y²",
+                        "x² + xy + y²"
+                    ],
+                    correct: 1,
+                    explanation: "The square of a sum is x² + 2xy + y². Don't forget the middle term!"
+                },
+                {
+                    question: "How would you factor x² - 25?",
+                    options: [
+                        "(x + 5)(x + 5)",
+                        "(x - 5)(x - 5)",
+                        "(x + 5)(x - 5)",
+                        "Cannot be factored"
+                    ],
+                    correct: 2,
+                    explanation: "x² - 25 = x² - 5² = (x + 5)(x - 5), using difference of squares."
+                },
+                {
+                    question: "If a + b + c = 0, what is a³ + b³ + c³?",
+                    options: [
+                        "0",
+                        "3abc",
+                        "a² + b² + c²",
+                        "abc"
+                    ],
+                    correct: 1,
+                    explanation: "When a + b + c = 0, the special identity gives us a³ + b³ + c³ = 3abc."
+                },
+                {
+                    question: "What is (x - y)³ expanded?",
+                    options: [
+                        "x³ - y³",
+                        "x³ - 3x²y + 3xy² - y³",
+                        "x³ + 3x²y + 3xy² + y³",
+                        "x³ - y³ - 3xy"
+                    ],
+                    correct: 1,
+                    explanation: "(x - y)³ = x³ - 3x²y + 3xy² - y³, following the binomial expansion pattern."
+                },
+                {
+                    question: "Using identities, what is 99 × 101?",
+                    options: [
+                        "9,999",
+                        "10,000",
+                        "9,899",
+                        "10,099"
+                    ],
+                    correct: 0,
+                    explanation: "99 × 101 = (100-1)(100+1) = 100² - 1² = 10,000 - 1 = 9,999"
+                },
+                {
+                    question: "What is 103² using identities?",
+                    options: [
+                        "10,609",
+                        "10,906",
+                        "10,309",
+                        "10,600"
+                    ],
+                    correct: 0,
+                    explanation: "103² = (100+3)² = 100² + 2(100)(3) + 3² = 10,000 + 600 + 9 = 10,609"
+                },
+                {
+                    question: "Factor: 4x² + 12xy + 9y²",
+                    options: [
+                        "(2x + 3y)(2x + 3y)",
+                        "(2x + 3y)(2x - 3y)",
+                        "(4x + 9y)²",
+                        "Cannot be factored"
+                    ],
+                    correct: 0,
+                    explanation: "4x² + 12xy + 9y² = (2x)² + 2(2x)(3y) + (3y)² = (2x + 3y)²"
+                },
+                {
+                    question: "What identity helps compute 105 × 95?",
+                    options: [
+                        "(x + y)²",
+                        "x² - y²",
+                        "(x + a)(x - a) = x² - a²",
+                        "(x + y)(x + z)"
+                    ],
+                    correct: 2,
+                    explanation: "105 × 95 = (100+5)(100-5) = 100² - 5² = 10,000 - 25 = 9,975"
+                }
+            ];
+
+            function showQuestion() {
+                const q = questions[currentQuizQuestion];
+                const content = `
+                    <h2 class="math-title" style="font-size: 1.5rem; margin-bottom: 12px;">Quiz Time! 🏆</h2>
+                    <div style="width: 100%; padding: 0 20px;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${(currentQuizQuestion / questions.length) * 100}%"></div>
+                        </div>
+                        <div class="content-card" style="padding: 18px;">
+                            <p style="font-size: 1rem; color: #e2e8f0; margin-bottom: 8px;">
+                                Question ${currentQuizQuestion + 1} of ${questions.length}
+                            </p>
+                            <h3 style="color: #fbbf24; font-size: 1.15rem; margin: 15px 0;">
+                                ${q.question}
+                            </h3>
+                            <div id="quiz-options">
+                                ${q.options.map((opt, idx) => `
+                                    <div class="quiz-option" onclick="checkAnswer(${idx})" style="padding: 12px; margin: 8px 0; font-size: 0.95rem;">
+                                        ${opt}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="value-display" style="font-size: 1.8rem; margin-top: 10px;">
+                            Score: ${quizScore} / ${questions.length}
+                        </div>
+                    </div>
+                `;
+                transitionToNextStep(content);
+            }
+
+            window.checkAnswer = function(selectedIdx) {
+                const q = questions[currentQuizQuestion];
+                const options = document.querySelectorAll('.quiz-option');
+                
+                options.forEach(opt => opt.style.pointerEvents = 'none');
+                
+                if (selectedIdx === q.correct) {
+                    options[selectedIdx].classList.add('correct');
+                    quizScore++;
+                    teacher.speak("Correct! " + q.explanation);
+                } else {
+                    options[selectedIdx].classList.add('incorrect');
+                    options[q.correct].classList.add('correct');
+                    teacher.speak("Incorrect. " + q.explanation);
+                }
+
+                setTimeout(() => {
+                    currentQuizQuestion++;
+                    if (currentQuizQuestion < questions.length) {
+                        showQuestion();
+                    } else {
+                        showQuizResults();
+                    }
+                }, 4000);
+            };
+
+            function showQuizResults() {
+                const percentage = (quizScore / questions.length) * 100;
+                const content = `
+                    <h2 class="math-title">Quiz Complete! 🎉</h2>
+                    <div class="value-display" style="font-size: 2.5rem;">${quizScore} / ${questions.length}</div>
+                    <div class="content-card glow-effect" style="padding: 25px;">
+                        <p style="font-size: 1.4rem; color: ${percentage >= 75 ? '#43e97b' : '#f5576c'};">
+                            ${percentage}% Correct
+                        </p>
+                        <p style="font-size: 1.05rem; color: #e2e8f0; margin-top: 15px;">
+                            ${percentage >= 75 ? 'Excellent work! You\'ve mastered algebraic identities!' : 
+                              'Good effort! Review the identities and try again!'}
+                        </p>
+                    </div>
+                `;
+                transitionToNextStep(content);
+                teacher.speak(`Quiz complete! You scored ${quizScore} out of ${questions.length}. ${percentage >= 75 ? 'Outstanding performance!' : 'Keep practicing to improve!'}`);
+            }
+
+            showQuestion();
+            teacher.speak("Let's test your understanding of algebraic identities! Take your time and think carefully about each question.");
+        }
+
+        // Reset
+        function resetApplication() {
+            stopCurrentDemo();
+            quizScore = 0;
+            currentQuizQuestion = 0;
+
+            const content = `
+                <h2 class="math-title">Welcome! ✨</h2>
+                <div class="value-display">Algebraic Identities</div>
+                <div class="math-description">
+                    Master the art of algebraic manipulation with interactive lessons, 
+                    step-by-step examples, and engaging visualizations!
+                </div>
+                <div class="formula-box">
+                    <p style="font-size: 1.2rem; color: #43e97b;">
+                        Transform • Calculate • Simplify
+                    </p>
+                    <p style="font-size: 1rem; color: #e2e8f0; margin-top: 10px;">
+                        (x + y)² | x² - y² | (x + y)³ | Special Cases
+                    </p>
+                </div>
+            `;
+
+            transitionToNextStep(content);
+
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            currentDemo = null;
+
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome to Algebraic Identities! Choose any lesson to start your journey into the fascinating world of algebraic transformations!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+
+            const initialContent = `
+                <h2 class="math-title">Welcome! ✨</h2>
+                <div class="value-display">Algebraic Identities</div>
+                <div class="math-description">
+                    Unlock the power of algebra! Learn fundamental and advanced identities 
+                    that will transform how you solve problems and calculate efficiently!
+                </div>
+                <div class="formula-box">
+                    <p style="font-size: 1.3rem; color: #43e97b; margin-bottom: 10px;">
+                        Master the Building Blocks of Algebra
+                    </p>
+                    <p style="font-size: 1rem; color: #e2e8f0;">
+                        Basic • Extended • Applications • Special Cases
+                    </p>
+                </div>
+            `;
+
+            transitionToNextStep(initialContent);
+
+            setTimeout(() => {
+                teacher.speak("Welcome to the world of Algebraic Identities! These powerful formulas are your secret weapons for solving complex problems quickly. Let's begin your journey!");
+            }, 500);
+
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'basic':
+                            showBasicIdentities();
+                            break;
+                        case 'extended':
+                            showExtendedIdentities();
+                            break;
+                        case 'computation':
+                            showComputation();
+                            break;
+                        case 'factorization':
+                            showFactorization();
+                            break;
+                        case 'expansion':
+                            showExpansion();
+                            break;
+                        case 'special':
+                            showSpecialCases();
+                            break;
+                        case 'interactive':
+                            showInteractiveDemo();
+                            break;
+                        case 'visualization':
+                            showVisualization();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

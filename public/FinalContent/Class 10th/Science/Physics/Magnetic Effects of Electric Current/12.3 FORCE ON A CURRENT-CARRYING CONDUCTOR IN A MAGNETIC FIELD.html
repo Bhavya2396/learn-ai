@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electromagnetic Force - Interactive Learning Experience</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --magnetic-gradient: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
+            --electric-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --shadow-primary: 0 20px 40px rgba(0, 0, 0, 0.3);
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-particles {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            margin: 0 auto 30px;
+        }
+
+        .particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: scatter 3s ease-in-out infinite;
+        }
+
+        .particle:nth-child(1) { background: #ff6b6b; left: 100px; top: 100px; animation-delay: 0s; }
+        .particle:nth-child(2) { background: #4ecdc4; left: 100px; top: 100px; animation-delay: 0.3s; }
+        .particle:nth-child(3) { background: #f093fb; left: 100px; top: 100px; animation-delay: 0.6s; }
+        .particle:nth-child(4) { background: #667eea; left: 100px; top: 100px; animation-delay: 0.9s; }
+        .particle:nth-child(5) { background: #764ba2; left: 100px; top: 100px; animation-delay: 1.2s; }
+
+        @keyframes scatter {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(calc(var(--x) * 50px), calc(var(--y) * 50px)) scale(1.5);
+                opacity: 0.7;
+            }
+            100% {
+                transform: translate(calc(var(--x) * 100px), calc(var(--y) * 100px)) scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        .particle:nth-child(1) { --x: 1; --y: -1; }
+        .particle:nth-child(2) { --x: -1; --y: -1; }
+        .particle:nth-child(3) { --x: -1; --y: 1; }
+        .particle:nth-child(4) { --x: 1; --y: 1; }
+        .particle:nth-child(5) { --x: 0; --y: -1.5; }
+
+        .loading-text {
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            font-weight: 600;
+            background: var(--magnetic-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 2s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 50px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            backdrop-filter: blur(20px);
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: var(--magnetic-gradient);
+            opacity: 0.3;
+            z-index: -1;
+            border-radius: 30px;
+            animation: magneticPulse 5s ease-in-out infinite;
+        }
+
+        @keyframes magneticPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.5; }
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: var(--magnetic-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: 800;
+            animation: titleFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes titleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .main-display {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .demo-container {
+            height: 500px;
+            overflow: hidden;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .demo-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .demo-stage canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #audio-toggle {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--magnetic-gradient);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+        }
+
+        #audio-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            min-width: 180px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn.active {
+            background: var(--magnetic-gradient);
+            transform: translateY(-2px);
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            margin-top: 20px;
+        }
+
+        .info-panel {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            border-radius: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #ff6b6b;
+            backdrop-filter: blur(10px);
+        }
+
+        .info-title {
+            color: #ff6b6b;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .interactive-controls {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .slider-container {
+            margin: 15px 0;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 10px;
+            color: #4ecdc4;
+            font-weight: 600;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--magnetic-gradient);
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--magnetic-gradient);
+            cursor: pointer;
+        }
+
+        .phenomenon-box {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(78, 205, 196, 0.1));
+            border-left: 4px solid #4ecdc4;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .phenomenon-box h3 {
+            color: #4ecdc4;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+
+        .display-section {
+            display: none;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .display-section.active {
+            display: block;
+        }
+
+        .chart-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            height: 400px;
+            position: relative;
+        }
+
+        .lesson-progress {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--magnetic-gradient);
+            transition: width 0.5s ease;
+            border-radius: 5px;
+        }
+
+        .data-table {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .data-table th {
+            background: var(--magnetic-gradient);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .control-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-particles">
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+            </div>
+            <div class="loading-text">Preparing Electromagnetic Lab...</div>
+        </div>
+    </div>
+
+    <!-- Audio Control -->
+    <button id="audio-toggle" title="Toggle Audio Narration">🔊</button>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>⚡ Force on Current-Carrying Conductor</h1>
+            <p>Explore electromagnetic forces and Fleming's Left-Hand Rule through interactive 3D demonstrations</p>
+        </div>
+
+        <!-- Main Display Area -->
+        <div class="main-display">
+            <!-- Demo Container -->
+            <div class="demo-container">
+                <div class="demo-stage">
+                    <canvas id="demoCanvas" width="1200" height="500"></canvas>
+                    <div id="lessonContent" style="display: none; padding: 20px; color: white;"></div>
+                    <div id="chartContainer" class="chart-container" style="display: none;">
+                        <canvas id="forceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Controls - Hidden -->
+            <div class="interactive-controls" id="interactiveControls" style="display: none;">
+                <div class="slider-container">
+                    <label>Current Strength: <span id="currentValue">5</span> A</label>
+                    <input type="range" class="slider" id="currentSlider" min="0" max="10" value="5" step="0.5">
+                </div>
+                <div class="slider-container">
+                    <label>Magnetic Field: <span id="fieldValue">1.0</span> T</label>
+                    <input type="range" class="slider" id="fieldSlider" min="0" max="2" value="1" step="0.1">
+                </div>
+                <div class="slider-container">
+                    <label>Conductor Length: <span id="lengthValue">1.0</span> m</label>
+                    <input type="range" class="slider" id="lengthSlider" min="0.5" max="2" value="1" step="0.1">
+                </div>
+                <div class="slider-container">
+                    <label>View Angle: <span id="angleValue">0</span>°</label>
+                    <input type="range" class="slider" id="angleSlider" min="0" max="360" value="0">
+                </div>
+            </div>
+
+            <!-- Information Panel -->
+            <div class="info-panel" id="infoPanel">
+                <div class="info-title">🧲 Electromagnetic Force Principles</div>
+                <p>When a current-carrying conductor is placed in a magnetic field, it experiences a force perpendicular to both the current direction and the field direction.</p>
+            </div>
+
+            <div class="phenomenon-box" id="phenomenonBox">
+                <h3>Fleming's Left-Hand Rule</h3>
+                <p>Stretch the thumb, forefinger, and middle finger of your left hand mutually perpendicular:</p>
+                <ul style="margin-left: 20px; line-height: 2;">
+                    <li><strong>First finger</strong> → Magnetic Field (B)</li>
+                    <li><strong>Second finger</strong> → Current (I)</li>
+                    <li><strong>Thumb</strong> → Force/Motion (F)</li>
+                </ul>
+            </div>
+
+            <div class="phenomenon-box">
+                <h3>Force Calculation</h3>
+                <p style="text-align: center; font-size: 1.3rem; margin: 20px 0;">
+                    <strong>F = B × I × L × sin(θ)</strong>
+                </p>
+                <p>Where B is magnetic field strength, I is current, L is conductor length, and θ is the angle between current and field.</p>
+                <p style="margin-top: 10px;">Current Force: <strong id="forceDisplay">5.0 N</strong></p>
+            </div>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Symbol</th>
+                        <th>Unit</th>
+                        <th>Effect on Force</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Current</td>
+                        <td>I</td>
+                        <td>Ampere (A)</td>
+                        <td>Directly proportional</td>
+                    </tr>
+                    <tr>
+                        <td>Magnetic Field</td>
+                        <td>B</td>
+                        <td>Tesla (T)</td>
+                        <td>Directly proportional</td>
+                    </tr>
+                    <tr>
+                        <td>Conductor Length</td>
+                        <td>L</td>
+                        <td>Meter (m)</td>
+                        <td>Directly proportional</td>
+                    </tr>
+                    <tr>
+                        <td>Angle</td>
+                        <td>θ</td>
+                        <td>Degrees (°)</td>
+                        <td>Maximum at 90°</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button class="control-btn active" data-mode="lesson">📚 Complete Lesson</button>
+            <button class="control-btn" data-mode="conductor">🔌 Conductor Force</button>
+            <button class="control-btn" data-mode="fleming">✋ Fleming's Rule</button>
+            <button class="control-btn" data-mode="motor">⚙️ Motor Principle</button>
+            <button class="control-btn" data-mode="electron">⚛️ Electron Path</button>
+            <button class="control-btn" data-mode="data">📊 Data Analysis</button>
+        </div>
+        
+        <!-- Reset Button -->
+        <div style="text-align: center;">
+            <button class="control-btn reset-btn" id="resetBtn">🔄 Reset Everything</button>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let currentMode = 'lesson';
+        let animationFrame = null;
+        let time = 0;
+        let lessonSequence = null;
+        let lessonStarted = false;
+        let chart = null;
+        let audioEnabled = true;
+
+        // 3D Rotation Variables
+        let rotX = 0.3;
+        let rotY = 0;
+        let autoRotate = true;
+
+        // Physics Parameters
+        let current = 5;
+        let fieldStrength = 1.0;
+        let conductorLength = 1.0;
+        let viewAngle = 0;
+
+        // Canvas and Context
+        const canvas = document.getElementById('demoCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Audio Narrator Class
+        class AudioNarrator {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.enabled = true;
+                this.speaking = false;
+            }
+
+            speak(text, priority = false) {
+                if (!this.enabled) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    if (priority) {
+                        this.stop();
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.9;
+                    
+                    utterance.onend = () => {
+                        this.speaking = false;
+                        resolve();
+                    };
+                    
+                    this.synth.speak(utterance);
+                    this.speaking = true;
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.speaking = false;
+            }
+
+            toggle() {
+                this.enabled = !this.enabled;
+                if (!this.enabled) this.stop();
+                return this.enabled;
+            }
+        }
+
+        const narrator = new AudioNarrator();
+
+        // Lesson Sequence Class
+        class LessonSequence {
+            constructor() {
+                this.sections = [
+                    { id: 'conductor', name: 'Conductor in Magnetic Field', duration: 8000 },
+                    { id: 'fleming', name: "Fleming's Left-Hand Rule", duration: 8000 },
+                    { id: 'motor', name: 'Motor Principle', duration: 8000 },
+                    { id: 'electron', name: 'Electron Deflection', duration: 8000 },
+                    { id: 'data', name: 'Force Analysis', duration: 8000 }
+                ];
+                this.currentSection = 0;
+                this.running = false;
+                this.timeout = null;
+            }
+
+            async start() {
+                this.stop();
+                this.running = true;
+                this.currentSection = 0;
+                
+                document.getElementById('demoCanvas').style.display = 'none';
+                document.getElementById('lessonContent').style.display = 'block';
+                document.getElementById('interactiveControls').style.display = 'none';
+                
+                this.showProgressBar();
+                
+                await narrator.speak("Welcome to the comprehensive lesson on electromagnetic forces on current-carrying conductors!");
+                
+                await this.runNextSection();
+            }
+
+            showProgressBar() {
+                const html = `
+                    <div class="lesson-progress">
+                        <div style="color: #4ecdc4;">
+                            Current Section: <span id="currentSectionName">Starting...</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                        </div>
+                        <p style="color: #e2e8f0; margin-top: 10px;">
+                            Section <span id="currentNum">1</span> of ${this.sections.length}
+                        </p>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+            }
+
+            updateProgress() {
+                const progress = ((this.currentSection + 1) / this.sections.length) * 100;
+                const progressFill = document.getElementById('progressFill');
+                const currentSectionName = document.getElementById('currentSectionName');
+                const currentNum = document.getElementById('currentNum');
+                
+                if (progressFill) progressFill.style.width = `${progress}%`;
+                if (currentSectionName && this.sections[this.currentSection]) {
+                    currentSectionName.textContent = this.sections[this.currentSection].name;
+                }
+                if (currentNum) currentNum.textContent = this.currentSection + 1;
+            }
+
+            async runNextSection() {
+                if (!this.running || this.currentSection >= this.sections.length) {
+                    if (this.running) {
+                        await narrator.speak("Lesson complete! You've mastered the concepts of electromagnetic forces.");
+                        this.showCompletionMessage();
+                    }
+                    return;
+                }
+
+                const section = this.sections[this.currentSection];
+                this.updateProgress();
+                
+                // Show demo canvas for each section
+                document.getElementById('demoCanvas').style.display = 'block';
+                document.getElementById('lessonContent').style.display = 'block';
+                document.getElementById('chartContainer').style.display = 'none';
+                
+                // Set mode for animation
+                currentMode = section.id;
+                
+                // Start narration for each section
+                switch(section.id) {
+                    case 'conductor':
+                        await narrator.speak("When a current-carrying conductor is placed in a magnetic field, it experiences a force. This force is perpendicular to both the current direction and the magnetic field direction. The force magnitude depends on the current strength, magnetic field strength, and the length of the conductor. Watch how the conductor moves when current flows through it in the presence of a magnetic field. Notice the yellow electrons flowing through the conductor, creating the current. The blue magnetic field lines show the direction of the magnetic field. When current flows, the conductor experiences a force that pushes it sideways, demonstrating the fundamental principle behind electric motors and generators.");
+                        break;
+                        
+                    case 'fleming':
+                        await narrator.speak("Fleming's Left-Hand Rule helps us determine the direction of force on a current-carrying conductor. Stretch your left hand with the thumb, first finger, and second finger mutually perpendicular. The first finger points in the direction of the magnetic field, the second finger in the direction of current, and the thumb shows the direction of force or motion. This rule is fundamental to understanding electric motors and generators. Notice how the three vectors are arranged in 3D space - the red thumb pointing upward represents force, the cyan first finger pointing right shows the magnetic field direction, and the yellow second finger pointing forward indicates current flow. This visual representation helps engineers design motors and predict the direction of electromagnetic forces in complex systems.");
+                        break;
+                        
+                    case 'motor':
+                        await narrator.speak("The motor principle demonstrates how electromagnetic forces create rotational motion. When current flows through a coil placed between magnetic poles, the coil experiences a force that causes it to rotate. This is the basic principle behind electric motors. The rotation speed depends on the current strength and magnetic field intensity. Motors convert electrical energy into mechanical energy using this principle. Observe the red North pole and cyan South pole creating a magnetic field between them. The brown coil rotates continuously as current flows through it, with yellow dots showing the current direction. The white arrow indicates the rotation direction. This simple motor demonstrates how billions of electric motors power everything from household appliances to electric vehicles, all based on this fundamental electromagnetic principle.");
+                        break;
+                        
+                    case 'electron':
+                        await narrator.speak("When an electron enters a magnetic field at right angles, it experiences a force perpendicular to both its velocity and the field direction. This force causes the electron to follow a circular path. The radius of this circular path depends on the electron's speed and the magnetic field strength. This principle is used in devices like cathode ray tubes and particle accelerators. Watch the yellow electron as it moves in a perfect circle, with the red velocity vector always tangent to its path and the cyan force vector always pointing toward the center. The blue X symbols represent the magnetic field pointing into the page. This circular motion is crucial for understanding how charged particles behave in magnetic fields, from the electrons in old television tubes to the protons accelerated in the Large Hadron Collider.");
+                        break;
+                        
+                    case 'data':
+                        document.getElementById('demoCanvas').style.display = 'none';
+                        document.getElementById('chartContainer').style.display = 'block';
+                        setupChart();
+                        await narrator.speak("The force on a conductor follows the formula F equals B times I times L times sine theta. This graph shows how force varies with different parameters. Notice that the force is maximum when the conductor is perpendicular to the magnetic field, at 90 degrees. The force increases linearly with current, field strength, and conductor length. This relationship is fundamental to designing electric motors and other electromagnetic devices. The red curve shows how force varies with angle, reaching its peak at 90 degrees when the conductor is perpendicular to the magnetic field. The cyan curve demonstrates the linear relationship between current and force. Engineers use these mathematical relationships to optimize motor designs, calculate power requirements, and predict performance in real-world applications from electric cars to industrial machinery.");
+                        break;
+                }
+                
+                await this.wait(section.duration);
+                
+                if (this.running) {
+                    this.currentSection++;
+                    await this.runNextSection();
+                }
+            }
+
+            showCompletionMessage() {
+                const html = `
+                    <div style="text-align: center; padding: 40px;">
+                        <h2 style="color: #4ecdc4; margin-bottom: 20px;">
+                            🎉 Lesson Complete!
+                        </h2>
+                        <p style="font-size: 1.2rem;">You've mastered electromagnetic forces:</p>
+                        <ul style="margin: 20px auto; max-width: 400px; text-align: left; list-style: none;">
+                            ${this.sections.map(s => `
+                                <li style="margin: 10px 0; color: #4ecdc4;">
+                                    ✔ ${s.name}
+                                </li>
+                            `).join('')}
+                        </ul>
+                        <p style="margin-top: 30px;">
+                            Explore individual sections or reset to start over.
+                        </p>
+                    </div>
+                `;
+                document.getElementById('lessonContent').innerHTML = html;
+                document.getElementById('demoCanvas').style.display = 'none';
+                document.getElementById('chartContainer').style.display = 'none';
+            }
+
+            wait(ms) {
+                return new Promise(resolve => {
+                    this.timeout = setTimeout(resolve, ms);
+                });
+            }
+
+            stop() {
+                this.running = false;
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                    this.timeout = null;
+                }
+                narrator.stop();
+            }
+        }
+
+        // Chart Setup
+        function setupChart() {
+            const ctx1 = document.getElementById('forceChart');
+            if (ctx1 && !chart) {
+                chart = new Chart(ctx1.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['0°', '30°', '60°', '90°', '120°', '150°', '180°'],
+                        datasets: [{
+                            label: 'Force vs Angle (F = BIL sin θ)',
+                            data: [0, 50, 86.6, 100, 86.6, 50, 0],
+                            borderColor: '#ff6b6b',
+                            backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4
+                        }, {
+                            label: 'Force vs Current (at 90°)',
+                            data: [0, 20, 40, 60, 80, 100, 100],
+                            borderColor: '#4ecdc4',
+                            backgroundColor: 'rgba(78, 205, 196, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Electromagnetic Force Analysis',
+                                color: '#ffffff',
+                                font: { size: 16 }
+                            },
+                            legend: {
+                                labels: { color: '#ffffff' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: { 
+                                    display: true, 
+                                    text: 'Force (% of maximum)', 
+                                    color: '#ffffff' 
+                                },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            x: {
+                                title: { 
+                                    display: true, 
+                                    text: 'Angle / Parameter', 
+                                    color: '#ffffff' 
+                                },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // 3D Projection Function
+        function project3D(x, y, z) {
+            const angle = viewAngle * Math.PI / 180;
+            
+            // Apply rotation around Y axis
+            const x1 = x * Math.cos(angle) + z * Math.sin(angle);
+            const z1 = -x * Math.sin(angle) + z * Math.cos(angle);
+            
+            // Apply rotation around X axis
+            const y2 = y * Math.cos(rotX) - z1 * Math.sin(rotX);
+            const z2 = y * Math.sin(rotX) + z1 * Math.cos(rotX);
+            
+            // Perspective projection
+            const scale = 600 / (600 + z2);
+            const px = x1 * scale + 600;
+            const py = y2 * scale + 250;
+            
+            return { x: px, y: py, scale: scale, depth: z2 };
+        }
+
+        // Draw 3D Arrow
+        function draw3DArrow(startX, startY, startZ, endX, endY, endZ, color, label) {
+            const start = project3D(startX, startY, startZ);
+            const end = project3D(endX, endY, endZ);
+            
+            // Arrow shaft
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3 * start.scale;
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.stroke();
+            
+            // Arrow head
+            const angle = Math.atan2(end.y - start.y, end.x - start.x);
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(end.x, end.y);
+            ctx.lineTo(end.x - 15 * Math.cos(angle - 0.5), end.y - 15 * Math.sin(angle - 0.5));
+            ctx.lineTo(end.x - 15 * Math.cos(angle + 0.5), end.y - 15 * Math.sin(angle + 0.5));
+            ctx.closePath();
+            ctx.fill();
+            
+            // Label
+            if (label) {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `${14 * start.scale}px Arial`;
+                ctx.fillText(label, end.x + 10, end.y - 10);
+            }
+        }
+
+        // Animation Functions
+        function animateConductor() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Background gradient
+            const bgGradient = ctx.createRadialGradient(600, 250, 0, 600, 250, 400);
+            bgGradient.addColorStop(0, 'rgba(20, 30, 60, 0.3)');
+            bgGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Draw magnetic field lines (horizontal)
+            for (let z = -150; z <= 150; z += 30) {
+                for (let y = -100; y <= 100; y += 30) {
+                    const lineStart = project3D(-200, y, z);
+                    const lineEnd = project3D(200, y, z);
+                    
+                    ctx.strokeStyle = `rgba(78, 205, 196, ${0.3 * fieldStrength})`;
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(lineStart.x, lineStart.y);
+                    ctx.lineTo(lineEnd.x, lineEnd.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    // Field direction arrows
+                    const arrowPos = project3D(0, y, z);
+                    ctx.fillStyle = `rgba(78, 205, 196, ${0.5 * fieldStrength})`;
+                    ctx.beginPath();
+                    ctx.moveTo(arrowPos.x + 5, arrowPos.y);
+                    ctx.lineTo(arrowPos.x - 5, arrowPos.y - 3);
+                    ctx.lineTo(arrowPos.x - 5, arrowPos.y + 3);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+            
+            // Draw conductor (vertical rod)
+            const rodLength = 150 * conductorLength;
+            const rodTop = project3D(0, -rodLength, 0);
+            const rodBottom = project3D(0, rodLength, 0);
+            
+            // Rod shadow/glow effect
+            if (current > 0) {
+                const glowGradient = ctx.createRadialGradient(
+                    rodTop.x, rodTop.y, 0,
+                    rodTop.x, rodTop.y, 50 * rodTop.scale
+                );
+                glowGradient.addColorStop(0, `rgba(255, 107, 107, ${0.3 * current / 10})`);
+                glowGradient.addColorStop(1, 'rgba(255, 107, 107, 0)');
+                ctx.fillStyle = glowGradient;
+                ctx.fillRect(rodTop.x - 50, rodTop.y, 100, rodBottom.y - rodTop.y);
+            }
+            
+            // Main rod
+            ctx.strokeStyle = '#b8733f';
+            ctx.lineWidth = 15 * rodTop.scale;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(rodTop.x, rodTop.y);
+            ctx.lineTo(rodBottom.x, rodBottom.y);
+            ctx.stroke();
+            
+            // Current flow animation
+            if (current > 0) {
+                for (let i = 0; i < 5; i++) {
+                    const y = -rodLength + ((time * 2 + i * 60) % (rodLength * 2));
+                    const electron = project3D(0, y, 0);
+                    
+                    ctx.fillStyle = 'rgba(255, 255, 100, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(electron.x, electron.y, 5 * electron.scale, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // Draw force arrow (perpendicular to both current and field)
+            if (current > 0 && fieldStrength > 0) {
+                const force = current * fieldStrength * conductorLength / 5;
+                const displacement = Math.sin(time * 0.05) * force * 30;
+                
+                // Force arrow
+                draw3DArrow(0, 0, 0, 0, 0, displacement, '#ff6b6b', 'Force');
+                
+                // Move the rod based on force
+                const displacedTop = project3D(0, -rodLength, displacement);
+                const displacedBottom = project3D(0, rodLength, displacement);
+                
+                ctx.strokeStyle = 'rgba(184, 115, 63, 0.5)';
+                ctx.lineWidth = 15 * displacedTop.scale;
+                ctx.setLineDash([10, 5]);
+                ctx.beginPath();
+                ctx.moveTo(displacedTop.x, displacedTop.y);
+                ctx.lineTo(displacedBottom.x, displacedBottom.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            // Draw coordinate arrows
+            draw3DArrow(0, 0, 0, 0, -100, 0, '#ffff00', 'Current (I)');
+            draw3DArrow(0, 0, 0, 100, 0, 0, '#4ecdc4', 'Field (B)');
+            
+            // Info display
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px Arial';
+            ctx.fillText(`Current: ${current} A`, 50, 50);
+            ctx.fillText(`Field: ${fieldStrength} T`, 50, 75);
+            ctx.fillText(`Length: ${conductorLength} m`, 50, 100);
+            ctx.fillText(`Force: ${(current * fieldStrength * conductorLength).toFixed(1)} N`, 50, 125);
+            
+            time++;
+        }
+
+        function animateFleming() {
+    // Clear canvas with gradient background
+    const gradient = ctx.createLinearGradient(0, 0, 1200, 500);
+    gradient.addColorStop(0, '#0a0e27');
+    gradient.addColorStop(1, '#1a1e3a');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 1200, 500);
+    
+    // Draw grid pattern
+    ctx.strokeStyle = 'rgba(100, 150, 255, 0.05)';
+    ctx.lineWidth = 1;
+    for(let i = 0; i < 1200; i += 30) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, 500);
+        ctx.stroke();
+    }
+    for(let i = 0; i < 500; i += 30) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(1200, i);
+        ctx.stroke();
+    }
+    
+    // Main hand position
+    const centerX = 350;
+    const centerY = 250;
+    const scale = 120;
+    
+    // 3D viewing angle
+    const angle = -25 * Math.PI / 180;
+    
+    // 3D projection with isometric style
+    function project3D(x, y, z) {
+        const rotX = x * Math.cos(angle) - z * Math.sin(angle);
+        const rotZ = x * Math.sin(angle) + z * Math.cos(angle);
+        const rotY = y - rotZ * 0.3; // Add vertical offset for depth
+        
+        return { 
+            x: centerX + rotX * 1.2, 
+            y: centerY + rotY,
+            depth: rotZ
+        };
+    }
+    
+    // Draw glowing palm base
+    const palmProj = project3D(0, 0, 0);
+    
+    // Outer glow
+    const glowGradient = ctx.createRadialGradient(palmProj.x, palmProj.y, 0, palmProj.x, palmProj.y, 80);
+    glowGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+    glowGradient.addColorStop(0.5, 'rgba(100, 150, 255, 0.2)');
+    glowGradient.addColorStop(1, 'rgba(100, 150, 255, 0)');
+    ctx.fillStyle = glowGradient;
+    ctx.beginPath();
+    ctx.arc(palmProj.x, palmProj.y, 80, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Palm core
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.beginPath();
+    ctx.arc(palmProj.x, palmProj.y, 25, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw vectors with enhanced 3D effect
+    const vectors = [
+        {
+            end: project3D(0, -scale, 0),
+            color: '#ff4757',
+            glow: '#ff6b7a',
+            label: 'FORCE',
+            sublabel: 'Thumb • F',
+            icon: '⬆',
+            pulse: Math.sin(time * 0.05) * 0.1 + 1
+        },
+        {
+            end: project3D(scale * 1.2, 0, 0),
+            color: '#00d2d3',
+            glow: '#48dbfb',
+            label: 'MAGNETIC FIELD',
+            sublabel: 'First Finger • B',
+            icon: '➡',
+            pulse: Math.sin(time * 0.05 + 2) * 0.1 + 1
+        },
+        {
+            end: project3D(0, 0, scale * 1.2),
+            color: '#ffd32c',
+            glow: '#fff200',
+            label: 'CURRENT',
+            sublabel: 'Second Finger • I',
+            icon: '↗',
+            pulse: Math.sin(time * 0.05 + 4) * 0.1 + 1
+        }
+    ];
+    
+    // Sort vectors by depth for proper rendering
+    vectors.sort((a, b) => a.end.depth - b.end.depth);
+    
+    vectors.forEach((vector, index) => {
+        // Draw vector shadow
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.lineWidth = 35;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(palmProj.x + 3, palmProj.y + 3);
+        ctx.lineTo(vector.end.x + 3, vector.end.y + 3);
+        ctx.stroke();
+        
+        // Draw glowing vector line
+        ctx.shadowBlur = 20 * vector.pulse;
+        ctx.shadowColor = vector.glow;
+        ctx.strokeStyle = vector.color;
+        ctx.lineWidth = 30;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(palmProj.x, palmProj.y);
+        ctx.lineTo(vector.end.x, vector.end.y);
+        ctx.stroke();
+        
+        // Draw inner bright line
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = vector.glow;
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(palmProj.x, palmProj.y);
+        ctx.lineTo(vector.end.x, vector.end.y);
+        ctx.stroke();
+        
+        // Draw arrowhead
+        const angle = Math.atan2(vector.end.y - palmProj.y, vector.end.x - palmProj.x);
+        ctx.fillStyle = vector.color;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = vector.glow;
+        
+        ctx.save();
+        ctx.translate(vector.end.x, vector.end.y);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-25, -15);
+        ctx.lineTo(-20, 0);
+        ctx.lineTo(-25, 15);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+        
+        ctx.shadowBlur = 0;
+    });
+    
+    // Right side info panel
+    const panelX = 750;
+    
+    // Title with glow effect
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = '#4a9eff';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 36px Arial';
+    ctx.fillText("Fleming's Left-Hand Rule", panelX, 60);
+    ctx.shadowBlur = 0;
+    
+    ctx.font = '18px Arial';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.fillText('Electromagnetic Force Direction', panelX, 90);
+    
+    // Draw info cards for each vector
+    const cards = [
+        { y: 140, ...vectors[0] },
+        { y: 240, ...vectors[1] },
+        { y: 340, ...vectors[2] }
+    ];
+    
+    cards.forEach(card => {
+        // Card background
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.fillRect(panelX - 10, card.y - 30, 380, 80);
+        
+        // Card border left
+        ctx.fillStyle = card.color;
+        ctx.fillRect(panelX - 10, card.y - 30, 5, 80);
+        
+        // Icon circle
+        ctx.fillStyle = card.color;
+        ctx.beginPath();
+        ctx.arc(panelX + 30, card.y + 10, 25, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 24px Arial';
+        ctx.fillText(card.icon, panelX + 20, card.y + 18);
+        
+        // Labels
+        ctx.fillStyle = card.color;
+        ctx.font = 'bold 22px Arial';
+        ctx.fillText(card.label, panelX + 70, card.y + 5);
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.font = '16px Arial';
+        ctx.fillText(card.sublabel, panelX + 70, card.y + 30);
+    });
+    
+    // Bottom equation
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.font = 'italic 20px Georgia';
+    ctx.fillText('F = I × B × L × sin(θ)', panelX + 50, 460);
+    
+    // Decorative elements
+    ctx.strokeStyle = 'rgba(100, 150, 255, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 5]);
+    ctx.beginPath();
+    ctx.moveTo(panelX - 20, 110);
+    ctx.lineTo(panelX + 380, 110);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    time++;
+}
+
+        function animateMotor() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Draw simplified motor with rotating coil
+            const angle = time * 0.02 * current / 5;
+            
+            // Magnetic poles
+            ctx.fillStyle = '#ff6b6b';
+            ctx.fillRect(300, 150, 100, 200);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 48px Arial';
+            ctx.fillText('N', 330, 260);
+            
+            ctx.fillStyle = '#4ecdc4';
+            ctx.fillRect(800, 150, 100, 200);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('S', 830, 260);
+            
+            // Draw coil
+            const coilX = 600;
+            const coilY = 250;
+            const coilRadius = 80;
+            
+            ctx.save();
+            ctx.translate(coilX, coilY);
+            ctx.rotate(angle);
+            
+            // Coil wire
+            ctx.strokeStyle = '#b8733f';
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.rect(-coilRadius, -coilRadius/2, coilRadius*2, coilRadius);
+            ctx.stroke();
+            
+            // Current indicators
+            if (current > 0) {
+                ctx.fillStyle = '#ffff00';
+                ctx.beginPath();
+                ctx.arc(-coilRadius, 0, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(coilRadius, 0, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            ctx.restore();
+            
+            // Rotation indicator
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(coilX, coilY, coilRadius + 30, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Rotation arrow
+            const arrowAngle = angle + Math.PI / 2;
+            const arrowX = coilX + (coilRadius + 30) * Math.cos(arrowAngle);
+            const arrowY = coilY + (coilRadius + 30) * Math.sin(arrowAngle);
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(arrowX, arrowY);
+            ctx.lineTo(arrowX - 10 * Math.cos(arrowAngle - 0.5), arrowY - 10 * Math.sin(arrowAngle - 0.5));
+            ctx.lineTo(arrowX - 10 * Math.cos(arrowAngle + 0.5), arrowY - 10 * Math.sin(arrowAngle + 0.5));
+            ctx.closePath();
+            ctx.fill();
+            
+            // Labels
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText('Motor Principle', 500, 50);
+            ctx.font = '14px Arial';
+            ctx.fillText(`Speed ∝ Current × Field`, 500, 80);
+            
+            time++;
+        }
+
+        function animateElectron() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, 1200, 500);
+            
+            // Draw magnetic field (into page)
+            for (let x = 100; x < 1100; x += 50) {
+                for (let y = 100; y < 400; y += 50) {
+                    ctx.strokeStyle = 'rgba(78, 205, 196, 0.5)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x - 10, y - 10);
+                    ctx.lineTo(x + 10, y + 10);
+                    ctx.moveTo(x + 10, y - 10);
+                    ctx.lineTo(x - 10, y + 10);
+                    ctx.stroke();
+                    
+                    // Circle around X
+                    ctx.beginPath();
+                    ctx.arc(x, y, 15, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+            
+            // Electron path (circular due to magnetic force)
+            const radius = 100;
+            const centerX = 600;
+            const centerY = 250;
+            const electronAngle = time * 0.05 * current / 5;
+            
+            // Draw circular path
+            ctx.strokeStyle = 'rgba(255, 255, 100, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 5]);
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw electron
+            const elecX = centerX + radius * Math.cos(electronAngle);
+            const elecY = centerY + radius * Math.sin(electronAngle);
+            
+            // Electron glow
+            const glowGradient = ctx.createRadialGradient(elecX, elecY, 0, elecX, elecY, 20);
+            glowGradient.addColorStop(0, 'rgba(255, 255, 100, 0.8)');
+            glowGradient.addColorStop(1, 'rgba(255, 255, 100, 0)');
+            ctx.fillStyle = glowGradient;
+            ctx.beginPath();
+            ctx.arc(elecX, elecY, 20, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Electron body
+            ctx.fillStyle = '#ffff00';
+            ctx.beginPath();
+            ctx.arc(elecX, elecY, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Velocity vector
+            const velX = -radius * Math.sin(electronAngle) * 0.5;
+            const velY = radius * Math.cos(electronAngle) * 0.5;
+            
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(elecX, elecY);
+            ctx.lineTo(elecX + velX, elecY + velY);
+            ctx.stroke();
+            
+            // Force vector (toward center)
+            const forceX = -radius * Math.cos(electronAngle) * 0.3;
+            const forceY = -radius * Math.sin(electronAngle) * 0.3;
+            
+            ctx.strokeStyle = '#4ecdc4';
+            ctx.beginPath();
+            ctx.moveTo(elecX, elecY);
+            ctx.lineTo(elecX + forceX, elecY + forceY);
+            ctx.stroke();
+            
+            // Labels
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText('Electron in Magnetic Field', 450, 50);
+            ctx.font = '14px Arial';
+            ctx.fillText('Field: Into page (⊗)', 50, 100);
+            ctx.fillText('e⁻', elecX + 15, elecY);
+            
+            ctx.fillStyle = '#ff6b6b';
+            ctx.fillText('Velocity', elecX + velX + 10, elecY + velY);
+            
+            ctx.fillStyle = '#4ecdc4';
+            ctx.fillText('Force', elecX + forceX - 40, elecY + forceY);
+            
+            time++;
+        }
+
+        function animateData() {
+            // Show chart instead of canvas animation
+            document.getElementById('demoCanvas').style.display = 'none';
+            document.getElementById('chartContainer').style.display = 'block';
+            setupChart();
+        }
+
+        // Main animation loop
+        function animate() {
+            if (currentMode === 'data') {
+                animateData();
+            } else {
+                document.getElementById('chartContainer').style.display = 'none';
+                document.getElementById('demoCanvas').style.display = 'block';
+                
+                switch (currentMode) {
+                    case 'conductor':
+                        animateConductor();
+                        break;
+                    case 'fleming':
+                        animateFleming();
+                        break;
+                    case 'motor':
+                        animateMotor();
+                        break;
+                    case 'electron':
+                        animateElectron();
+                        break;
+                    case 'lesson':
+                        // Handled by LessonSequence
+                        if (lessonSequence && lessonSequence.running) {
+                            const section = lessonSequence.sections[lessonSequence.currentSection];
+                            if (section) {
+                                switch(section.id) {
+                                    case 'conductor':
+                                        animateConductor();
+                                        break;
+                                    case 'fleming':
+                                        animateFleming();
+                                        break;
+                                    case 'motor':
+                                        animateMotor();
+                                        break;
+                                    case 'electron':
+                                        animateElectron();
+                                        break;
+                                }
+                            }
+                        }
+                        break;
+                }
+            }
+            
+            // Update force display
+            const force = current * fieldStrength * conductorLength;
+            document.getElementById('forceDisplay').textContent = force.toFixed(1) + ' N';
+            
+            animationFrame = requestAnimationFrame(animate);
+        }
+
+        // Reset Function
+        function resetEverything() {
+            lessonStarted = false;
+            
+            if (lessonSequence) {
+                lessonSequence.stop();
+            }
+            narrator.stop();
+            
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+            
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
+            
+            // Reset parameters
+            current = 5;
+            fieldStrength = 1.0;
+            conductorLength = 1.0;
+            viewAngle = 0;
+            time = 0;
+            
+            // Reset UI
+            document.getElementById('currentSlider').value = 5;
+            document.getElementById('currentValue').textContent = '5';
+            document.getElementById('fieldSlider').value = 1;
+            document.getElementById('fieldValue').textContent = '1.0';
+            document.getElementById('lengthSlider').value = 1;
+            document.getElementById('lengthValue').textContent = '1.0';
+            document.getElementById('angleSlider').value = 0;
+            document.getElementById('angleValue').textContent = '0';
+            
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('[data-mode="lesson"]').classList.add('active');
+            
+            document.getElementById('demoCanvas').style.display = 'none';
+            document.getElementById('lessonContent').style.display = 'block';
+            document.getElementById('chartContainer').style.display = 'none';
+            document.getElementById('interactiveControls').style.display = 'none';
+            
+            currentMode = 'lesson';
+            
+            // Restart animation
+            animate();
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }, 1500);
+            
+            lessonSequence = new LessonSequence();
+            
+            // Control buttons
+            document.querySelectorAll('.control-btn:not(.reset-btn)').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const mode = this.getAttribute('data-mode');
+                    
+                    // Stop any running sequences
+                    if (lessonSequence) lessonSequence.stop();
+                    narrator.stop();
+                    
+                    currentMode = mode;
+                    document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show/hide elements based on mode
+                    if (mode === 'lesson') {
+                        // Reset everything first when clicking Complete Lesson
+                        resetEverything();
+                        // Then start the lesson
+                        lessonStarted = true;
+                        lessonSequence.start();
+                    } else {
+                        document.getElementById('lessonContent').style.display = 'none';
+                        document.getElementById('interactiveControls').style.display = 'none';
+                        
+                        // Start narration for individual modes
+                        switch(mode) {
+                            case 'conductor':
+                                narrator.speak("Observe the force on a current-carrying conductor in a magnetic field. The conductor experiences a force perpendicular to both the current and field directions. Watch how current strength, field strength, and conductor length affect the force. Notice the yellow electrons flowing through the brown conductor, creating the current. The blue dashed lines represent magnetic field lines, and when current flows, the conductor moves sideways due to the electromagnetic force. This is the fundamental principle behind electric motors and generators.", true);
+                                break;
+                            case 'fleming':
+                                narrator.speak("Fleming's Left-Hand Rule: Stretch your left hand with thumb, first finger, and second finger mutually perpendicular. First finger shows field direction, second finger shows current, and thumb shows force direction. The red thumb pointing upward represents force, the cyan first finger pointing right shows the magnetic field direction, and the yellow second finger pointing forward indicates current flow. This 3D visualization helps engineers predict electromagnetic force directions in motor and generator designs.", true);
+                                break;
+                            case 'motor':
+                                narrator.speak("The motor principle in action. Current through the coil creates a force that causes rotation. This is how electric motors convert electrical energy to mechanical energy. Observe the red North pole and cyan South pole creating a magnetic field. The brown coil rotates continuously as current flows through it, with yellow dots showing current direction. The white arrow indicates rotation direction. This demonstrates how billions of electric motors power everything from household appliances to electric vehicles.", true);
+                                break;
+                            case 'electron':
+                                narrator.speak("An electron entering a magnetic field experiences a force perpendicular to its velocity. This force causes circular motion, with the radius depending on the electron's speed and field strength. Watch the yellow electron as it moves in a perfect circle, with the red velocity vector always tangent to its path and the cyan force vector always pointing toward the center. The blue X symbols represent the magnetic field pointing into the page. This circular motion is crucial for understanding charged particle behavior in magnetic fields, from old television tubes to particle accelerators.", true);
+                                break;
+                            case 'data':
+                                narrator.speak("Analysis of electromagnetic force relationships. The force follows F equals B I L sine theta, reaching maximum when the conductor is perpendicular to the field. The red curve shows how force varies with angle, reaching its peak at 90 degrees when the conductor is perpendicular to the magnetic field. The cyan curve demonstrates the linear relationship between current and force. Engineers use these mathematical relationships to optimize motor designs and predict performance in real-world applications.", true);
+                                break;
+                        }
+                    }
+                    
+                    time = 0;
+                });
+            });
+            
+            // Reset button
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                narrator.speak("Resetting lesson.", true);
+                resetEverything();
+            });
+            
+            // Audio toggle
+            document.getElementById('audio-toggle').addEventListener('click', function() {
+                audioEnabled = narrator.toggle();
+                this.textContent = audioEnabled ? '🔊' : '🔇';
+            });
+            
+            // Sliders
+            document.getElementById('currentSlider').addEventListener('input', function(e) {
+                current = parseFloat(e.target.value);
+                document.getElementById('currentValue').textContent = current;
+            });
+            
+            document.getElementById('fieldSlider').addEventListener('input', function(e) {
+                fieldStrength = parseFloat(e.target.value);
+                document.getElementById('fieldValue').textContent = fieldStrength.toFixed(1);
+            });
+            
+            document.getElementById('lengthSlider').addEventListener('input', function(e) {
+                conductorLength = parseFloat(e.target.value);
+                document.getElementById('lengthValue').textContent = conductorLength.toFixed(1);
+            });
+            
+            document.getElementById('angleSlider').addEventListener('input', function(e) {
+                viewAngle = parseInt(e.target.value);
+                document.getElementById('angleValue').textContent = viewAngle;
+            });
+            
+            // Start animation
+            animate();
+        });
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            narrator.stop();
+            if (lessonSequence) lessonSequence.stop();
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,2873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surface Area of Cones - Master 3D Geometry</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header - Compact */
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Layout */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Demo Stage - Takes most space */
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+        }
+
+        /* Stage Content */
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Controls - Below Demo */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--accent-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* 3D Visualization */
+        .cone-3d-container {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            margin: 20px auto;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Formula Display */
+        .formula-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            font-size: 1.2rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .formula {
+            font-size: 1.4rem;
+            color: var(--text-accent);
+            margin: 10px 0;
+            font-weight: 600;
+        }
+
+        /* Value Display */
+        .value-display {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--text-accent);
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        /* Interactive Inputs */
+        .input-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .input-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .input-container label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--text-secondary);
+        }
+
+        .slider {
+            width: 150px;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            cursor: pointer;
+        }
+
+        .slider-value {
+            margin-top: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--text-accent);
+        }
+
+        /* Activity Steps */
+        .activity-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .step {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            border-left: 4px solid var(--accent-gradient);
+            transition: var(--transition);
+        }
+
+        .step.active {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(10px);
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: var(--accent-gradient);
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        /* Example Problem */
+        .example-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            max-width: 700px;
+            width: 100%;
+        }
+
+        .example-title {
+            font-size: 1.3rem;
+            color: var(--text-accent);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .example-content {
+            line-height: 1.8;
+        }
+
+        .solution-steps {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+        }
+
+        /* Quiz Section */
+        .quiz-container {
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .quiz-question {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .quiz-option {
+            padding: 15px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .quiz-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        .quiz-option.selected {
+            background: var(--accent-gradient);
+            border-color: transparent;
+        }
+
+        .quiz-feedback {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .quiz-feedback.correct {
+            background: rgba(67, 233, 123, 0.2);
+            color: #43e97b;
+        }
+
+        .quiz-feedback.incorrect {
+            background: rgba(245, 87, 108, 0.2);
+            color: #f5576c;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .demo-stage {
+                padding: 20px;
+            }
+
+            .cone-3d-container {
+                height: 300px;
+            }
+
+            .formula-box {
+                padding: 15px;
+                font-size: 1rem;
+            }
+
+            .formula {
+                font-size: 1.2rem;
+            }
+
+            .chart-container {
+                padding: 15px;
+            }
+
+            .chart-title {
+                font-size: 1.2rem;
+            }
+
+            canvas {
+                max-height: 300px !important;
+            }
+
+            .theory-section {
+                padding: 20px 15px;
+            }
+
+            .theory-section-title {
+                font-size: 1.8rem;
+            }
+
+            .theory-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .theory-card {
+                padding: 20px;
+            }
+
+            .theory-card h3 {
+                font-size: 1.2rem;
+            }
+
+            .theory-card p {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Real-world Example Images */
+        .real-world-image {
+            width: 200px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin: 15px auto;
+            display: block;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: var(--transition);
+        }
+
+        .real-world-image:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .image-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .image-caption {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        /* Animation Classes */
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .animate-slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .animate-pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* Chart Containers */
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .chart-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto !important;
+        }
+
+        /* Theory Cards Section */
+        .theory-section {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--glass-border);
+            padding: 40px 20px;
+            margin-top: 20px;
+        }
+
+        .theory-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .theory-section-title {
+            text-align: center;
+            font-size: 2.2rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+
+        .theory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .theory-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(15px);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theory-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent-gradient);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .theory-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 15px 35px rgba(79, 172, 254, 0.2);
+        }
+
+        .theory-card:hover::before {
+            opacity: 1;
+        }
+
+        .theory-card h3 {
+            font-size: 1.3rem;
+            color: var(--text-accent);
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theory-card p {
+            margin: 12px 0;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .theory-card .highlight {
+            color: var(--text-accent);
+            font-weight: 600;
+            background: rgba(79, 172, 254, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* Loading Spinner */
+        .loader {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--glass-border);
+            border-top-color: var(--text-accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Surface Area of Right Circular Cones</h1>
+        <p>Discover the geometry of cones through interactive learning!</p>
+    </header>
+
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage" id="demo-stage">
+            <div class="stage-content active" id="welcome-content">
+                <h2 style="font-size: 2rem; margin-bottom: 20px;">Welcome to Cone Geometry!</h2>
+                <div class="value-display">Let's Explore 3D Shapes!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Cones are fascinating 3D shapes all around us - from ice cream cones to traffic cones! 
+                    Choose a lesson below to start your mathematical journey!
+                </p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">What is a Cone?</button>
+            <button class="demo-btn" data-demo="derivation">Formula Derivation</button>
+            <button class="demo-btn" data-demo="chart">Chart Analysis</button>
+            <button class="demo-btn" data-demo="examples">Worked Examples</button>
+            <button class="demo-btn" data-demo="realworld">Real Applications</button>
+            <button class="demo-btn" data-demo="interactive">Interactive Calculator</button>
+            <button class="demo-btn" data-demo="quiz">Test Yourself</button>
+            <button class="demo-btn" data-demo="calculator">Area Calculator</button>
+            <button class="demo-btn" data-demo="reset">Reset</button>
+        </div>
+    </div>
+
+    <!-- Theory Cards Section -->
+    <div class="theory-section">
+        <div class="theory-container">
+            <h2 class="theory-section-title">📚 Cone Surface Area Theory</h2>
+            <div class="theory-grid">
+                <div class="theory-card">
+                    <h3>🔧 Key Formulas</h3>
+                    <p>• <span class="highlight">Curved Surface Area:</span> CSA = πrl</p>
+                    <p>• <span class="highlight">Total Surface Area:</span> TSA = πrl + πr² = πr(l + r)</p>
+                    <p>• <span class="highlight">Slant Height:</span> l = √(h² + r²)</p>
+                    <p>• <span class="highlight">Volume:</span> V = (1/3)πr²h</p>
+                </div>
+
+                <div class="theory-card">
+                    <h3>📐 Important Relationships</h3>
+                    <p>• <span class="highlight">Right Triangle:</span> Height, radius, and slant height form a right triangle</p>
+                    <p>• <span class="highlight">Pythagorean Theorem:</span> l² = h² + r²</p>
+                    <p>• <span class="highlight">Quadratic Effect:</span> Surface area increases quadratically with radius</p>
+                    <p>• <span class="highlight">Linear with Height:</span> Surface area increases with height through slant height</p>
+                </div>
+
+                <div class="theory-card">
+                    <h3>🎯 When to Use Each Formula</h3>
+                    <p>• <span class="highlight">CSA only:</span> When you don't need the base (e.g., party hats, traffic cones)</p>
+                    <p>• <span class="highlight">TSA:</span> When you need complete surface area (e.g., painting, material calculation)</p>
+                    <p>• <span class="highlight">Given h & r:</span> Find l first, then calculate surface area</p>
+                    <p>• <span class="highlight">Given l & r:</span> Direct calculation of surface area</p>
+                </div>
+
+                <div class="theory-card">
+                    <h3>🔍 Common Mistakes to Avoid</h3>
+                    <p>• <span class="highlight">Don't confuse:</span> Height (h) and slant height (l)</p>
+                    <p>• <span class="highlight">Remember:</span> Always use slant height in CSA formula, not height</p>
+                    <p>• <span class="highlight">Check units:</span> Ensure all measurements are in the same units</p>
+                    <p>• <span class="highlight">Right cones only:</span> These formulas work only for right circular cones</p>
+                </div>
+
+                <div class="theory-card">
+                    <h3>📊 Real-World Applications</h3>
+                    <p>• <span class="highlight">Packaging:</span> Ice cream cones, party hats, traffic cones</p>
+                    <p>• <span class="highlight">Construction:</span> Roofing, architectural elements</p>
+                    <p>• <span class="highlight">Manufacturing:</span> Material estimation, cost calculation</p>
+                    <p>• <span class="highlight">Science:</span> Volume calculations, surface area ratios</p>
+                </div>
+
+                <div class="theory-card">
+                    <h3>💡 Problem-Solving Tips</h3>
+                    <p>• <span class="highlight">Step 1:</span> Identify what's given (h, r, l)</p>
+                    <p>• <span class="highlight">Step 2:</span> Find missing dimensions using Pythagorean theorem</p>
+                    <p>• <span class="highlight">Step 3:</span> Choose appropriate formula (CSA or TSA)</p>
+                    <p>• <span class="highlight">Step 4:</span> Substitute values and calculate carefully</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let currentTeacher = null;
+        let currentDemo = null;
+        let globalAudioEnabled = true;
+        let scene, camera, renderer, cone;
+        let animationTimeouts = [];
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let currentRunId = 0;
+        let currentTaskId = null;
+        let charts = {};
+
+        // Teacher Voice System
+        class TeacherVoice {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.voice = null;
+                this.rate = 0.8;
+                this.pitch = 1.0;
+                this.volume = 0.9;
+                this.isEnabled = true;
+                this.currentUtterance = null;
+                this.isDestroyed = false;
+                this.setupVoice();
+            }
+
+            setupVoice() {
+                const loadVoices = () => {
+                    const voices = this.synth.getVoices();
+                    this.voice = voices.find(v => v.lang.includes('en')) || voices[0];
+                };
+                loadVoices();
+                this.synth.onvoiceschanged = loadVoices;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !globalAudioEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.voice = this.voice;
+                        utterance.rate = this.rate;
+                        utterance.pitch = this.pitch;
+                        utterance.volume = this.volume;
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        this.synth.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+            }
+        }
+
+        // State management functions
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            clearStage();
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentTeacher = new TeacherVoice();
+            currentTeacher.isEnabled = globalAudioEnabled;
+            return currentTeacher;
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        // Clear stage
+        function clearStage() {
+            const stage = document.getElementById('demo-stage');
+            stage.innerHTML = '';
+            
+            // Clear all timeouts
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            // Destroy all charts
+            Object.values(charts).forEach(chart => {
+                if (chart && chart.destroy) {
+                    chart.destroy();
+                }
+            });
+            charts = {};
+            
+            // Clean up Three.js resources
+            if (renderer) {
+                renderer.dispose();
+                renderer = null;
+            }
+            if (scene) {
+                scene = null;
+            }
+            if (camera) {
+                camera = null;
+            }
+            if (cone) {
+                cone = null;
+            }
+        }
+
+        // Create stage content
+        function createStageContent() {
+            clearStage();
+            const content = document.createElement('div');
+            content.className = 'stage-content active';
+            document.getElementById('demo-stage').appendChild(content);
+            // Ensure any internal scroll is reset and page doesn't jump down
+            const stage = document.getElementById('demo-stage');
+            if (stage) {
+                stage.scrollTop = 0;
+            }
+            // Reset window scroll to top to avoid unintended downward scrolls
+            try {
+                window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+            } catch (_) {
+                window.scrollTo(0, 0);
+            }
+            return content;
+        }
+
+        // Three.js cone setup
+        function setup3DCone(container, showAxes = true) {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+            
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+            camera.lookAt(0, 0, 0);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            renderer.setClearColor(0x000000, 0);
+            container.appendChild(renderer.domElement);
+            
+            // Create cone
+            const geometry = new THREE.ConeGeometry(2, 4, 32);
+            const material = new THREE.MeshPhongMaterial({ 
+                color: 0x4facfe,
+                emissive: 0x072534,
+                shininess: 100,
+                wireframe: false
+            });
+            cone = new THREE.Mesh(geometry, material);
+            scene.add(cone);
+            
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            const pointLight = new THREE.PointLight(0xffffff, 1);
+            pointLight.position.set(10, 10, 10);
+            scene.add(pointLight);
+            
+            // Add axes only if requested
+            if (showAxes) {
+                const axesHelper = new THREE.AxesHelper(3);
+                scene.add(axesHelper);
+            }
+            
+            // Animation
+            function animate() {
+                requestAnimationFrame(animate);
+                cone.rotation.y += 0.01;
+                renderer.render(scene, camera);
+            }
+            animate();
+            
+            return { scene, camera, renderer, cone };
+        }
+
+        // Utility function to create chart
+        function createChart(canvasId, type, data, options = {}) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return null;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Destroy existing chart if any
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+            
+            const defaultOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 2000,
+                    easing: 'easeInOutQuart'
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: {
+                            color: 'white',
+                            font: {
+                                size: 14
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 10,
+                        cornerRadius: 10,
+                        titleColor: 'white',
+                        bodyColor: 'white',
+                        borderColor: 'rgba(79, 172, 254, 0.5)',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: 'white',
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: 'white',
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                }
+            };
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: type,
+                data: data,
+                options: { ...defaultOptions, ...options }
+            });
+            
+            return charts[canvasId];
+        }
+
+        // Demo Functions
+        async function showIntroduction() {
+            const taskId = 'introduction';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="example-title">What is a Right Circular Cone?</h2>
+                <div class="cone-3d-container" id="intro-cone"></div>
+                <div class="activity-container">
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        A cone is a 3D shape with a circular base and a pointed top (apex)
+                    </div>
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        "Right" means the apex is directly above the center of the base
+                    </div>
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        "Circular" means the base is a perfect circle
+                    </div>
+                </div>
+            `;
+            
+            // Setup 3D cone without axes
+            setTimeout(() => {
+                const container = document.getElementById('intro-cone');
+                if (container) setup3DCone(container, false);
+            }, 100);
+            
+            await teacher.speak("Let's understand what a right circular cone is! Look at this 3D shape.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Highlight steps
+            const steps = content.querySelectorAll('.step');
+            steps[0].classList.add('active');
+            await teacher.speak("A cone has a circular base at the bottom and comes to a point at the top, called the apex or vertex.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            steps[0].classList.remove('active');
+            steps[1].classList.add('active');
+            await teacher.speak("We call it 'right' because if you draw a line from the apex to the center of the base, it forms a right angle with the base.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            steps[1].classList.remove('active');
+            steps[2].classList.add('active');
+            await teacher.speak("And 'circular' simply means the base is a perfect circle, not an oval or any other shape.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Show parts of cone
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            content.innerHTML += `
+                <div class="formula-box animate-slide-in">
+                    <h3>Parts of a Cone:</h3>
+                    <p><strong>Height (h):</strong> Distance from base to apex</p>
+                    <p><strong>Radius (r):</strong> Radius of the circular base</p>
+                    <p><strong>Slant Height (l):</strong> Distance along the curved surface</p>
+                </div>
+            `;
+            
+            await teacher.speak("A cone has three important measurements: height, radius, and slant height. These form a right triangle!");
+            
+            isPlaying = false;
+        }
+
+
+        async function showDerivation() {
+            const taskId = 'derivation';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="example-title">Deriving the Surface Area Formula</h2>
+                <div class="activity-container">
+                    <h3>Let's unfold a cone to find its surface area!</h3>
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        Cut the cone along its slant height
+                    </div>
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        Unfold it - you get a sector of a circle!
+                    </div>
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        The arc length equals the base circumference (2πr)
+                    </div>
+                    <div class="step">
+                        <span class="step-number">4</span>
+                        The radius of the sector is the slant height (l)
+                    </div>
+                </div>
+            `;
+            
+            await teacher.speak("Let's discover how to find the surface area of a cone by unfolding it!");
+            if (!shouldContinue(taskId)) return;
+            
+            const steps = content.querySelectorAll('.step');
+            
+            for (let i = 0; i < steps.length; i++) {
+                await wait(1000);
+                if (!shouldContinue(taskId)) return;
+                
+                steps[i].classList.add('active');
+                
+                switch(i) {
+                    case 0:
+                        await teacher.speak("If we cut a cone along its slant height from apex to base...");
+                        break;
+                    case 1:
+                        await teacher.speak("And unfold it flat, we get a sector - that's a pie-shaped piece of a circle!");
+                        break;
+                    case 2:
+                        await teacher.speak("The curved edge of this sector was the base of our cone, so its length is 2 pi r.");
+                        break;
+                    case 3:
+                        await teacher.speak("The straight edges of the sector are the slant height l.");
+                        break;
+                }
+                
+                if (!shouldContinue(taskId)) return;
+            }
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            content.innerHTML += `
+                <div class="formula-box animate-slide-in">
+                    <h3>Mathematical Derivation:</h3>
+                    <p>Arc length of sector = Base circumference</p>
+                    <p>Fraction of full circle = (2πr) / (2πl) = r/l</p>
+                    <p>Area of sector = (r/l) × πl² = πrl</p>
+                    <div class="formula">Curved Surface Area = πrl</div>
+                </div>
+            `;
+            
+            await teacher.speak("Using the relationship between arc length and area, we find that the curved surface area equals pi r l.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            content.innerHTML += `
+                <div class="formula-box animate-slide-in">
+                    <h3>Total Surface Area:</h3>
+                    <p>Add the base area: πr²</p>
+                    <div class="formula">Total Surface Area = πrl + πr² = πr(l + r)</div>
+                </div>
+            `;
+            
+            await teacher.speak("If we want the total surface area including the base, we add pi r squared, giving us pi r times l plus r.");
+            
+            isPlaying = false;
+        }
+
+        async function showExamples() {
+            const taskId = 'examples';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            const examples = [
+                {
+                    title: "Example 1: Basic Calculation",
+                    problem: "Find the curved surface area of a cone with slant height 10 cm and base radius 7 cm.",
+                    solution: {
+                        steps: [
+                            "Given: l = 10 cm, r = 7 cm",
+                            "Curved Surface Area = πrl",
+                            "CSA = (22/7) × 7 × 10",
+                            "CSA = 22 × 10 = 220 cm²"
+                        ]
+                    }
+                },
+                {
+                    title: "Example 2: Finding Slant Height",
+                    problem: "A cone has height 16 cm and base radius 12 cm. Find its curved and total surface area.",
+                    solution: {
+                        steps: [
+                            "Given: h = 16 cm, r = 12 cm",
+                            "Find l using: l² = h² + r²",
+                            "l² = 16² + 12² = 256 + 144 = 400",
+                            "l = 20 cm",
+                            "CSA = πrl = 3.14 × 12 × 20 = 753.6 cm²",
+                            "TSA = πrl + πr² = 753.6 + 452.16 = 1205.76 cm²"
+                        ]
+                    }
+                },
+                {
+                    title: "Example 3: Real-World Problem",
+                    problem: "A corn cob shaped like a cone has radius 2.1 cm and height 20 cm. If each 1 cm² has 4 grains, how many grains are on the cob?",
+                    solution: {
+                        steps: [
+                            "Given: r = 2.1 cm, h = 20 cm",
+                            "Find l: l² = 2.1² + 20² = 4.41 + 400 = 404.41",
+                            "l = 20.11 cm",
+                            "CSA = (22/7) × 2.1 × 20.11 = 132.73 cm²",
+                            "Number of grains = 132.73 × 4 = 531 grains"
+                        ]
+                    }
+                }
+            ];
+            
+            for (let i = 0; i < examples.length; i++) {
+                if (!shouldContinue(taskId)) return;
+                
+                const content = createStageContent();
+                const example = examples[i];
+                
+                content.innerHTML = `
+                    <div class="example-container">
+                        <h2 class="example-title">${example.title}</h2>
+                        ${example.image ? `
+                        <div class="image-container">
+                            <img src="${example.image}" alt="${example.title}" class="real-world-image" loading="lazy">
+                            <div class="image-caption">${example.caption}</div>
+                        </div>
+                        ` : ''}
+                        <div class="example-content">
+                            <p><strong>Problem:</strong> ${example.problem}</p>
+                            <div class="solution-steps">
+                                <h3>Solution:</h3>
+                                ${example.solution.steps.map((step, index) => 
+                                    `<div class="step">
+                                        <span class="step-number">${index + 1}</span>
+                                        ${step}
+                                    </div>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                await wait(1000);
+                if (!shouldContinue(taskId)) return;
+                
+                // Narrate each example
+                switch(i) {
+                    case 0:
+                        await teacher.speak("Let's solve our first example. We have a cone with slant height 10 centimeters and radius 7 centimeters.");
+                        if (!shouldContinue(taskId)) return;
+                        
+                        await wait(1000);
+                        await teacher.speak("We directly apply the formula: pi r l equals 22 over 7 times 7 times 10, which gives us 220 square centimeters.");
+                        break;
+                        
+                    case 1:
+                        await teacher.speak("In this example, we're given the height and radius, but we need to find the slant height first.");
+                        if (!shouldContinue(taskId)) return;
+                        
+                        await wait(1000);
+                        await teacher.speak("Using the Pythagorean theorem, we find l equals 20 centimeters. Then we can calculate both curved and total surface areas.");
+                        break;
+                        
+                    case 2:
+                        await teacher.speak("Here's a fun real-world problem! We need to count grains on a corn cob shaped like a cone.");
+                        if (!shouldContinue(taskId)) return;
+                        
+                        await wait(1000);
+                        await teacher.speak("After finding the curved surface area, we multiply by 4 grains per square centimeter to get approximately 531 grains!");
+                        break;
+                }
+                
+                if (!shouldContinue(taskId)) return;
+                await wait(2000);
+            }
+            
+            isPlaying = false;
+        }
+
+        async function showInteractive() {
+            const taskId = 'interactive';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="example-title">Interactive Cone Calculator</h2>
+                <div class="input-group">
+                    <div class="input-container">
+                        <label>Radius (r)</label>
+                        <input type="range" class="slider" id="radius-slider" min="1" max="5" value="2" step="0.1">
+                        <div class="slider-value" id="radius-value">2 cm</div>
+                    </div>
+                    <div class="input-container">
+                        <label>Height (h)</label>
+                        <input type="range" class="slider" id="height-slider" min="2" max="8" value="4" step="0.1">
+                        <div class="slider-value" id="height-value">4 cm</div>
+                    </div>
+                </div>
+                <div class="formula-box">
+                    <p>Slant Height: <span id="slant-value" class="formula">4.47 cm</span></p>
+                    <p>Curved Surface Area: <span id="csa-value" class="formula">28.10 cm²</span></p>
+                    <p>Total Surface Area: <span id="tsa-value" class="formula">40.66 cm²</span></p>
+                </div>
+            `;
+            
+            // Setup interactive calculator
+            setTimeout(() => {
+                // Update calculations based on sliders
+                function updateCalculations() {
+                    const r = parseFloat(document.getElementById('radius-slider').value);
+                    const h = parseFloat(document.getElementById('height-slider').value);
+                    
+                    // Update display values
+                    document.getElementById('radius-value').textContent = r + ' cm';
+                    document.getElementById('height-value').textContent = h + ' cm';
+                    
+                    // Calculate values
+                    const l = Math.sqrt(r * r + h * h);
+                    const csa = Math.PI * r * l;
+                    const tsa = csa + Math.PI * r * r;
+                    
+                    // Update calculations
+                    document.getElementById('slant-value').textContent = l.toFixed(2) + ' cm';
+                    document.getElementById('csa-value').textContent = csa.toFixed(2) + ' cm²';
+                    document.getElementById('tsa-value').textContent = tsa.toFixed(2) + ' cm²';
+                }
+                
+                document.getElementById('radius-slider').addEventListener('input', updateCalculations);
+                document.getElementById('height-slider').addEventListener('input', updateCalculations);
+            }, 100);
+            
+            await teacher.speak("Now let's explore how changing the dimensions affects the surface area calculations. Try adjusting the radius and height!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Notice how the slant height changes as you adjust the other dimensions. This affects the surface area calculations too!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Try different combinations of radius and height to see how the surface area values change according to our formulas!");
+            
+            isPlaying = false;
+        }
+
+        async function showRealWorld() {
+            const taskId = 'realworld';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            const applications = [
+                {
+                    title: "Ice Cream Cones",
+                    description: "Ice cream cone manufacturers need to calculate surface area to determine how much wafer material is needed.",
+                    example: "A cone with radius 2.5 cm and height 12 cm needs πrl = π × 2.5 × 12.26 ≈ 96.3 cm² of wafer.",
+                    image: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&h=300&fit=crop&crop=center",
+                    caption: "Ice cream cones require precise surface area calculations for wafer production"
+                },
+                {
+                    title: "Traffic Cones",
+                    description: "Engineers calculate surface area to determine how much reflective material to apply for visibility.",
+                    example: "A traffic cone 70 cm tall with base radius 20 cm has about 4,665 cm² of surface to cover.",
+                    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop&crop=center",
+                    caption: "Traffic cones need reflective coating calculated using surface area formulas"
+                },
+                {
+                    title: "Party Hats",
+                    description: "Designers need to know surface area to cut the right amount of decorative paper.",
+                    example: "A party hat with radius 10 cm and slant height 25 cm needs π × 10 × 25 = 785 cm² of paper.",
+                    image: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400&h=300&fit=crop&crop=center",
+                    caption: "Party hat designers use cone surface area to determine paper requirements"
+                },
+                {
+                    title: "Volcano Models",
+                    description: "Science fair students calculate surface area to determine paint or material needed for realistic models.",
+                    example: "A model volcano cone 30 cm tall with 15 cm radius has approximately 1,696 cm² to paint.",
+                    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop&crop=center",
+                    caption: "Volcano models require surface area calculations for accurate material planning"
+                }
+            ];
+            
+            for (let i = 0; i < applications.length; i++) {
+                if (!shouldContinue(taskId)) return;
+                
+                const app = applications[i];
+                const content = createStageContent();
+                
+                content.innerHTML = `
+                    <div class="example-container">
+                        <h2 class="example-title">${app.title}</h2>
+                        <div class="image-container">
+                            <img src="${app.image}" alt="${app.title}" class="real-world-image" loading="lazy">
+                            <div class="image-caption">${app.caption}</div>
+                        </div>
+                        <div class="example-content">
+                            <p>${app.description}</p>
+                            <div class="formula-box" style="margin-top: 20px;">
+                                <p><strong>Example:</strong> ${app.example}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                await wait(1000);
+                if (!shouldContinue(taskId)) return;
+                
+                switch(i) {
+                    case 0:
+                        await teacher.speak("Cones are everywhere! Ice cream cone makers use our formula to calculate how much wafer they need.");
+                        break;
+                    case 1:
+                        await teacher.speak("Traffic cones need reflective coating. Engineers use surface area to determine how much material to order.");
+                        break;
+                    case 2:
+                        await teacher.speak("Making party hats? You'll need to know the surface area to cut the right size paper!");
+                        break;
+                    case 3:
+                        await teacher.speak("Even in science projects, like volcano models, knowing cone surface area helps plan materials.");
+                        break;
+                }
+                
+                if (!shouldContinue(taskId)) return;
+                await wait(2000);
+            }
+            
+            isPlaying = false;
+        }
+
+        async function showChart() {
+            const taskId = 'chart';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="chart-title">Cone Surface Area Analysis</h2>
+                <div class="value-display">Visualizing Mathematical Relationships</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Let's explore how different cone dimensions affect surface area through interactive charts!
+                </p>
+            `;
+            
+            await teacher.speak("Let's analyze cone surface area relationships through visual charts! This will help you understand how dimensions affect the calculations.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Chart 1: Surface Area vs Radius (fixed height)
+            content.innerHTML = `
+                <h2 class="chart-title">Surface Area vs Radius (Height = 10 cm)</h2>
+                <div class="chart-container">
+                    <canvas id="radiusChart" width="600" height="400"></canvas>
+                </div>
+                <div class="formula-box">
+                    <p><strong>Observation:</strong> Surface area increases quadratically with radius</p>
+                    <p><strong>Formula:</strong> CSA = πrl, where l = √(h² + r²)</p>
+                </div>
+            `;
+            
+            // Create radius vs surface area chart
+            setTimeout(() => {
+                const radiusData = [];
+                const csaData = [];
+                const tsaData = [];
+                const labels = [];
+                
+                for (let r = 1; r <= 10; r += 0.5) {
+                    const h = 10; // Fixed height
+                    const l = Math.sqrt(h * h + r * r);
+                    const csa = Math.PI * r * l;
+                    const tsa = csa + Math.PI * r * r;
+                    
+                    radiusData.push(r);
+                    csaData.push(csa);
+                    tsaData.push(tsa);
+                    labels.push(r.toFixed(1));
+                }
+                
+                const chartData = {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Curved Surface Area (CSA)',
+                        data: csaData,
+                        borderColor: 'rgba(79, 172, 254, 1)',
+                        backgroundColor: 'rgba(79, 172, 254, 0.2)',
+                        tension: 0.1,
+                        fill: true
+                    }, {
+                        label: 'Total Surface Area (TSA)',
+                        data: tsaData,
+                        borderColor: 'rgba(255, 107, 107, 1)',
+                        backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                };
+                
+                createChart('radiusChart', 'line', chartData, {
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Surface Area vs Radius (Height = 10 cm)',
+                            color: 'white',
+                            font: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Radius (cm)',
+                                color: 'white'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Surface Area (cm²)',
+                                color: 'white'
+                            }
+                        }
+                    }
+                });
+            }, 100);
+            
+            await teacher.speak("Here we see how surface area changes with radius when height is fixed at 10 centimeters. Notice how both curved and total surface area increase rapidly as radius increases.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Chart 2: Surface Area vs Height (fixed radius)
+            content.innerHTML = `
+                <h2 class="chart-title">Surface Area vs Height (Radius = 5 cm)</h2>
+                <div class="chart-container">
+                    <canvas id="heightChart" width="600" height="400"></canvas>
+                </div>
+                <div class="formula-box">
+                    <p><strong>Observation:</strong> Surface area increases with height, but the relationship is more complex</p>
+                    <p><strong>Note:</strong> As height increases, slant height increases, affecting both CSA and TSA</p>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                const heightData = [];
+                const csaData2 = [];
+                const tsaData2 = [];
+                const labels2 = [];
+                
+                for (let h = 2; h <= 20; h += 0.5) {
+                    const r = 5; // Fixed radius
+                    const l = Math.sqrt(h * h + r * r);
+                    const csa = Math.PI * r * l;
+                    const tsa = csa + Math.PI * r * r;
+                    
+                    heightData.push(h);
+                    csaData2.push(csa);
+                    tsaData2.push(tsa);
+                    labels2.push(h.toFixed(1));
+                }
+                
+                const chartData2 = {
+                    labels: labels2,
+                    datasets: [{
+                        label: 'Curved Surface Area (CSA)',
+                        data: csaData2,
+                        borderColor: 'rgba(67, 233, 123, 1)',
+                        backgroundColor: 'rgba(67, 233, 123, 0.2)',
+                        tension: 0.1,
+                        fill: true
+                    }, {
+                        label: 'Total Surface Area (TSA)',
+                        data: tsaData2,
+                        borderColor: 'rgba(250, 112, 154, 1)',
+                        backgroundColor: 'rgba(250, 112, 154, 0.2)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                };
+                
+                createChart('heightChart', 'line', chartData2, {
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Surface Area vs Height (Radius = 5 cm)',
+                            color: 'white',
+                            font: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Height (cm)',
+                                color: 'white'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Surface Area (cm²)',
+                                color: 'white'
+                            }
+                        }
+                    }
+                });
+            }, 100);
+            
+            await teacher.speak("Now let's see how surface area changes with height when radius is fixed at 5 centimeters. The relationship is more complex because height affects the slant height through the Pythagorean theorem.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Chart 3: Comparison of different cone shapes
+            content.innerHTML = `
+                <h2 class="chart-title">Surface Area Comparison: Different Cone Shapes</h2>
+                <div class="chart-container">
+                    <canvas id="comparisonChart" width="600" height="400"></canvas>
+                </div>
+                <div class="formula-box">
+                    <p><strong>Analysis:</strong> Different cone proportions show varying surface area efficiency</p>
+                    <p><strong>Key Insight:</strong> Wider, shorter cones have higher surface area for the same volume</p>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                const coneTypes = ['Tall & Thin', 'Medium', 'Short & Wide', 'Very Wide'];
+                const csaValues = [94.2, 125.7, 188.5, 314.2];
+                const tsaValues = [113.1, 157.1, 235.6, 392.7];
+                
+                const chartData3 = {
+                    labels: coneTypes,
+                    datasets: [{
+                        label: 'Curved Surface Area (CSA)',
+                        data: csaValues,
+                        backgroundColor: [
+                            'rgba(79, 172, 254, 0.8)',
+                            'rgba(67, 233, 123, 0.8)',
+                            'rgba(255, 107, 107, 0.8)',
+                            'rgba(250, 112, 154, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(79, 172, 254, 1)',
+                            'rgba(67, 233, 123, 1)',
+                            'rgba(255, 107, 107, 1)',
+                            'rgba(250, 112, 154, 1)'
+                        ],
+                        borderWidth: 2
+                    }, {
+                        label: 'Total Surface Area (TSA)',
+                        data: tsaValues,
+                        backgroundColor: [
+                            'rgba(79, 172, 254, 0.4)',
+                            'rgba(67, 233, 123, 0.4)',
+                            'rgba(255, 107, 107, 0.4)',
+                            'rgba(250, 112, 154, 0.4)'
+                        ],
+                        borderColor: [
+                            'rgba(79, 172, 254, 1)',
+                            'rgba(67, 233, 123, 1)',
+                            'rgba(255, 107, 107, 1)',
+                            'rgba(250, 112, 154, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                };
+                
+                createChart('comparisonChart', 'bar', chartData3, {
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Surface Area Comparison: Different Cone Proportions',
+                            color: 'white',
+                            font: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Cone Type',
+                                color: 'white'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Surface Area (cm²)',
+                                color: 'white'
+                            }
+                        }
+                    }
+                });
+            }, 100);
+            
+            await teacher.speak("Finally, let's compare different cone shapes. Notice how wider, shorter cones have significantly higher surface area compared to tall, thin cones. This is important for applications like packaging and material usage.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Final summary
+            content.innerHTML += `
+                <div class="formula-box animate-slide-in">
+                    <h3>Key Insights from Chart Analysis:</h3>
+                    <p>• <strong>Radius has quadratic effect:</strong> Doubling radius more than doubles surface area</p>
+                    <p>• <strong>Height affects slant height:</strong> Taller cones have longer slant heights</p>
+                    <p>• <strong>Shape matters:</strong> Wide cones need more material than tall cones</p>
+                    <p>• <strong>Real applications:</strong> Consider surface area when designing cones for efficiency</p>
+                </div>
+            `;
+            
+            await teacher.speak("These charts reveal important mathematical relationships! Radius has a quadratic effect on surface area, while height affects it through the slant height relationship. Understanding these patterns helps in real-world applications like packaging design and material optimization.");
+            
+            isPlaying = false;
+        }
+
+        async function showQuiz() {
+            const taskId = 'quiz';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            const questions = [
+                {
+                    question: "What is the formula for the curved surface area of a cone?",
+                    options: ["πr²", "πrl", "2πr", "πr(l + r)"],
+                    correct: 1,
+                    explanation: "The curved surface area is πrl, where r is radius and l is slant height."
+                },
+                {
+                    question: "If a cone has radius 3 cm and slant height 5 cm, what is its curved surface area?",
+                    options: ["15π cm²", "30π cm²", "45π cm²", "8π cm²"],
+                    correct: 0,
+                    explanation: "CSA = πrl = π × 3 × 5 = 15π cm²"
+                },
+                {
+                    question: "How are height (h), radius (r), and slant height (l) related in a cone?",
+                    options: ["l = h + r", "l² = h² + r²", "l = h × r", "l² = h² - r²"],
+                    correct: 1,
+                    explanation: "They form a right triangle, so by Pythagorean theorem: l² = h² + r²"
+                },
+                {
+                    question: "What shape do you get when you unfold a cone's curved surface?",
+                    options: ["Circle", "Rectangle", "Sector", "Triangle"],
+                    correct: 2,
+                    explanation: "The curved surface unfolds into a sector (pie-shaped piece) of a circle."
+                }
+            ];
+            
+            let currentQuestion = 0;
+            let score = 0;
+            
+            async function showQuestion(index) {
+                if (!shouldContinue(taskId)) return;
+                
+                const q = questions[index];
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="example-title">Quiz - Question ${index + 1} of ${questions.length}</h2>
+                        <div class="quiz-question">
+                            <p>${q.question}</p>
+                            <div class="quiz-options">
+                                ${q.options.map((opt, i) => 
+                                    `<div class="quiz-option" data-index="${i}">${opt}</div>`
+                                ).join('')}
+                            </div>
+                            <div id="quiz-feedback"></div>
+                        </div>
+                        <div class="value-display">Score: ${score}/${questions.length}</div>
+                    </div>
+                `;
+                
+                await teacher.speak(q.question);
+                if (!shouldContinue(taskId)) return;
+                
+                // Add click handlers
+                const options = content.querySelectorAll('.quiz-option');
+                options.forEach(option => {
+                    option.addEventListener('click', async function() {
+                        const selected = parseInt(this.getAttribute('data-index'));
+                        this.classList.add('selected');
+                        
+                        const feedback = document.getElementById('quiz-feedback');
+                        if (selected === q.correct) {
+                            feedback.className = 'quiz-feedback correct';
+                            feedback.textContent = '✓ Correct! ' + q.explanation;
+                            score++;
+                            await teacher.speak("Correct! " + q.explanation);
+                        } else {
+                            feedback.className = 'quiz-feedback incorrect';
+                            feedback.textContent = '✗ Not quite. ' + q.explanation;
+                            await teacher.speak("Not quite. " + q.explanation);
+                        }
+                        
+                        // Disable further clicks
+                        options.forEach(opt => opt.style.pointerEvents = 'none');
+                        
+                        // Next question after delay
+                        setTimeout(() => {
+                            currentQuestion++;
+                            if (currentQuestion < questions.length) {
+                                showQuestion(currentQuestion);
+                            } else {
+                                showQuizComplete();
+                            }
+                        }, 2000);
+                    });
+                });
+            }
+            
+            async function showQuizComplete() {
+                if (!shouldContinue(taskId)) return;
+                
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="example-title">Quiz Complete!</h2>
+                        <div class="value-display animate-pulse">
+                            Final Score: ${score}/${questions.length}
+                        </div>
+                        <p style="text-align: center; margin-top: 20px; font-size: 1.2rem;">
+                            ${score === questions.length ? 
+                                "Perfect score! You've mastered cone surface area!" : 
+                                score >= questions.length * 0.7 ? 
+                                    "Great job! You understand the concepts well!" : 
+                                    "Keep practicing! Try the examples again to improve."}
+                        </p>
+                    </div>
+                `;
+                
+                await teacher.speak(`Quiz complete! You scored ${score} out of ${questions.length}. ${
+                    score === questions.length ? "Perfect score!" : "Great effort!"
+                }`);
+                
+                isPlaying = false;
+            }
+            
+            showQuestion(0);
+        }
+
+        async function showCalculator() {
+            const taskId = 'calculator';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="example-title">Cone Surface Area Calculator</h2>
+                <div class="example-container" style="max-width: 500px;">
+                    <div class="input-group" style="flex-direction: column; gap: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px;">Radius (r) in cm:</label>
+                            <input type="number" id="calc-radius" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: white; font-size: 1.1rem;" placeholder="Enter radius">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px;">Height (h) in cm:</label>
+                            <input type="number" id="calc-height" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: white; font-size: 1.1rem;" placeholder="Enter height">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px;">Slant Height (l) in cm (optional):</label>
+                            <input type="number" id="calc-slant" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: white; font-size: 1.1rem;" placeholder="Leave empty to calculate">
+                        </div>
+                        <button onclick="calculateConeArea()" class="demo-btn" style="width: 100%; margin-top: 10px;">Calculate</button>
+                    </div>
+                    <div id="calc-results" style="margin-top: 20px;"></div>
+                </div>
+            `;
+            
+            window.calculateConeArea = function() {
+                const r = parseFloat(document.getElementById('calc-radius').value);
+                const h = parseFloat(document.getElementById('calc-height').value);
+                let l = parseFloat(document.getElementById('calc-slant').value);
+                
+                if (isNaN(r) || r <= 0) {
+                    alert('Please enter a valid radius');
+                    return;
+                }
+                
+                if (isNaN(l) || l <= 0) {
+                    if (isNaN(h) || h <= 0) {
+                        alert('Please enter either height or slant height');
+                        return;
+                    }
+                    l = Math.sqrt(h * h + r * r);
+                } else if (isNaN(h) || h <= 0) {
+                    h = Math.sqrt(l * l - r * r);
+                }
+                
+                const csa = Math.PI * r * l;
+                const tsa = csa + Math.PI * r * r;
+                
+                document.getElementById('calc-results').innerHTML = `
+                    <div class="formula-box">
+                        <h3>Results:</h3>
+                        <p><strong>Radius:</strong> ${r.toFixed(2)} cm</p>
+                        <p><strong>Height:</strong> ${h.toFixed(2)} cm</p>
+                        <p><strong>Slant Height:</strong> ${l.toFixed(2)} cm</p>
+                        <hr style="margin: 15px 0; border: 1px solid var(--glass-border);">
+                        <p class="formula">Curved Surface Area = ${csa.toFixed(2)} cm²</p>
+                        <p class="formula">Total Surface Area = ${tsa.toFixed(2)} cm²</p>
+                    </div>
+                `;
+                
+                teacher.speak(`The curved surface area is ${csa.toFixed(1)} square centimeters, and the total surface area is ${tsa.toFixed(1)} square centimeters.`);
+            };
+            
+            await teacher.speak("Use this calculator to find the surface area of any cone. Enter the radius and either height or slant height!");
+            
+            isPlaying = false;
+        }
+
+        // Content functions for complete lesson (don't call stopCurrentDemo)
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="example-title">What is a Right Circular Cone?</h2>
+                <div class="cone-3d-container" id="intro-cone"></div>
+                <div class="activity-container">
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        A cone is a 3D shape with a circular base and a pointed top (apex)
+                    </div>
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        "Right" means the apex is directly above the center of the base
+                    </div>
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        "Circular" means the base is a perfect circle
+                    </div>
+                </div>
+                <div class="formula-box animate-slide-in" id="parts-section" style="display: none;">
+                    <h3>Parts of a Cone:</h3>
+                    <p><strong>Height (h):</strong> Distance from base to apex</p>
+                    <p><strong>Radius (r):</strong> Radius of the circular base</p>
+                    <p><strong>Slant Height (l):</strong> Distance along the curved surface</p>
+                </div>
+            `;
+            
+            // Setup 3D cone without axes
+            setTimeout(() => {
+                const container = document.getElementById('intro-cone');
+                if (container) setup3DCone(container, false);
+            }, 100);
+            
+            await teacher.speak("Let's understand what a right circular cone is! Look at this 3D shape.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Highlight steps
+            const steps = content.querySelectorAll('.step');
+            steps[0].classList.add('active');
+            await teacher.speak("A cone has a circular base at the bottom and comes to a point at the top, called the apex or vertex.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            steps[0].classList.remove('active');
+            steps[1].classList.add('active');
+            await teacher.speak("We call it 'right' because if you draw a line from the apex to the center of the base, it forms a right angle with the base.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            steps[1].classList.remove('active');
+            steps[2].classList.add('active');
+            await teacher.speak("And 'circular' simply means the base is a perfect circle, not an oval or any other shape.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Show parts of cone
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show the parts section that was already in the HTML
+            const partsSection = document.getElementById('parts-section');
+            if (partsSection) {
+                partsSection.style.display = 'block';
+            }
+            
+            await teacher.speak("A cone has three important measurements: height, radius, and slant height. These form a right triangle!");
+        }
+
+        async function showDerivationContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="example-title">Deriving the Surface Area Formula</h2>
+                <div class="activity-container">
+                    <h3>Let's unfold a cone to find its surface area!</h3>
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        Cut the cone along its slant height
+                    </div>
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        Unfold it - you get a sector of a circle!
+                    </div>
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        The arc length equals the base circumference (2πr)
+                    </div>
+                    <div class="step">
+                        <span class="step-number">4</span>
+                        The radius of the sector is the slant height (l)
+                    </div>
+                </div>
+            `;
+            
+            await teacher.speak("Let's discover how to find the surface area of a cone by unfolding it!");
+            if (!shouldContinue(taskId)) return;
+            
+            const steps = content.querySelectorAll('.step');
+            
+            for (let i = 0; i < steps.length; i++) {
+                await wait(1000);
+                if (!shouldContinue(taskId)) return;
+                
+                steps[i].classList.add('active');
+                
+                switch(i) {
+                    case 0:
+                        await teacher.speak("If we cut a cone along its slant height from apex to base...");
+                        break;
+                    case 1:
+                        await teacher.speak("And unfold it flat, we get a sector - that's a pie-shaped piece of a circle!");
+                        break;
+                    case 2:
+                        await teacher.speak("The curved edge of this sector was the base of our cone, so its length is 2 pi r.");
+                        break;
+                    case 3:
+                        await teacher.speak("The straight edges of the sector are the slant height l.");
+                        break;
+                }
+                
+                if (!shouldContinue(taskId)) return;
+            }
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            content.innerHTML += `
+                <div class="formula-box animate-slide-in">
+                    <h3>Mathematical Derivation:</h3>
+                    <p>Arc length of sector = Base circumference</p>
+                    <p>Fraction of full circle = (2πr) / (2πl) = r/l</p>
+                    <p>Area of sector = (r/l) × πl² = πrl</p>
+                    <div class="formula">Curved Surface Area = πrl</div>
+                </div>
+            `;
+            
+            await teacher.speak("Using the relationship between arc length and area, we find that the curved surface area equals pi r l.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            content.innerHTML += `
+                <div class="formula-box animate-slide-in">
+                    <h3>Total Surface Area:</h3>
+                    <p>Add the base area: πr²</p>
+                    <div class="formula">Total Surface Area = πrl + πr² = πr(l + r)</div>
+                </div>
+            `;
+            
+            await teacher.speak("If we want the total surface area including the base, we add pi r squared, giving us pi r times l plus r.");
+        }
+
+        async function showExamplesContent(taskId) {
+            const teacher = currentTeacher;
+            
+            const examples = [
+                {
+                    title: "Example 1: Basic Calculation",
+                    problem: "Find the curved surface area of a cone with slant height 10 cm and base radius 7 cm.",
+                    solution: {
+                        steps: [
+                            "Given: l = 10 cm, r = 7 cm",
+                            "Curved Surface Area = πrl",
+                            "CSA = (22/7) × 7 × 10",
+                            "CSA = 22 × 10 = 220 cm²"
+                        ]
+                    }
+                },
+                {
+                    title: "Example 2: Finding Slant Height",
+                    problem: "A cone has height 16 cm and base radius 12 cm. Find its curved and total surface area.",
+                    solution: {
+                        steps: [
+                            "Given: h = 16 cm, r = 12 cm",
+                            "Find l using: l² = h² + r²",
+                            "l² = 16² + 12² = 256 + 144 = 400",
+                            "l = 20 cm",
+                            "CSA = πrl = 3.14 × 12 × 20 = 753.6 cm²",
+                            "TSA = πrl + πr² = 753.6 + 452.16 = 1205.76 cm²"
+                        ]
+                    }
+                },
+                {
+                    title: "Example 3: Real-World Problem",
+                    problem: "A corn cob shaped like a cone has radius 2.1 cm and height 20 cm. If each 1 cm² has 4 grains, how many grains are on the cob?",
+                    solution: {
+                        steps: [
+                            "Given: r = 2.1 cm, h = 20 cm",
+                            "Find l: l² = 2.1² + 20² = 4.41 + 400 = 404.41",
+                            "l = 20.11 cm",
+                            "CSA = (22/7) × 2.1 × 20.11 = 132.73 cm²",
+                            "Number of grains = 132.73 × 4 = 531 grains"
+                        ]
+                    }
+                }
+            ];
+            
+            for (let i = 0; i < examples.length; i++) {
+                if (!shouldContinue(taskId)) return;
+                
+                const content = createStageContent();
+                const example = examples[i];
+                
+                content.innerHTML = `
+                    <div class="example-container">
+                        <h2 class="example-title">${example.title}</h2>
+                        ${example.image ? `
+                        <div class="image-container">
+                            <img src="${example.image}" alt="${example.title}" class="real-world-image" loading="lazy">
+                            <div class="image-caption">${example.caption}</div>
+                        </div>
+                        ` : ''}
+                        <div class="example-content">
+                            <p><strong>Problem:</strong> ${example.problem}</p>
+                            <div class="solution-steps">
+                                <h3>Solution:</h3>
+                                ${example.solution.steps.map((step, index) => 
+                                    `<div class="step">
+                                        <span class="step-number">${index + 1}</span>
+                                        ${step}
+                                    </div>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                await wait(1000);
+                if (!shouldContinue(taskId)) return;
+                
+                // Narrate each example
+                switch(i) {
+                    case 0:
+                        await teacher.speak("Let's solve our first example. We have a cone with slant height 10 centimeters and radius 7 centimeters.");
+                        if (!shouldContinue(taskId)) return;
+                        
+                        await wait(1000);
+                        await teacher.speak("We directly apply the formula: pi r l equals 22 over 7 times 7 times 10, which gives us 220 square centimeters.");
+                        break;
+                        
+                    case 1:
+                        await teacher.speak("In this example, we're given the height and radius, but we need to find the slant height first.");
+                        if (!shouldContinue(taskId)) return;
+                        
+                        await wait(1000);
+                        await teacher.speak("Using the Pythagorean theorem, we find l equals 20 centimeters. Then we can calculate both curved and total surface areas.");
+                        break;
+                        
+                    case 2:
+                        await teacher.speak("Here's a fun real-world problem! We need to count grains on a corn cob shaped like a cone.");
+                        if (!shouldContinue(taskId)) return;
+                        
+                        await wait(1000);
+                        await teacher.speak("After finding the curved surface area, we multiply by 4 grains per square centimeter to get approximately 531 grains!");
+                        break;
+                }
+                
+                if (!shouldContinue(taskId)) return;
+                await wait(2000);
+            }
+        }
+
+        async function showRealWorldContent(taskId) {
+            const teacher = currentTeacher;
+            
+            const applications = [
+                {
+                    title: "Ice Cream Cones",
+                    description: "Ice cream cone manufacturers need to calculate surface area to determine how much wafer material is needed.",
+                    example: "A cone with radius 2.5 cm and height 12 cm needs πrl = π × 2.5 × 12.26 ≈ 96.3 cm² of wafer.",
+                    image: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&h=300&fit=crop&crop=center",
+                    caption: "Ice cream cones require precise surface area calculations for wafer production"
+                },
+                {
+                    title: "Traffic Cones",
+                    description: "Engineers calculate surface area to determine how much reflective material to apply for visibility.",
+                    example: "A traffic cone 70 cm tall with base radius 20 cm has about 4,665 cm² of surface to cover.",
+                    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop&crop=center",
+                    caption: "Traffic cones need reflective coating calculated using surface area formulas"
+                },
+                {
+                    title: "Party Hats",
+                    description: "Designers need to know surface area to cut the right amount of decorative paper.",
+                    example: "A party hat with radius 10 cm and slant height 25 cm needs π × 10 × 25 = 785 cm² of paper.",
+                    image: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400&h=300&fit=crop&crop=center",
+                    caption: "Party hat designers use cone surface area to determine paper requirements"
+                },
+                {
+                    title: "Volcano Models",
+                    description: "Science fair students calculate surface area to determine paint or material needed for realistic models.",
+                    example: "A model volcano cone 30 cm tall with 15 cm radius has approximately 1,696 cm² to paint.",
+                    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop&crop=center",
+                    caption: "Volcano models require surface area calculations for accurate material planning"
+                }
+            ];
+            
+            for (let i = 0; i < applications.length; i++) {
+                if (!shouldContinue(taskId)) return;
+                
+                const app = applications[i];
+                const content = createStageContent();
+                
+                content.innerHTML = `
+                    <div class="example-container">
+                        <h2 class="example-title">${app.title}</h2>
+                        <div class="image-container">
+                            <img src="${app.image}" alt="${app.title}" class="real-world-image" loading="lazy">
+                            <div class="image-caption">${app.caption}</div>
+                        </div>
+                        <div class="example-content">
+                            <p>${app.description}</p>
+                            <div class="formula-box" style="margin-top: 20px;">
+                                <p><strong>Example:</strong> ${app.example}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                await wait(1000);
+                if (!shouldContinue(taskId)) return;
+                
+                switch(i) {
+                    case 0:
+                        await teacher.speak("Cones are everywhere! Ice cream cone makers use our formula to calculate how much wafer they need.");
+                        break;
+                    case 1:
+                        await teacher.speak("Traffic cones need reflective coating. Engineers use surface area to determine how much material to order.");
+                        break;
+                    case 2:
+                        await teacher.speak("Making party hats? You'll need to know the surface area to cut the right size paper!");
+                        break;
+                    case 3:
+                        await teacher.speak("Even in science projects, like volcano models, knowing cone surface area helps plan materials.");
+                        break;
+                }
+                
+                if (!shouldContinue(taskId)) return;
+                await wait(2000);
+            }
+        }
+
+        async function showChartContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="chart-title">Cone Surface Area Analysis</h2>
+                <div class="value-display">Visualizing Mathematical Relationships</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Let's explore how different cone dimensions affect surface area through interactive charts!
+                </p>
+            `;
+            
+            await teacher.speak("Let's analyze cone surface area relationships through visual charts! This will help you understand how dimensions affect the calculations.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Chart 1: Surface Area vs Radius (fixed height)
+            content.innerHTML = `
+                <h2 class="chart-title">Surface Area vs Radius (Height = 10 cm)</h2>
+                <div class="chart-container">
+                    <canvas id="radiusChart" width="600" height="400"></canvas>
+                </div>
+                <div class="formula-box">
+                    <p><strong>Observation:</strong> Surface area increases quadratically with radius</p>
+                    <p><strong>Formula:</strong> CSA = πrl, where l = √(h² + r²)</p>
+                </div>
+            `;
+            
+            // Create radius vs surface area chart
+            setTimeout(() => {
+                const radiusData = [];
+                const csaData = [];
+                const tsaData = [];
+                const labels = [];
+                
+                for (let r = 1; r <= 10; r += 0.5) {
+                    const h = 10; // Fixed height
+                    const l = Math.sqrt(h * h + r * r);
+                    const csa = Math.PI * r * l;
+                    const tsa = csa + Math.PI * r * r;
+                    
+                    radiusData.push(r);
+                    csaData.push(csa);
+                    tsaData.push(tsa);
+                    labels.push(r.toFixed(1));
+                }
+                
+                const chartData = {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Curved Surface Area (CSA)',
+                        data: csaData,
+                        borderColor: 'rgba(79, 172, 254, 1)',
+                        backgroundColor: 'rgba(79, 172, 254, 0.2)',
+                        tension: 0.1,
+                        fill: true
+                    }, {
+                        label: 'Total Surface Area (TSA)',
+                        data: tsaData,
+                        borderColor: 'rgba(255, 107, 107, 1)',
+                        backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                };
+                
+                createChart('radiusChart', 'line', chartData, {
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Surface Area vs Radius (Height = 10 cm)',
+                            color: 'white',
+                            font: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Radius (cm)',
+                                color: 'white'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Surface Area (cm²)',
+                                color: 'white'
+                            }
+                        }
+                    }
+                });
+            }, 100);
+            
+            await teacher.speak("Here we see how surface area changes with radius when height is fixed at 10 centimeters. Notice how both curved and total surface area increase rapidly as radius increases.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Chart 2: Surface Area vs Height (fixed radius)
+            content.innerHTML = `
+                <h2 class="chart-title">Surface Area vs Height (Radius = 5 cm)</h2>
+                <div class="chart-container">
+                    <canvas id="heightChart" width="600" height="400"></canvas>
+                </div>
+                <div class="formula-box">
+                    <p><strong>Observation:</strong> Surface area increases with height, but the relationship is more complex</p>
+                    <p><strong>Note:</strong> As height increases, slant height increases, affecting both CSA and TSA</p>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                const heightData = [];
+                const csaData2 = [];
+                const tsaData2 = [];
+                const labels2 = [];
+                
+                for (let h = 2; h <= 20; h += 0.5) {
+                    const r = 5; // Fixed radius
+                    const l = Math.sqrt(h * h + r * r);
+                    const csa = Math.PI * r * l;
+                    const tsa = csa + Math.PI * r * r;
+                    
+                    heightData.push(h);
+                    csaData2.push(csa);
+                    tsaData2.push(tsa);
+                    labels2.push(h.toFixed(1));
+                }
+                
+                const chartData2 = {
+                    labels: labels2,
+                    datasets: [{
+                        label: 'Curved Surface Area (CSA)',
+                        data: csaData2,
+                        borderColor: 'rgba(67, 233, 123, 1)',
+                        backgroundColor: 'rgba(67, 233, 123, 0.2)',
+                        tension: 0.1,
+                        fill: true
+                    }, {
+                        label: 'Total Surface Area (TSA)',
+                        data: tsaData2,
+                        borderColor: 'rgba(250, 112, 154, 1)',
+                        backgroundColor: 'rgba(250, 112, 154, 0.2)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                };
+                
+                createChart('heightChart', 'line', chartData2, {
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Surface Area vs Height (Radius = 5 cm)',
+                            color: 'white',
+                            font: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Height (cm)',
+                                color: 'white'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Surface Area (cm²)',
+                                color: 'white'
+                            }
+                        }
+                    }
+                });
+            }, 100);
+            
+            await teacher.speak("Now let's see how surface area changes with height when radius is fixed at 5 centimeters. The relationship is more complex because height affects the slant height through the Pythagorean theorem.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Chart 3: Comparison of different cone shapes
+            content.innerHTML = `
+                <h2 class="chart-title">Surface Area Comparison: Different Cone Shapes</h2>
+                <div class="chart-container">
+                    <canvas id="comparisonChart" width="600" height="400"></canvas>
+                </div>
+                <div class="formula-box">
+                    <p><strong>Analysis:</strong> Different cone proportions show varying surface area efficiency</p>
+                    <p><strong>Key Insight:</strong> Wider, shorter cones have higher surface area for the same volume</p>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                const coneTypes = ['Tall & Thin', 'Medium', 'Short & Wide', 'Very Wide'];
+                const csaValues = [94.2, 125.7, 188.5, 314.2];
+                const tsaValues = [113.1, 157.1, 235.6, 392.7];
+                
+                const chartData3 = {
+                    labels: coneTypes,
+                    datasets: [{
+                        label: 'Curved Surface Area (CSA)',
+                        data: csaValues,
+                        backgroundColor: [
+                            'rgba(79, 172, 254, 0.8)',
+                            'rgba(67, 233, 123, 0.8)',
+                            'rgba(255, 107, 107, 0.8)',
+                            'rgba(250, 112, 154, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(79, 172, 254, 1)',
+                            'rgba(67, 233, 123, 1)',
+                            'rgba(255, 107, 107, 1)',
+                            'rgba(250, 112, 154, 1)'
+                        ],
+                        borderWidth: 2
+                    }, {
+                        label: 'Total Surface Area (TSA)',
+                        data: tsaValues,
+                        backgroundColor: [
+                            'rgba(79, 172, 254, 0.4)',
+                            'rgba(67, 233, 123, 0.4)',
+                            'rgba(255, 107, 107, 0.4)',
+                            'rgba(250, 112, 154, 0.4)'
+                        ],
+                        borderColor: [
+                            'rgba(79, 172, 254, 1)',
+                            'rgba(67, 233, 123, 1)',
+                            'rgba(255, 107, 107, 1)',
+                            'rgba(250, 112, 154, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                };
+                
+                createChart('comparisonChart', 'bar', chartData3, {
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Surface Area Comparison: Different Cone Proportions',
+                            color: 'white',
+                            font: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Cone Type',
+                                color: 'white'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Surface Area (cm²)',
+                                color: 'white'
+                            }
+                        }
+                    }
+                });
+            }, 100);
+            
+            await teacher.speak("Finally, let's compare different cone shapes. Notice how wider, shorter cones have significantly higher surface area compared to tall, thin cones. This is important for applications like packaging and material usage.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Final summary
+            content.innerHTML += `
+                <div class="formula-box animate-slide-in">
+                    <h3>Key Insights from Chart Analysis:</h3>
+                    <p>• <strong>Radius has quadratic effect:</strong> Doubling radius more than doubles surface area</p>
+                    <p>• <strong>Height affects slant height:</strong> Taller cones have longer slant heights</p>
+                    <p>• <strong>Shape matters:</strong> Wide cones need more material than tall cones</p>
+                    <p>• <strong>Real applications:</strong> Consider surface area when designing cones for efficiency</p>
+                </div>
+            `;
+            
+            await teacher.speak("These charts reveal important mathematical relationships! Radius has a quadratic effect on surface area, while height affects it through the slant height relationship. Understanding these patterns helps in real-world applications like packaging design and material optimization.");
+        }
+
+        async function showCalculatorContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="example-title">Interactive Cone Calculator</h2>
+                <div class="input-group">
+                    <div class="input-container">
+                        <label>Radius (r)</label>
+                        <input type="range" class="slider" id="radius-slider" min="1" max="5" value="2" step="0.1">
+                        <div class="slider-value" id="radius-value">2 cm</div>
+                    </div>
+                    <div class="input-container">
+                        <label>Height (h)</label>
+                        <input type="range" class="slider" id="height-slider" min="2" max="8" value="4" step="0.1">
+                        <div class="slider-value" id="height-value">4 cm</div>
+                    </div>
+                </div>
+                <div class="formula-box">
+                    <p>Slant Height: <span id="slant-value" class="formula">4.47 cm</span></p>
+                    <p>Curved Surface Area: <span id="csa-value" class="formula">28.10 cm²</span></p>
+                    <p>Total Surface Area: <span id="tsa-value" class="formula">40.66 cm²</span></p>
+                </div>
+            `;
+            
+            // Setup interactive calculator
+            setTimeout(() => {
+                // Update calculations based on sliders
+                function updateCalculations() {
+                    const r = parseFloat(document.getElementById('radius-slider').value);
+                    const h = parseFloat(document.getElementById('height-slider').value);
+                    
+                    // Update display values
+                    document.getElementById('radius-value').textContent = r + ' cm';
+                    document.getElementById('height-value').textContent = h + ' cm';
+                    
+                    // Calculate values
+                    const l = Math.sqrt(r * r + h * h);
+                    const csa = Math.PI * r * l;
+                    const tsa = csa + Math.PI * r * r;
+                    
+                    // Update calculations
+                    document.getElementById('slant-value').textContent = l.toFixed(2) + ' cm';
+                    document.getElementById('csa-value').textContent = csa.toFixed(2) + ' cm²';
+                    document.getElementById('tsa-value').textContent = tsa.toFixed(2) + ' cm²';
+                }
+                
+                document.getElementById('radius-slider').addEventListener('input', updateCalculations);
+                document.getElementById('height-slider').addEventListener('input', updateCalculations);
+            }, 100);
+            
+            await teacher.speak("Now let's explore how changing the dimensions affects the surface area calculations. Try adjusting the radius and height!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Notice how the slant height changes as you adjust the other dimensions. This affects the surface area calculations too!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Try different combinations of radius and height to see how the surface area values change according to our formulas!");
+        }
+
+        async function showCompleteLesson() {
+            const taskId = `complete-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            // Welcome
+            const welcomeContent = createStageContent();
+            welcomeContent.innerHTML = `
+                <h2 class="example-title">Complete Cone Lesson</h2>
+                <div class="value-display">Let's Learn Everything!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    We'll explore cones step by step, from basic concepts to real applications.
+                </p>
+            `;
+            
+            await teacher.speak("Welcome to the complete lesson on the surface area of right circular cones! Let's begin our journey.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Introduction
+            await showIntroductionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Derivation
+            await teacher.speak("Let's understand where the surface area formula comes from.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showDerivationContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Chart Analysis
+            await teacher.speak("Let's analyze the mathematical relationships through visual charts!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showChartContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Examples
+            await teacher.speak("Time to practice with some examples!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showExamplesContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Real World Applications
+            await teacher.speak("Let's see how cones are used in real life!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showRealWorldContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Interactive Calculator
+            await teacher.speak("Now let's try the interactive calculator to practice with different cone dimensions!");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showCalculatorContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Final message
+            const finalContent = createStageContent();
+            finalContent.innerHTML = `
+                <h2 class="example-title">Congratulations!</h2>
+                <div class="value-display">🎉 Lesson Complete! 🎉</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    You've mastered the surface area of cones! You understand the concepts,
+                    can derive the formula, and solve problems. Try the quiz to test your knowledge further!
+                </p>
+            `;
+            
+            await teacher.speak("Congratulations! You've completed the full lesson on cone surface area. You now understand what cones are, how to find their surface area, and where this knowledge is useful. Excellent work!");
+            
+            isPlaying = false;
+        }
+
+        function resetApplication() {
+            stopCurrentDemo();
+            
+            // Clear stage and show welcome
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 style="font-size: 2rem; margin-bottom: 20px;">Welcome to Cone Geometry!</h2>
+                <div class="value-display">Let's Explore 3D Shapes!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Cones are fascinating 3D shapes all around us - from ice cream cones to traffic cones! 
+                    Choose a lesson below to start your mathematical journey!
+                </p>
+            `;
+            
+            // Clear active button states
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Reset current demo
+            currentDemo = null;
+            
+            // Create new teacher and welcome message
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to continue exploring the fascinating world of cones!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize teacher
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome to the surface area of cones! Choose any lesson to begin your mathematical journey!");
+            }, 500);
+            
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Clear active states
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'derivation':
+                            showDerivation();
+                            break;
+                        case 'examples':
+                            showExamples();
+                            break;
+                        case 'interactive':
+                            showInteractive();
+                            break;
+                        case 'realworld':
+                            showRealWorld();
+                            break;
+                        case 'chart':
+                            showChart();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'calculator':
+                            showCalculator();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+            
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

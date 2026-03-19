@@ -1,0 +1,2473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sound - Interactive Physics Learning</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --text-dark: #1a202c;
+            --shadow-primary: 0 20px 40px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 25px 50px rgba(0, 0, 0, 0.4);
+            --border-radius: 20px;
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Glassmorphism utility classes */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .glass-hover:hover {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-5px);
+        }
+
+        /* Enhanced Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.15) rotate(10deg);
+            box-shadow: 0 0 30px rgba(79, 172, 254, 0.6);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 30px;
+        }
+
+        /* Enhanced Header */
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding: 40px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--primary-gradient);
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        .header h1 {
+            font-size: 4rem;
+            background: var(--accent-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-weight: 800;
+            letter-spacing: -2px;
+            animation: titleFloat 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleFloat {
+            0% { 
+                transform: translateY(0);
+                filter: drop-shadow(0 5px 15px rgba(79, 172, 254, 0.3));
+            }
+            100% { 
+                transform: translateY(-10px);
+                filter: drop-shadow(0 15px 30px rgba(79, 172, 254, 0.5));
+            }
+        }
+
+        .header p {
+            font-size: 1.4rem;
+            color: var(--text-secondary);
+            max-width: 900px;
+            margin: 0 auto;
+            font-weight: 300;
+        }
+
+        /* Demo Stage */
+        .demo-stage {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            min-height: 750px;
+            position: relative;
+            margin: 50px 0;
+            box-shadow: var(--shadow-primary);
+            overflow: hidden;
+            border: 2px solid var(--glass-border);
+            padding: 50px;
+        }
+
+        .demo-stage::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--dark-gradient);
+            opacity: 0.05;
+            z-index: -1;
+        }
+
+        /* Sound Production Demo */
+        .sound-production-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 650px;
+        }
+
+        .sound-production-demo.active {
+            display: block;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .sound-scene {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(to bottom, #e3f2fd 0%, #bbdefb 30%, #90caf9 70%, #64b5f6 100%);
+            border-radius: 25px;
+            overflow: hidden;
+            border: 3px solid var(--glass-border);
+            box-shadow: inset 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Enhanced Ground */
+        .ground {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: var(--success-gradient);
+            box-shadow: inset 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .ground::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 15px,
+                rgba(255, 255, 255, 0.2) 15px,
+                rgba(255, 255, 255, 0.2) 17px
+            );
+        }
+
+        /* Enhanced Tuning Fork - No Cursor/Hover */
+        .tuning-fork {
+            position: absolute;
+            bottom: 100px;
+            left: 250px;
+            width: 80px;
+            height: 150px;
+            z-index: 50;
+            transition: var(--transition);
+            filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
+        }
+
+        .fork-handle {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 15px;
+            height: 80px;
+            background: linear-gradient(135deg, #8e9aaf, #6c757d, #495057);
+            border-radius: 8px;
+            box-shadow: 
+                inset 0 2px 4px rgba(255, 255, 255, 0.3),
+                0 8px 16px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .fork-prongs {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70px;
+            height: 90px;
+        }
+
+        .fork-prong {
+            position: absolute;
+            width: 8px;
+            height: 90px;
+            background: linear-gradient(135deg, #adb5bd, #6c757d, #495057);
+            border-radius: 4px;
+            box-shadow: 
+                inset 0 2px 4px rgba(255, 255, 255, 0.3),
+                0 4px 8px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transform-origin: bottom center;
+        }
+
+        .fork-prong.left {
+            left: 15px;
+        }
+
+        .fork-prong.right {
+            right: 15px;
+        }
+
+        .fork-prong.vibrating {
+            animation: enhanced-vibrate 0.06s infinite alternate ease-in-out;
+        }
+
+        @keyframes enhanced-vibrate {
+            0% { 
+                transform: translateX(-2px) scale(1, 0.97);
+                box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3), 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 15px rgba(79, 172, 254, 0.6);
+            }
+            100% { 
+                transform: translateX(2px) scale(1, 1.03);
+                box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3), 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 25px rgba(79, 172, 254, 0.8);
+            }
+        }
+
+        .fork-base {
+            position: absolute;
+            bottom: 55px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 20px;
+            background: linear-gradient(135deg, #adb5bd, #6c757d);
+            border-radius: 10px;
+            box-shadow: 
+                inset 0 2px 4px rgba(255, 255, 255, 0.3),
+                0 4px 8px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Enhanced Sound Waves */
+        .sound-wave {
+            position: absolute;
+            border: 4px solid #4facfe;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 40;
+        }
+
+        .sound-wave.active {
+            animation: enhanced-propagate 3.5s ease-out forwards;
+        }
+
+        @keyframes enhanced-propagate {
+            0% {
+                width: 20px;
+                height: 20px;
+                opacity: 1;
+                border-width: 5px;
+                filter: drop-shadow(0 0 10px rgba(79, 172, 254, 1));
+            }
+            50% {
+                opacity: 0.7;
+                border-width: 3px;
+                filter: drop-shadow(0 0 20px rgba(79, 172, 254, 0.6));
+            }
+            100% {
+                width: 600px;
+                height: 600px;
+                opacity: 0;
+                border-width: 1px;
+                filter: drop-shadow(0 0 30px rgba(79, 172, 254, 0.1));
+            }
+        }
+
+        /* Sound Visualization Panels */
+        .sound-info {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            width: 320px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            backdrop-filter: blur(20px);
+            z-index: 60;
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+        }
+
+        .sound-info:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .info-title {
+            color: #4facfe;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 0 15px rgba(79, 172, 254, 0.5);
+        }
+
+        .info-content {
+            color: var(--text-dark);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .frequency-display {
+            background: var(--accent-gradient);
+            padding: 15px;
+            border-radius: 15px;
+            margin: 15px 0;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        .frequency-value {
+            color: #ffffff;
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+            font-size: 1.5rem;
+            font-weight: 800;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            animation: frequency-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes frequency-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        /* Enhanced Wave Visualization */
+        .wave-visualization {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 400px;
+            height: 200px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            backdrop-filter: blur(20px);
+            z-index: 60;
+            box-shadow: var(--shadow-primary);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .wave-visualization.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .wave-canvas {
+            width: 100%;
+            height: 117px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .wave-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .wave-control {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            margin: 0 8px;
+        }
+
+        .wave-control label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .wave-control input {
+            width: 100%;
+            max-width: 90px;
+            accent-color: #4facfe;
+        }
+
+        /* Frequency Spectrum Canvas */
+        .frequency-spectrum {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            width: 350px;
+            height: 220px;
+            background: var(--glass-bg);
+            border: 2px solid #43e97b;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            backdrop-filter: blur(20px);
+            z-index: 60;
+            box-shadow: var(--shadow-primary);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .frequency-spectrum.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .spectrum-canvas {
+            width: 100%;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(67, 233, 123, 0.3);
+        }
+
+        .spectrum-title {
+            color: #43e97b;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(67, 233, 123, 0.5);
+        }
+
+        /* Individual Activity Demos */
+        .activity1-demo, .activity2-demo, .activity3-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 650px;
+            overflow: hidden;
+        }
+
+        .activity1-demo.active, .activity2-demo.active, .activity3-demo.active {
+            display: block;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .activity-content {
+            background: var(--glass-bg);
+            border-radius: 25px;
+            padding: 40px;
+            height: 100%;
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            overflow-y: auto;
+        }
+
+        .activity-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .activity-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: iconFloat 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes iconFloat {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(-10px) scale(1.05); }
+        }
+
+        .activity-title {
+            color: var(--text-accent);
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+        }
+
+        .activity-description {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .activity-section {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            border: 1px solid var(--glass-border);
+        }
+
+        .activity-section h3 {
+            color: #4facfe;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .activity-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .activity-section li {
+            color: var(--text-secondary);
+            margin: 10px 0;
+            padding-left: 25px;
+            position: relative;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .activity-section li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: #43e97b;
+            font-weight: bold;
+        }
+
+        /* Musical Instruments Demo - Fixed Grid with Reduced Height */
+        .instruments-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 650px;
+            overflow: hidden;
+        }
+
+        .instruments-demo.active {
+            display: block;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .instruments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            height: 100%;
+            overflow-y: auto;
+            align-content: start;
+        }
+
+        .instrument-card {
+            background: rgba(0, 0, 0, 0.25);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+            cursor: pointer;
+            height: 220px;
+            min-height: 220px;
+            max-height: 220px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .instrument-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--success-gradient);
+            opacity: 0;
+            transition: var(--transition);
+            z-index: -1;
+        }
+
+        .instrument-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--shadow-hover);
+            background: rgba(0, 0, 0, 0.35);
+        }
+
+        .instrument-card:hover::before {
+            opacity: 0.15;
+        }
+
+        .instrument-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.3));
+            animation: instrumentFloat 2.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes instrumentFloat {
+            0% { transform: scale(1) rotate(-2deg); }
+            100% { transform: scale(1.08) rotate(2deg); }
+        }
+
+        .instrument-name {
+            color: #43e97b;
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            text-shadow: 0 0 10px rgba(67, 233, 123, 0.3);
+        }
+
+        .instrument-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-bottom: 10px;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .vibrating-part {
+            background: var(--warning-gradient);
+            border-radius: 10px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            box-shadow: 0 3px 10px rgba(250, 112, 154, 0.3);
+        }
+
+        .vibrating-part h4 {
+            color: var(--text-dark);
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+            font-weight: 700;
+        }
+
+        .vibrating-part p {
+            color: var(--text-dark);
+            font-size: 0.8rem;
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        /* Sound Properties Demo - Simplified */
+        .properties-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 650px;
+            overflow: hidden;
+        }
+
+        .properties-demo.active {
+            display: block;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .properties-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 20px;
+            overflow-y: auto;
+            gap: 30px;
+        }
+
+        .property-section {
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(20px);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .property-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--primary-gradient);
+            opacity: 0;
+            transition: var(--transition);
+            z-index: -1;
+        }
+
+        .property-section:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--shadow-hover);
+            background: rgba(0, 0, 0, 0.35);
+        }
+
+        .property-section:hover::before {
+            opacity: 0.15;
+        }
+
+        .property-title {
+            color: #4facfe;
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 25px;
+            text-align: center;
+            text-shadow: 0 0 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .property-content {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .property-content p {
+            margin-bottom: 15px;
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 50px 0;
+            padding: 40px;
+            background: var(--glass-bg);
+            border-radius: 30px;
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .controls-title {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            color: #4facfe;
+            font-weight: 800;
+            text-shadow: 0 0 25px rgba(79, 172, 254, 0.4);
+            animation: titleGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            0% { text-shadow: 0 0 25px rgba(79, 172, 254, 0.4); }
+            100% { text-shadow: 0 0 40px rgba(79, 172, 254, 0.7); }
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+
+        .demo-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 18px 32px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+            min-width: 220px;
+            border: 2px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .demo-btn:hover::before {
+            left: 100%;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .demo-btn:active {
+            transform: translateY(-2px) scale(1.02);
+        }
+
+        .demo-btn.active {
+            background: var(--warning-gradient);
+            box-shadow: 0 10px 30px rgba(250, 112, 154, 0.4);
+            transform: translateY(-3px);
+        }
+
+        /* Theory Section */
+        .theory-section {
+            background: var(--glass-bg);
+            border-radius: 30px;
+            padding: 50px;
+            margin: 50px 0;
+            border: 3px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .theory-title {
+            font-size: 2.2rem;
+            color: #4facfe;
+            margin-bottom: 35px;
+            text-align: center;
+            font-weight: 800;
+            text-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .concept-card {
+            background: rgba(0, 0, 0, 0.15);
+            padding: 30px;
+            border-radius: 25px;
+            border: 2px solid var(--glass-border);
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .concept-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-hover);
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        .concept-title {
+            color: #4facfe;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(79, 172, 254, 0.3);
+        }
+
+        .concept-text {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            font-size: 1.1rem;
+        }
+
+        /* Progress Indicator */
+        .progress-indicator {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px 20px;
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .progress-indicator.visible {
+            opacity: 1;
+        }
+
+        .progress-text {
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            width: 200px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-gradient);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 3px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .instruments-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .sound-info, .wave-visualization, .frequency-spectrum {
+                position: relative;
+                width: 100%;
+                margin: 15px 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.8rem;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .demo-btn {
+                min-width: 280px;
+            }
+            
+            .sound-scene {
+                height: 450px;
+            }
+            
+            .instruments-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .concept-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading Animation */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.8s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 5px solid rgba(79, 172, 254, 0.3);
+            border-top: 5px solid #4facfe;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            position: absolute;
+            bottom: 100px;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            font-weight: 600;
+            animation: fadeInOut 2s ease-in-out infinite;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div>
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading Interactive Sound Learning...</div>
+        </div>
+    </div>
+
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="progress-indicator" id="progress-indicator">
+        <div class="progress-text">Lesson Progress</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Sound - Physics in Action</h1>
+            <p>Discover the fascinating world of sound through interactive demonstrations! Learn how vibrations create sound, explore wave properties, and understand how musical instruments produce the beautiful sounds we hear every day.</p>
+        </div>
+
+        <!-- Demo Stage -->
+        <div class="demo-stage" id="stage">
+            <!-- Sound Production Demo -->
+            <div class="sound-production-demo active" id="sound-production-demo">
+                <div class="sound-scene">
+                    <div class="ground"></div>
+                    
+                    <!-- Tuning Fork - No Click Interaction -->
+                    <div class="tuning-fork" id="tuning-fork">
+                        <div class="fork-handle"></div>
+                        <div class="fork-prongs">
+                            <div class="fork-prong left" id="left-prong"></div>
+                            <div class="fork-prong right" id="right-prong"></div>
+                        </div>
+                        <div class="fork-base"></div>
+                    </div>
+                </div>
+                
+                <!-- Sound Info Panel -->
+                <div class="sound-info">
+                    <div class="info-title">🎵 Sound Properties</div>
+                    <div class="info-content">
+                        <p>Sound is produced by vibrating objects and travels as waves through air.</p>
+                        <div class="frequency-display">
+                            <div style="color: rgba(255, 255, 255, 0.8); margin-bottom: 8px;">Frequency:</div>
+                            <div class="frequency-value" id="frequency-value">440 Hz</div>
+                        </div>
+                        <p><strong>🎯 Watch the automatic demonstration</strong> to see sound production in action!</p>
+                        <p style="margin-top: 12px; font-size: 0.9rem; color: #94a3b8;">Observe the vibrations create sound waves and affect nearby objects!</p>
+                    </div>
+                </div>
+                
+                <!-- Wave Visualization -->
+                <div class="wave-visualization" id="wave-visualization">
+                    <div class="info-title">📊 Sound Wave</div>
+                    <canvas class="wave-canvas" id="wave-canvas" width="350" height="130"></canvas>
+                    <div class="wave-controls">
+                        <div class="wave-control">
+                            <label>Frequency</label>
+                            <input type="range" min="100" max="1000" value="440" id="freq-slider">
+                        </div>
+                        <div class="wave-control">
+                            <label>Amplitude</label>
+                            <input type="range" min="10" max="50" value="25" id="amp-slider">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Frequency Spectrum -->
+                <div class="frequency-spectrum" id="frequency-spectrum">
+                    <div class="spectrum-title">🌈 Frequency Spectrum</div>
+                    <canvas class="spectrum-canvas" id="spectrum-canvas" width="300" height="150"></canvas>
+                </div>
+            </div>
+
+            <!-- Activity 1 Demo -->
+            <div class="activity1-demo" id="activity1-demo">
+                <div class="activity-content">
+                    <div class="activity-header">
+                        <div class="activity-icon">🎵</div>
+                        <div class="activity-title">Activity 11.1: Tuning Fork Experiment</div>
+                        <div class="activity-description">
+                            Discover how vibrating objects produce sound and transfer energy to nearby objects
+                        </div>
+                    </div>
+                    
+                    <div class="activity-section">
+                        <h3>Materials Required</h3>
+                        <ul>
+                            <li>Tuning fork</li>
+                            <li>Rubber pad or wooden block</li>
+                            <li>Table tennis ball</li>
+                            <li>Thread or string</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="activity-section">
+                        <h3>Procedure</h3>
+                        <ul>
+                            <li>Strike the tuning fork gently on a rubber pad</li>
+                            <li>Bring the vibrating fork near your ear</li>
+                            <li>Listen carefully to the sound produced</li>
+                            <li>Touch one prong with your finger to stop vibration</li>
+                            <li>Suspend the tennis ball with thread</li>
+                            <li>Touch the ball gently with the vibrating fork</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="activity-section">
+                        <h3>Observation</h3>
+                        <ul>
+                            <li>The tuning fork produces a clear musical note when struck</li>
+                            <li>Sound stops when vibration is stopped by touching</li>
+                            <li>The suspended ball moves when touched by vibrating fork</li>
+                            <li>Ball movement proves that vibrations transfer energy</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="activity-section">
+                        <h3>Conclusion</h3>
+                        <ul>
+                            <li>Sound is produced only when objects vibrate</li>
+                            <li>Vibrating objects transfer energy to their surroundings</li>
+                            <li>Sound carries energy from source to receiver</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity 2 Demo -->
+            <div class="activity2-demo" id="activity2-demo">
+                <div class="activity-content">
+                    <div class="activity-header">
+                        <div class="activity-icon">💧</div>
+                        <div class="activity-title">Activity 11.2: Sound in Different Media</div>
+                        <div class="activity-description">
+                            Explore how sound travels through different materials and media
+                        </div>
+                    </div>
+                    
+                    <div class="activity-section">
+                        <h3>Materials Required</h3>
+                        <ul>
+                            <li>Metal scale or ruler</li>
+                            <li>Wooden desk or table</li>
+                            <li>Water in a container</li>
+                            <li>Small stones or coins</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="activity-section">
+                        <h3>Procedure</h3>
+                        <ul>
+                            <li>Place your ear on one end of a long table</li>
+                            <li>Ask a friend to gently tap the other end</li>
+                            <li>Compare the sound heard through table vs air</li>
+                            <li>Drop a small stone in water container</li>
+                            <li>Observe the ripples formed on water surface</li>
+                            <li>Listen to sounds underwater in a swimming pool</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="activity-section">
+                        <h3>Observation</h3>
+                        <ul>
+                            <li>Sound travels faster and clearer through solids</li>
+                            <li>Wooden table conducts sound very well</li>
+                            <li>Water ripples show how disturbances travel</li>
+                            <li>Sound can be heard clearly underwater</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="activity-section">
+                        <h3>Conclusion</h3>
+                        <ul>
+                            <li>Sound travels through solids, liquids, and gases</li>
+                            <li>Sound travels faster in denser media</li>
+                            <li>Sound needs a medium to travel</li>
+                        </ul>
+                    </div>
+
+                    <!-- Add a canvas for wave propagation visualization -->
+                    <div class="wave-propagation" style="margin-top: 30px; text-align: center;">
+                        <h3 style="color: #4facfe; margin-bottom: 15px;">Wave Propagation in Different Media</h3>
+                        <canvas id="propagation-canvas" width="400" height="200" style="background: rgba(255, 255, 255, 0.05); border-radius: 10px; border: 1px solid var(--glass-border);"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity 3 Demo -->
+            <div class="activity3-demo" id="activity3-demo">
+                <div class="activity-content">
+                    <div class="activity-header">
+                        <div class="activity-icon">🎶</div>
+                        <div class="activity-title">Activity 11.3: Musical Instruments Analysis</div>
+                        <div class="activity-description">
+                            Identify the vibrating parts in different musical instruments
+                        </div>
+                    </div>
+                    
+                    <div class="activity-section">
+                        <h3>Instruments to Study</h3>
+                        <ul>
+                            <li>Guitar or violin (stringed instruments)</li>
+                            <li>Drum or tabla (percussion instruments)</li>
+                            <li>Flute or recorder (wind instruments)</li>
+                            <li>Piano or harmonium (keyboard instruments)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="activity-section">
+                        <h3>Investigation Process</h3>
+                        <ul>
+                            <li>Observe each instrument carefully</li>
+                            <li>Play or strike each instrument</li>
+                            <li>Identify which part is vibrating</li>
+                            <li>Feel the vibrations with your hands</li>
+                            <li>Record your observations in a table</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="activity-section">
+                        <h3>Findings</h3>
+                        <ul>
+                            <li>Guitar: Strings vibrate when plucked or strummed</li>
+                            <li>Drum: Stretched membrane vibrates when struck</li>
+                            <li>Flute: Air column inside the tube vibrates</li>
+                            <li>Piano: Internal strings vibrate when keys are pressed</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="activity-section">
+                        <h3>Conclusion</h3>
+                        <ul>
+                            <li>All musical instruments have vibrating parts</li>
+                            <li>Different types: strings, membranes, air columns</li>
+                            <li>Vibration frequency determines pitch</li>
+                            <li>Amplitude of vibration determines loudness</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Musical Instruments Demo -->
+            <div class="instruments-demo" id="instruments-demo">
+                <div class="instruments-grid">
+                    <div class="instrument-card" onclick="playInstrument('guitar')">
+                        <div class="instrument-icon">🎸</div>
+                        <div class="instrument-name">Guitar</div>
+                        <div class="instrument-description">
+                            A stringed instrument where sound is produced by vibrating strings of different tensions and lengths
+                        </div>
+                        <div class="vibrating-part">
+                            <h4>Vibrating Part:</h4>
+                            <p>Strings vibrate when plucked, strummed, or bowed</p>
+                        </div>
+                    </div>
+
+                    <div class="instrument-card" onclick="playInstrument('drum')">
+                        <div class="instrument-icon">🥁</div>
+                        <div class="instrument-name">Drum</div>
+                        <div class="instrument-description">
+                            A percussion instrument with a stretched membrane that produces sound through vibration
+                        </div>
+                        <div class="vibrating-part">
+                            <h4>Vibrating Part:</h4>
+                            <p>Drumhead membrane vibrates when struck with hands or sticks</p>
+                        </div>
+                    </div>
+
+                    <div class="instrument-card" onclick="playInstrument('flute')">
+                        <div class="instrument-icon">🎵</div>
+                        <div class="instrument-name">Flute</div>
+                        <div class="instrument-description">
+                            A wind instrument where air column vibrations create beautiful melodic tones
+                        </div>
+                        <div class="vibrating-part">
+                            <h4>Vibrating Part:</h4>
+                            <p>Air column inside the tube vibrates when air is blown across holes</p>
+                        </div>
+                    </div>
+
+                    <div class="instrument-card" onclick="playInstrument('piano')">
+                        <div class="instrument-icon">🎹</div>
+                        <div class="instrument-name">Piano</div>
+                        <div class="instrument-description">
+                            A keyboard instrument with internal hammers that strike strings to produce sound
+                        </div>
+                        <div class="vibrating-part">
+                            <h4>Vibrating Part:</h4>
+                            <p>Internal strings vibrate when struck by felt hammers</p>
+                        </div>
+                    </div>
+
+                    <div class="instrument-card" onclick="playInstrument('violin')">
+                        <div class="instrument-icon">🎻</div>
+                        <div class="instrument-name">Violin</div>
+                        <div class="instrument-description">
+                            A bowed string instrument with four strings that produce different pitches
+                        </div>
+                        <div class="vibrating-part">
+                            <h4>Vibrating Part:</h4>
+                            <p>Strings vibrate when bowed or plucked, amplified by the wooden body</p>
+                        </div>
+                    </div>
+
+                    <div class="instrument-card" onclick="playInstrument('bell')">
+                        <div class="instrument-icon">🔔</div>
+                        <div class="instrument-name">Bell</div>
+                        <div class="instrument-description">
+                            A percussion instrument where the entire metal body vibrates to produce sound
+                        </div>
+                        <div class="vibrating-part">
+                            <h4>Vibrating Part:</h4>
+                            <p>The entire bell body vibrates when struck by a clapper or hammer</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sound Properties Demo -->
+            <div class="properties-demo" id="properties-demo">
+                <div class="properties-container">
+                    <div class="property-section">
+                        <div class="property-title">🎵 What is Sound?</div>
+                        <div class="property-content">
+                            <p>Sound is a form of energy created when objects vibrate. It travels through air, water, and solids as waves, carrying energy from the source to our ears where we perceive it as hearing.</p>
+                            <p><strong>Key Points:</strong> Sound requires vibration • Needs a medium to travel • Carries energy • Travels at different speeds in different materials</p>
+                        </div>
+                    </div>
+
+                    <div class="property-section">
+                        <div class="property-title">⚡ Sound and Energy</div>
+                        <div class="property-content">
+                            <p>Sound demonstrates energy conservation - when you speak, clap, or play music, you convert mechanical energy into sound energy. This follows the law: "Energy cannot be created or destroyed, only transformed."</p>
+                            <p><strong>Examples:</strong> Voice → vocal cord vibrations • Clapping → air compression • Instruments → string/membrane vibrations • Speakers → electrical to sound energy</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="demo-title">Interactive Sound Learning Experience</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn active" data-demo="complete">📚 Complete Lesson</button>
+                <button class="demo-btn" data-demo="production">🔬 Sound Production</button>
+                <button class="demo-btn" data-demo="activity1">🎵 Activity 11.1</button>
+                <button class="demo-btn" data-demo="activity2">💧 Activity 11.2</button>
+                <button class="demo-btn" data-demo="activity3">🎶 Activity 11.3</button>
+                <button class="demo-btn" data-demo="instruments">🎵 Musical Instruments</button>
+                <button class="demo-btn" data-demo="properties">📖 Sound Properties</button>
+                <button class="demo-btn" data-demo="reset">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Theory Section -->
+        <div class="theory-section">
+            <div class="theory-title">Understanding Sound Physics</div>
+            
+            <div class="concept-grid">
+                <div class="concept-card">
+                    <div class="concept-title">Sound as Energy</div>
+                    <div class="concept-text">
+                        Sound is a form of energy that travels in waves through various media. When objects vibrate, they transfer kinetic energy to surrounding air molecules, creating the compressions and rarefactions we perceive as sound.
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <div class="concept-title">Vibration is Essential</div>
+                    <div class="concept-text">
+                        All sounds originate from vibrations. Whether it's a guitar string, vocal cords, or a drum membrane, rapid back-and-forth motion creates the disturbances that become sound waves traveling through the air.
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <div class="concept-title">Medium is Required</div>
+                    <div class="concept-text">
+                        Sound cannot travel through empty space - it needs a medium like air, water, or solid materials. The density of the medium affects how fast sound travels, with sound moving fastest through solids.
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <div class="concept-title">Energy Conservation</div>
+                    <div class="concept-text">
+                        When producing sound, we convert mechanical energy (like the movement of our vocal cords or hands clapping) into sound energy. This demonstrates the fundamental principle that energy is conserved and transformed.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced Animation Management System
+        class AnimationManager {
+            constructor() {
+                this.activeAnimations = new Set();
+                this.animationTimeouts = new Set();
+                this.animationIntervals = new Set();
+                this.canvasAnimations = new Map();
+            }
+
+            addAnimation(animation) {
+                this.activeAnimations.add(animation);
+                return animation;
+            }
+
+            addTimeout(timeoutId) {
+                this.animationTimeouts.add(timeoutId);
+                return timeoutId;
+            }
+
+            addInterval(intervalId) {
+                this.animationIntervals.add(intervalId);
+                return intervalId;
+            }
+
+            addCanvasAnimation(key, animationId) {
+                if (this.canvasAnimations.has(key)) {
+                    cancelAnimationFrame(this.canvasAnimations.get(key));
+                }
+                this.canvasAnimations.set(key, animationId);
+                return animationId;
+            }
+
+            cleanup() {
+                gsap.killTweensOf("*");
+                this.animationTimeouts.forEach(id => clearTimeout(id));
+                this.animationTimeouts.clear();
+                this.animationIntervals.forEach(id => clearInterval(id));
+                this.animationIntervals.clear();
+                this.canvasAnimations.forEach(id => cancelAnimationFrame(id));
+                this.canvasAnimations.clear();
+                this.activeAnimations.clear();
+            }
+        }
+
+        // Enhanced Voice Teacher System with Full Narration
+        class SoundTeacher {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.isDestroyed = false;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.85, pitch: 1.0, volume: 0.9 };
+                this.currentContext = null;
+                this.queue = [];
+                this.isProcessingQueue = false;
+                this.onComplete = null;
+            }
+
+            async speak(text, delay = 0, context = null) {
+                if (!this.isEnabled || !text || this.isDestroyed) return Promise.resolve();
+                
+                if (context) {
+                    this.currentContext = context;
+                }
+                
+                return new Promise((resolve) => {
+                    this.queue.push({
+                        text,
+                        delay,
+                        resolve,
+                        context: context || this.currentContext
+                    });
+                    
+                    if (!this.isProcessingQueue) {
+                        this.processQueue();
+                    }
+                });
+            }
+            
+            async processQueue() {
+                if (this.isProcessingQueue || this.queue.length === 0) return;
+                
+                this.isProcessingQueue = true;
+                
+                while (this.queue.length > 0) {
+                    const item = this.queue.shift();
+                    
+                    if (item.context && item.context !== this.currentContext) {
+                        item.resolve();
+                        continue;
+                    }
+                    
+                    await this.speakImmediate(item.text, item.delay);
+                    item.resolve();
+                }
+                
+                this.isProcessingQueue = false;
+                
+                // Call completion callback if set
+                if (this.onComplete) {
+                    this.onComplete();
+                    this.onComplete = null;
+                }
+            }
+            
+            async speakImmediate(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    const timeoutId = setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                    
+                    animationManager.addTimeout(timeoutId);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+                this.queue = [];
+                this.isProcessingQueue = false;
+                this.onComplete = null;
+            }
+            
+            setContext(context) {
+                this.currentContext = context;
+                this.queue = this.queue.filter(item => !item.context || item.context === context);
+            }
+
+            setOnComplete(callback) {
+                this.onComplete = callback;
+            }
+
+            toggle() {
+                this.isEnabled = !this.isEnabled;
+                if (!this.isEnabled) this.stop();
+                return this.isEnabled;
+            }
+            
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+                this.queue = [];
+                this.currentContext = null;
+                this.onComplete = null;
+            }
+        }
+
+        // Global variables
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let currentDemo = null;
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let animationManager = new AnimationManager();
+        let lessonProgress = 0;
+
+        // Sound properties
+        let currentFrequency = 440;
+        let currentAmplitude = 25;
+        let isVibrating = false;
+
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+            }
+            currentTeacher = new SoundTeacher();
+            return currentTeacher;
+        }
+
+        function updateProgress(percentage) {
+            lessonProgress = percentage;
+            document.getElementById('progress-fill').style.width = percentage + '%';
+            if (percentage > 0) {
+                document.getElementById('progress-indicator').classList.add('visible');
+            } else {
+                document.getElementById('progress-indicator').classList.remove('visible');
+            }
+        }
+
+        function hideAllDemos() {
+            document.querySelectorAll('.sound-production-demo, .activity1-demo, .activity2-demo, .activity3-demo, .instruments-demo, .properties-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+        }
+
+        function setActiveButton(activeBtn) {
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+        }
+
+        function updateTitle(title) {
+            document.getElementById('demo-title').textContent = title;
+        }
+        
+        function shouldContinue() {
+            return !currentDemoAborted;
+        }
+
+        function resetAll() {
+            animationManager.cleanup();
+            isVibrating = false;
+            updateProgress(0);
+            
+            // Reset tuning fork
+            document.getElementById('left-prong').classList.remove('vibrating');
+            document.getElementById('right-prong').classList.remove('vibrating');
+            
+            // Reset interactive elements
+            document.getElementById('wave-visualization').classList.remove('visible');
+            document.getElementById('frequency-spectrum').classList.remove('visible');
+            
+            // Clear dynamic elements
+            document.querySelectorAll('.sound-wave').forEach(wave => wave.remove());
+            document.querySelectorAll('.sound-particle').forEach(particle => particle.remove());
+            
+            // Reset sliders
+            document.getElementById('freq-slider').value = 440;
+            document.getElementById('amp-slider').value = 25;
+            currentFrequency = 440;
+            currentAmplitude = 25;
+            
+            // Update frequency display
+            document.getElementById('frequency-value').textContent = '440 Hz';
+            
+            hideAllDemos();
+            updateTitle("Interactive Sound Learning Experience");
+            
+            currentDemoAborted = false;
+            
+            // Show initial demo
+            document.getElementById('sound-production-demo').classList.add('active');
+        }
+        
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeoutId = setTimeout(resolve, ms);
+                animationManager.addTimeout(timeoutId);
+            });
+        }
+
+        // Enhanced sound wave creation with particles
+        function createSoundWave(x, y) {
+            const wave = document.createElement('div');
+            wave.className = 'sound-wave';
+            wave.style.left = (x - 10) + 'px';
+            wave.style.top = (y - 10) + 'px';
+            document.querySelector('.sound-scene').appendChild(wave);
+            
+            const timeoutId1 = setTimeout(() => {
+                wave.classList.add('active');
+            }, 50);
+            animationManager.addTimeout(timeoutId1);
+            
+            const timeoutId2 = setTimeout(() => {
+                if (wave.parentNode) {
+                    wave.parentNode.removeChild(wave);
+                }
+            }, 3500);
+            animationManager.addTimeout(timeoutId2);
+        }
+
+        // Enhanced wave visualization
+        function animateWaveVisualization() {
+            const canvas = document.getElementById('wave-canvas');
+            const ctx = canvas.getContext('2d');
+            let time = 0;
+            
+            function drawWave() {
+                if (!isVibrating) return;
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw grid
+                ctx.strokeStyle = 'rgba(79, 172, 254, 0.2)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let x = 0; x < canvas.width; x += 25) {
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                }
+                for (let y = 0; y < canvas.height; y += 25) {
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                }
+                ctx.stroke();
+                
+                // Draw center line
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, canvas.height / 2);
+                ctx.lineTo(canvas.width, canvas.height / 2);
+                ctx.stroke();
+                
+                // Draw wave
+                ctx.strokeStyle = '#4facfe';
+                ctx.lineWidth = 4;
+                ctx.shadowColor = '#4facfe';
+                ctx.shadowBlur = 15;
+                ctx.beginPath();
+                
+                const wavelength = 250 - (currentFrequency - 100) / 900 * 180;
+                const amplitude = currentAmplitude;
+                
+                for (let x = 0; x < canvas.width; x++) {
+                    const y = canvas.height / 2 + Math.sin((x * 2 * Math.PI / wavelength) + time) * amplitude;
+                    if (x === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                
+                time += 0.18;
+                
+                const animId = requestAnimationFrame(drawWave);
+                animationManager.addCanvasAnimation('wave', animId);
+            }
+            
+            drawWave();
+        }
+
+        // Enhanced frequency spectrum visualization
+        function animateFrequencySpectrum() {
+            const canvas = document.getElementById('spectrum-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            function drawSpectrum() {
+                if (!isVibrating) return;
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                const barCount = 60;
+                const barWidth = canvas.width / barCount;
+                
+                for (let i = 0; i < barCount; i++) {
+                    const frequency = i * 20 + 20;
+                    let height = 0;
+                    
+                    // Main frequency spike
+                    if (Math.abs(frequency - currentFrequency) < 60) {
+                        height = canvas.height * 0.9 * (currentAmplitude / 50);
+                    }
+                    
+                    // Harmonics
+                    if (Math.abs(frequency - currentFrequency * 2) < 40) {
+                        height = canvas.height * 0.5 * (currentAmplitude / 50);
+                    }
+                    if (Math.abs(frequency - currentFrequency * 3) < 30) {
+                        height = canvas.height * 0.3 * (currentAmplitude / 50);
+                    }
+                    
+                    // Add noise
+                    height += Math.random() * 15;
+                    
+                    const intensity = height / canvas.height;
+                    ctx.fillStyle = `hsl(${190 + intensity * 80}, 85%, ${45 + intensity * 45}%)`;
+                    
+                    ctx.fillRect(i * barWidth, canvas.height - height, barWidth - 1, height);
+                }
+                
+                const animId = requestAnimationFrame(drawSpectrum);
+                animationManager.addCanvasAnimation('spectrum', animId);
+            }
+            
+            drawSpectrum();
+        }
+
+        // Enhanced wave propagation visualization for Activity 2
+        function animateWavePropagation() {
+            const canvas = document.getElementById('propagation-canvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            let time = 0;
+            
+            function drawPropagation() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw media sections
+                const sectionWidth = canvas.width / 3;
+                
+                // Air (gas)
+                ctx.fillStyle = 'rgba(135, 206, 235, 0.3)';
+                ctx.fillRect(0, 0, sectionWidth, canvas.height);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px Inter';
+                ctx.fillText('Air (Gas)', 10, 20);
+                ctx.fillText('Speed: 343 m/s', 10, 40);
+                
+                // Water (liquid)
+                ctx.fillStyle = 'rgba(30, 144, 255, 0.4)';
+                ctx.fillRect(sectionWidth, 0, sectionWidth, canvas.height);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText('Water (Liquid)', sectionWidth + 10, 20);
+                ctx.fillText('Speed: 1500 m/s', sectionWidth + 10, 40);
+                
+                // Steel (solid)
+                ctx.fillStyle = 'rgba(105, 105, 105, 0.5)';
+                ctx.fillRect(sectionWidth * 2, 0, sectionWidth, canvas.height);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText('Steel (Solid)', sectionWidth * 2 + 10, 20);
+                ctx.fillText('Speed: 5000 m/s', sectionWidth * 2 + 10, 40);
+                
+                // Draw waves with different speeds
+                const centerY = canvas.height / 2;
+                
+                // Air wave (slow)
+                ctx.strokeStyle = '#4facfe';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                for (let x = 0; x < sectionWidth; x++) {
+                    const y = centerY + Math.sin((x * 0.05) - (time * 0.02)) * 20;
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                
+                // Water wave (medium)
+                ctx.strokeStyle = '#00bcd4';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                for (let x = sectionWidth; x < sectionWidth * 2; x++) {
+                    const y = centerY + Math.sin((x * 0.08) - (time * 0.05)) * 20;
+                    if (x === sectionWidth) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                
+                // Steel wave (fast)
+                ctx.strokeStyle = '#43e97b';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                for (let x = sectionWidth * 2; x < canvas.width; x++) {
+                    const y = centerY + Math.sin((x * 0.12) - (time * 0.08)) * 20;
+                    if (x === sectionWidth * 2) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                
+                time += 1;
+                const animId = requestAnimationFrame(drawPropagation);
+                animationManager.addCanvasAnimation('propagation', animId);
+            }
+            
+            drawPropagation();
+        }
+
+        // Enhanced tuning fork strike animation - fully automatic
+        async function strikeTuningFork() {
+            if (isVibrating) return;
+            
+            const teacher = currentTeacher || createNewTeacher();
+            const tuningFork = document.getElementById('tuning-fork');
+            const leftProng = document.getElementById('left-prong');
+            const rightProng = document.getElementById('right-prong');
+            
+            isVibrating = true;
+            
+            // Strike animation
+            const strikeAnimation = animationManager.addAnimation(
+                gsap.to(tuningFork, {
+                    duration: 0.15,
+                    rotation: 8,
+                    yoyo: true,
+                    repeat: 1,
+                    ease: "power2.inOut"
+                })
+            );
+            
+            leftProng.classList.add('vibrating');
+            rightProng.classList.add('vibrating');
+            
+            document.getElementById('frequency-value').textContent = currentFrequency + ' Hz';
+            
+            // Create sound waves
+            const forkRect = tuningFork.getBoundingClientRect();
+            const sceneRect = document.querySelector('.sound-scene').getBoundingClientRect();
+            const x = forkRect.left - sceneRect.left + 40;
+            const y = forkRect.top - sceneRect.top + 75;
+            
+            let waveCount = 0;
+            const maxWaves = 20; // Extended demonstration
+            const waveInterval = setInterval(() => {
+                if (waveCount >= maxWaves || !isVibrating) {
+                    clearInterval(waveInterval);
+                    return;
+                }
+                createSoundWave(x, y);
+                waveCount++;
+            }, 250);
+            animationManager.addInterval(waveInterval);
+            
+            document.getElementById('wave-visualization').classList.add('visible');
+            document.getElementById('frequency-spectrum').classList.add('visible');
+            
+            animateWaveVisualization();
+            animateFrequencySpectrum();
+            
+            // Stop vibration after demonstration
+            const stopDuration = 15000; // 15 seconds for complete demonstration
+            const stopTimeout = setTimeout(() => {
+                isVibrating = false;
+                leftProng.classList.remove('vibrating');
+                rightProng.classList.remove('vibrating');
+            }, stopDuration);
+            animationManager.addTimeout(stopTimeout);
+            
+            return new Promise(resolve => {
+                const resolveTimeout = setTimeout(resolve, stopDuration);
+                animationManager.addTimeout(resolveTimeout);
+            });
+        }
+
+        // Demo functions with full narration
+        async function showCompleteLesson() {
+            currentDemoAborted = true;
+            await wait(300);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            updateProgress(5);
+            
+            const teacher = createNewTeacher();
+            const lessonContext = 'complete-lesson';
+            teacher.setContext(lessonContext);
+            
+            updateTitle("📚 Complete Sound Physics Lesson");
+            
+            await teacher.speak("Welcome to our comprehensive lesson on Sound Physics! We'll explore how sound is produced, travels, and the fascinating world of vibrations through interactive demonstrations and activities. Let's begin our journey!", 0, lessonContext);
+            if (!shouldContinue()) return;
+            
+            updateProgress(12);
+            await showSoundProductionInternal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            updateProgress(25);
+            await wait(2000);
+            await showActivity1Internal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            updateProgress(40);
+            await wait(2000);
+            await showActivity2Internal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            updateProgress(55);
+            await wait(2000);
+            await showActivity3Internal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            updateProgress(70);
+            await wait(2000);
+            await showInstrumentsInternal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            updateProgress(85);
+            await wait(2000);
+            await showPropertiesInternal(lessonContext);
+            if (!shouldContinue()) return;
+            
+            updateProgress(100);
+            await teacher.speak("Congratulations! You've successfully completed the comprehensive lesson on Sound Physics. You now understand how vibrations create the amazing world of sounds around us, from the fundamental tuning fork experiment to complex musical instruments. Keep exploring the fascinating world of physics!", 0, lessonContext);
+            
+            isPlaying = false;
+        }
+
+        async function showSoundProduction() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            await showSoundProductionInternal('sound-production');
+            
+            isPlaying = false;
+        }
+
+        async function showSoundProductionInternal(parentContext = null) {
+            const demoContext = parentContext || 'sound-production';
+            const teacher = createNewTeacher();
+            teacher.setContext(demoContext);
+            
+            hideAllDemos();
+            
+            updateTitle("🔬 How Sound is Produced");
+            document.getElementById('sound-production-demo').classList.add('active');
+            
+            await teacher.speak("Sound is produced when objects vibrate. Let's explore this fundamental concept with a tuning fork - the classic demonstration of sound production. Watch as I demonstrate how vibrations create sound waves that travel through the air!", 0, demoContext);
+            
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("Now I'll strike the tuning fork to show you how vibrations produce sound...", 1000, demoContext);
+            
+            if (!shouldContinue()) return;
+            
+            // Automatic demonstration - always happens
+            await wait(1500);
+            await strikeTuningFork();
+            
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("Notice how the prongs vibrate and create visible sound waves spreading outward. These vibrations compress and expand the air molecules, creating the wave patterns you see. The frequency of 440 Hz means the fork vibrates 440 times per second!", 2000, demoContext);
+            
+            if (!shouldContinue()) return;
+            
+            await teacher.speak("Observe the wave visualization showing the sound pattern, and the frequency spectrum displaying the harmonic content of the sound. This demonstrates the complete process of sound production from vibration to wave propagation.", 3000, demoContext);
+            
+            if (!shouldContinue()) return;
+            
+            // Wait for vibration demonstration to complete
+            await wait(8000);
+            
+            if (parentContext === 'complete-lesson') {
+                await teacher.speak("Perfect! You've now seen how sound is produced through vibrations. Let's move on to our first hands-on activity to explore this concept further.", 0, demoContext);
+                
+                teacher.setOnComplete(() => {
+                    const autoSwitchTimeout = setTimeout(() => {
+                        if (shouldContinue()) {
+                            showActivity1Internal(parentContext);
+                        }
+                    }, 2000);
+                    animationManager.addTimeout(autoSwitchTimeout);
+                });
+            } else {
+                await teacher.speak("This demonstrates the fundamental principle that sound is created by vibrations and travels as waves through the air to reach our ears.", 0, demoContext);
+            }
+            
+            return true;
+        }
+
+        async function showActivity1() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            await showActivity1Internal('activity1');
+            
+            isPlaying = false;
+        }
+
+        async function showActivity1Internal(parentContext = null) {
+            const demoContext = parentContext || 'activity1';
+            const teacher = createNewTeacher();
+            teacher.setContext(demoContext);
+            
+            hideAllDemos();
+            
+            updateTitle("🎵 Activity 11.1: Tuning Fork Experiment");
+            document.getElementById('activity1-demo').classList.add('active');
+            
+            await teacher.speak("Activity 11.1 is the classic tuning fork experiment that demonstrates how vibrating objects produce sound and transfer energy. This fundamental experiment shows that sound is produced only when objects vibrate, and these vibrations can transfer energy to nearby objects like the suspended tennis ball.", 0, demoContext);
+            
+            if (parentContext === 'complete-lesson') {
+                teacher.setOnComplete(() => {
+                    const autoSwitchTimeout = setTimeout(() => {
+                        if (shouldContinue()) {
+                            showActivity2Internal(parentContext);
+                        }
+                    }, 3000);
+                    animationManager.addTimeout(autoSwitchTimeout);
+                });
+            }
+            
+            return true;
+        }
+
+        async function showActivity2() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            await showActivity2Internal('activity2');
+            
+            isPlaying = false;
+        }
+
+        async function showActivity2Internal(parentContext = null) {
+            const demoContext = parentContext || 'activity2';
+            const teacher = createNewTeacher();
+            teacher.setContext(demoContext);
+            
+            hideAllDemos();
+            
+            updateTitle("💧 Activity 11.2: Sound in Different Media");
+            document.getElementById('activity2-demo').classList.add('active');
+            
+            // Start the canvas animation
+            setTimeout(() => {
+                animateWavePropagation();
+            }, 500);
+            
+            await teacher.speak("Activity 11.2 explores how sound travels through different media. This experiment proves that sound travels through solids, liquids, and gases, but at different speeds. Sound travels fastest through solids like steel, slower through liquids like water, and slowest through gases like air.", 0, demoContext);
+            
+            if (parentContext === 'complete-lesson') {
+                teacher.setOnComplete(() => {
+                    const autoSwitchTimeout = setTimeout(() => {
+                        if (shouldContinue()) {
+                            showActivity3Internal(parentContext);
+                        }
+                    }, 3000);
+                    animationManager.addTimeout(autoSwitchTimeout);
+                });
+            }
+            
+            return true;
+        }
+
+        async function showActivity3() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            await showActivity3Internal('activity3');
+            
+            isPlaying = false;
+        }
+
+        async function showActivity3Internal(parentContext = null) {
+            const demoContext = parentContext || 'activity3';
+            const teacher = createNewTeacher();
+            teacher.setContext(demoContext);
+            
+            hideAllDemos();
+            
+            updateTitle("🎶 Activity 11.3: Musical Instruments Analysis");
+            document.getElementById('activity3-demo').classList.add('active');
+            
+            await teacher.speak("Activity 11.3 is about analyzing musical instruments to identify their vibrating parts. This investigation helps us understand that all musical instruments produce sound through vibration of specific parts - strings in guitars, membranes in drums, air columns in flutes, and internal strings in pianos.", 0, demoContext);
+            
+            if (parentContext === 'complete-lesson') {
+                teacher.setOnComplete(() => {
+                    const autoSwitchTimeout = setTimeout(() => {
+                        if (shouldContinue()) {
+                            showInstrumentsInternal(parentContext);
+                        }
+                    }, 3000);
+                    animationManager.addTimeout(autoSwitchTimeout);
+                });
+            }
+            
+            return true;
+        }
+
+        async function showInstruments() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            await showInstrumentsInternal('instruments');
+            
+            isPlaying = false;
+        }
+
+        async function showInstrumentsInternal(parentContext = null) {
+            const demoContext = parentContext || 'instruments';
+            const teacher = createNewTeacher();
+            teacher.setContext(demoContext);
+            
+            hideAllDemos();
+            
+            updateTitle("🎵 Musical Instruments and Vibrations");
+            document.getElementById('instruments-demo').classList.add('active');
+            
+            await teacher.speak("Musical instruments are perfect examples of how different types of vibrations create sound. Each instrument has a specific part that vibrates to produce its unique sound. Let's explore how each instrument works.", 0, demoContext);
+            
+            await teacher.speak("The guitar is a stringed instrument where sound is produced by vibrating strings of different tensions and lengths. When you pluck, strum, or bow the strings, they vibrate at specific frequencies to create different musical notes.", 1500, demoContext);
+            
+            await teacher.speak("The drum is a percussion instrument with a stretched membrane that produces sound through vibration. When the drumhead membrane is struck with hands or sticks, it vibrates and creates the rhythmic sounds we hear in music.", 2000, demoContext);
+            
+            await teacher.speak("The flute is a wind instrument where air column vibrations create beautiful melodic tones. When air is blown across the holes, the air column inside the tube vibrates at different frequencies to produce various notes.", 2000, demoContext);
+            
+            await teacher.speak("The piano is a keyboard instrument with internal hammers that strike strings to produce sound. When you press a key, a felt hammer strikes internal strings, making them vibrate and create the musical tones.", 2000, demoContext);
+            
+            await teacher.speak("The violin is a bowed string instrument with four strings that produce different pitches. The strings vibrate when bowed or plucked, and the wooden body amplifies these vibrations to create the beautiful violin sound.", 2000, demoContext);
+            
+            await teacher.speak("The bell is a percussion instrument where the entire metal body vibrates to produce sound. When struck by a clapper or hammer, the entire bell body vibrates, creating the resonant tones we associate with bells.", 2000, demoContext);
+            
+            if (parentContext === 'complete-lesson') {
+                teacher.setOnComplete(() => {
+                    const autoSwitchTimeout = setTimeout(() => {
+                        if (shouldContinue()) {
+                            showPropertiesInternal(parentContext);
+                        }
+                    }, 3000);
+                    animationManager.addTimeout(autoSwitchTimeout);
+                });
+            }
+            
+            return true;
+        }
+
+        async function showProperties() {
+            currentDemoAborted = true;
+            await wait(200);
+            
+            resetAll();
+            currentDemoAborted = false;
+            isPlaying = true;
+            
+            await showPropertiesInternal('properties');
+            
+            isPlaying = false;
+        }
+
+        async function showPropertiesInternal(parentContext = null) {
+            const demoContext = parentContext || 'properties';
+            const teacher = createNewTeacher();
+            teacher.setContext(demoContext);
+            
+            hideAllDemos();
+            
+            updateTitle("📖 Sound Properties and Theory");
+            document.getElementById('properties-demo').classList.add('active');
+            
+            await teacher.speak("Let's understand the fundamental properties of sound: what it is and its relationship with energy. Sound is everywhere around us, from the chirping of birds to the music we love!", 0, demoContext);
+            
+            await teacher.speak("Sound is a form of energy created when objects vibrate. It travels through air, water, and solids as waves, carrying energy from the source to our ears where we perceive it as hearing. Sound requires vibration, needs a medium to travel, carries energy, and travels at different speeds in different materials.", 2000, demoContext);
+            
+            await teacher.speak("Sound demonstrates energy conservation. When you speak, clap, or play music, you convert mechanical energy into sound energy. This follows the fundamental law that energy cannot be created or destroyed, only transformed. Examples include voice creating vocal cord vibrations, clapping causing air compression, and instruments producing vibrations.", 2000, demoContext);
+            
+            return true;
+        }
+
+        // Interactive functions
+        function playInstrument(instrument) {
+            const teacher = currentTeacher || createNewTeacher();
+            
+            const instrumentInfo = {
+                guitar: "The guitar produces sound through vibrating strings of different tensions and lengths. When you pluck, strum, or bow a string, it vibrates rapidly back and forth, creating sound waves that are amplified by the wooden body of the guitar.",
+                drum: "Drums create sound when the stretched membrane vibrates after being struck. The vibration of the drumhead pushes air molecules, creating sound waves. Different drum sizes and tensions produce different pitches and tones.",
+                flute: "In a flute, the air column inside the tube vibrates when you blow across the mouthpiece. Different fingering patterns change the length of the vibrating air column, producing different musical notes and melodies.",
+                piano: "A piano works by felt hammers striking internal strings when keys are pressed. The vibrating strings create the musical notes we hear, with longer, thicker strings producing lower pitches and shorter strings producing higher pitches.",
+                violin: "The violin produces sound through vibrating strings that are either bowed or plucked. The body of the violin acts as a resonator, amplifying the sound of the vibrating strings and giving the violin its distinctive tone.",
+                bell: "Bells produce sound when the entire metal body vibrates after being struck by a clapper or hammer. The shape, size, and material of the bell determine the pitch, tone, and resonance of the sound produced."
+            };
+            
+            teacher.speak(instrumentInfo[instrument], 0, 'instrument-' + instrument);
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide loading overlay
+            const loadingTimeout = setTimeout(() => {
+                document.getElementById('loading-overlay').classList.add('hidden');
+            }, 1200);
+            
+            // Wave control handlers
+            document.getElementById('freq-slider').addEventListener('input', function() {
+                currentFrequency = parseInt(this.value);
+                document.getElementById('frequency-value').textContent = currentFrequency + ' Hz';
+            });
+            
+            document.getElementById('amp-slider').addEventListener('input', function() {
+                currentAmplitude = parseInt(this.value);
+            });
+            
+            // Button click handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const demo = this.getAttribute('data-demo');
+                    setActiveButton(this);
+                    
+                    currentDemoAborted = true;
+                    if (currentTeacher) {
+                        currentTeacher.stop();
+                    }
+                    
+                    animationManager.cleanup();
+                    isVibrating = false;
+                    
+                    await wait(300);
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'production':
+                            showSoundProduction();
+                            break;
+                        case 'activity1':
+                            showActivity1();
+                            break;
+                        case 'activity2':
+                            showActivity2();
+                            break;
+                        case 'activity3':
+                            showActivity3();
+                            break;
+                        case 'instruments':
+                            showInstruments();
+                            break;
+                        case 'properties':
+                            showProperties();
+                            break;
+                        case 'reset':
+                            resetAll();
+                            setActiveButton(null);
+                            break;
+                    }
+                });
+            });
+
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+
+            // Initialize
+            const teacher = createNewTeacher();
+            const welcomeContext = 'initial-welcome';
+            teacher.setContext(welcomeContext);
+            
+            const welcomeTimeout = setTimeout(() => {
+                teacher.speak("Welcome to the fascinating world of Sound Physics! This interactive learning experience will teach you about vibrations, sound production, and musical instruments. Watch the automatic tuning fork demonstration to see how vibrations create sound, or explore our comprehensive lessons using the buttons below.", 0, welcomeContext);
+            }, 1800);
+            animationManager.addTimeout(welcomeTimeout);
+        });
+    </script>
+</body>
+</html>

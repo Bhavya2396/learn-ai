@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checking Digit Endings Using Prime Factorization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2d1b69 0%, #11998e 50%, #38ef7d 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(45, 27, 105, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(45, 27, 105, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3.2rem;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Main Animation Stage */
+        .animation-stage {
+            background: linear-gradient(to bottom, #1a1a2e 0%, #16213e 100%);
+            border-radius: 25px;
+            height: 700px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            overflow-y: auto;
+            overflow-x: hidden;
+            border: 4px solid rgba(255, 107, 107, 0.4);
+        }
+
+        /* Grid Background */
+        .grid-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.3;
+        }
+
+        /* Stage Content Container */
+        .stage-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        /* Animation Scenes */
+        .animation-scene {
+            display: none;
+            opacity: 0;
+            transition: opacity 1s ease;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 40px;
+        }
+
+        .animation-scene.visible {
+            display: flex;
+            opacity: 1;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        /* Welcome Scene */
+        .welcome-scene {
+            text-align: center;
+        }
+
+        .welcome-title {
+            font-size: 2.5rem;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+            animation: titleGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 0 0 10px rgba(255, 107, 107, 0.5); }
+            50% { text-shadow: 0 0 20px rgba(255, 107, 107, 0.8); }
+        }
+
+        /* Prime Factorization Visual */
+        .factorization-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .number-box {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(78, 205, 196, 0.2));
+            border: 3px solid rgba(255, 107, 107, 0.5);
+            border-radius: 15px;
+            padding: 20px 30px;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ff6b6b;
+            transform: scale(0);
+            animation: boxAppear 0.5s ease forwards;
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        .number-box.prime {
+            border-color: rgba(78, 205, 196, 0.8);
+            color: #4ecdc4;
+        }
+
+        .number-box.composite {
+            border-color: rgba(255, 107, 107, 0.8);
+            color: #ff6b6b;
+        }
+
+        .equals-sign {
+            font-size: 3rem;
+            color: #ffd93d;
+            font-weight: bold;
+        }
+
+        .multiplication-sign {
+            font-size: 2.5rem;
+            color: #6c5ce7;
+            font-weight: bold;
+        }
+
+        @keyframes boxAppear {
+            to { transform: scale(1); }
+        }
+
+        /* Digit Analysis Display */
+        .digit-analysis {
+            background: linear-gradient(135deg, rgba(108, 92, 231, 0.2), rgba(255, 217, 61, 0.2));
+            border: 3px solid rgba(108, 92, 231, 0.6);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .digit-title {
+            font-size: 1.8rem;
+            color: #6c5ce7;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .digit-rule {
+            font-size: 1.4rem;
+            color: #ffd93d;
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 217, 61, 0.1);
+            border-radius: 10px;
+            border-left: 4px solid #ffd93d;
+        }
+
+        /* Card Layout for Examples */
+        .example-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .step-card {
+            background: linear-gradient(135deg, rgba(69, 183, 209, 0.1), rgba(150, 206, 180, 0.1));
+            border: 2px solid rgba(69, 183, 209, 0.4);
+            border-radius: 15px;
+            padding: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: cardSlideUp 0.6s ease forwards;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            min-height: 140px;
+        }
+
+        .step-card:nth-child(1) { animation-delay: 0.2s; }
+        .step-card:nth-child(2) { animation-delay: 0.4s; }
+        .step-card:nth-child(3) { animation-delay: 0.6s; }
+        .step-card:nth-child(4) { animation-delay: 0.8s; }
+        .step-card:nth-child(5) { animation-delay: 1.0s; }
+
+        .step-card-number {
+            background: #45b7d1;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+
+        .step-card-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .step-card-text {
+            font-size: 1.1rem;
+            color: #e2e8f0;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        .step-card-math {
+            font-size: 1.2rem;
+            color: #4ecdc4;
+            font-family: 'Courier New', monospace;
+            background: rgba(78, 205, 196, 0.1);
+            border-radius: 8px;
+            padding: 8px;
+            word-break: break-all;
+        }
+
+        .example-title-card {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 217, 61, 0.2));
+            border: 3px solid rgba(255, 107, 107, 0.6);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 10px;
+            animation: titlePop 0.5s ease forwards;
+        }
+
+        .example-title-text {
+            font-size: 1.8rem;
+            color: #ff6b6b;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        /* Powers Display */
+        .powers-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .power-item {
+            background: linear-gradient(135deg, rgba(150, 206, 180, 0.2), rgba(69, 183, 209, 0.2));
+            border: 2px solid rgba(150, 206, 180, 0.6);
+            border-radius: 12px;
+            padding: 15px 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #96ceb4;
+            transform: scale(0);
+            animation: powerPop 0.4s ease forwards;
+        }
+
+        .power-item:nth-child(1) { animation-delay: 0.1s; }
+        .power-item:nth-child(2) { animation-delay: 0.2s; }
+        .power-item:nth-child(3) { animation-delay: 0.3s; }
+        .power-item:nth-child(4) { animation-delay: 0.4s; }
+        .power-item:nth-child(5) { animation-delay: 0.5s; }
+
+        @keyframes powerPop {
+            to { transform: scale(1); }
+        }
+
+        /* Conclusion Display */
+        .conclusion-box {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 217, 61, 0.2));
+            border: 3px solid rgba(255, 107, 107, 0.6);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+            transform: scale(0);
+            animation: conclusionPop 0.6s ease forwards;
+        }
+
+        @keyframes conclusionPop {
+            to { transform: scale(1); }
+        }
+
+        .conclusion-title {
+            font-size: 2rem;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .conclusion-text {
+            font-size: 1.3rem;
+            color: #ffd93d;
+            line-height: 1.6;
+        }
+
+        /* Example Comparison */
+        .example-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            width: 100%;
+            max-width: 800px;
+            margin: 30px 0;
+        }
+
+        .example-card {
+            background: linear-gradient(135deg, rgba(108, 92, 231, 0.1), rgba(150, 206, 180, 0.1));
+            border: 2px solid rgba(108, 92, 231, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transform: translateY(30px);
+            opacity: 0;
+            animation: cardSlideUp 0.6s ease forwards;
+        }
+
+        .example-card:nth-child(1) { animation-delay: 0.2s; }
+        .example-card:nth-child(2) { animation-delay: 0.4s; }
+
+        .example-card.can-end {
+            border-color: rgba(78, 205, 196, 0.6);
+        }
+
+        .example-card.cannot-end {
+            border-color: rgba(255, 107, 107, 0.6);
+        }
+
+        @keyframes cardSlideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .example-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .example-title.can { color: #4ecdc4; }
+        .example-title.cannot { color: #ff6b6b; }
+
+        .example-content {
+            font-size: 1.1rem;
+            color: #e2e8f0;
+            line-height: 1.5;
+        }
+
+        /* Info Display */
+        .info-display {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 15px 20px;
+            text-align: center;
+            font-size: 1.1rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .info-display.visible {
+            opacity: 1;
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            color: #4ecdc4;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #2d1b69, #11998e);
+            border: none;
+            color: white;
+            padding: 16px 28px;
+            border-radius: 35px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(45, 27, 105, 0.3);
+            min-width: 180px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(45, 27, 105, 0.4);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        /* Analysis Panel */
+        .analysis {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(78, 205, 196, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .analysis-title {
+            font-size: 1.6rem;
+            color: #4ecdc4;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .analysis-content {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            text-align: center;
+            color: #e2e8f0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .animation-stage {
+                height: 600px;
+                margin: 20px 0;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .example-comparison {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .factorization-display {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .example-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                padding: 15px;
+            }
+            
+            .step-card {
+                padding: 15px;
+                min-height: 120px;
+            }
+            
+            .step-card-text {
+                font-size: 1rem;
+            }
+            
+            .step-card-math {
+                font-size: 1.1rem;
+            }
+            
+            .example-title-text {
+                font-size: 1.5rem;
+            }
+            
+            .stage-content {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .animation-stage {
+                height: 550px;
+            }
+            
+            .example-grid {
+                padding: 10px;
+                gap: 12px;
+            }
+            
+            .step-card {
+                padding: 12px;
+                min-height: 100px;
+            }
+            
+            .step-card-text {
+                font-size: 0.95rem;
+            }
+            
+            .step-card-math {
+                font-size: 1rem;
+                padding: 6px;
+            }
+            
+            .example-title-text {
+                font-size: 1.3rem;
+            }
+            
+            .stage-content {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Checking Digit Endings Using Prime Factorization</h1>
+            <p>Discover how the Fundamental Theorem of Arithmetic helps us determine if numbers can end with specific digits!</p>
+        </div>
+
+        <!-- Main Animation Stage -->
+        <div class="animation-stage" id="animation-stage">
+            <div class="grid-background"></div>
+            
+            <!-- Stage Content Container -->
+            <div class="stage-content">
+                <!-- Welcome Scene -->
+                <div class="animation-scene visible" id="welcome-scene">
+                    <div class="welcome-scene">
+                        <h2 class="welcome-title">Prime Factorization & Digit Endings</h2>
+                        <p style="font-size: 1.3rem; color: #4ecdc4; text-align: center;">
+                            Learn how to use prime factors to predict<br>
+                            which digits numbers can end with
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Zero Ending Rule Scene -->
+                <div class="animation-scene" id="zero-rule-scene">
+                    <div class="digit-analysis">
+                        <div class="digit-title">🎯 The Zero Ending Rule</div>
+                        <div class="digit-rule">
+                            For a number to end in 0, it must be divisible by both 2 AND 5
+                        </div>
+                        <div class="factorization-display">
+                            <div class="number-box composite">10</div>
+                            <div class="equals-sign">=</div>
+                            <div class="number-box prime">2</div>
+                            <div class="multiplication-sign">×</div>
+                            <div class="number-box prime">5</div>
+                        </div>
+                        <div style="font-size: 1.3rem; color: #ffd93d; margin-top: 20px;">
+                            Both prime factors 2 and 5 are required!
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Example Scene -->
+                <div class="animation-scene" id="main-example-scene">
+                    <div class="example-grid">
+                        <div class="example-title-card">
+                            <h3 class="example-title-text">🔍 Can 4ⁿ ever end with digit 0?</h3>
+                        </div>
+                        
+                        <div class="step-card">
+                            <div class="step-card-number">1</div>
+                            <div class="step-card-content">
+                                <div class="step-card-text">For 4ⁿ to end with 0, it must be divisible by 5</div>
+                                <div class="step-card-math">Need: 5 | 4ⁿ</div>
+                            </div>
+                        </div>
+                        
+                        <div class="step-card">
+                            <div class="step-card-number">2</div>
+                            <div class="step-card-content">
+                                <div class="step-card-text">Prime factorization must contain 5</div>
+                                <div class="step-card-math">Must include factor 5</div>
+                            </div>
+                        </div>
+                        
+                        <div class="step-card">
+                            <div class="step-card-number">3</div>
+                            <div class="step-card-content">
+                                <div class="step-card-text">But 4ⁿ = (2²)ⁿ = 2²ⁿ</div>
+                                <div class="step-card-math">Only factor 2</div>
+                            </div>
+                        </div>
+                        
+                        <div class="step-card">
+                            <div class="step-card-number">4</div>
+                            <div class="step-card-content">
+                                <div class="step-card-text">By uniqueness theorem</div>
+                                <div class="step-card-math">∴ 4ⁿ NEVER ends with 0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Powers Visualization Scene -->
+                <div class="animation-scene" id="powers-scene">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h2 style="color: #4ecdc4; font-size: 2rem; margin-bottom: 20px;">
+                            🔢 Powers of 4 Examples
+                        </h2>
+                        <div class="powers-display">
+                            <div class="power-item">4¹ = 4</div>
+                            <div class="power-item">4² = 16</div>
+                            <div class="power-item">4³ = 64</div>
+                            <div class="power-item">4⁴ = 256</div>
+                            <div class="power-item">4⁵ = 1024</div>
+                        </div>
+                        <div style="font-size: 1.4rem; color: #ffd93d; margin-top: 30px;">
+                            Notice: None end with 0!
+                        </div>
+                        <div style="font-size: 1.2rem; color: #e2e8f0; margin-top: 15px;">
+                            All end with 4 or 6 (digits that don't require factor 5)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Examples Scene -->
+                <div class="animation-scene" id="examples-scene">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h2 style="color: #6c5ce7; font-size: 2rem; margin-bottom: 30px;">
+                            📊 More Examples
+                        </h2>
+                        <div class="example-comparison">
+                            <div class="example-card cannot-end">
+                                <div class="example-title cannot">❌ Cannot End with 0</div>
+                                <div class="example-content">
+                                    <strong>8ⁿ = (2³)ⁿ = 2³ⁿ</strong><br><br>
+                                    Only contains prime factor 2<br>
+                                    Missing factor 5<br>
+                                    Never ends with 0
+                                </div>
+                            </div>
+                            <div class="example-card can-end">
+                                <div class="example-title can">✅ Can End with 0</div>
+                                <div class="example-content">
+                                    <strong>10ⁿ = (2×5)ⁿ = 2ⁿ×5ⁿ</strong><br><br>
+                                    Contains both 2 and 5<br>
+                                    Has required factors<br>
+                                    Always ends with 0
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Six N Example Scene -->
+                <div class="animation-scene" id="six-example-scene">
+                    <div class="example-grid">
+                        <div class="example-title-card">
+                            <h3 class="example-title-text">🔍 Can 6ⁿ ever end with digit 0?</h3>
+                        </div>
+                        
+                        <div class="step-card">
+                            <div class="step-card-number">1</div>
+                            <div class="step-card-content">
+                                <div class="step-card-text">Find prime factorization of 6</div>
+                                <div class="step-card-math">6 = 2 × 3</div>
+                            </div>
+                        </div>
+                        
+                        <div class="step-card">
+                            <div class="step-card-number">2</div>
+                            <div class="step-card-content">
+                                <div class="step-card-text">Therefore: 6ⁿ = (2 × 3)ⁿ</div>
+                                <div class="step-card-math">6ⁿ = 2ⁿ × 3ⁿ</div>
+                            </div>
+                        </div>
+                        
+                        <div class="step-card">
+                            <div class="step-card-number">3</div>
+                            <div class="step-card-content">
+                                <div class="step-card-text">To end with 0, we need factor 5</div>
+                                <div class="step-card-math">Missing: factor 5</div>
+                            </div>
+                        </div>
+                        
+                        <div class="step-card">
+                            <div class="step-card-number">4</div>
+                            <div class="step-card-content">
+                                <div class="step-card-text">6ⁿ never contains factor 5</div>
+                                <div class="step-card-math">∴ 6ⁿ NEVER ends with 0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conclusion Scene -->
+                <div class="animation-scene" id="conclusion-scene">
+                    <div class="conclusion-box">
+                        <div class="conclusion-title">🎯 Key Insight</div>
+                        <div class="conclusion-text">
+                            The Fundamental Theorem of Arithmetic guarantees that every number has a unique prime factorization. This lets us definitively determine which digits a number can end with by analyzing its prime factors!
+                        </div>
+                    </div>
+                    <div style="margin-top: 30px; text-align: center;">
+                        <div style="font-size: 1.4rem; color: #4ecdc4; margin: 15px 0;">
+                            📌 To end with 0: Need both 2 AND 5
+                        </div>
+                        <div style="font-size: 1.4rem; color: #ff6b6b; margin: 15px 0;">
+                            📌 Missing any required factor = Impossible ending
+                        </div>
+                        <div style="font-size: 1.4rem; color: #ffd93d; margin: 15px 0;">
+                            📌 Unique factorization = Definitive answers
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Display -->
+            <div class="info-display visible" id="info-display">
+                Click any button below to explore digit endings and prime factorization!
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="lesson-title">Choose Your Learning Path</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playCompleteLesson()">📚 Complete Lesson</button>
+                <button class="demo-btn" onclick="showZeroRule()">🎯 Zero Ending Rule</button>
+                <button class="demo-btn" onclick="showMainExample()">🔍 4ⁿ Example</button>
+                <button class="demo-btn" onclick="showPowersDemo()">🔢 Powers Demo</button>
+                <button class="demo-btn" onclick="showSixExample()">📊 6ⁿ Example</button>
+                <button class="demo-btn" onclick="resetAll()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Analysis Panel -->
+        <div class="analysis">
+            <div class="analysis-title">🧠 Understanding Prime Factorization & Digit Endings</div>
+            <div class="analysis-content" id="analysis-content">
+                The Fundamental Theorem of Arithmetic states that every integer greater than 1 has a unique prime factorization. This powerful theorem helps us determine which digits numbers can end with by analyzing their prime factors.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice System
+        class PrimeFactorizationNarrator {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.9, pitch: 1.0, volume: 0.8 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+        }
+
+        // Global state management
+        let globalAudioEnabled = true;
+        let currentNarrator = null;
+        let isPlaying = false;
+        let currentDemo = null;
+        let currentDemoAborted = false;
+        let currentRunId = 0;
+        let currentTaskId = null;
+        let animationTimeouts = [];
+
+        // Function to stop current demo
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            document.querySelectorAll('.solved, .highlight').forEach(el => {
+                el.classList.remove('solved', 'highlight');
+            });
+            
+            updateInfo("Click any button below to explore digit endings and prime factorization!");
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewNarrator(taskId = null) {
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentNarrator = new PrimeFactorizationNarrator();
+            return currentNarrator;
+        }
+
+        function switchToScene(sceneId, taskId = null) {
+            if (!shouldContinue(taskId)) return;
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            document.querySelectorAll('.number-box, .step-box, .power-item').forEach(el => {
+                el.style.animation = 'none';
+                el.offsetHeight;
+            });
+            
+            const timeout = setTimeout(() => {
+                if (!shouldContinue(taskId)) return;
+                const scene = document.getElementById(sceneId);
+                if (scene) {
+                    scene.classList.add('visible');
+                    
+                    scene.querySelectorAll('.number-box').forEach((box, index) => {
+                        box.style.animation = `boxAppear 0.5s ease forwards`;
+                        box.style.animationDelay = `${index * 0.2}s`;
+                    });
+                    
+                    scene.querySelectorAll('.step-box').forEach((box, index) => {
+                        box.style.animation = `stepSlide 0.6s ease forwards`;
+                        box.style.animationDelay = `${index * 0.2 + 0.2}s`;
+                    });
+                    
+                    scene.querySelectorAll('.power-item').forEach((item, index) => {
+                        item.style.animation = `powerPop 0.4s ease forwards`;
+                        item.style.animationDelay = `${index * 0.1 + 0.1}s`;
+                    });
+                }
+            }, 300);
+            
+            animationTimeouts.push(timeout);
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            document.getElementById('welcome-scene').classList.add('visible');
+            const narrator = createNewNarrator('initialization');
+            narrator.speak("Welcome to Prime Factorization and Digit Endings! Let's discover how prime factors help us predict which digits numbers can end with.");
+            updateInfo("Click any button below to explore digit endings and prime factorization!");
+        });
+
+        // Complete Lesson
+        async function playCompleteLesson() {
+            const taskId = `complete-lesson-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📚 Complete Prime Factorization Journey");
+            updateInfo("Starting complete lesson - exploring all concepts...");
+            updateAnalysis("Beginning our comprehensive journey through prime factorization and digit endings...");
+            
+            await narrator.speak("Welcome to the complete lesson on checking digit endings using prime factorization!");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Part 1: Zero Ending Rule
+            updateInfo("Part 1: The Zero Ending Rule");
+            await narrator.speak("Let's start with the fundamental rule for numbers ending in zero.");
+            await wait(1500);
+            if (!shouldContinue(taskId)) return;
+            
+            switchToScene('zero-rule-scene', taskId);
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("For any number to end in zero, it must be divisible by both 2 and 5.");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("This is because 10 equals 2 times 5. Both prime factors are essential!");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Part 2: Main Example - 4^n
+            updateInfo("Part 2: Analyzing 4^n");
+            await narrator.speak("Now let's analyze whether 4 to the power n can ever end with zero.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            switchToScene('main-example-scene', taskId);
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Step 1: For 4 to the power n to end with zero, it must be divisible by 5.");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Step 2: This means 5 should appear in the prime factorization of 4 to the power n.");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Step 3: But 4 to the power n equals 2 to the power 2n, containing only the prime factor 2.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Step 4: By the uniqueness of prime factorization, no other primes are possible.");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Therefore, 4 to the power n can never end with zero!");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Part 3: Powers Demo
+            updateInfo("Part 3: Verifying with Examples");
+            await narrator.speak("Let's verify this with actual powers of 4.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            switchToScene('powers-scene', taskId);
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Look at these powers: 4 to the 1st is 4, 4 squared is 16, 4 cubed is 64.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Notice that none of these end with zero! They all end with 4 or 6.");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            // Part 4: More Examples
+            updateInfo("Part 4: Additional Examples");
+            await narrator.speak("Let's examine more examples to strengthen our understanding.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            switchToScene('examples-scene', taskId);
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("8 to the power n also cannot end with zero, as it only contains the prime factor 2.");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("However, 10 to the power n always ends with zero, because it contains both 2 and 5.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Part 5: 6^n Example
+            updateInfo("Part 5: Analyzing 6^n");
+            await narrator.speak("Now let's check if 6 to the power n can end with zero.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            switchToScene('six-example-scene', taskId);
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("6 equals 2 times 3, so 6 to the power n equals 2 to the power n times 3 to the power n.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Since this contains only prime factors 2 and 3, but not 5, it cannot end with zero.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Part 6: Conclusion
+            updateInfo("Part 6: Key Insights");
+            await narrator.speak("Let's summarize our key insights.");
+            await wait(1500);
+            if (!shouldContinue(taskId)) return;
+            
+            switchToScene('conclusion-scene', taskId);
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("The Fundamental Theorem of Arithmetic guarantees unique prime factorization.");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("This lets us definitively determine which digits numbers can end with!");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            updateInfo("Lesson Complete! You've mastered digit endings using prime factorization!");
+            await narrator.speak("Congratulations! You now understand how to use prime factorization to predict digit endings!");
+            
+            updateAnalysis("Complete lesson finished! You've learned: 1) The zero ending rule, 2) How to analyze prime factorizations, 3) Why certain numbers can't end with specific digits, and 4) The power of the Fundamental Theorem of Arithmetic.");
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            await wait(300);
+            if (!shouldContinue(taskId)) return;
+            document.getElementById('welcome-scene').classList.add('visible');
+            
+            updateInfo("Ready to practice more? Try the individual demonstrations!");
+            isPlaying = false;
+        }
+
+        // Show Zero Rule
+        async function showZeroRule() {
+            const taskId = 'zero-rule';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🎯 The Zero Ending Rule");
+            switchToScene('zero-rule-scene', taskId);
+            updateInfo("Learning the fundamental rule for zero endings...");
+            
+            await narrator.speak("For any number to end in zero, it must be divisible by both 2 and 5.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("This is because 10 equals 2 times 5. Both prime factors are required!");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            updateInfo("Rule established: Need both prime factors 2 AND 5");
+            updateAnalysis("Zero ending rule complete! Any number ending in 0 must have both 2 and 5 in its prime factorization.");
+            
+            isPlaying = false;
+        }
+
+        // Show Main Example
+        async function showMainExample() {
+            const taskId = 'main-example';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🔍 Analyzing 4ⁿ");
+            switchToScene('main-example-scene', taskId);
+            updateInfo("Step-by-step analysis of 4^n...");
+            
+            await narrator.speak("Let's determine if 4 to the power n can ever end with zero.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Since 4 to the power n equals 2 to the power 2n, it only contains the prime factor 2.");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Missing the prime factor 5, it can never be divisible by 10.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            updateInfo("Conclusion: 4^n can NEVER end with 0");
+            updateAnalysis("Analysis complete! 4^n = 2^(2n) contains only prime factor 2, never 5. Therefore, it cannot end with 0.");
+            
+            isPlaying = false;
+        }
+
+        // Show Powers Demo
+        async function showPowersDemo() {
+            const taskId = 'powers-demo';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🔢 Powers of 4 Demonstration");
+            switchToScene('powers-scene', taskId);
+            updateInfo("Verifying our theory with actual examples...");
+            
+            await narrator.speak("Let's verify our theory with actual powers of 4.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("4 to the first is 4, 4 squared is 16, 4 cubed is 64, and so on.");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Notice that none end with zero! They end with 4 or 6.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            updateInfo("Evidence confirmed: No powers of 4 end with 0");
+            updateAnalysis("Powers demonstration complete! Real examples confirm our theoretical prediction - no powers of 4 end with 0.");
+            
+            isPlaying = false;
+        }
+
+        // Show Six Example
+        async function showSixExample() {
+            const taskId = 'six-example';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(4);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📊 Analyzing 6ⁿ");
+            switchToScene('six-example-scene', taskId);
+            updateInfo("Analyzing another example...");
+            
+            await narrator.speak("Let's analyze whether 6 to the power n can end with zero.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("6 equals 2 times 3, so 6 to the power n contains only prime factors 2 and 3.");
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("Since it lacks the prime factor 5, it cannot end with zero.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            updateInfo("Conclusion: 6^n can NEVER end with 0");
+            updateAnalysis("Analysis complete! 6^n = 2^n × 3^n contains only primes 2 and 3, never 5. Therefore, it cannot end with 0.");
+            
+            isPlaying = false;
+        }
+
+        // Reset
+        async function resetAll() {
+            if (currentNarrator) currentNarrator.stop();
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            document.querySelectorAll('.solved, .highlight').forEach(el => {
+                el.classList.remove('solved', 'highlight');
+            });
+            
+            document.querySelectorAll('.number-box, .step-box, .power-item').forEach(el => {
+                el.style.animation = 'none';
+                el.offsetHeight;
+            });
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            await wait(50);
+            document.getElementById('welcome-scene').classList.add('visible');
+            
+            updateTitle("Choose Your Learning Path");
+            updateInfo("Click any button below to explore digit endings and prime factorization!");
+            updateAnalysis("The Fundamental Theorem of Arithmetic states that every integer greater than 1 has a unique prime factorization. This powerful theorem helps us determine which digits numbers can end with by analyzing their prime factors.");
+            
+            setActiveButton(-1);
+            
+            await wait(50);
+        }
+
+        function updateTitle(title) {
+            document.getElementById('lesson-title').textContent = title;
+        }
+
+        function updateInfo(text) {
+            const info = document.getElementById('info-display');
+            info.textContent = text;
+            info.classList.add('visible');
+        }
+
+        function updateAnalysis(text) {
+            document.getElementById('analysis-content').textContent = text;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            if (currentNarrator) {
+                currentNarrator.isEnabled = globalAudioEnabled;
+                if (!globalAudioEnabled) {
+                    currentNarrator.stop();
+                }
+            }
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+        });
+    </script>
+</body>
+</html>

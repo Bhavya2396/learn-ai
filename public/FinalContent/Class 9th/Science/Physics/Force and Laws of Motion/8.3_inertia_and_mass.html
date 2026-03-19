@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inertia and Mass - Physics in Motion</title>
+    <!-- GSAP for realistic animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Physics2DPlugin.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e8ba3 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(59, 130, 246, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(59, 130, 246, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3.2rem;
+            background: linear-gradient(45deg, #3b82f6, #06b6d4, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Activity Stage */
+        .activity-stage {
+            background: linear-gradient(to bottom, #1a1a2e, #16213e, #0f3460);
+            border-radius: 25px;
+            height: 500px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            border: 4px solid rgba(59, 130, 246, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Info Overlay */
+        .info-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 15px;
+            padding: 15px 20px;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: 50;
+            max-width: 400px;
+        }
+
+        .info-overlay.show {
+            opacity: 1;
+        }
+
+        .info-title {
+            font-size: 1.2rem;
+            color: #3b82f6;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .info-text {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+
+        /* Physics Data Display */
+        .physics-data {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            padding: 12px 18px;
+            backdrop-filter: blur(10px);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: 50;
+        }
+
+        .physics-data.show {
+            opacity: 1;
+        }
+
+        .data-item {
+            margin: 4px 0;
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .data-label {
+            color: #06b6d4;
+        }
+
+        .data-value {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        /* Activity 8.2 - Coin and Card */
+        .coin-demo {
+            display: none;
+            position: relative;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .coin-demo.active {
+            display: flex;
+        }
+
+        .table {
+            position: absolute;
+            bottom: 50px;
+            width: 300px;
+            height: 20px;
+            background: linear-gradient(to bottom, #8b6f47, #6b5637);
+            border-radius: 5px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .glass {
+            position: absolute;
+            bottom: 70px;
+            width: 80px;
+            height: 100px;
+            background: linear-gradient(to bottom, 
+                rgba(255, 255, 255, 0.1),
+                rgba(255, 255, 255, 0.05));
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            box-shadow: 
+                inset 0 0 20px rgba(255, 255, 255, 0.1),
+                0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .card {
+            position: absolute;
+            bottom: 170px;
+            width: 120px;
+            height: 8px;
+            background: linear-gradient(to right, #fff, #f0f0f0);
+            border-radius: 2px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease-out;
+            z-index: 2;
+        }
+
+        .card.flicked {
+            animation: cardFlick 0.5s ease-out forwards;
+        }
+
+        @keyframes cardFlick {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(400px); opacity: 0; }
+        }
+
+        .coin {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #ffd700, #ffb300);
+            border-radius: 50%;
+            box-shadow: 
+                0 4px 8px rgba(0, 0, 0, 0.3),
+                inset -2px -2px 4px rgba(0, 0, 0, 0.2);
+            bottom: 178px;
+            z-index: 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #8b6f47;
+        }
+
+        .coin.falling {
+            animation: coinFall 0.8s ease-in forwards;
+        }
+
+        @keyframes coinFall {
+            0% { bottom: 178px; }
+            100% { bottom: 80px; }
+        }
+
+        .finger {
+            position: absolute;
+            right: -50px;
+            bottom: 170px;
+            font-size: 40px;
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+
+        .finger.show {
+            opacity: 1;
+            animation: fingerFlick 1s ease forwards;
+        }
+
+        @keyframes fingerFlick {
+            0% { right: -50px; }
+            50% { right: 100px; }
+            100% { right: 100px; opacity: 0; }
+        }
+
+        /* Force indicator */
+        .force-indicator {
+            position: absolute;
+            bottom: 185px;
+            left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .force-indicator.show {
+            opacity: 1;
+        }
+
+        .force-arrow-horizontal {
+            width: 50px;
+            height: 3px;
+            background: #f39c12;
+            position: relative;
+        }
+
+        .force-arrow-horizontal::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: -4px;
+            width: 0;
+            height: 0;
+            border-left: 10px solid #f39c12;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+        }
+
+        /* Activity 8.3 - Water Tumbler */
+        .water-demo {
+            display: none;
+            position: relative;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .water-demo.active {
+            display: flex;
+        }
+
+        .tray {
+            position: relative;
+            width: 200px;
+            height: 15px;
+            background: linear-gradient(to bottom, #a0522d, #8b4513);
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .tray.rotating {
+            animation: trayRotate 2s ease-in-out;
+        }
+
+        @keyframes trayRotate {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(180deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .water-glass {
+            position: absolute;
+            top: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 80px;
+            background: linear-gradient(to bottom,
+                rgba(255, 255, 255, 0.1),
+                rgba(255, 255, 255, 0.05));
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .water {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 60%;
+            background: linear-gradient(to bottom, #4fc3f7, #29b6f6);
+            transition: all 0.5s ease;
+        }
+
+        .water.spilling {
+            animation: waterSpill 2s ease forwards;
+        }
+
+        @keyframes waterSpill {
+            0% { transform: translateX(0) rotate(0deg); }
+            25% { transform: translateX(-10px) rotate(-15deg); }
+            50% { transform: translateX(10px) rotate(15deg); height: 40%; }
+            75% { transform: translateX(-5px) rotate(-10deg); height: 30%; }
+            100% { transform: translateX(0) rotate(0deg); height: 20%; }
+        }
+
+        .water-drops {
+            position: absolute;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+        }
+
+        .water-drops.show {
+            display: block;
+        }
+
+        .drop {
+            position: absolute;
+            width: 10px;
+            height: 15px;
+            background: #29b6f6;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            opacity: 0;
+        }
+
+        .drop:nth-child(1) {
+            animation: dropFall 1.5s 0.2s ease forwards;
+            left: -20px;
+        }
+
+        .drop:nth-child(2) {
+            animation: dropFall 1.5s 0.4s ease forwards;
+            left: 0px;
+        }
+
+        .drop:nth-child(3) {
+            animation: dropFall 1.5s 0.6s ease forwards;
+            left: 20px;
+        }
+
+        @keyframes dropFall {
+            0% { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% { 
+                opacity: 0;
+                transform: translateY(150px);
+            }
+        }
+
+        /* Rotation indicator */
+        .rotation-indicator {
+            position: absolute;
+            width: 250px;
+            height: 250px;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .rotation-indicator.show {
+            opacity: 1;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.2; }
+            50% { transform: scale(1.1); opacity: 0.4; }
+        }
+
+        /* Comparison Demo */
+        .comparison-demo {
+            display: none;
+            position: relative;
+            align-items: center;
+            justify-content: space-around;
+            width: 100%;
+            padding: 0 50px;
+        }
+
+        .comparison-demo.active {
+            display: flex;
+        }
+
+        .object-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .push-object {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-weight: bold;
+            position: relative;
+            transition: transform 0.5s ease;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .mass-label {
+            position: absolute;
+            top: -25px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            color: #10b981;
+        }
+
+        .empty-box {
+            background: linear-gradient(135deg, #f9ca24, #f0932b);
+            border: 3px solid #eb7310;
+        }
+
+        .full-box {
+            background: linear-gradient(135deg, #535c68, #2c3e50);
+            border: 3px solid #1e272e;
+        }
+
+        .football {
+            background: radial-gradient(circle, #fff, #000);
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+        }
+
+        .stone {
+            background: linear-gradient(135deg, #786fa6, #574b90);
+            border-radius: 40%;
+            width: 80px;
+            height: 80px;
+        }
+
+        .push-object.pushed-light {
+            animation: lightPush 1s ease forwards;
+        }
+
+        .push-object.pushed-heavy {
+            animation: heavyPush 1s ease forwards;
+        }
+
+        @keyframes lightPush {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(200px); }
+        }
+
+        @keyframes heavyPush {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(50px); }
+        }
+
+        .force-arrow {
+            position: absolute;
+            left: -40px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 30px;
+            opacity: 0;
+        }
+
+        .force-arrow.show {
+            animation: forceArrowShow 1s ease forwards;
+        }
+
+        @keyframes forceArrowShow {
+            0% { 
+                opacity: 0;
+                left: -80px;
+            }
+            50% {
+                opacity: 1;
+                left: -40px;
+            }
+            100% {
+                opacity: 0;
+                left: 0;
+            }
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            color: white;
+            padding: 16px 28px;
+            border-radius: 35px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+            min-width: 180px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.4);
+        }
+
+        .demo-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Theory Section */
+        .theory-section {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(59, 130, 246, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .theory-title {
+            font-size: 1.8rem;
+            color: #3b82f6;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .definition-box {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.15));
+            border-radius: 20px;
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid #3b82f6;
+        }
+
+        .definition-title {
+            font-size: 1.3rem;
+            color: #3b82f6;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .definition-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #e2e8f0;
+        }
+
+        .key-points {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .point-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .point-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .point-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .point-title {
+            font-size: 1.2rem;
+            color: #3b82f6;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .point-description {
+            font-size: 1rem;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        /* Observation Box */
+        .observation-box {
+            background: rgba(16, 185, 129, 0.15);
+            border-radius: 20px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #10b981;
+        }
+
+        .observation-title {
+            font-size: 1.2rem;
+            color: #10b981;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .observation-content {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .activity-stage {
+                height: 400px;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .key-points {
+                grid-template-columns: 1fr;
+            }
+            
+            .comparison-demo {
+                flex-direction: column;
+                gap: 30px;
+            }
+            
+            @keyframes lightPush {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(100px); }
+            }
+            
+            @keyframes heavyPush {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(30px); }
+            }
+            
+            .coin-demo .glass {
+                width: 60px;
+                height: 80px;
+            }
+            
+            .coin-demo .card {
+                width: 90px;
+            }
+            
+            .coin-demo .coin {
+                width: 30px;
+                height: 30px;
+                font-size: 10px;
+            }
+            
+            @keyframes cardFlick {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(200px); opacity: 0; }
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .header p {
+                font-size: 1.1rem;
+            }
+            
+            .theory-section {
+                padding: 20px;
+            }
+            
+            .demo-btn {
+                min-width: 150px;
+                padding: 12px 20px;
+                font-size: 1rem;
+            }
+            
+            .activity-stage {
+                height: 350px;
+            }
+            
+            /* Scale down coin demo for mobile */
+            .coin-demo .table {
+                width: 200px;
+            }
+            
+            .coin-demo .glass {
+                width: 50px;
+                height: 70px;
+                bottom: 60px;
+            }
+            
+            .coin-demo .card {
+                width: 80px;
+                bottom: 160px;
+            }
+            
+            .coin-demo .coin {
+                width: 25px;
+                height: 25px;
+                font-size: 9px;
+                bottom: 168px;
+            }
+            
+            @keyframes coinFall {
+                0% { bottom: 168px; }
+                100% { bottom: 70px; }
+            }
+            
+            @keyframes cardFlick {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(150px); opacity: 0; }
+            }
+            
+            /* Scale water demo for mobile */
+            .water-demo .tray {
+                width: 150px;
+            }
+            
+            .water-demo .water-glass {
+                width: 45px;
+                height: 60px;
+                top: -60px;
+            }
+            
+            /* Scale comparison objects */
+            .push-object {
+                width: 70px;
+                height: 70px;
+                font-size: 0.8rem;
+            }
+            
+            .football, .stone {
+                width: 60px;
+                height: 60px;
+            }
+            
+            @keyframes lightPush {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(50px); }
+            }
+            
+            @keyframes heavyPush {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(15px); }
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Inertia and Mass</h1>
+            <p>Discover how objects resist changes in motion and understand the fundamental property of inertia through interactive demonstrations.</p>
+        </div>
+
+        <!-- Activity Stage -->
+        <div class="activity-stage" id="stage">
+            <!-- Info Overlay -->
+            <div class="info-overlay" id="info-overlay">
+                <div class="info-title">Experiment Info</div>
+                <div class="info-text" id="info-text">Select an activity to explore how inertia affects objects in motion</div>
+            </div>
+
+            <!-- Physics Data Display -->
+            <div class="physics-data" id="physics-data">
+                <div class="data-item">
+                    <span class="data-label">Force Applied:</span>
+                    <span class="data-value" id="force-value">0 N</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Mass:</span>
+                    <span class="data-value" id="mass-value">0 kg</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Acceleration:</span>
+                    <span class="data-value" id="accel-value">0 m/s²</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Inertia:</span>
+                    <span class="data-value" id="inertia-value">Low</span>
+                </div>
+            </div>
+
+            <!-- Activity 8.2 - Coin and Card -->
+            <div class="coin-demo" id="coin-demo">
+                <div class="table"></div>
+                <div class="glass"></div>
+                <div class="card" id="card"></div>
+                <div class="coin" id="coin">₹5</div>
+                <div class="finger" id="finger">👉</div>
+                <div class="force-indicator" id="force-indicator">
+                    <div class="force-arrow-horizontal"></div>
+                </div>
+            </div>
+
+            <!-- Activity 8.3 - Water Tumbler -->
+            <div class="water-demo" id="water-demo">
+                <div class="rotation-indicator" id="rotation-indicator"></div>
+                <div class="tray" id="tray">
+                    <div class="water-glass">
+                        <div class="water" id="water"></div>
+                    </div>
+                </div>
+                <div class="water-drops" id="water-drops">
+                    <div class="drop"></div>
+                    <div class="drop"></div>
+                    <div class="drop"></div>
+                </div>
+            </div>
+
+            <!-- Comparison Demo -->
+            <div class="comparison-demo" id="comparison-demo">
+                <div class="object-container">
+                    <div class="push-object empty-box" id="empty-box">
+                        <span class="mass-label">Mass: 0.5 kg</span>
+                        <div class="force-arrow" id="empty-arrow">➡️</div>
+                        Empty Box
+                    </div>
+                    <div class="push-object football" id="football">
+                        <span class="mass-label">Mass: 0.4 kg</span>
+                        <div class="force-arrow" id="football-arrow">➡️</div>
+                        ⚽
+                    </div>
+                </div>
+                <div class="object-container">
+                    <div class="push-object full-box" id="full-box">
+                        <span class="mass-label">Mass: 10 kg</span>
+                        <div class="force-arrow" id="full-arrow">➡️</div>
+                        Full Box
+                    </div>
+                    <div class="push-object stone" id="stone">
+                        <span class="mass-label">Mass: 5 kg</span>
+                        <div class="force-arrow" id="stone-arrow">➡️</div>
+                        🪨
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="demo-title">Explore Inertia Through Activities</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playCompleteStory()">📖 Complete Lesson</button>
+                <button class="demo-btn" onclick="showActivity82()">🪙 Coin & Card</button>
+                <button class="demo-btn" onclick="showActivity83()">💧 Water Tumbler</button>
+                <button class="demo-btn" onclick="showComparison()">⚖️ Compare Objects</button>
+                <button class="demo-btn" onclick="resetAllClick()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Theory Section -->
+        <div class="theory-section">
+            <div class="theory-title">Understanding Inertia</div>
+            
+            <div class="definition-box">
+                <div class="definition-title">What is Inertia?</div>
+                <div class="definition-content">
+                    Inertia is the natural tendency of an object to resist a change in its state of motion or of rest. 
+                    If an object is at rest, it tends to remain at rest. If it is moving, it tends to keep moving 
+                    with the same speed and in the same direction unless acted upon by an external force.
+                </div>
+            </div>
+
+            <div class="key-points">
+                <div class="point-card">
+                    <div class="point-icon">🪙</div>
+                    <div class="point-title">Coin & Card Insight</div>
+                    <div class="point-description">
+                        When we flick the card, the coin's inertia keeps it in place momentarily, 
+                        allowing it to fall straight into the glass.
+                    </div>
+                </div>
+                <div class="point-card">
+                    <div class="point-icon">💧</div>
+                    <div class="point-title">Water Tumbler Insight</div>
+                    <div class="point-description">
+                        Water spills because its inertia resists the circular motion of the tray, 
+                        trying to continue in a straight line.
+                    </div>
+                </div>
+                <div class="point-card">
+                    <div class="point-icon">⚖️</div>
+                    <div class="point-title">Mass and Inertia</div>
+                    <div class="point-description">
+                        Heavier objects have more inertia. The mass of an object is a measure of its inertia - 
+                        greater mass means greater resistance to change.
+                    </div>
+                </div>
+            </div>
+
+            <div class="observation-box">
+                <div class="observation-title">🔍 Real-Life Application</div>
+                <div class="observation-content">
+                    Notice how saucers have grooves for placing tea cups? This prevents the cup from toppling 
+                    over during sudden jerks - a practical application of understanding inertia! Similarly, 
+                    seat belts in vehicles protect us by counteracting our body's inertia during sudden stops.
+                </div>
+            </div>
+
+            <div class="definition-box">
+                <div class="definition-title">The Relationship: Mass and Inertia</div>
+                <div class="definition-content">
+                    <strong>Quantitatively, the inertia of an object is measured by its mass.</strong><br><br>
+                    • A football flies away when kicked, but a stone of the same size barely moves<br>
+                    • An empty box is easier to push than a box full of books<br>
+                    • A train has much more inertia than a cart<br><br>
+                    <em>The mass of an object is a measure of its inertia - more mass means more resistance to change in motion.</em>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice Narrator System
+        class InertiaTeacher {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.9, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+        }
+
+        // Global state management
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let isPlaying = false;
+        let animationTimeline = null;
+        let currentDemoAborted = false;
+        let activeAnimations = [];
+        let currentRunId = 0; // increments on every button click/demo start to guard UI updates
+        let currentTaskId = null; // Track current task ID
+
+        // Function to create new animation timeline
+        function createNewTimeline() {
+            // Kill all previous animations
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            // Kill all active animations
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            // Kill all tweens
+            gsap.killTweensOf("*");
+            
+            // Create new timeline
+            const newTimeline = gsap.timeline();
+            animationTimeline = newTimeline;
+            return newTimeline;
+        }
+
+        // Function to add animation to tracking
+        function trackAnimation(animation) {
+            if (animation) {
+                activeAnimations.push(animation);
+            }
+            return animation;
+        }
+
+        // Function to stop current demo
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++; // invalidate any pending UI updates from previous demos
+            
+            // Clear current task context
+            currentTaskId = null;
+            
+            // Immediately hide all UI elements synchronously
+            document.getElementById('info-overlay').classList.remove('show');
+            document.getElementById('physics-data').classList.remove('show');
+            document.getElementById('info-text').textContent = '';
+            document.getElementById('force-value').textContent = '0 N';
+            document.getElementById('mass-value').textContent = '0 kg';
+            document.getElementById('accel-value').textContent = '0 m/s²';
+            document.getElementById('inertia-value').textContent = 'Low';
+            
+            // Stop teacher
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            // Kill all animations
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            
+            // Kill all tracked animations
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            
+            // Kill all GSAP tweens
+            gsap.killTweensOf("*");
+            
+            // Hide all demos immediately
+            document.querySelectorAll('.coin-demo, .water-demo, .comparison-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            isPlaying = false;
+        }
+
+        // Function to check if demo should continue
+        function shouldContinue(taskId = null) {
+            // If a specific task ID is provided, check if it matches current task
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        // Function to stop current teacher and create new one
+        function createNewTeacher(taskId = null) {
+            // Destroy previous teacher if exists
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            // Reset abort flag
+            currentDemoAborted = false;
+            // Set current task ID
+            currentTaskId = taskId;
+            // Create new teacher instance
+            currentTeacher = new InertiaTeacher();
+            return currentTeacher;
+        }
+
+        // Helper functions for UI updates
+        function showInfo(text, runId) {
+            if (runId !== currentRunId || !shouldContinue()) return;
+            const overlay = document.getElementById('info-overlay');
+            const infoText = document.getElementById('info-text');
+            infoText.textContent = text;
+            overlay.classList.add('show');
+        }
+
+        function hideInfo(runId) {
+            if (runId !== currentRunId || !shouldContinue()) return;
+            document.getElementById('info-overlay').classList.remove('show');
+        }
+
+        function showPhysicsData(runId) {
+            if (runId !== currentRunId || !shouldContinue()) return;
+            document.getElementById('physics-data').classList.add('show');
+        }
+
+        function hidePhysicsData(runId) {
+            if (runId !== currentRunId || !shouldContinue()) return;
+            document.getElementById('physics-data').classList.remove('show');
+        }
+
+        function updatePhysicsData(force, mass, accel, inertia, runId) {
+            if (runId !== currentRunId || !shouldContinue()) return;
+            document.getElementById('force-value').textContent = force;
+            document.getElementById('mass-value').textContent = mass;
+            document.getElementById('accel-value').textContent = accel;
+            document.getElementById('inertia-value').textContent = inertia;
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            const teacher = createNewTeacher('initialization');
+            teacher.speak("Welcome to Inertia and Mass! Let's explore how objects resist changes in their motion through fun activities and demonstrations.");
+            showInfo("Welcome! Select an activity to explore how inertia affects objects in motion", currentRunId);
+        });
+
+        // Complete Story
+        async function playCompleteStory() {
+            const taskId = 'complete-story';
+            // Stop any current demo
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            // Create new teacher for this demo
+            const teacher = createNewTeacher(taskId);
+            
+            // Full reset first
+            await resetAll();
+            
+            // Wait to ensure everything is cleared
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📖 Complete Lesson on Inertia");
+            
+            // Another small wait before showing new info
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            const runId = currentRunId;
+            showInfo("Starting comprehensive lesson on inertia and mass relationships", runId);
+            
+            // Introduction
+            await teacher.speak("Today we'll learn about inertia - the property that makes objects resist changes in their motion. Let's start with the Coin and Card experiment!");
+            if (!shouldContinue(taskId)) return;
+            
+            // Coin & Card Activity
+            await showActivity82Internal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(2000);
+            
+            // Water Tumbler Activity
+            await teacher.speak("Excellent! Now let's see the Water Tumbler demonstration.");
+            if (!shouldContinue(taskId)) return;
+            await showActivity83Internal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            await wait(2000);
+            
+            // Comparison
+            await teacher.speak("Finally, let's compare how different masses affect inertia.");
+            if (!shouldContinue(taskId)) return;
+            await showComparisonInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Remember: Inertia is the natural tendency of objects to resist changes in motion. The more massive an object, the greater its inertia!");
+            
+            showInfo("Lesson Complete! Key concept: Mass is the quantitative measure of inertia", runId);
+            
+            isPlaying = false;
+        }
+
+        // Coin & Card Activity with GSAP
+        async function showActivity82() {
+            const taskId = 'activity-82';
+            // Stop any current demo
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            // Create new teacher for this demo
+            const teacher = createNewTeacher(taskId);
+            await showActivity82Internal(teacher, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showActivity82Internal(teacher, taskId) {
+            // Full reset first
+            await resetAll();
+            
+            // Wait to ensure everything is cleared
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🪙 Coin and Card Experiment");
+            
+            // Show coin demo
+            document.getElementById('coin-demo').classList.add('active');
+            
+            // Another small wait before showing new info
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            const runId = currentRunId;
+            showInfo("Coin on card experiment: Demonstrating inertia of rest", runId);
+            showPhysicsData(runId);
+            updatePhysicsData("0 N", "5 g", "0 m/s²", "At rest", runId);
+            
+            await teacher.speak("Watch carefully! I'll place a five-rupee coin on a stiff card covering an empty glass.");
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show force indicator
+            document.getElementById('force-indicator').classList.add('show');
+            
+            // Show finger with GSAP
+            const finger = document.getElementById('finger');
+            gsap.set(finger, { opacity: 1, right: -50 });
+            
+            showInfo("Quick horizontal force applied to card - coin remains at rest due to inertia", runId);
+            await teacher.speak("Now, I'll give the card a sharp horizontal flick!");
+            
+            updatePhysicsData("10 N", "5 g", "0 m/s²", "Resisting", runId);
+            
+            // GSAP animation for finger flick
+            gsap.to(finger, {
+                duration: 0.5,
+                right: 100,
+                ease: "power2.in"
+            });
+            
+            await wait(300);
+            
+            // Flick card with GSAP
+            const card = document.getElementById('card');
+            gsap.to(card, {
+                duration: 0.4,
+                x: 400,
+                opacity: 0,
+                ease: "power3.out"
+            });
+            
+            // Drop coin with realistic physics
+            setTimeout(() => {
+                const coin = document.getElementById('coin');
+                gsap.to(coin, {
+                    duration: 0.6,
+                    y: 98,
+                    ease: "power2.in",
+                    onUpdate: function() {
+                        if (currentDemoAborted) return;
+                        const progress = this.progress();
+                        const velocity = Math.round(progress * 9.8 * 10) / 10;
+                        updatePhysicsData("0 N", "5 g", `${velocity} m/s²`, "Falling", runId);
+                    }
+                });
+            }, 300);
+            
+            gsap.to(finger, {
+                duration: 0.5,
+                opacity: 0,
+                delay: 0.5
+            });
+            
+            await teacher.speak("Amazing! The card shoots away, but the coin falls straight into the glass! This happens because the coin's inertia keeps it at rest even when the card moves.");
+            
+            showInfo("Result: Coin's inertia prevented horizontal motion - only gravity acted on it", runId);
+            updatePhysicsData("0 N", "5 g", "9.8 m/s²", "In glass", runId);
+            
+            await wait(2000);
+        }
+
+        // Water Tumbler Activity with enhanced physics
+        async function showActivity83() {
+            const taskId = 'activity-83';
+            // Stop any current demo
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            // Create new teacher for this demo
+            const teacher = createNewTeacher(taskId);
+            await showActivity83Internal(teacher, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showActivity83Internal(teacher, taskId) {
+            // Full reset first
+            await resetAll();
+            
+            // Wait to ensure everything is cleared
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("💧 Rotating Water Tumbler Experiment");
+            
+            // Show water demo
+            document.getElementById('water-demo').classList.add('active');
+            document.getElementById('rotation-indicator').classList.add('show');
+            
+            // Another small wait before showing new info
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            const runId = currentRunId;
+            showInfo("Water tumbler rotation: Demonstrating inertia in circular motion", runId);
+            showPhysicsData(runId);
+            updatePhysicsData("Centripetal", "200 g", "Variable", "Resisting", runId);
+            
+            await teacher.speak("Here's a water-filled tumbler on a tray. Let's see what happens when I turn around quickly!");
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            showInfo("Circular motion requires constant force - water's inertia resists direction change", runId);
+            
+            // GSAP rotation for tray
+            const tray = document.getElementById('tray');
+            const water = document.getElementById('water');
+            const waterDrops = document.getElementById('water-drops');
+            
+            const rotationAnimation = trackAnimation(
+                gsap.timeline()
+                    .to(tray, {
+                        duration: 2,
+                        rotation: 360,
+                        ease: "power2.inOut",
+                        onStart: () => {
+                            updatePhysicsData("5 N", "200 g", "2 m/s²", "High", runId);
+                        }
+                    })
+                    .to(water, {
+                        duration: 0.5,
+                        x: -10,
+                        rotation: -15,
+                        height: "50%",
+                        ease: "power2.out"
+                    }, "-=1.8")
+                    .to(water, {
+                        duration: 0.5,
+                        x: 10,
+                        rotation: 15,
+                        height: "40%",
+                        ease: "power2.out"
+                    }, "-=1.2")
+                    .to(water, {
+                        duration: 0.5,
+                        x: -5,
+                        rotation: -10,
+                        height: "30%",
+                        ease: "power2.out"
+                    }, "-=0.6")
+                    .to(water, {
+                        duration: 0.5,
+                        x: 0,
+                        rotation: 0,
+                        height: "20%",
+                        ease: "power2.out"
+                    })
+            );
+            
+            setTimeout(() => {
+                if (!shouldContinue(taskId)) return;
+                waterDrops.classList.add('show');
+                showInfo("Water spills! Its inertia makes it continue in straight line while tray rotates", runId);
+            }, 500);
+            
+            await teacher.speak("The water spills! This is because the water's inertia resists the circular motion. It tries to continue in a straight line while the tray turns.");
+            
+            updatePhysicsData("0 N", "100 g", "0 m/s²", "Spilled", runId);
+            
+            await wait(3000);
+        }
+
+        // Comparison Demo with realistic GSAP physics
+        async function showComparison() {
+            const taskId = 'comparison-demo';
+            // Stop any current demo
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            // Create new teacher for this demo
+            const teacher = createNewTeacher(taskId);
+            await showComparisonInternal(teacher, taskId);
+            
+            isPlaying = false;
+        }
+
+        async function showComparisonInternal(teacher, taskId) {
+            // Full reset first
+            await resetAll();
+            
+            // Wait to ensure everything is cleared
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("⚖️ Comparing Inertia of Different Objects");
+            
+            // Show comparison demo
+            document.getElementById('comparison-demo').classList.add('active');
+            
+            // Another small wait before showing new info
+            await wait(50);
+            
+            if (!shouldContinue(taskId)) return;
+            
+            const runId = currentRunId;
+            showInfo("Mass comparison: Same force applied to objects of different masses", runId);
+            showPhysicsData(runId);
+            
+            await teacher.speak("Let's compare objects with different masses. Watch how they respond to the same force!");
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            showInfo("Applying 10N force to light objects (0.4-0.5 kg mass)", runId);
+            updatePhysicsData("10 N", "0.5 kg", "20 m/s²", "Low", runId);
+            
+            // Push light objects with GSAP
+            const emptyBox = document.getElementById('empty-box');
+            const football = document.getElementById('football');
+            const emptyArrow = document.getElementById('empty-arrow');
+            const footballArrow = document.getElementById('football-arrow');
+            
+            // Animate arrows
+            const lightArrowAnimation = trackAnimation(
+                gsap.timeline()
+                    .set([emptyArrow, footballArrow], { opacity: 1, left: -80 })
+                    .to([emptyArrow, footballArrow], {
+                        duration: 0.5,
+                        left: -40,
+                        ease: "power2.out"
+                    })
+                    .to([emptyArrow, footballArrow], {
+                        duration: 0.3,
+                        left: 0,
+                        opacity: 0,
+                        ease: "power2.in"
+                    })
+            );
+            
+            // Animate light objects with realistic acceleration
+            setTimeout(() => {
+                if (!shouldContinue(taskId)) return;
+                trackAnimation(gsap.to(emptyBox, {
+                    duration: 1,
+                    x: 200,
+                    ease: "power2.out",
+                    onUpdate: function() {
+                        if (currentDemoAborted) return;
+                        const progress = this.progress();
+                        const distance = Math.round(200 * progress);
+                        updatePhysicsData("10 N", "0.5 kg", "20 m/s²", `${distance} cm`, runId);
+                    }
+                }));
+                
+                trackAnimation(gsap.to(football, {
+                    duration: 1,
+                    x: 200,
+                    ease: "power2.out"
+                }));
+            }, 500);
+            
+            await teacher.speak("Light objects like empty boxes and footballs move easily - they have less inertia!");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            showInfo("Applying same 10N force to heavy objects (5-10 kg mass)", runId);
+            updatePhysicsData("10 N", "10 kg", "1 m/s²", "High", runId);
+            
+            // Push heavy objects
+            const fullBox = document.getElementById('full-box');
+            const stone = document.getElementById('stone');
+            const fullArrow = document.getElementById('full-arrow');
+            const stoneArrow = document.getElementById('stone-arrow');
+            
+            // Animate arrows
+            const heavyArrowAnimation = trackAnimation(
+                gsap.timeline()
+                    .set([fullArrow, stoneArrow], { opacity: 1, left: -80 })
+                    .to([fullArrow, stoneArrow], {
+                        duration: 0.5,
+                        left: -40,
+                        ease: "power2.out"
+                    })
+                    .to([fullArrow, stoneArrow], {
+                        duration: 0.3,
+                        left: 0,
+                        opacity: 0,
+                        ease: "power2.in"
+                    })
+            );
+            
+            // Animate heavy objects with realistic slow acceleration
+            setTimeout(() => {
+                if (!shouldContinue(taskId)) return;
+                trackAnimation(gsap.to(fullBox, {
+                    duration: 1.5,
+                    x: 50,
+                    ease: "power3.out",
+                    onUpdate: function() {
+                        if (currentDemoAborted) return;
+                        const progress = this.progress();
+                        const distance = Math.round(50 * progress);
+                        updatePhysicsData("10 N", "10 kg", "1 m/s²", `${distance} cm`, runId);
+                    }
+                }));
+                
+                trackAnimation(gsap.to(stone, {
+                    duration: 1.5,
+                    x: 50,
+                    ease: "power3.out"
+                }));
+            }, 500);
+            
+            await teacher.speak("Heavy objects like full boxes and stones barely move with the same force - they have much more inertia!");
+            
+            showInfo("Conclusion: Greater mass = Greater inertia = More resistance to motion change", runId);
+            
+            await wait(3000);
+        }
+
+        // Helper Functions
+        async function resetAll() {
+            // Kill any running GSAP animations
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            gsap.killTweensOf("*");
+            
+            // Stop any current speech
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            
+            // Hide all demos
+            document.querySelectorAll('.coin-demo, .water-demo, .comparison-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            // Reset info overlays and data displays
+            hideInfo(currentRunId);
+            hidePhysicsData(currentRunId);
+            updateTitle("Explore Inertia Through Activities");
+            updatePhysicsData("0 N", "0 kg", "0 m/s²", "Low", currentRunId);
+            
+            // Reset coin demo
+            const card = document.getElementById('card');
+            const coin = document.getElementById('coin');
+            const finger = document.getElementById('finger');
+            const forceIndicator = document.getElementById('force-indicator');
+            
+            card.classList.remove('flicked');
+            coin.classList.remove('falling');
+            finger.classList.remove('show');
+            forceIndicator.classList.remove('show');
+            
+            gsap.set([card, coin, finger], { x: 0, y: 0, opacity: 1, rotation: 0 });
+            gsap.set(card, { bottom: 170 });
+            gsap.set(coin, { bottom: 178 });
+            gsap.set(finger, { right: -50, opacity: 0 });
+            
+            // Reset water demo
+            const tray = document.getElementById('tray');
+            const water = document.getElementById('water');
+            const waterDrops = document.getElementById('water-drops');
+            const rotationIndicator = document.getElementById('rotation-indicator');
+            
+            tray.classList.remove('rotating');
+            water.classList.remove('spilling');
+            waterDrops.classList.remove('show');
+            rotationIndicator.classList.remove('show');
+            
+            gsap.set([tray, water], { x: 0, rotation: 0 });
+            gsap.set(water, { height: "60%" });
+            
+            // Reset comparison demo
+            const objects = ['empty-box', 'football', 'full-box', 'stone'];
+            const arrows = ['empty-arrow', 'football-arrow', 'full-arrow', 'stone-arrow'];
+            
+            objects.forEach(id => {
+                const element = document.getElementById(id);
+                element.classList.remove('pushed-light', 'pushed-heavy');
+                gsap.set(element, { x: 0 });
+            });
+            
+            arrows.forEach(id => {
+                const element = document.getElementById(id);
+                element.classList.remove('show');
+                gsap.set(element, { opacity: 0, left: -40 });
+            });
+            
+            await wait(300);
+        }
+
+        function updateTitle(title) {
+            document.getElementById('demo-title').textContent = title;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Reset Button Handler - ensures same behavior as other buttons
+        async function resetAllClick() {
+            // Stop any running demo and invalidate previous run
+            stopCurrentDemo();
+            isPlaying = false;
+            // Perform full reset
+            await resetAll();
+        }
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+            
+            // If audio is disabled, stop current speech
+            if (!globalAudioEnabled && currentTeacher) {
+                currentTeacher.stop();
+            }
+        });
+    </script>
+</body>
+</html>

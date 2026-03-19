@@ -1,0 +1,2438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graphical Representation of Motion - Physics in Motion</title>
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- Chart.js for interactive graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(16, 185, 129, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(16, 185, 129, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(45deg, #10b981, #34d399, #6ee7b7);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Demo Stage */
+        .demo-stage {
+            background: linear-gradient(to bottom, #1e293b, #334155, #475569);
+            border-radius: 25px;
+            min-height: 500px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            overflow: auto;
+            border: 3px solid rgba(16, 185, 129, 0.4);
+            padding: 40px;
+        }
+
+        /* Graph Introduction Demo */
+        .graph-intro-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 500px;
+        }
+
+        .graph-intro-demo.active {
+            display: block;
+        }
+
+        .intro-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            height: 100%;
+        }
+
+        .intro-section {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .intro-title {
+            color: #10b981;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .intro-icon {
+            font-size: 4rem;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .intro-description {
+            line-height: 1.6;
+            color: #e2e8f0;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        .graph-example {
+            width: 100%;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Distance-Time Graphs Demo */
+        .distance-time-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 500px;
+        }
+
+        .distance-time-demo.active {
+            display: block;
+        }
+
+        .graph-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            height: 100%;
+        }
+
+        .graph-card {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .graph-title {
+            color: #10b981;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            position: relative;
+        }
+
+        .graph-description {
+            margin-top: 15px;
+            color: #e2e8f0;
+            line-height: 1.6;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .graph-equation {
+            background: rgba(16, 185, 129, 0.2);
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            color: #34d399;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* Velocity-Time Graphs Demo */
+        .velocity-time-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 600px;
+        }
+
+        .velocity-time-demo.active {
+            display: block;
+        }
+
+        .velocity-graphs-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            max-height: 100%;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .velocity-graph-card {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            margin-bottom: 15px;
+        }
+
+        .velocity-chart-container {
+            width: 100%;
+            height: 250px;
+            position: relative;
+        }
+
+        /* Interactive Graph Demo */
+        .interactive-graph-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            min-height: 600px;
+            height: auto;
+        }
+
+        .interactive-graph-demo.active {
+            display: block;
+        }
+
+        .interactive-container {
+            display: grid;
+            grid-template-columns: minmax(300px, 1fr) 2fr;
+            gap: 30px;
+            height: 100%;
+        }
+
+        .graph-controls {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            height: fit-content;
+            overflow-y: auto;
+            max-height: 600px;
+        }
+
+        .controls-title {
+            color: #10b981;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .control-group {
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .control-label {
+            display: block;
+            color: #34d399;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .control-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid rgba(16, 185, 129, 0.4);
+            border-radius: 8px;
+            background: rgba(30, 41, 59, 0.8);
+            color: white;
+            font-size: 1rem;
+        }
+        
+        .control-input option {
+            background-color: #1e293b;
+            color: white;
+        }
+
+        .control-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 0;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .interactive-graph-display {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            height: fit-content;
+        }
+
+        .interactive-chart-container {
+            width: 100%;
+            height: 400px;
+            position: relative;
+        }
+
+        /* Data Tables Demo */
+        .data-tables-demo {
+            display: none;
+            padding: 20px;
+        }
+
+        .data-tables-demo.active {
+            display: block;
+        }
+
+        .tables-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .table-card {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .table-title {
+            color: #10b981;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .data-table th {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            color: #e2e8f0;
+        }
+
+        .table-chart-container {
+            width: 100%;
+            height: 250px;
+            position: relative;
+            margin-top: 20px;
+        }
+
+        /* Activities Demo */
+        .activities-demo {
+            display: none;
+            padding: 30px;
+        }
+
+        .activities-demo.active {
+            display: block;
+        }
+
+        .activities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .activity-card {
+            background: rgba(16, 185, 129, 0.1);
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .activity-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(16, 185, 129, 0.3);
+        }
+
+        .activity-title {
+            color: #10b981;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .activity-content {
+            color: #e2e8f0;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .activity-chart-container {
+            width: 100%;
+            height: 300px;
+            position: relative;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        /* Questions Demo */
+        .questions-demo {
+            display: none;
+            padding: 30px;
+        }
+
+        .questions-demo.active {
+            display: block;
+        }
+
+        .questions-container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .question-carousel {
+            overflow: hidden;
+            position: relative;
+        }
+
+        .question-slider {
+            display: flex;
+            transition: transform 0.5s ease;
+        }
+
+        .question-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 4px solid #10b981;
+            flex: 0 0 100%;
+            box-sizing: border-box;
+            opacity: 0;
+            transform: scale(0.9);
+            transition: all 0.5s ease;
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .question-card.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .question-number {
+            color: #10b981;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .question-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            color: #e2e8f0;
+            flex-grow: 1;
+        }
+
+        .answer-section {
+            background: rgba(16, 185, 129, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.5s ease;
+            margin-top: 15px;
+        }
+
+        .answer-section.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .show-answer-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            align-self: flex-start;
+        }
+
+        .show-answer-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .carousel-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .carousel-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .carousel-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .carousel-btn:disabled {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .carousel-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .indicator-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .indicator-dot.active {
+            background: #10b981;
+            transform: scale(1.2);
+        }
+
+        /* Area Calculation Demo */
+        .area-calculation-demo {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 500px;
+        }
+
+        .area-calculation-demo.active {
+            display: block;
+        }
+
+        .area-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            height: 100%;
+        }
+
+        .area-explanation {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .area-title {
+            color: #10b981;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .area-formula {
+            background: rgba(16, 185, 129, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            color: #34d399;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .area-steps {
+            list-style: none;
+            padding: 0;
+        }
+
+        .area-steps li {
+            padding: 8px 0;
+            padding-left: 20px;
+            position: relative;
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+
+        .area-steps li:before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-size: 1.2rem;
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+            min-width: 150px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
+        }
+
+        /* Theory Section */
+        .theory-section {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(16, 185, 129, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .concept-box {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(52, 211, 153, 0.2));
+            padding: 25px;
+            border-radius: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .concept-box-title {
+            font-size: 1.5rem;
+            color: #10b981;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .concept-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #e2e8f0;
+        }
+
+        .formula-highlight {
+            background: rgba(245, 158, 11, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 20px 0;
+            border: 2px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .main-formula {
+            font-size: 1.8rem;
+            color: #f59e0b;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            text-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2.2rem; }
+            .demo-stage { padding: 30px 20px; min-height: 400px; }
+            .demo-buttons { flex-direction: column; align-items: center; }
+            .intro-content { grid-template-columns: 1fr; }
+            .graph-container { grid-template-columns: 1fr; }
+            .velocity-graphs-container { grid-template-columns: 1fr; }
+            .interactive-container { grid-template-columns: 1fr; }
+            .area-container { grid-template-columns: 1fr; }
+            .tables-container { grid-template-columns: 1fr; }
+            .activities-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 20px 15px; }
+            .header h1 { font-size: 1.8rem; }
+            .demo-stage { padding: 20px 15px; }
+            .theory-section { padding: 20px; }
+            .main-formula { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Graphical Representation of Motion</h1>
+            <p>Discover how graphs help us visualize and understand motion! Learn to interpret distance-time and velocity-time graphs, and understand what they tell us about an object's motion.</p>
+        </div>
+
+        <!-- Demo Stage -->
+        <div class="demo-stage" id="stage">
+            <!-- Graph Introduction Demo -->
+            <div class="graph-intro-demo" id="graph-intro-demo">
+                <div class="intro-content">
+                    <div class="intro-section">
+                        <div class="intro-icon">📊</div>
+                        <div class="intro-title">Why Use Graphs?</div>
+                        <div class="intro-description">
+                            Graphs provide a convenient method to present information about motion. 
+                            Just like bar graphs show cricket run rates, line graphs help us understand 
+                            how distance and velocity change with time.
+                        </div>
+                        <div class="graph-example">
+                            <canvas id="intro-chart-1"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="intro-section">
+                        <div class="intro-icon">📈</div>
+                        <div class="intro-title">Motion Graphs</div>
+                        <div class="intro-description">
+                            Line graphs show the dependence of one physical quantity (like distance or velocity) 
+                            on another quantity (like time). This helps us analyze and predict motion patterns.
+                        </div>
+                        <div class="graph-example">
+                            <canvas id="intro-chart-2"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Distance-Time Graphs Demo -->
+            <div class="distance-time-demo" id="distance-time-demo">
+                <div class="graph-container">
+                    <div class="graph-card">
+                        <div class="graph-title">Uniform Motion</div>
+                        <div class="chart-container">
+                            <canvas id="uniform-distance-chart"></canvas>
+                        </div>
+                        <div class="graph-equation">Distance ∝ Time (Straight line)</div>
+                        <div class="graph-description">
+                            When an object moves with uniform speed, it travels equal distances in equal time intervals. 
+                            The graph is a straight line showing direct proportionality.
+                        </div>
+                    </div>
+
+                    <div class="graph-card">
+                        <div class="graph-title">Non-Uniform Motion</div>
+                        <div class="chart-container">
+                            <canvas id="non-uniform-distance-chart"></canvas>
+                        </div>
+                        <div class="graph-equation">Distance ∝ Time² (Curved line)</div>
+                        <div class="graph-description">
+                            When an object moves with changing speed (acceleration), the distance-time graph 
+                            is curved, showing non-linear variation.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Velocity-Time Graphs Demo -->
+            <div class="velocity-time-demo" id="velocity-time-demo">
+                <div class="velocity-graphs-container">
+                    <div class="velocity-graph-card">
+                        <div class="graph-title">Uniform Velocity</div>
+                        <div class="velocity-chart-container">
+                            <canvas id="uniform-velocity-chart"></canvas>
+                        </div>
+                        <div class="graph-description">
+                            Constant velocity = Horizontal line parallel to time axis
+                        </div>
+                    </div>
+
+                    <div class="velocity-graph-card">
+                        <div class="graph-title">Uniform Acceleration</div>
+                        <div class="velocity-chart-container">
+                            <canvas id="uniform-acceleration-chart"></canvas>
+                        </div>
+                        <div class="graph-description">
+                            Constant acceleration = Straight line with constant slope
+                        </div>
+                    </div>
+
+                    <div class="velocity-graph-card">
+                        <div class="graph-title">Non-Uniform Acceleration</div>
+                        <div class="velocity-chart-container">
+                            <canvas id="non-uniform-acceleration-chart"></canvas>
+                        </div>
+                        <div class="graph-description">
+                            Variable acceleration = Curved line with changing slope
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Area Calculation Demo -->
+            <div class="area-calculation-demo" id="area-calculation-demo">
+                <div class="area-container">
+                    <div class="area-explanation">
+                        <div class="area-title">Area Under Velocity-Time Graph</div>
+                        <div class="area-formula">Area = Distance Travelled</div>
+                        <ul class="area-steps">
+                            <li>The area enclosed by velocity-time graph and time axis equals displacement</li>
+                            <li>For uniform velocity: Area = Rectangle = v × t</li>
+                            <li>For uniform acceleration: Area = Rectangle + Triangle</li>
+                            <li>Area = (u × t) + ½ × (v - u) × t</li>
+                            <li>This gives us the total distance travelled</li>
+                        </ul>
+                        <div class="area-formula">s = ut + ½at²</div>
+                    </div>
+
+                    <div class="area-explanation">
+                        <div class="area-title">Interactive Area Calculation</div>
+                        <div class="chart-container">
+                            <canvas id="area-calculation-chart"></canvas>
+                        </div>
+                        <div class="area-formula" id="area-result">
+                            Click on the graph to see area calculation
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Tables Demo -->
+            <div class="data-tables-demo" id="data-tables-demo">
+                <h2 style="color: #10b981; text-align: center; margin-bottom: 30px;">NCERT Data Tables</h2>
+                
+                <div class="tables-container">
+                    <div class="table-card">
+                        <div class="table-title">Table 7.2: Car Distance Data</div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Time (s)</th>
+                                    <th>Distance (m)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>0</td><td>0</td></tr>
+                                <tr><td>2</td><td>1</td></tr>
+                                <tr><td>4</td><td>4</td></tr>
+                                <tr><td>6</td><td>9</td></tr>
+                                <tr><td>8</td><td>16</td></tr>
+                                <tr><td>10</td><td>25</td></tr>
+                                <tr><td>12</td><td>36</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="table-chart-container">
+                            <canvas id="table-2-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="table-card">
+                        <div class="table-title">Table 7.3: Car Velocity Data</div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Time (s)</th>
+                                    <th>Velocity (m/s)</th>
+                                    <th>Velocity (km/h)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>0</td><td>0</td><td>0</td></tr>
+                                <tr><td>5</td><td>2.5</td><td>9</td></tr>
+                                <tr><td>10</td><td>5.0</td><td>18</td></tr>
+                                <tr><td>15</td><td>7.5</td><td>27</td></tr>
+                                <tr><td>20</td><td>10.0</td><td>36</td></tr>
+                                <tr><td>25</td><td>12.5</td><td>45</td></tr>
+                                <tr><td>30</td><td>15.0</td><td>54</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="table-chart-container">
+                            <canvas id="table-3-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Graph Demo -->
+            <div class="interactive-graph-demo" id="interactive-graph-demo">
+                <div class="interactive-container">
+                    <div class="graph-controls">
+                        <div class="controls-title">Create Your Graph</div>
+                        
+                        <div class="control-group">
+                            <label class="control-label">Graph Type:</label>
+                            <select class="control-input" id="graph-type">
+                                <option value="distance-time">Distance-Time</option>
+                                <option value="velocity-time">Velocity-Time</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">Motion Type:</label>
+                            <select class="control-input" id="motion-type">
+                                <option value="uniform">Uniform</option>
+                                <option value="accelerated">Accelerated</option>
+                                <option value="decelerated">Decelerated</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">Initial Value:</label>
+                            <input type="number" class="control-input" id="initial-value" value="0" min="0" max="100">
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">Final Value:</label>
+                            <input type="number" class="control-input" id="final-value" value="50" min="0" max="100">
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">Time Duration (s):</label>
+                            <input type="number" class="control-input" id="time-duration" value="10" min="1" max="30">
+                        </div>
+
+                        <button class="control-btn" onclick="generateInteractiveGraph()">Generate Graph</button>
+                        <button class="control-btn" onclick="calculateSpeed()">Calculate Speed/Acceleration</button>
+                        
+                        <div id="calculation-result" style="margin-top: 15px; padding: 15px; background: rgba(16, 185, 129, 0.2); border-radius: 8px; color: #34d399; text-align: center; min-height: 60px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 500;">
+                            Generate a graph to see calculations
+                        </div>
+                    </div>
+
+                    <div class="interactive-graph-display">
+                        <div class="area-title">Interactive Graph</div>
+                        <div class="interactive-chart-container">
+                            <canvas id="interactive-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activities Demo -->
+            <div class="activities-demo" id="activities-demo">
+                <h2 style="color: #10b981; text-align: center; margin-bottom: 30px;">NCERT Activities</h2>
+                
+                <div class="activities-grid">
+                    <div class="activity-card">
+                        <div class="activity-title">Activity 7.9: Train Journey</div>
+                        <div class="activity-content">
+                            <strong>Table 7.4: Train Schedule</strong><br>
+                            Station A (0 km): Departure 08:15<br>
+                            Station B (120 km): Arrival 11:15, Departure 11:30<br>
+                            Station C (180 km): Arrival 13:00<br><br>
+                            Plot and interpret the distance-time graph for the train.
+                        </div>
+                        <div class="activity-chart-container">
+                            <canvas id="activity-7-9-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="activity-card">
+                        <div class="activity-title">Activity 7.10: Feroz and Sania's Bicycle Race</div>
+                        <div class="activity-content">
+                            <strong>Table 7.5: Distance covered by both students</strong><br>
+                            Compare their motion patterns and determine who reaches school first.
+                            Both follow the same route but take different times.
+                        </div>
+                        <div class="activity-chart-container">
+                            <canvas id="activity-7-10-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Questions Demo -->
+            <div class="questions-demo" id="questions-demo">
+                <h2 style="color: #10b981; text-align: center; margin-bottom: 30px;">Practice Questions</h2>
+                
+                <div class="questions-container">
+                    <div class="question-carousel">
+                        <div class="question-slider" id="question-slider">
+                            <div class="question-card" id="question-1" data-question-id="1">
+                                <div class="question-number">Q1.</div>
+                                <div class="question-text">
+                                    What is the nature of the distance-time graphs for uniform and non-uniform motion of an object?
+                                </div>
+                                <button class="show-answer-btn" onclick="showAnswer(1)">Show Answer</button>
+                                <div class="answer-section" id="answer-1">
+                                    <strong>Answer:</strong><br>
+                                    <strong>Uniform motion:</strong> The distance-time graph is a straight line passing through the origin, showing that distance is directly proportional to time.<br><br>
+                                    <strong>Non-uniform motion:</strong> The distance-time graph is a curved line (parabola for uniformly accelerated motion), showing non-linear variation of distance with time.
+                                </div>
+                            </div>
+                            
+                            <div class="question-card" id="question-2" data-question-id="2">
+                                <div class="question-number">Q2.</div>
+                                <div class="question-text">
+                                    What can you say about the motion of an object whose distance-time graph is a straight line parallel to the time axis?
+                                </div>
+                                <button class="show-answer-btn" onclick="showAnswer(2)">Show Answer</button>
+                                <div class="answer-section" id="answer-2">
+                                    <strong>Answer:</strong> If the distance-time graph is a straight line parallel to the time axis, it means the object is at rest. 
+                                    The distance remains constant with time, indicating zero velocity and no motion.
+                                </div>
+                            </div>
+                            
+                            <div class="question-card" id="question-3" data-question-id="3">
+                                <div class="question-number">Q3.</div>
+                                <div class="question-text">
+                                    What can you say about the motion of an object if its speed-time graph is a straight line parallel to the time axis?
+                                </div>
+                                <button class="show-answer-btn" onclick="showAnswer(3)">Show Answer</button>
+                                <div class="answer-section" id="answer-3">
+                                    <strong>Answer:</strong> If the speed-time (or velocity-time) graph is a straight line parallel to the time axis, 
+                                    it means the object is moving with uniform velocity. The speed remains constant, so acceleration is zero.
+                                </div>
+                            </div>
+                            
+                            <div class="question-card" id="question-4" data-question-id="4">
+                                <div class="question-number">Q4.</div>
+                                <div class="question-text">
+                                    What is the quantity which is measured by the area occupied below the velocity-time graph?
+                                </div>
+                                <button class="show-answer-btn" onclick="showAnswer(4)">Show Answer</button>
+                                <div class="answer-section" id="answer-4">
+                                    <strong>Answer:</strong> The area under the velocity-time graph represents the <strong>displacement</strong> (or distance travelled) 
+                                    by the object. For uniform velocity, Area = velocity × time. For accelerated motion, the area includes both rectangular and triangular portions.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="carousel-indicator" id="question-indicator"></div>
+                    
+                    <div class="carousel-nav">
+                        <button class="carousel-btn" id="prev-question" onclick="prevQuestion()">
+                            <span>&#10094;</span> Previous
+                        </button>
+                        <button class="carousel-btn" id="next-question" onclick="nextQuestion()">
+                            Next <span>&#10095;</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="demo-title">Explore Motion Graphs</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playCompleteLesson()">📚 Complete Lesson</button>
+                <button class="demo-btn" onclick="showGraphIntro()">📊 Why Graphs?</button>
+                <button class="demo-btn" onclick="showDistanceTimeGraphs()">📈 Distance-Time Graphs</button>
+                <button class="demo-btn" onclick="showVelocityTimeGraphs()">📉 Velocity-Time Graphs</button>
+                <button class="demo-btn" onclick="showAreaCalculation()">📐 Area Calculation</button>
+                <button class="demo-btn" onclick="showDataTables()">📋 NCERT Tables</button>
+                <button class="demo-btn" onclick="showInteractiveGraph()">🎮 Interactive Graphs</button>
+                <button class="demo-btn" onclick="showActivities()">🔬 Activities</button>
+                <button class="demo-btn" onclick="showQuestions()">❓ Questions</button>
+                <button class="demo-btn" onclick="resetAllClick()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Theory Section -->
+        <div class="theory-section">
+            <div class="concept-box">
+                <div class="concept-box-title">Understanding Motion Graphs</div>
+                <div class="concept-text">
+                    Graphs provide a visual representation of motion that helps us understand relationships between 
+                    physical quantities. Line graphs show how one quantity depends on another, making complex motion 
+                    patterns easy to analyze and interpret.
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                <div class="concept-box">
+                    <div class="concept-box-title">Distance-Time Graphs</div>
+                    <div class="concept-text">
+                        • <strong>Uniform motion:</strong> Straight line (distance ∝ time)<br>
+                        • <strong>Non-uniform motion:</strong> Curved line<br>
+                        • <strong>At rest:</strong> Horizontal line<br>
+                        • <strong>Slope:</strong> Represents speed
+                    </div>
+                </div>
+                <div class="concept-box">
+                    <div class="concept-box-title">Velocity-Time Graphs</div>
+                    <div class="concept-text">
+                        • <strong>Uniform velocity:</strong> Horizontal line<br>
+                        • <strong>Uniform acceleration:</strong> Straight inclined line<br>
+                        • <strong>Non-uniform acceleration:</strong> Curved line<br>
+                        • <strong>Area under curve:</strong> Displacement
+                    </div>
+                </div>
+            </div>
+
+            <div class="formula-highlight">
+                <div class="main-formula">Speed = Slope of Distance-Time Graph</div>
+                <div class="main-formula">Acceleration = Slope of Velocity-Time Graph</div>
+                <div class="main-formula">Displacement = Area under Velocity-Time Graph</div>
+            </div>
+
+            <div class="concept-box">
+                <div class="concept-box-title">Key Points to Remember</div>
+                <div class="concept-text">
+                    • Graphs make motion analysis visual and intuitive<br>
+                    • Slope of distance-time graph gives speed<br>
+                    • Slope of velocity-time graph gives acceleration<br>
+                    • Area under velocity-time graph gives displacement<br>
+                    • Straight lines indicate uniform motion<br>
+                    • Curved lines indicate non-uniform motion<br>
+                    • Horizontal lines indicate constant values
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice Teacher System
+        class PhysicsTeacher {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.9, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+        }
+
+        // Global state management
+        let globalAudioEnabled = true;
+        let currentTeacher = null;
+        let isPlaying = false;
+        let animationTimeline = null;
+        let currentDemoAborted = false;
+        let activeAnimations = [];
+        let currentRunId = 0;
+        let currentTaskId = null;
+        let charts = {};
+
+        // Chart.js default configuration
+        Chart.defaults.color = '#e2e8f0';
+        Chart.defaults.backgroundColor = 'rgba(16, 185, 129, 0.2)';
+        Chart.defaults.borderColor = '#10b981';
+
+        // State management functions
+        function createNewTimeline() {
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            gsap.killTweensOf("*");
+            
+            const newTimeline = gsap.timeline();
+            animationTimeline = newTimeline;
+            return newTimeline;
+        }
+
+        function trackAnimation(animation) {
+            if (animation) {
+                activeAnimations.push(animation);
+            }
+            return animation;
+        }
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null; // Clear current task ID
+            
+            // Stop teacher
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            // Kill all animations
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            
+            gsap.killTweensOf("*");
+            
+            // Hide all demos
+            document.querySelectorAll('.graph-intro-demo, .distance-time-demo, .velocity-time-demo, .area-calculation-demo, .data-tables-demo, .interactive-graph-demo, .activities-demo, .questions-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && taskId !== currentTaskId) {
+                return false; // Different task is now running
+            }
+            return !currentDemoAborted;
+        }
+
+        function generateTaskId() {
+            return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function setCurrentTask(taskId) {
+            currentTaskId = taskId;
+            currentDemoAborted = false;
+        }
+
+        function createNewTeacher() {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTeacher = new PhysicsTeacher();
+            return currentTeacher;
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            const teacher = createNewTeacher();
+            teacher.speak("Welcome to Graphical Representation of Motion! Let's explore how graphs help us visualize and understand different types of motion!");
+            
+            // Initialize intro charts
+            createIntroCharts();
+        });
+
+        // Create introduction charts
+        function createIntroCharts() {
+            // Cricket run rate example
+            const ctx1 = document.getElementById('intro-chart-1').getContext('2d');
+            charts.intro1 = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Over 1', 'Over 2', 'Over 3', 'Over 4', 'Over 5'],
+                    datasets: [{
+                        label: 'Run Rate',
+                        data: [6, 8, 4, 10, 7],
+                        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        borderColor: '#10b981',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Runs' }
+                        }
+                    }
+                }
+            });
+
+            // Motion graph example
+            const ctx2 = document.getElementById('intro-chart-2').getContext('2d');
+            charts.intro2 = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: [0, 1, 2, 3, 4, 5],
+                    datasets: [{
+                        label: 'Distance',
+                        data: [0, 5, 10, 15, 20, 25],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        tension: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Time (s)' } },
+                        y: { title: { display: true, text: 'Distance (m)' } }
+                    }
+                }
+            });
+        }
+
+        // Complete Lesson
+        async function playCompleteLesson() {
+            stopCurrentDemo();
+            const taskId = generateTaskId();
+            setCurrentTask(taskId);
+            isPlaying = true;
+            setActiveButton(0);
+            
+            const teacher = createNewTeacher();
+            
+            await resetAll();
+            await wait(100);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📚 Complete Motion Graphs Lesson");
+            
+            await teacher.speak("Let's begin our complete lesson on Graphical Representation of Motion. We'll learn how graphs help us visualize and analyze motion.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Start with graph introduction
+            await showGraphIntroInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show distance-time graphs
+            await teacher.speak("Now let's explore distance-time graphs and understand what they tell us about motion.");
+            if (!shouldContinue(taskId)) return;
+            await showDistanceTimeGraphsInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show velocity-time graphs
+            await teacher.speak("Next, let's learn about velocity-time graphs and their significance.");
+            if (!shouldContinue(taskId)) return;
+            await showVelocityTimeGraphsInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show area calculation
+            await teacher.speak("An important concept is that the area under velocity-time graphs gives us displacement.");
+            if (!shouldContinue(taskId)) return;
+            await showAreaCalculationInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show data tables
+            await teacher.speak("Let's examine the NCERT data tables and see how they translate to graphs.");
+            if (!shouldContinue(taskId)) return;
+            await showDataTablesInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show activities
+            await teacher.speak("Let's explore some real-world activities that demonstrate these concepts.");
+            if (!shouldContinue(taskId)) return;
+            await showActivitiesInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Show interactive graph
+            await teacher.speak("Now, let's try creating our own graphs to better understand these relationships.");
+            if (!shouldContinue(taskId)) return;
+            await showInteractiveGraphInternal(teacher, taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1500);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Excellent! You now understand how to read, interpret, and create motion graphs. You can extract valuable information about an object's motion and apply these concepts to real-world scenarios!");
+            
+            // Only set isPlaying to false if this task is still current
+            if (shouldContinue(taskId)) {
+                isPlaying = false;
+            }
+        }
+
+        // Graph Introduction Demo
+        async function showGraphIntro() {
+            stopCurrentDemo();
+            const taskId = generateTaskId();
+            setCurrentTask(taskId);
+            isPlaying = true;
+            setActiveButton(1);
+            
+            const teacher = createNewTeacher();
+            await showGraphIntroInternal(teacher, taskId);
+            
+            if (shouldContinue(taskId)) {
+                isPlaying = false;
+            }
+        }
+
+        async function showGraphIntroInternal(teacher, taskId) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📊 Why Use Graphs?");
+            
+            document.getElementById('graph-intro-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Graphs provide a convenient method to present information about various events. Just like bar graphs show cricket run rates, line graphs help us understand motion.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("In physics, we use line graphs to show how one physical quantity, like distance or velocity, depends on another quantity, like time. This makes complex motion patterns easy to visualize and analyze.");
+        }
+
+        // Distance-Time Graphs Demo
+        async function showDistanceTimeGraphs() {
+            stopCurrentDemo();
+            const taskId = generateTaskId();
+            setCurrentTask(taskId);
+            isPlaying = true;
+            setActiveButton(2);
+            
+            const teacher = createNewTeacher();
+            await showDistanceTimeGraphsInternal(teacher, taskId);
+            
+            if (shouldContinue(taskId)) {
+                isPlaying = false;
+            }
+        }
+
+        async function showDistanceTimeGraphsInternal(teacher, taskId) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📈 Distance-Time Graphs");
+            
+            document.getElementById('distance-time-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            // Create distance-time charts
+            createDistanceTimeCharts();
+            
+            await teacher.speak("Distance-time graphs show how an object's position changes with time. Let's examine two important cases.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("For uniform motion, the graph is a straight line because the object travels equal distances in equal time intervals. The slope of this line gives us the speed.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("For non-uniform motion, like accelerated motion, the graph is curved because the object covers different distances in equal time intervals.");
+        }
+
+        function createDistanceTimeCharts() {
+            // Uniform motion chart
+            const ctx1 = document.getElementById('uniform-distance-chart').getContext('2d');
+            charts.uniformDistance = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: [0, 2, 4, 6, 8, 10],
+                    datasets: [{
+                        label: 'Distance',
+                        data: [0, 10, 20, 30, 40, 50],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        tension: 0,
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { title: { display: true, text: 'Time (s)' } },
+                        y: { title: { display: true, text: 'Distance (m)' } }
+                    }
+                }
+            });
+
+            // Non-uniform motion chart (Table 7.2 data)
+            const ctx2 = document.getElementById('non-uniform-distance-chart').getContext('2d');
+            charts.nonUniformDistance = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: [0, 2, 4, 6, 8, 10, 12],
+                    datasets: [{
+                        label: 'Distance',
+                        data: [0, 1, 4, 9, 16, 25, 36],
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                        tension: 0.4,
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { title: { display: true, text: 'Time (s)' } },
+                        y: { title: { display: true, text: 'Distance (m)' } }
+                    }
+                }
+            });
+        }
+
+        // Velocity-Time Graphs Demo
+        async function showVelocityTimeGraphs() {
+            stopCurrentDemo();
+            const taskId = generateTaskId();
+            setCurrentTask(taskId);
+            isPlaying = true;
+            setActiveButton(3);
+            
+            const teacher = createNewTeacher();
+            await showVelocityTimeGraphsInternal(teacher, taskId);
+            
+            if (shouldContinue(taskId)) {
+                isPlaying = false;
+            }
+        }
+
+        async function showVelocityTimeGraphsInternal(teacher, taskId) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📉 Velocity-Time Graphs");
+            
+            document.getElementById('velocity-time-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            // Create velocity-time charts
+            createVelocityTimeCharts();
+            
+            await teacher.speak("Velocity-time graphs show how velocity changes with time. Different types of motion produce different graph shapes.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Uniform velocity produces a horizontal line. Uniform acceleration produces a straight inclined line. Non-uniform acceleration produces a curved line.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("The area under a velocity-time graph gives us the displacement or distance travelled by the object.");
+        }
+
+        function createVelocityTimeCharts() {
+            // Uniform velocity
+            const ctx1 = document.getElementById('uniform-velocity-chart').getContext('2d');
+            charts.uniformVelocity = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: [0, 2, 4, 6, 8, 10],
+                    datasets: [{
+                        label: 'Velocity',
+                        data: [40, 40, 40, 40, 40, 40],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        tension: 0,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { title: { display: true, text: 'Time (s)' } },
+                        y: { title: { display: true, text: 'Velocity (km/h)' } }
+                    }
+                }
+            });
+
+            // Uniform acceleration (Table 7.3 data)
+            const ctx2 = document.getElementById('uniform-acceleration-chart').getContext('2d');
+            charts.uniformAcceleration = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: [0, 5, 10, 15, 20, 25, 30],
+                    datasets: [{
+                        label: 'Velocity',
+                        data: [0, 2.5, 5.0, 7.5, 10.0, 12.5, 15.0],
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                        tension: 0,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { title: { display: true, text: 'Time (s)' } },
+                        y: { title: { display: true, text: 'Velocity (m/s)' } }
+                    }
+                }
+            });
+
+            // Non-uniform acceleration
+            const ctx3 = document.getElementById('non-uniform-acceleration-chart').getContext('2d');
+            charts.nonUniformAcceleration = new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                    datasets: [{
+                        label: 'Velocity',
+                        data: [0, 2, 6, 8, 9, 8, 6, 3, 0],
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { title: { display: true, text: 'Time (s)' } },
+                        y: { title: { display: true, text: 'Velocity (m/s)' } }
+                    }
+                }
+            });
+        }
+
+        // Area Calculation Demo
+        async function showAreaCalculation() {
+            stopCurrentDemo();
+            const taskId = generateTaskId();
+            setCurrentTask(taskId);
+            isPlaying = true;
+            setActiveButton(4);
+            
+            const teacher = createNewTeacher();
+            await showAreaCalculationInternal(teacher, taskId);
+            
+            if (shouldContinue(taskId)) {
+                isPlaying = false;
+            }
+        }
+
+        async function showAreaCalculationInternal(teacher, taskId) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📐 Area Under Velocity-Time Graph");
+            
+            document.getElementById('area-calculation-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            // Create area calculation chart
+            createAreaCalculationChart();
+            
+            await teacher.speak("The area under a velocity-time graph represents the displacement or distance travelled by the object.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("For uniform velocity, the area is a rectangle. For uniformly accelerated motion, the area includes both rectangular and triangular portions.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("This relationship gives us the kinematic equation: distance equals initial velocity times time plus half acceleration times time squared.");
+        }
+
+        function createAreaCalculationChart() {
+            const ctx = document.getElementById('area-calculation-chart').getContext('2d');
+            charts.areaCalculation = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [0, 2, 4, 6, 8, 10],
+                    datasets: [{
+                        label: 'Velocity',
+                        data: [5, 8, 11, 14, 17, 20],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.3)',
+                        tension: 0,
+                        fill: true,
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                afterBody: function(context) {
+                                    return 'Area = Distance travelled';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Time (s)' } },
+                        y: { title: { display: true, text: 'Velocity (m/s)' } }
+                    }
+                }
+            });
+        }
+
+        // Data Tables Demo
+        async function showDataTables() {
+            stopCurrentDemo();
+            const taskId = generateTaskId();
+            setCurrentTask(taskId);
+            isPlaying = true;
+            setActiveButton(5);
+            
+            const teacher = createNewTeacher();
+            await showDataTablesInternal(teacher, taskId);
+            
+            if (shouldContinue(taskId)) {
+                isPlaying = false;
+            }
+        }
+
+        async function showDataTablesInternal(teacher, taskId) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📋 NCERT Data Tables");
+            
+            document.getElementById('data-tables-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            // Create data table charts
+            createDataTableCharts();
+            
+            await teacher.speak("Let's examine the NCERT data tables and see how they translate into graphs. These tables provide real experimental data for motion analysis.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Table 7.2 shows distance data for accelerated motion, producing a curved graph. Table 7.3 shows velocity data for uniform acceleration, producing a straight line.");
+        }
+
+        function createDataTableCharts() {
+            // Table 7.2 chart
+            const ctx1 = document.getElementById('table-2-chart').getContext('2d');
+            charts.table2 = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: [0, 2, 4, 6, 8, 10, 12],
+                    datasets: [{
+                        label: 'Distance',
+                        data: [0, 1, 4, 9, 16, 25, 36],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        tension: 0.4,
+                        pointRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { title: { display: true, text: 'Time (s)' } },
+                        y: { title: { display: true, text: 'Distance (m)' } }
+                    }
+                }
+            });
+
+            // Table 7.3 chart
+            const ctx2 = document.getElementById('table-3-chart').getContext('2d');
+            charts.table3 = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: [0, 5, 10, 15, 20, 25, 30],
+                    datasets: [{
+                        label: 'Velocity (m/s)',
+                        data: [0, 2.5, 5.0, 7.5, 10.0, 12.5, 15.0],
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                        tension: 0,
+                        pointRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { title: { display: true, text: 'Time (s)' } },
+                        y: { title: { display: true, text: 'Velocity (m/s)' } }
+                    }
+                }
+            });
+        }
+
+        // Interactive Graph Demo
+        async function showInteractiveGraph() {
+            stopCurrentDemo();
+            const taskId = generateTaskId();
+            setCurrentTask(taskId);
+            isPlaying = true;
+            setActiveButton(6);
+            
+            const teacher = createNewTeacher();
+            await showInteractiveGraphInternal(teacher, taskId);
+            
+            if (shouldContinue(taskId)) {
+                isPlaying = false;
+            }
+        }
+
+        async function showInteractiveGraphInternal(teacher, taskId) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🎮 Interactive Graph Creator");
+            
+            document.getElementById('interactive-graph-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Now you can create your own motion graphs! Choose the type of graph and motion, then adjust the parameters to see how different values affect the graph shape.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Initialize with default graph
+            generateInteractiveGraph();
+        }
+
+        function generateInteractiveGraph() {
+            const graphType = document.getElementById('graph-type').value;
+            const motionType = document.getElementById('motion-type').value;
+            const initialValue = parseFloat(document.getElementById('initial-value').value);
+            const finalValue = parseFloat(document.getElementById('final-value').value);
+            const timeDuration = parseFloat(document.getElementById('time-duration').value);
+            
+            const ctx = document.getElementById('interactive-chart').getContext('2d');
+            
+            // Destroy existing chart
+            if (charts.interactive) {
+                charts.interactive.destroy();
+            }
+            
+            const timeLabels = [];
+            const dataPoints = [];
+            
+            for (let i = 0; i <= timeDuration; i++) {
+                timeLabels.push(i);
+                
+                if (motionType === 'uniform') {
+                    dataPoints.push(graphType === 'distance-time' ? initialValue + (finalValue - initialValue) * i / timeDuration : finalValue);
+                } else if (motionType === 'accelerated') {
+                    if (graphType === 'distance-time') {
+                        // s = ut + 0.5at²
+                        const a = 2 * (finalValue - initialValue * timeDuration) / (timeDuration * timeDuration);
+                        dataPoints.push(initialValue * i + 0.5 * a * i * i);
+                    } else {
+                        // v = u + at
+                        dataPoints.push(initialValue + (finalValue - initialValue) * i / timeDuration);
+                    }
+                } else { // decelerated
+                    if (graphType === 'distance-time') {
+                        const a = -2 * (initialValue * timeDuration - finalValue) / (timeDuration * timeDuration);
+                        dataPoints.push(initialValue * i + 0.5 * a * i * i);
+                    } else {
+                        dataPoints.push(initialValue - (initialValue - finalValue) * i / timeDuration);
+                    }
+                }
+            }
+            
+            charts.interactive = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [{
+                        label: graphType === 'distance-time' ? 'Distance' : 'Velocity',
+                        data: dataPoints,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        tension: motionType === 'uniform' ? 0 : 0.4,
+                        fill: graphType === 'velocity-time',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { title: { display: true, text: 'Time (s)' } },
+                        y: { 
+                            title: { 
+                                display: true, 
+                                text: graphType === 'distance-time' ? 'Distance (m)' : 'Velocity (m/s)' 
+                            } 
+                        }
+                    }
+                }
+            });
+        }
+
+        function calculateSpeed() {
+            const graphType = document.getElementById('graph-type').value;
+            const motionType = document.getElementById('motion-type').value;
+            const initialValue = parseFloat(document.getElementById('initial-value').value);
+            const finalValue = parseFloat(document.getElementById('final-value').value);
+            const timeDuration = parseFloat(document.getElementById('time-duration').value);
+            const resultDiv = document.getElementById('calculation-result');
+            
+            if (graphType === 'distance-time') {
+                const speed = (finalValue - initialValue) / timeDuration;
+                resultDiv.innerHTML = `
+                    <div>
+                        <strong style="font-size: 1.1rem;">Average Speed:</strong> ${speed.toFixed(2)} m/s<br>
+                        <small style="color: #6ee7b7;">Speed = Change in distance ÷ Time</small>
+                    </div>
+                `;
+            } else {
+                const acceleration = (finalValue - initialValue) / timeDuration;
+                resultDiv.innerHTML = `
+                    <div>
+                        <strong style="font-size: 1.1rem;">Acceleration:</strong> ${acceleration.toFixed(2)} m/s²<br>
+                        <small style="color: #6ee7b7;">Acceleration = Change in velocity ÷ Time</small>
+                    </div>
+                `;
+            }
+            
+            if (currentTeacher) {
+                const value = ((finalValue - initialValue) / timeDuration).toFixed(2);
+                const unit = graphType === 'distance-time' ? 'meters per second' : 'meters per second squared';
+                currentTeacher.speak(`The calculated value is ${value} ${unit}.`);
+            }
+        }
+
+        // Activities Demo
+        async function showActivities() {
+            stopCurrentDemo();
+            const taskId = generateTaskId();
+            setCurrentTask(taskId);
+            isPlaying = true;
+            setActiveButton(7);
+            
+            const teacher = createNewTeacher();
+            await showActivitiesInternal(teacher, taskId);
+            
+            if (shouldContinue(taskId)) {
+                isPlaying = false;
+            }
+        }
+
+        async function showActivitiesInternal(teacher, taskId) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🔬 NCERT Activities");
+            
+            document.getElementById('activities-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            // Create activity charts
+            createActivityCharts();
+            
+            await teacher.speak("Let's explore the NCERT activities that help us practice plotting and interpreting motion graphs with real-world scenarios.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(2500);
+            if (!shouldContinue(taskId)) return;
+            
+            await teacher.speak("Activity 7.9 involves plotting a train's journey with stops at different stations. Activity 7.10 compares the motion of two students cycling to school.");
+        }
+
+        function createActivityCharts() {
+            // Activity 7.9 - Train journey
+            const ctx1 = document.getElementById('activity-7-9-chart').getContext('2d');
+            charts.activity79 = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['8:00', '8:15', '11:15', '11:30', '13:00', '13:15'],
+                    datasets: [{
+                        label: 'Distance from A',
+                        data: [0, 0, 120, 120, 180, 180],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        tension: 0,
+                        pointRadius: 6,
+                        stepped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { title: { display: true, text: 'Time' } },
+                        y: { title: { display: true, text: 'Distance from A (km)' } }
+                    }
+                }
+            });
+
+            // Activity 7.10 - Feroz and Sania
+            const ctx2 = document.getElementById('activity-7-10-chart').getContext('2d');
+            charts.activity710 = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: ['8:00', '8:05', '8:10', '8:15', '8:20', '8:25'],
+                    datasets: [{
+                        label: 'Feroz',
+                        data: [0, 1.0, 1.9, 2.8, 3.6, 3.6],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        tension: 0.4,
+                        pointRadius: 5
+                    }, {
+                        label: 'Sania',
+                        data: [0, 0.8, 1.6, 2.3, 3.0, 3.6],
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                        tension: 0.4,
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true } },
+                    scales: {
+                        x: { title: { display: true, text: 'Time' } },
+                        y: { title: { display: true, text: 'Distance (km)' } }
+                    }
+                }
+            });
+        }
+
+        // Questions Demo
+        async function showQuestions() {
+            stopCurrentDemo();
+            const taskId = generateTaskId();
+            setCurrentTask(taskId);
+            isPlaying = true;
+            setActiveButton(8);
+            
+            const teacher = createNewTeacher();
+            await showQuestionsInternal(teacher, taskId);
+            
+            if (shouldContinue(taskId)) {
+                isPlaying = false;
+            }
+        }
+
+        async function showQuestionsInternal(teacher, taskId) {
+            await resetAll();
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("❓ Practice Questions");
+            
+            document.getElementById('questions-demo').classList.add('active');
+            await wait(50);
+            if (!shouldContinue(taskId)) return;
+            
+            // Initialize the question carousel
+            initQuestionCarousel();
+            
+            await teacher.speak("Let's test your understanding with practice questions about motion graphs. Use the navigation buttons to move between questions.");
+            if (!shouldContinue(taskId)) return;
+            
+            // Narrate the first question
+            const firstQuestionElement = document.querySelector('#question-1 .question-text');
+            if (firstQuestionElement) {
+                await wait(500);
+                if (!shouldContinue(taskId)) return;
+                await teacher.speak(`Question 1: ${firstQuestionElement.textContent.trim()}`);
+            }
+        }
+
+        // Question carousel variables
+        let currentQuestionIndex = 0;
+        const totalQuestions = 4;
+
+        // Initialize question carousel
+        function initQuestionCarousel() {
+            // Set first question as active
+            updateActiveQuestion();
+            
+            // Create indicator dots
+            const indicatorContainer = document.getElementById('question-indicator');
+            if (indicatorContainer) {
+                indicatorContainer.innerHTML = '';
+                for (let i = 0; i < totalQuestions; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'indicator-dot' + (i === 0 ? ' active' : '');
+                    dot.onclick = () => goToQuestion(i);
+                    indicatorContainer.appendChild(dot);
+                }
+            }
+            
+            // Set button states
+            updateNavigationButtons();
+        }
+
+        // Navigate to previous question
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                goToQuestion(currentQuestionIndex - 1);
+            }
+        }
+
+        // Navigate to next question
+        function nextQuestion() {
+            if (currentQuestionIndex < totalQuestions - 1) {
+                goToQuestion(currentQuestionIndex + 1);
+            }
+        }
+
+        // Go to specific question
+        function goToQuestion(index) {
+            // Hide any visible answers
+            document.querySelectorAll('.answer-section').forEach(section => {
+                section.classList.remove('show');
+            });
+            
+            // Update current index
+            currentQuestionIndex = index;
+            
+            // Update carousel position
+            updateActiveQuestion();
+            
+            // Update navigation buttons
+            updateNavigationButtons();
+            
+            // Update indicator dots
+            document.querySelectorAll('.indicator-dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === currentQuestionIndex);
+            });
+            
+            // Narrate the current question if teacher is available and task is still current
+            if (currentTeacher && currentTaskId) {
+                const questionElement = document.querySelector(`#question-${currentQuestionIndex + 1} .question-text`);
+                if (questionElement) {
+                    currentTeacher.speak(`Question ${currentQuestionIndex + 1}: ${questionElement.textContent.trim()}`);
+                }
+            }
+        }
+
+        // Update which question is active
+        function updateActiveQuestion() {
+            const slider = document.getElementById('question-slider');
+            if (slider) {
+                // Update transform to show current question
+                slider.style.transform = `translateX(-${currentQuestionIndex * 100}%)`;
+                
+                // Update active class
+                document.querySelectorAll('.question-card').forEach((card, index) => {
+                    card.classList.toggle('active', index === currentQuestionIndex);
+                });
+            }
+        }
+
+        // Update navigation button states
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prev-question');
+            const nextBtn = document.getElementById('next-question');
+            
+            if (prevBtn) {
+                prevBtn.disabled = currentQuestionIndex === 0;
+            }
+            
+            if (nextBtn) {
+                nextBtn.disabled = currentQuestionIndex === totalQuestions - 1;
+            }
+        }
+
+        // Show answer function
+        function showAnswer(questionNumber) {
+            const answerSection = document.getElementById(`answer-${questionNumber}`);
+            answerSection.classList.add('show');
+            
+            if (currentTeacher) {
+                const answers = {
+                    1: "For uniform motion, the distance-time graph is a straight line. For non-uniform motion, it's a curved line.",
+                    2: "If the distance-time graph is parallel to the time axis, the object is at rest with zero velocity.",
+                    3: "If the speed-time graph is parallel to the time axis, the object moves with uniform velocity and zero acceleration.",
+                    4: "The area under the velocity-time graph represents the displacement or distance travelled by the object."
+                };
+                currentTeacher.speak(answers[questionNumber]);
+            }
+        }
+
+        // Helper Functions
+        async function resetAll() {
+            if (animationTimeline) {
+                animationTimeline.kill();
+                animationTimeline = null;
+            }
+            gsap.killTweensOf("*");
+            
+            activeAnimations.forEach(anim => {
+                if (anim) anim.kill();
+            });
+            activeAnimations = [];
+            
+            if (currentTeacher) {
+                currentTeacher.stop();
+            }
+            
+            // Hide all demos
+            document.querySelectorAll('.graph-intro-demo, .distance-time-demo, .velocity-time-demo, .area-calculation-demo, .data-tables-demo, .interactive-graph-demo, .activities-demo, .questions-demo').forEach(demo => {
+                demo.classList.remove('active');
+            });
+            
+            updateTitle("Explore Motion Graphs");
+            
+            // Reset interactive controls
+            document.getElementById('graph-type').value = 'distance-time';
+            document.getElementById('motion-type').value = 'uniform';
+            document.getElementById('initial-value').value = '0';
+            document.getElementById('final-value').value = '50';
+            document.getElementById('time-duration').value = '10';
+            document.getElementById('calculation-result').innerHTML = 'Generate a graph to see calculations';
+            
+            // Reset answer sections
+            document.querySelectorAll('.answer-section').forEach(section => {
+                section.classList.remove('show');
+            });
+            
+            // Destroy and recreate intro charts
+            Object.values(charts).forEach(chart => {
+                if (chart && chart.destroy) {
+                    chart.destroy();
+                }
+            });
+            charts = {};
+            
+            await wait(500);
+            
+            // Recreate intro charts
+            createIntroCharts();
+        }
+
+        function updateTitle(title) {
+            document.getElementById('demo-title').textContent = title;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Reset Button Handler
+        async function resetAllClick() {
+            stopCurrentDemo();
+            isPlaying = false;
+            await resetAll();
+        }
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+            
+            if (!globalAudioEnabled && currentTeacher) {
+                currentTeacher.stop();
+            }
+        });
+
+        // Interactive controls event listeners
+        ['graph-type', 'motion-type', 'initial-value', 'final-value', 'time-duration'].forEach(id => {
+            document.getElementById(id).addEventListener('change', generateInteractiveGraph);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood and Blood Vessels - Interactive Journey</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #8b0000 0%, #dc143c 25%, #e74c3c 50%, #3498db 75%, #2980b9 100%);
+            color: white;
+            overflow: hidden;
+            position: relative;
+            height: 100vh;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            opacity: 0.08;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.3" d="M0,96L48,112C96,128,192,160,288,186.7C384,213,480,235,576,213.3C672,192,768,128,864,128C960,128,1056,192,1152,197.3C1248,203,1344,149,1392,122.7L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') repeat-x;
+            animation: wave 15s linear infinite;
+        }
+
+        @keyframes wave {
+            0% { background-position-x: 0; }
+            100% { background-position-x: 1440px; }
+        }
+
+        /* Museum Interface */
+        .museum-header {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            text-align: left;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 10px 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .museum-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            background: linear-gradient(45deg, #dc143c, #3498db);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.4); }
+        }
+
+        .exhibit-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .flow-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #dc143c;
+            border-radius: 50%;
+            animation: flow 2s ease-in-out infinite;
+        }
+
+        @keyframes flow {
+            0%, 100% { transform: scale(1) translateX(0); opacity: 1; }
+            50% { transform: scale(1.2) translateX(3px); opacity: 0.8; }
+        }
+
+        /* Journey Navigation */
+        .journey-navigation {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 340px;
+        }
+
+        .journey-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #dc143c;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .journey-steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .journey-btn {
+            background: rgba(220, 20, 60, 0.2);
+            border: 1px solid rgba(220, 20, 60, 0.4);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .journey-btn:hover {
+            background: rgba(220, 20, 60, 0.3);
+            border-color: #dc143c;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 20, 60, 0.3);
+        }
+
+        .journey-btn.active {
+            background: linear-gradient(135deg, #dc143c, #8b0000);
+            border-color: #dc143c;
+            box-shadow: 0 0 20px rgba(220, 20, 60, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .journey-btn.completed {
+            background: rgba(46, 204, 113, 0.3);
+            border-color: #2ecc71;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* 3D Model Container */
+        .model-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+            overflow: hidden;
+            border: none;
+            z-index: 100;
+        }
+
+        .sketchfab-embed-wrapper {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #8b0000 0%, #dc143c 25%, #e74c3c 50%, #3498db 75%, #2980b9 100%);
+        }
+
+        .sketchfab-embed-wrapper iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 0;
+        }
+
+        /* Information Panel */
+        .info-panel {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            width: 440px;
+            max-height: calc(100vh - 140px);
+            z-index: 800;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .info-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-icon {
+            font-size: 28px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .info-title {
+            flex: 1;
+        }
+
+        .info-title h2 {
+            font-size: 18px;
+            color: #dc143c;
+            margin-bottom: 4px;
+        }
+
+        .info-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .info-content {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Progress Tracker */
+        .progress-tracker {
+            background: linear-gradient(135deg, rgba(220, 20, 60, 0.1), rgba(52, 152, 219, 0.1));
+            border: 1px solid rgba(220, 20, 60, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .progress-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: #dc143c;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .progress-percentage {
+            font-size: 18px;
+            color: #3498db;
+            font-weight: 700;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #dc143c, #3498db);
+            border-radius: 4px;
+            transition: width 0.8s ease;
+            box-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
+        }
+
+        .progress-steps-mini {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.6);
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+
+        .step-mini {
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 50px;
+        }
+
+        .step-mini.active {
+            color: #dc143c;
+            font-weight: 600;
+        }
+
+        .step-mini.completed {
+            color: #2ecc71;
+        }
+
+        /* Information Cards */
+        .info-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .info-card-title {
+            color: #dc143c;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-card-content {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .info-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-list li {
+            padding: 6px 0;
+            padding-left: 20px;
+            position: relative;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .info-list li:before {
+            content: "🩸";
+            position: absolute;
+            left: 0;
+            font-size: 10px;
+        }
+
+        /* Measurement Box */
+        .measurement-box {
+            background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(220, 20, 60, 0.1));
+            border: 1px solid rgba(155, 89, 182, 0.3);
+            border-radius: 12px;
+            padding: 14px;
+            margin: 16px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .measurement-box:before {
+            content: "📏";
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            font-size: 60px;
+            opacity: 0.1;
+        }
+
+        .measurement-title {
+            color: #9b59b6;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .measurement-text {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 12px;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Fun Fact Box */
+        .fun-fact {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(52, 152, 219, 0.1));
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            border-radius: 12px;
+            padding: 14px;
+            margin: 16px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fun-fact:before {
+            content: "🔬";
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            font-size: 60px;
+            opacity: 0.1;
+        }
+
+        .fun-fact-title {
+            color: #2ecc71;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .fun-fact-text {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 12px;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Voice Controls */
+        .voice-controls {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            position: relative;
+        }
+
+        .control-btn:hover {
+            background: rgba(220, 20, 60, 0.3);
+            border-color: #dc143c;
+            transform: scale(1.1);
+        }
+
+        .control-btn.active {
+            background: rgba(220, 20, 60, 0.4);
+            border-color: #dc143c;
+            box-shadow: 0 0 20px rgba(220, 20, 60, 0.5);
+        }
+
+        .control-tooltip {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .control-btn:hover .control-tooltip {
+            opacity: 1;
+        }
+
+        /* Loading Screen */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #8b0000 0%, #dc143c 25%, #e74c3c 50%, #3498db 75%, #2980b9 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: opacity 1s ease;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-icon {
+            font-size: 60px;
+            animation: flow 1.5s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .loading-progress {
+            width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #dc143c, #3498db);
+            animation: loading 2s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 100%; }
+            100% { width: 0%; }
+        }
+
+        /* Voice Indicator */
+        .voice-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(220, 20, 60, 0.5);
+            border-radius: 30px;
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .voice-indicator.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-10px);
+        }
+
+        .voice-waves {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .voice-wave {
+            width: 3px;
+            height: 20px;
+            background: linear-gradient(180deg, #dc143c, #3498db);
+            border-radius: 2px;
+            animation: voice-wave 1s ease-in-out infinite;
+        }
+
+        .voice-wave:nth-child(2) { animation-delay: 0.1s; }
+        .voice-wave:nth-child(3) { animation-delay: 0.2s; }
+        .voice-wave:nth-child(4) { animation-delay: 0.3s; }
+        .voice-wave:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes voice-wave {
+            0%, 100% { transform: scaleY(0.3); }
+            50% { transform: scaleY(1); }
+        }
+
+        .narration-text {
+            color: white;
+            font-size: 13px;
+            max-width: 300px;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .action-btn {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .action-btn:hover {
+            background: rgba(220, 20, 60, 0.3);
+            border-color: #dc143c;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 20, 60, 0.3);
+        }
+
+        /* Custom Scrollbar */
+        .info-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .info-panel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .info-panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #dc143c, #3498db);
+            border-radius: 3px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .info-panel {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                top: auto;
+                width: 100%;
+                max-height: 50vh;
+                border-radius: 20px 20px 0 0;
+            }
+            
+            .journey-navigation {
+                bottom: 52vh;
+                max-width: calc(100% - 40px);
+            }
+            
+            .voice-controls {
+                top: auto;
+                bottom: 55vh;
+                right: 10px;
+            }
+            
+            .quick-actions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-icon">🩸</div>
+            <div class="loading-text">Preparing Blood Journey...</div>
+            <div class="loading-progress">
+                <div class="loading-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Museum Header -->
+    <div class="museum-header">
+        <div class="museum-title">Blood & Blood Vessels</div>
+        <div class="exhibit-subtitle">
+            <span class="flow-indicator"></span>
+            Life's Vital Fluid & Pathways
+        </div>
+    </div>
+
+    <!-- Journey Navigation -->
+    <div class="journey-navigation">
+        <div class="journey-title">
+            <span>🔬</span>
+            <span>Blood & Vessel Journey</span>
+        </div>
+        <div class="journey-steps">
+            <button class="journey-btn active" onclick="loadJourneyStep('bloodcells')">
+                <span>🩸</span> Blood Cells
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('composition')">
+                <span>🧪</span> Composition
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('vessels')">
+                <span>🚇</span> Vessels
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('capillaries')">
+                <span>🔬</span> Capillaries
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('pressure')">
+                <span>📊</span> Pressure
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('clotting')">
+                <span>🩹</span> Clotting
+            </button>
+            <button class="journey-btn" onclick="loadJourneyStep('functions')">
+                <span>⚙️</span> Functions
+            </button>
+        </div>
+    </div>
+
+    <!-- 3D Model Container -->
+    <div class="model-container">
+        <div class="sketchfab-embed-wrapper">
+            <iframe id="api-frame"
+                    title="Blood and Vessels Model" 
+                    frameborder="0" 
+                    allowfullscreen 
+                    mozallowfullscreen="true" 
+                    webkitallowfullscreen="true" 
+                    allow="autoplay; fullscreen; xr-spatial-tracking"
+                    xr-spatial-tracking 
+                    execution-while-out-of-viewport 
+                    execution-while-not-rendered 
+                    web-share 
+                    src="https://sketchfab.com/models/2be55543997d4641a539a339a8e402fe/embed?autostart=1&internal=1&tracking=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_watermark=0">
+            </iframe>
+        </div>
+    </div>
+
+    <!-- Information Panel -->
+    <div class="info-panel" id="infoPanel">
+        <div class="info-header">
+            <div class="info-icon" id="stepIcon">🩸</div>
+            <div class="info-title">
+                <h2 id="stepTitle">Blood Cells - Cellular Components</h2>
+                <div class="info-subtitle" id="stepSubtitle">The living elements of blood</div>
+            </div>
+        </div>
+
+        <!-- Progress Tracker -->
+        <div class="progress-tracker">
+            <div class="progress-header">
+                <span>Blood Knowledge Progress</span>
+                <span class="progress-percentage" id="progressPercent">14%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 14%"></div>
+            </div>
+            <div class="progress-steps-mini">
+                <span class="step-mini active" onclick="loadJourneyStep('bloodcells')">Cells</span>
+                <span class="step-mini" onclick="loadJourneyStep('composition')">Comp</span>
+                <span class="step-mini" onclick="loadJourneyStep('vessels')">Vessels</span>
+                <span class="step-mini" onclick="loadJourneyStep('capillaries')">Caps</span>
+                <span class="step-mini" onclick="loadJourneyStep('pressure')">Press</span>
+                <span class="step-mini" onclick="loadJourneyStep('clotting')">Clot</span>
+                <span class="step-mini" onclick="loadJourneyStep('functions')">Func</span>
+            </div>
+        </div>
+
+        <div class="info-content" id="mainDescription">
+            Blood contains three main types of cellular components: red blood cells for oxygen transport, white blood cells for immune defense, and platelets for blood clotting. Each cell type has specialized structures and functions that are essential for maintaining life.
+        </div>
+
+        <div class="info-card">
+            <div class="info-card-title">
+                <span>🔬</span> Cellular Components
+            </div>
+            <div class="info-card-content">
+                <ul class="info-list" id="keyConcepts">
+                    <li>Red blood cells (erythrocytes): 4.5-5.5 million/μL</li>
+                    <li>White blood cells (leukocytes): 4,000-11,000/μL</li>
+                    <li>Platelets (thrombocytes): 150,000-450,000/μL</li>
+                    <li>Plasma: liquid matrix containing proteins & nutrients</li>
+                    <li>Hematocrit: percentage of blood volume as cells (40-45%)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="fun-fact">
+            <div class="fun-fact-title">Blood Cell Facts!</div>
+            <div class="fun-fact-text" id="funFact">
+                You produce about 2.4 million new red blood cells every second! That's over 200 billion new cells each day.
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-card-title">
+                <span>🎯</span> Learning Objectives
+            </div>
+            <div class="info-card-content" id="learningObjectives">
+                Identify the three main blood cell types, understand their specific functions, and learn their normal count ranges.
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Controls -->
+    <div class="voice-controls">
+        <button class="control-btn active" id="voiceToggle" onclick="toggleVoice()">
+            🔊
+            <span class="control-tooltip">Voice Narration</span>
+        </button>
+        <button class="control-btn" onclick="toggleAutoPlay()">
+            ▶️
+            <span class="control-tooltip">Auto Journey</span>
+        </button>
+        <button class="control-btn" onclick="toggleInfo()">
+            ℹ️
+            <span class="control-tooltip">Toggle Info</span>
+        </button>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <button class="action-btn" onclick="startGuidedTour()">
+            <span>🚀</span> Guided Tour
+        </button>
+        <button class="action-btn" onclick="showQuiz()">
+            <span>🎯</span> Test Knowledge
+        </button>
+    </div>
+
+    <!-- Voice Indicator -->
+    <div class="voice-indicator" id="voiceIndicator">
+        <div class="voice-waves">
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+        </div>
+        <div class="narration-text" id="narrationText">Narrating...</div>
+    </div>
+
+    <script>
+        // Journey Step Data for Blood and Blood Vessels
+        const JOURNEY_DATA = {
+            bloodcells: {
+                title: "Blood Cells - Cellular Components",
+                subtitle: "The living elements of blood",
+                icon: "🩸",
+                modelUrl: "https://sketchfab.com/models/2be55543997d4641a539a339a8e402fe/embed?autostart=1&internal=1&tracking=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_watermark=0",
+                description: "Blood contains three main types of cellular components: red blood cells for oxygen transport, white blood cells for immune defense, and platelets for blood clotting. Each cell type has specialized structures and functions that are essential for maintaining life.",
+                concepts: [
+                    "Red blood cells (erythrocytes): 4.5-5.5 million/μL",
+                    "White blood cells (leukocytes): 4,000-11,000/μL",
+                    "Platelets (thrombocytes): 150,000-450,000/μL",
+                    "Plasma: liquid matrix containing proteins & nutrients",
+                    "Hematocrit: percentage of blood volume as cells (40-45%)"
+                ],
+                funFact: "You produce about 2.4 million new red blood cells every second! That's over 200 billion new cells each day.",
+                objectives: "Identify the three main blood cell types, understand their specific functions, and learn their normal count ranges.",
+                narration: "Welcome to the microscopic world of blood cells! In this detailed view, you can see the three main types of blood cells working together. The numerous red, disc-shaped cells are red blood cells or erythrocytes. Notice their distinctive biconcave shape - like tiny donuts without holes. This shape maximizes surface area for gas exchange and allows them to squeeze through the tiniest capillaries. They make up about 45% of your blood volume and are packed with hemoglobin for oxygen transport. The larger, more complex cells are white blood cells or leukocytes. These are your immune system's defenders, each type specialized for different tasks - some engulf bacteria, others produce antibodies, and some coordinate immune responses. Finally, the smallest elements are platelets or thrombocytes - tiny cell fragments that spring into action when you're injured, forming clots to stop bleeding."
+            },
+            composition: {
+                title: "Blood Composition & Functions",
+                subtitle: "What makes blood so special",
+                icon: "🧪",
+                modelUrl: "https://sketchfab.com/models/2be55543997d4641a539a339a8e402fe/embed?autostart=1&internal=1&tracking=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_watermark=0",
+                description: "Blood is a complex connective tissue consisting of plasma (55%) and formed elements (45%). Plasma contains water, proteins, nutrients, hormones, and waste products, while the cellular components perform specialized transport, defense, and clotting functions.",
+                concepts: [
+                    "Plasma (55%): water, proteins, electrolytes, nutrients",
+                    "Albumin: maintains osmotic pressure, transports substances",
+                    "Globulins: include antibodies and transport proteins",
+                    "Fibrinogen: essential for blood clotting process",
+                    "Serum: plasma without clotting factors"
+                ],
+                funFact: "Your blood plasma is 92% water, but the remaining 8% contains over 100 different dissolved substances including hormones, nutrients, and waste products!",
+                objectives: "Understand blood composition, differentiate between plasma and serum, and learn the functions of major plasma proteins.",
+                narration: "Let's explore what blood is really made of! Blood is much more than just red cells floating in water. It's a sophisticated liquid tissue with two main components: the liquid plasma and the formed elements or cells. Plasma makes up 55% of blood volume and is a complex solution containing water, proteins, electrolytes, nutrients, hormones, and waste products. The three major plasma proteins each have crucial roles: albumin maintains osmotic pressure and transports fatty acids and hormones; globulins include antibodies for immune defense and transport proteins for iron and lipids; and fibrinogen is essential for blood clotting. When fibrinogen is removed during clotting, the remaining fluid is called serum. The formed elements - red cells, white cells, and platelets - make up the remaining 45% and perform the specialized functions of gas transport, immune defense, and hemostasis."
+            },
+            vessels: {
+                title: "Blood Vessel Types & Structure",
+                subtitle: "The cardiovascular highway system",
+                icon: "🚇",
+                modelUrl: "https://sketchfab.com/models/29ac5461ef1745fb8d92f69d92d52d7d/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Blood vessels form a sophisticated network with three main types: arteries that carry blood away from the heart, veins that return blood to the heart, and capillaries that facilitate exchange between blood and tissues. Each type has unique structural adaptations.",
+                concepts: [
+                    "Arteries: thick elastic walls, high pressure, pulse waves",
+                    "Veins: thin walls, one-way valves, low pressure",
+                    "Capillaries: single endothelial cell layer, gas exchange",
+                    "Tunica intima: inner endothelial lining",
+                    "Tunica media: smooth muscle layer for vasoconstriction"
+                ],
+                funFact: "Your arteries can stretch to twice their resting diameter, and the elastic recoil helps maintain blood pressure between heartbeats!",
+                objectives: "Compare the three vessel types, understand their structural differences, and relate structure to function.",
+                narration: "Explore the engineering marvel of your blood vessel network! This cross-section reveals the three distinct types of blood vessels, each perfectly designed for its role. Arteries have the thickest walls with three layers: the smooth inner tunica intima lined with endothelial cells, the muscular tunica media that can contract to control blood flow, and the tough outer tunica adventitia for structural support. The elastic fibers in arterial walls stretch with each heartbeat and recoil to maintain pressure. Veins have thinner walls and unique one-way valves that prevent backflow as blood returns to the heart against gravity. The smooth muscle in veins can contract to help push blood forward. Capillaries are the simplest vessels - just a single layer of endothelial cells that allows rapid exchange of gases, nutrients, and waste between blood and tissues. This three-tier system creates an efficient circulation network that reaches every cell in your body!"
+            },
+            capillaries: {
+                title: "Capillary Exchange & Microcirculation",
+                subtitle: "Where blood meets tissues",
+                icon: "🔬",
+                modelUrl: "https://sketchfab.com/models/45a708382714453ebc866e82c7ab47c4/embed?autostart=1&internal=1&tracking=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_watermark=0",
+                description: "Capillaries are the functional units of the circulatory system where actual exchange occurs. Their thin walls and enormous surface area allow efficient transfer of oxygen, nutrients, and waste products between blood and interstitial fluid.",
+                concepts: [
+                    "Wall thickness: 0.5 micrometers (single cell layer)",
+                    "Diameter: 5-10 micrometers (RBC width)",
+                    "Total surface area: 300-500 square meters",
+                    "Diffusion distance: less than 50 micrometers to cells",
+                    "Capillary density varies with metabolic needs"
+                ],
+                funFact: "You have about 10 billion capillaries with a combined length of 25,000 miles - enough to circle the Earth!",
+                objectives: "Understand capillary structure, learn about exchange mechanisms, and appreciate the relationship between form and function.",
+                narration: "Welcome to the ultimate interface between your circulatory system and body tissues - the capillary! These microscopic vessels are where the real work of circulation happens. Look at this cross-section: the wall is incredibly thin - just one layer of endothelial cells, only half a micrometer thick. This minimal barrier allows rapid diffusion of oxygen, carbon dioxide, nutrients, and waste products. The diameter is so narrow that red blood cells must squeeze through in single file, which slows blood flow and maximizes contact time for exchange. Notice how the basement membrane provides structural support while remaining permeable to small molecules. The enormous total surface area of all your capillaries - larger than a tennis court - packed into your body volume represents one of biology's greatest engineering achievements. Capillary density varies with tissue needs: highly metabolic organs like the brain and heart have dense capillary networks, while less active tissues have fewer capillaries."
+            },
+            pressure: {
+                title: "Blood Pressure Measurement & Regulation",
+                subtitle: "The force that drives circulation",
+                icon: "📊",
+                modelUrl: "https://sketchfab.com/models/29ac5461ef1745fb8d92f69d92d52d7d/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0",
+                description: "Blood pressure is the force exerted by blood against vessel walls. It varies throughout the circulatory system and is regulated by multiple mechanisms including heart rate, stroke volume, and vessel resistance.",
+                concepts: [
+                    "Systolic pressure: peak pressure during heartbeat (120 mmHg)",
+                    "Diastolic pressure: minimum pressure between beats (80 mmHg)",
+                    "Mean arterial pressure: average pressure throughout cardiac cycle",
+                    "Peripheral resistance: vessel diameter affects pressure",
+                    "Baroreceptor reflex: automatic pressure regulation"
+                ],
+                funFact: "Your blood pressure drops from 120 mmHg in arteries to just 5 mmHg in veins - that's a 96% pressure drop across your circulation!",
+                objectives: "Learn how blood pressure is measured, understand pressure variations in different vessels, and explore regulatory mechanisms.",
+                narration: "Let's understand the driving force of circulation - blood pressure! Blood pressure represents the force that blood exerts against vessel walls as your heart pumps it through your circulatory system. When we measure blood pressure, we record two values: systolic pressure, the peak pressure when your heart contracts (normally around 120 mmHg), and diastolic pressure, the minimum pressure when your heart relaxes between beats (normally around 80 mmHg). This pressure gradually decreases as blood flows through your circulation - from about 120 mmHg in large arteries, to 35 mmHg in arterioles, dropping to just 15 mmHg in capillaries where exchange occurs, and finally reaching only 5 mmHg in veins returning to the heart. Your body tightly regulates blood pressure through multiple mechanisms: baroreceptors in arteries detect pressure changes and signal the brain to adjust heart rate and vessel diameter, while hormones like adrenaline can rapidly increase pressure during stress or exercise.",
+                measurement: "Normal blood pressure: 120/80 mmHg. Hypertension (high blood pressure) is defined as consistently above 140/90 mmHg and increases risk of heart disease and stroke."
+            },
+            clotting: {
+                title: "Blood Clotting Mechanism",
+                subtitle: "The body's emergency repair system",
+                icon: "🩹",
+                modelUrl: "https://sketchfab.com/models/2be55543997d4641a539a339a8e402fe/embed?autostart=1&internal=1&tracking=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_watermark=0",
+                description: "Blood clotting (hemostasis) is a complex process involving platelets, clotting factors, and fibrin formation. This cascade prevents blood loss when vessels are damaged while maintaining fluid blood flow elsewhere.",
+                concepts: [
+                    "Primary hemostasis: platelet plug formation",
+                    "Secondary hemostasis: fibrin clot formation",
+                    "Clotting cascade: 13 factors work in sequence",
+                    "Fibrinogen → fibrin conversion by thrombin",
+                    "Clot dissolution: plasmin breaks down fibrin"
+                ],
+                funFact: "The entire clotting cascade can be triggered and completed in just 3-5 minutes - your body's emergency response system is incredibly fast!",
+                objectives: "Understand the clotting process, learn about primary and secondary hemostasis, and appreciate the balance between clotting and bleeding.",
+                narration: "Witness your body's amazing emergency repair system - blood clotting! When a blood vessel is injured, a carefully orchestrated sequence of events prevents potentially life-threatening blood loss. It happens in two main phases: First, primary hemostasis occurs within seconds as platelets stick to exposed collagen fibers at the injury site. These platelets change shape, become sticky, and release chemical signals that attract more platelets, forming a temporary plug. But this isn't strong enough for major repairs. Secondary hemostasis then kicks in, involving a complex cascade of 13 different clotting factors working in sequence like dominoes. The cascade culminates when prothrombin is converted to thrombin, which then converts fibrinogen into long, sticky fibrin threads. These fibrin strands weave together like a net, trapping blood cells and platelets to form a stable clot. Once the vessel heals, the enzyme plasmin dissolves the clot. This entire system must be perfectly balanced - too little clotting causes bleeding disorders, while too much can cause dangerous blockages in blood vessels."
+            },
+            functions: {
+                title: "Blood Functions Overview",
+                subtitle: "The many roles of this vital fluid",
+                icon: "⚙️",
+                modelUrl: "https://sketchfab.com/models/2be55543997d4641a539a339a8e402fe/embed?autostart=1&internal=1&tracking=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_watermark=0",
+                description: "Blood performs multiple essential functions: transportation of gases, nutrients, and wastes; regulation of pH, temperature, and fluid balance; and protection through immune responses and hemostasis.",
+                concepts: [
+                    "Transport: oxygen, carbon dioxide, nutrients, hormones, waste",
+                    "Regulation: pH buffering, temperature control, osmotic balance",
+                    "Protection: immune responses, blood clotting, inflammation",
+                    "Oxygen capacity: 20 mL O₂ per 100 mL blood",
+                    "pH buffering: maintains blood pH at 7.4"
+                ],
+                funFact: "Your blood travels 12,000 miles through your body every day - that's like driving halfway around the Earth!",
+                objectives: "Summarize the major functions of blood and understand how these functions maintain homeostasis.",
+                narration: "Let's appreciate the incredible versatility of blood - it's truly a multi-functional life support system! Blood's primary function is transportation, carrying oxygen from lungs to tissues, carbon dioxide from tissues to lungs, nutrients from the digestive system to cells, hormones from glands to target organs, and metabolic waste products to organs of elimination. But blood does much more: it's a powerful regulatory system that maintains your body's pH at a precise 7.4 through bicarbonate and phosphate buffers, helps control body temperature by distributing heat from metabolically active organs, and maintains proper fluid balance between blood and tissues. Blood also provides protection through multiple mechanisms: white blood cells defend against pathogens, antibodies neutralize toxins and foreign substances, the clotting system prevents blood loss, and inflammatory responses help heal damaged tissues. All these functions work together seamlessly, with blood serving as the communication and transport network that maintains the delicate balance we call homeostasis!"
+            }
+        };
+
+        // Global Variables
+        let currentStep = 'bloodcells';
+        let voiceEnabled = true;
+        let autoPlayEnabled = false;
+        let currentSpeech = null;
+        let selectedVoice = null;
+        let journeyProgress = 0;
+        let guidedTourActive = false;
+
+        // Initialize Voice System
+        function initVoiceSystem() {
+            if (!('speechSynthesis' in window)) {
+                console.warn('Speech synthesis not supported');
+                voiceEnabled = false;
+                document.getElementById('voiceToggle').style.display = 'none';
+                return;
+            }
+
+            function loadVoices() {
+                const voices = speechSynthesis.getVoices();
+                if (voices.length === 0) return;
+
+                const preferredVoices = [
+                    'Google UK English Female',
+                    'Microsoft Sonia',
+                    'Microsoft Hazel',
+                    'Samantha',
+                    'Victoria'
+                ];
+
+                for (const name of preferredVoices) {
+                    selectedVoice = voices.find(v => v.name.includes(name));
+                    if (selectedVoice) break;
+                }
+
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(v => v.lang.startsWith('en'));
+                }
+            }
+
+            loadVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        }
+
+        // Load Journey Step
+        function loadJourneyStep(stepId) {
+            const stepData = JOURNEY_DATA[stepId];
+            if (!stepData) return;
+
+            currentStep = stepId;
+            
+            // Update model
+            document.getElementById('api-frame').src = stepData.modelUrl;
+            
+            // Update info panel
+            document.getElementById('stepIcon').textContent = stepData.icon;
+            document.getElementById('stepTitle').textContent = stepData.title;
+            document.getElementById('stepSubtitle').textContent = stepData.subtitle;
+            document.getElementById('mainDescription').textContent = stepData.description;
+            
+            // Update key concepts
+            const conceptsList = document.getElementById('keyConcepts');
+            conceptsList.innerHTML = stepData.concepts.map(c => `<li>${c}</li>`).join('');
+            
+            // Update fun fact
+            document.getElementById('funFact').textContent = stepData.funFact;
+            
+            // Update learning objectives
+            document.getElementById('learningObjectives').textContent = stepData.objectives;
+            
+            // Add measurement box if present
+            const existingMeasurement = document.querySelector('.measurement-box');
+            if (existingMeasurement) existingMeasurement.remove();
+            
+            if (stepData.measurement) {
+                const measurementBox = document.createElement('div');
+                measurementBox.className = 'measurement-box';
+                measurementBox.innerHTML = `
+                    <div class="measurement-title">Clinical Measurement</div>
+                    <div class="measurement-text">${stepData.measurement}</div>
+                `;
+                document.querySelector('.fun-fact').parentNode.insertBefore(measurementBox, document.querySelector('.fun-fact').nextSibling);
+            }
+            
+            // Update navigation buttons
+            updateNavigationButtons(stepId);
+            
+            // Update progress
+            updateProgress();
+            
+            // Play narration if enabled
+            if (voiceEnabled) {
+                speakText(stepData.narration);
+            }
+        }
+
+        // Update Navigation Buttons
+        function updateNavigationButtons(activeStep) {
+            const buttons = document.querySelectorAll('.journey-btn');
+            const steps = ['bloodcells', 'composition', 'vessels', 'capillaries', 'pressure', 'clotting', 'functions'];
+            const activeIndex = steps.indexOf(activeStep);
+            
+            buttons.forEach((btn, index) => {
+                btn.classList.remove('active', 'completed');
+                if (index < activeIndex) {
+                    btn.classList.add('completed');
+                } else if (index === activeIndex) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Update mini steps
+            const miniSteps = document.querySelectorAll('.step-mini');
+            miniSteps.forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index < activeIndex) {
+                    step.classList.add('completed');
+                } else if (index === activeIndex) {
+                    step.classList.add('active');
+                }
+            });
+        }
+
+        // Update Progress
+        function updateProgress() {
+            const steps = ['bloodcells', 'composition', 'vessels', 'capillaries', 'pressure', 'clotting', 'functions'];
+            const currentIndex = steps.indexOf(currentStep);
+            const progress = ((currentIndex + 1) / steps.length) * 100;
+            
+            document.getElementById('progressPercent').textContent = Math.round(progress) + '%';
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        // Speech Functions
+        function speakText(text) {
+            if (!voiceEnabled || !text) return;
+            
+            stopSpeech();
+            
+            currentSpeech = new SpeechSynthesisUtterance(text);
+            if (selectedVoice) {
+                currentSpeech.voice = selectedVoice;
+            }
+            currentSpeech.rate = 0.9;
+            currentSpeech.pitch = 1.0;
+            currentSpeech.volume = 0.9;
+            
+            currentSpeech.onstart = () => {
+                document.getElementById('voiceIndicator').classList.add('visible');
+                document.getElementById('narrationText').textContent = 
+                    text.substring(0, 50) + (text.length > 50 ? '...' : '');
+            };
+            
+            currentSpeech.onend = () => {
+                document.getElementById('voiceIndicator').classList.remove('visible');
+                currentSpeech = null;
+                
+                if (guidedTourActive) {
+                    setTimeout(nextStep, 2000);
+                }
+            };
+            
+            speechSynthesis.speak(currentSpeech);
+        }
+
+        function stopSpeech() {
+            if (currentSpeech) {
+                speechSynthesis.cancel();
+                currentSpeech = null;
+                document.getElementById('voiceIndicator').classList.remove('visible');
+            }
+        }
+
+        // Control Functions
+        function toggleVoice() {
+            voiceEnabled = !voiceEnabled;
+            const btn = document.getElementById('voiceToggle');
+            btn.textContent = voiceEnabled ? '🔊' : '🔇';
+            btn.classList.toggle('active', voiceEnabled);
+            
+            if (!voiceEnabled) {
+                stopSpeech();
+            }
+        }
+
+        function toggleAutoPlay() {
+            autoPlayEnabled = !autoPlayEnabled;
+            if (autoPlayEnabled) {
+                startGuidedTour();
+            } else {
+                guidedTourActive = false;
+            }
+        }
+
+        function toggleInfo() {
+            const panel = document.getElementById('infoPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Guided Tour
+        function startGuidedTour() {
+            guidedTourActive = true;
+            const steps = ['bloodcells', 'composition', 'vessels', 'capillaries', 'pressure', 'clotting', 'functions'];
+            let stepIndex = 0;
+            
+            function tourStep() {
+                if (stepIndex < steps.length && guidedTourActive) {
+                    loadJourneyStep(steps[stepIndex]);
+                    stepIndex++;
+                } else {
+                    guidedTourActive = false;
+                    if (voiceEnabled) {
+                        speakText("Congratulations! You've completed your journey through blood and blood vessels. You now understand this amazing fluid that sustains every cell in your body!");
+                    }
+                }
+            }
+            
+            tourStep();
+            window.nextStep = tourStep;
+        }
+
+        // Quiz Function
+        function showQuiz() {
+            const questions = [
+                "What are the three main types of blood cells?",
+                "What percentage of blood is plasma?",
+                "How do arteries differ from veins?",
+                "What is normal blood pressure?",
+                "How long does blood clotting typically take?"
+            ];
+            
+            const randomQ = questions[Math.floor(Math.random() * questions.length)];
+            
+            if (voiceEnabled) {
+                speakText(`Here's a question to test your knowledge: ${randomQ} Think about what you've learned about blood!`);
+            }
+        }
+
+        // Initialize
+        function init() {
+            initVoiceSystem();
+            
+            // Hide loading screen
+            setTimeout(() => {
+                const loading = document.getElementById('loadingOverlay');
+                loading.style.opacity = '0';
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                    
+                    // Welcome message
+                    if (voiceEnabled) {
+                        speakText("Welcome to your journey through blood and blood vessels! We'll explore the cellular components, vessel types, and vital functions of this amazing life-sustaining fluid. Let's start with the cellular heroes of your bloodstream!");
+                    }
+                }, 1000);
+            }, 3000);
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                switch(e.key) {
+                    case 'v': toggleVoice(); break;
+                    case 'i': toggleInfo(); break;
+                    case 'g': startGuidedTour(); break;
+                    case 'Escape': stopSpeech(); guidedTourActive = false; break;
+                    case 'ArrowRight': nextStep && nextStep(); break;
+                }
+            });
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>

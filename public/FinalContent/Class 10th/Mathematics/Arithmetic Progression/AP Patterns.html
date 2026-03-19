@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arithmetic Progressions - Discovering Patterns</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 35%, #24243e 100%);
+            background-attachment: fixed;
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(126, 87, 194, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(126, 87, 194, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 25%, #4facfe 50%, #00f2fe 75%, #43e97b 100%);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            text-shadow: 0 0 30px rgba(240, 147, 251, 0.5);
+            animation: gradientShift 3s ease-in-out infinite;
+            position: relative;
+        }
+
+        .header h1::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120%;
+            height: 120%;
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.1), rgba(75, 172, 254, 0.1));
+            border-radius: 20px;
+            z-index: -1;
+            filter: blur(20px);
+        }
+
+        @keyframes gradientShift {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .header p {
+            font-size: 1.4rem;
+            opacity: 0.95;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.7;
+            color: #e2e8f0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+
+        /* Main Animation Stage */
+        .animation-stage {
+            background: linear-gradient(145deg, #1e1e2e 0%, #2d2d44 50%, #1a1a2e 100%);
+            border-radius: 30px;
+            height: 600px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        .animation-stage::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.1) 0%, rgba(75, 172, 254, 0.1) 100%);
+            border-radius: 30px;
+            pointer-events: none;
+        }
+
+        /* Animation Scenes */
+        .animation-scene {
+            display: none;
+            opacity: 0;
+            transition: opacity 1s ease;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 40px;
+        }
+
+        .animation-scene.visible {
+            display: flex;
+            opacity: 1;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        /* Welcome Scene */
+        .welcome-scene {
+            text-align: center;
+        }
+
+        .welcome-title {
+            font-size: 2.5rem;
+            color: #00ff88;
+            margin-bottom: 20px;
+            animation: titleGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+            50% { text-shadow: 0 0 20px rgba(0, 255, 136, 0.8); }
+        }
+
+        /* Nature Patterns Scene */
+        .nature-patterns {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            width: 100%;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+
+        .pattern-item {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            transform: scale(0);
+            animation: patternAppear 0.8s ease forwards;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .pattern-item:nth-child(1) { animation-delay: 0.2s; }
+        .pattern-item:nth-child(2) { animation-delay: 0.4s; }
+        .pattern-item:nth-child(3) { animation-delay: 0.6s; }
+
+        @keyframes patternAppear {
+            to { transform: scale(1); }
+        }
+
+        .pattern-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+
+        .pattern-name {
+            font-size: 1.3rem;
+            color: #00ff88;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .pattern-description {
+            font-size: 1rem;
+            color: #e2e8f0;
+            line-height: 1.4;
+        }
+
+        /* Ladder Scene */
+        .ladder-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .ladder {
+            position: relative;
+            margin: 20px 0;
+        }
+
+        .ladder-rung {
+            background: linear-gradient(45deg, #8B4513, #A0522D);
+            height: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transform: scaleX(0);
+            animation: rungGrow 0.5s ease forwards;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .ladder-rung:nth-child(1) { width: 450px; animation-delay: 0.2s; }
+        .ladder-rung:nth-child(2) { width: 400px; animation-delay: 0.4s; }
+        .ladder-rung:nth-child(3) { width: 350px; animation-delay: 0.6s; }
+        .ladder-rung:nth-child(4) { width: 300px; animation-delay: 0.8s; }
+        .ladder-rung:nth-child(5) { width: 250px; animation-delay: 1.0s; }
+
+        @keyframes rungGrow {
+            to { transform: scaleX(1); }
+        }
+
+        .ladder-side {
+            position: absolute;
+            width: 10px;
+            height: 100%;
+            background: linear-gradient(to bottom, #654321, #8B4513);
+            border-radius: 5px;
+        }
+
+        .ladder-side.left { left: -20px; }
+        .ladder-side.right { right: -20px; }
+
+        /* Money Box Scene */
+        .money-box-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .money-box {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            width: 200px;
+            height: 150px;
+            border-radius: 20px;
+            position: relative;
+            margin: 20px 0;
+            box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #8B4513;
+            font-weight: bold;
+        }
+
+        .money-box::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 10px;
+            background: #8B4513;
+            border-radius: 5px;
+        }
+
+        .coins-display {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .year-coin {
+            background: linear-gradient(45deg, #C0C0C0, #E8E8E8);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #333;
+            transform: scale(0);
+            animation: coinAppear 0.5s ease forwards;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .year-coin:nth-child(1) { animation-delay: 0.2s; }
+        .year-coin:nth-child(2) { animation-delay: 0.4s; }
+        .year-coin:nth-child(3) { animation-delay: 0.6s; }
+        .year-coin:nth-child(4) { animation-delay: 0.8s; }
+
+        @keyframes coinAppear {
+            to { transform: scale(1); }
+        }
+
+        .year-label {
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+        }
+
+        .amount {
+            font-size: 1rem;
+            color: #00ff88;
+        }
+
+        /* Salary Scene */
+        .salary-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .salary-timeline {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .salary-year {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #00ff88;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            transform: translateY(20px);
+            opacity: 0;
+            animation: yearSlide 0.6s ease forwards;
+            backdrop-filter: blur(10px);
+        }
+
+        .salary-year:nth-child(1) { animation-delay: 0.2s; }
+        .salary-year:nth-child(2) { animation-delay: 0.4s; }
+        .salary-year:nth-child(3) { animation-delay: 0.6s; }
+        .salary-year:nth-child(4) { animation-delay: 0.8s; }
+
+        @keyframes yearSlide {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .year-number {
+            font-size: 1.2rem;
+            color: #00bbff;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .salary-amount {
+            font-size: 1.5rem;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        /* Definition Scene */
+        .definition-container {
+            text-align: center;
+            max-width: 800px;
+        }
+
+        .definition-box {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 187, 255, 0.2));
+            border: 3px solid rgba(0, 255, 136, 0.5);
+            border-radius: 25px;
+            padding: 40px;
+            margin: 20px 0;
+            font-size: 1.4rem;
+            line-height: 1.8;
+            opacity: 0;
+            transform: scale(0.8);
+            animation: definitionPop 0.8s ease forwards;
+        }
+
+        @keyframes definitionPop {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .term-highlight {
+            color: #ffd700;
+            font-weight: bold;
+            background: rgba(255, 215, 0, 0.2);
+            padding: 2px 8px;
+            border-radius: 5px;
+        }
+
+        /* Formula Scene */
+        .formula-container {
+            text-align: center;
+            max-width: 700px;
+        }
+
+        .formula-box {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #00ff88;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            font-size: 2rem;
+            font-family: 'Courier New', monospace;
+            color: #00ff88;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: formulaSlide 0.6s ease forwards;
+        }
+
+        .formula-box:nth-child(2) { animation-delay: 0.3s; }
+        .formula-box:nth-child(3) { animation-delay: 0.6s; }
+
+        @keyframes formulaSlide {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .variable {
+            color: #ffff00;
+            font-weight: bold;
+        }
+
+        /* Info Display */
+        .info-display {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 15px 20px;
+            text-align: center;
+            font-size: 1.1rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .info-display.visible {
+            opacity: 1;
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            color: #00ff88;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 18px 28px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            box-shadow: 
+                0 8px 25px rgba(102, 126, 234, 0.25),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            min-width: 160px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 
+                0 15px 40px rgba(102, 126, 234, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.2);
+            background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
+        }
+
+        .demo-btn:hover::before {
+            left: 100%;
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 
+                0 8px 25px rgba(240, 147, 251, 0.4),
+                0 0 20px rgba(240, 147, 251, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Analysis Panel */
+        .analysis {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(0, 255, 136, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .analysis-title {
+            font-size: 1.6rem;
+            color: #00ff88;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .analysis-content {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            text-align: center;
+            color: #e2e8f0;
+        }
+
+        /* Practice Section */
+        .practice-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+            border: 2px solid rgba(255, 215, 0, 0.4);
+        }
+
+        .practice-title {
+            color: #ffd700;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .question {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 4px solid #00ff88;
+        }
+
+        .question-text {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option {
+            background: rgba(118, 75, 162, 0.3);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .option:hover {
+            background: rgba(118, 75, 162, 0.5);
+            border-color: #00ff88;
+        }
+
+        .option.correct {
+            background: rgba(0, 255, 136, 0.3);
+            border-color: #00ff88;
+        }
+
+        .option.incorrect {
+            background: rgba(255, 107, 107, 0.3);
+            border-color: #ff6b6b;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .animation-stage {
+                height: 500px;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .nature-patterns, .salary-timeline, .coins-display {
+                flex-direction: column;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Arithmetic Progressions</h1>
+            <p>Discovering Patterns in Nature, Daily Life, and Mathematics</p>
+        </div>
+
+        <!-- Main Animation Stage -->
+        <div class="animation-stage" id="animation-stage">
+            
+            <!-- Welcome Scene -->
+            <div class="animation-scene visible" id="welcome-scene">
+                <div class="welcome-scene">
+                    <h2 class="welcome-title">Pattern Recognition</h2>
+                    <p style="font-size: 1.3rem; color: #00bbff;">
+                        Welcome to the world of patterns!<br>
+                        Let's discover how mathematics appears everywhere around us
+                    </p>
+                </div>
+            </div>
+
+            <!-- Nature Patterns Scene -->
+            <div class="animation-scene" id="nature-scene">
+                <h2 style="font-size: 2rem; color: #00ff88; margin-bottom: 30px; text-align: center;">
+                    🌻 Patterns in Nature
+                </h2>
+                <div class="nature-patterns">
+                    <div class="pattern-item">
+                        <div class="pattern-icon">🌻</div>
+                        <div class="pattern-name">Sunflower Petals</div>
+                        <div class="pattern-description">
+                            Petals follow mathematical sequences<br>
+                            Often in Fibonacci patterns
+                        </div>
+                    </div>
+                    <div class="pattern-item">
+                        <div class="pattern-icon">🍯</div>
+                        <div class="pattern-name">Honeycomb</div>
+                        <div class="pattern-description">
+                            Perfect hexagonal patterns<br>
+                            Uniform spacing and structure
+                        </div>
+                    </div>
+                    <div class="pattern-item">
+                        <div class="pattern-icon">🌽</div>
+                        <div class="pattern-name">Corn Kernels</div>
+                        <div class="pattern-description">
+                            Arranged in regular rows<br>
+                            Equal spacing between kernels
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ladder Scene -->
+            <div class="animation-scene" id="ladder-scene">
+                <div class="ladder-container">
+                    <h2 style="font-size: 2rem; color: #00ff88; margin-bottom: 20px;">
+                        🪜 Ladder Pattern
+                    </h2>
+                    <div class="ladder">
+                        <div class="ladder-side left"></div>
+                        <div class="ladder-side right"></div>
+                        <div class="ladder-rung">45 cm</div>
+                        <div class="ladder-rung">43 cm</div>
+                        <div class="ladder-rung">41 cm</div>
+                        <div class="ladder-rung">39 cm</div>
+                        <div class="ladder-rung">37 cm</div>
+                    </div>
+                    <div style="text-align: center; margin-top: 20px; font-size: 1.2rem;">
+                        Each rung is <span style="color: #ffd700; font-weight: bold;">2 cm shorter</span> than the one below
+                    </div>
+                </div>
+            </div>
+
+            <!-- Money Box Scene -->
+            <div class="animation-scene" id="money-scene">
+                <div class="money-box-container">
+                    <h2 style="font-size: 2rem; color: #00ff88; margin-bottom: 20px;">
+                        🏦 Shakila's Savings Plan
+                    </h2>
+                    <div class="money-box">💰</div>
+                    <div class="coins-display">
+                        <div class="year-coin">
+                            <div class="year-label">Year 1</div>
+                            <div class="amount">₹100</div>
+                        </div>
+                        <div class="year-coin">
+                            <div class="year-label">Year 2</div>
+                            <div class="amount">₹150</div>
+                        </div>
+                        <div class="year-coin">
+                            <div class="year-label">Year 3</div>
+                            <div class="amount">₹200</div>
+                        </div>
+                        <div class="year-coin">
+                            <div class="year-label">Year 4</div>
+                            <div class="amount">₹250</div>
+                        </div>
+                    </div>
+                    <div style="text-align: center; font-size: 1.2rem;">
+                        Each year she adds <span style="color: #ffd700; font-weight: bold;">₹50 more</span> than previous year
+                    </div>
+                </div>
+            </div>
+
+            <!-- Salary Scene -->
+            <div class="animation-scene" id="salary-scene">
+                <div class="salary-container">
+                    <h2 style="font-size: 2rem; color: #00ff88; margin-bottom: 20px;">
+                        💼 Reena's Salary Progression
+                    </h2>
+                    <div class="salary-timeline">
+                        <div class="salary-year">
+                            <div class="year-number">Year 1</div>
+                            <div class="salary-amount">₹8,000</div>
+                        </div>
+                        <div class="salary-year">
+                            <div class="year-number">Year 2</div>
+                            <div class="salary-amount">₹8,500</div>
+                        </div>
+                        <div class="salary-year">
+                            <div class="year-number">Year 3</div>
+                            <div class="salary-amount">₹9,000</div>
+                        </div>
+                        <div class="salary-year">
+                            <div class="year-number">Year 4</div>
+                            <div class="salary-amount">₹9,500</div>
+                        </div>
+                    </div>
+                    <div style="text-align: center; font-size: 1.2rem;">
+                        Annual increment of <span style="color: #ffd700; font-weight: bold;">₹500</span> each year
+                    </div>
+                </div>
+            </div>
+
+            <!-- Definition Scene -->
+            <div class="animation-scene" id="definition-scene">
+                <div class="definition-container">
+                    <h2 style="font-size: 2rem; color: #00ff88; margin-bottom: 30px;">
+                        📚 What is an Arithmetic Progression?
+                    </h2>
+                    <div class="definition-box">
+                        An <span class="term-highlight">Arithmetic Progression (AP)</span> is a sequence of numbers where each term is obtained by adding a <span class="term-highlight">fixed number</span> to the previous term.
+                    </div>
+                    <div class="definition-box">
+                        <span class="term-highlight">First term (a)</span>: The starting number of the sequence
+                    </div>
+                    <div class="definition-box">
+                        <span class="term-highlight">Common difference (d)</span>: The fixed number added each time
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formula Scene -->
+            <div class="animation-scene" id="formula-scene">
+                <div class="formula-container">
+                    <h2 style="font-size: 2rem; color: #00ff88; margin-bottom: 30px;">
+                        🔢 General Form of AP
+                    </h2>
+                    <div class="formula-box">
+                        <span class="variable">a</span>, <span class="variable">a+d</span>, <span class="variable">a+2d</span>, <span class="variable">a+3d</span>, ...
+                    </div>
+                    <div class="formula-box">
+                        Where: <span class="variable">a</span> = first term
+                    </div>
+                    <div class="formula-box">
+                        <span class="variable">d</span> = common difference
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Display -->
+            <div class="info-display visible" id="info-display">
+                Ready to explore patterns? Click any button below to begin!
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="lesson-title">Discover Pattern Recognition</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="showCompleteLesson()">📚 Complete Lesson</button>
+                <button class="demo-btn" onclick="showNaturePatterns()">🌻 Nature Patterns</button>
+                <button class="demo-btn" onclick="showLadderPattern()">🪜 Ladder Pattern</button>
+                <button class="demo-btn" onclick="showMoneyPattern()">💰 Savings Pattern</button>
+                <button class="demo-btn" onclick="showSalaryPattern()">💼 Salary Pattern</button>
+                <button class="demo-btn" onclick="showDefinition()">📚 Definition</button>
+                <button class="demo-btn" onclick="resetAll()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Analysis Panel -->
+        <div class="analysis">
+            <div class="analysis-title">🔍 Pattern Analysis</div>
+            <div class="analysis-content" id="analysis-content">
+                Patterns are everywhere around us! Arithmetic progressions help us understand and predict these regular sequences.
+                Click any button above to explore different types of patterns and learn how to identify them.
+            </div>
+        </div>
+
+        <!-- Practice Section -->
+        <div class="practice-section">
+            <div class="practice-title">🎯 Practice: Identify the Patterns</div>
+            
+            <div class="question">
+                <div class="question-text">
+                    <strong>Question 1:</strong> Which of these sequences forms an Arithmetic Progression?
+                </div>
+                <div class="options">
+                    <div class="option" onclick="checkAnswer(this, false)">2, 4, 8, 16, 32...</div>
+                    <div class="option" onclick="checkAnswer(this, true)">5, 8, 11, 14, 17...</div>
+                    <div class="option" onclick="checkAnswer(this, false)">1, 1, 2, 3, 5, 8...</div>
+                    <div class="option" onclick="checkAnswer(this, false)">3, 6, 12, 15, 18...</div>
+                </div>
+            </div>
+
+            <div class="question">
+                <div class="question-text">
+                    <strong>Question 2:</strong> In the sequence 7, 12, 17, 22, 27..., what is the common difference?
+                </div>
+                <div class="options">
+                    <div class="option" onclick="checkAnswer(this, false)">3</div>
+                    <div class="option" onclick="checkAnswer(this, false)">4</div>
+                    <div class="option" onclick="checkAnswer(this, true)">5</div>
+                    <div class="option" onclick="checkAnswer(this, false)">6</div>
+                </div>
+            </div>
+
+            <div class="question">
+                <div class="question-text">
+                    <strong>Question 3:</strong> If the first term is 10 and common difference is -3, what is the second term?
+                </div>
+                <div class="options">
+                    <div class="option" onclick="checkAnswer(this, false)">13</div>
+                    <div class="option" onclick="checkAnswer(this, false)">10</div>
+                    <div class="option" onclick="checkAnswer(this, true)">7</div>
+                    <div class="option" onclick="checkAnswer(this, false)">4</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice System
+        class APNarrator {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.9, pitch: 1.0, volume: 0.8 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+        }
+
+        // Global state management
+        let globalAudioEnabled = true;
+        let currentNarrator = null;
+        let isPlaying = false;
+        let currentDemo = null;
+        let currentDemoAborted = false;
+        let currentRunId = 0;
+        let currentTaskId = null;
+        let animationTimeouts = [];
+
+        // Helper functions
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewNarrator(taskId = null) {
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentNarrator = new APNarrator();
+            return currentNarrator;
+        }
+
+        function switchToScene(sceneId, taskId = null) {
+            if (!shouldContinue(taskId)) return;
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            const timeout = setTimeout(() => {
+                if (!shouldContinue(taskId)) return;
+                const scene = document.getElementById(sceneId);
+                if (scene) {
+                    scene.classList.add('visible');
+                }
+            }, 300);
+            
+            animationTimeouts.push(timeout);
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        function updateTitle(title) {
+            document.getElementById('lesson-title').textContent = title;
+        }
+
+        function updateInfo(text) {
+            const info = document.getElementById('info-display');
+            info.textContent = text;
+            info.classList.add('visible');
+        }
+
+        function updateAnalysis(text) {
+            document.getElementById('analysis-content').textContent = text;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        // Main Functions
+        async function showCompleteLesson() {
+            const taskId = `complete-journey-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            updateTitle("📚 Complete Pattern Recognition Lesson");
+            updateInfo("Starting comprehensive lesson on pattern recognition...");
+            
+            await narrator.speak("Welcome to Arithmetic Progressions! Let's discover how patterns appear everywhere in nature and daily life.");
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Nature Patterns
+            updateInfo("Exploring patterns in nature...");
+            switchToScene('nature-scene', taskId);
+            await narrator.speak("Look around you! Nature is full of beautiful mathematical patterns. Sunflowers, honeycombs, and corn kernels all show regular, repeating structures.");
+            await wait(4000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Ladder Pattern
+            updateInfo("Examining ladder rung patterns...");
+            switchToScene('ladder-scene', taskId);
+            await narrator.speak("Here's a practical example: a ladder with rungs that decrease uniformly. Each rung is exactly 2 centimeters shorter than the one below it.");
+            await wait(4000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Money Pattern
+            updateInfo("Understanding savings patterns...");
+            switchToScene('money-scene', taskId);
+            await narrator.speak("Shakila saves money for her daughter, increasing the amount by 50 rupees each year. This creates a predictable mathematical pattern.");
+            await wait(4000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Salary Pattern
+            updateInfo("Analyzing salary progression...");
+            switchToScene('salary-scene', taskId);
+            await narrator.speak("Reena's salary increases by 500 rupees every year. This regular increase forms what we call an arithmetic progression.");
+            await wait(4000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Definition
+            updateInfo("Learning the mathematical definition...");
+            switchToScene('definition-scene', taskId);
+            await narrator.speak("An Arithmetic Progression is a sequence where each term is obtained by adding a fixed number to the previous term. We call this fixed number the common difference.");
+            await wait(5000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Formula
+            updateInfo("Understanding the general form...");
+            switchToScene('formula-scene', taskId);
+            await narrator.speak("The general form is: a, a plus d, a plus 2d, a plus 3d, and so on, where 'a' is the first term and 'd' is the common difference.");
+            await wait(4000);
+            if (!shouldContinue(taskId)) return;
+            
+            updateInfo("Lesson complete! Ready to practice identifying patterns?");
+            updateAnalysis("Congratulations! You've learned to recognize arithmetic progressions in nature, daily life, and mathematics. You understand the concepts of first term and common difference.");
+            await narrator.speak("Excellent! You now understand how to identify arithmetic progressions everywhere around you. Practice with the questions below to master this concept!");
+            
+            isPlaying = false;
+        }
+
+        async function showNaturePatterns() {
+            const taskId = 'nature-patterns';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            updateTitle("🌻 Patterns in Nature");
+            switchToScene('nature-scene', taskId);
+            updateInfo("Discovering mathematical patterns in the natural world...");
+            
+            await narrator.speak("Nature is the greatest mathematician! Look at sunflower petals arranged in spirals, honeycomb cells forming perfect hexagons, and corn kernels in regular rows.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            updateAnalysis("Nature demonstrates mathematical perfection through regular patterns. These natural arrangements often follow arithmetic progressions and other mathematical sequences.");
+            await narrator.speak("These patterns aren't random - they follow mathematical rules that we can study and understand through arithmetic progressions!");
+            
+            isPlaying = false;
+        }
+
+        async function showLadderPattern() {
+            const taskId = 'ladder-pattern';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            updateTitle("🪜 Ladder Pattern Analysis");
+            switchToScene('ladder-scene', taskId);
+            updateInfo("Analyzing the ladder rung pattern...");
+            
+            await narrator.speak("This ladder shows a perfect arithmetic progression: 45, 43, 41, 39, 37 centimeters. Each rung is exactly 2 centimeters shorter than the previous one.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            updateInfo("First term (a) = 45, Common difference (d) = -2");
+            updateAnalysis("Ladder Pattern: a = 45 cm, d = -2 cm. This is an arithmetic progression with decreasing terms, showing that the common difference can be negative.");
+            await narrator.speak("Here, the first term is 45, and the common difference is negative 2. This shows that arithmetic progressions can have negative common differences too!");
+            
+            isPlaying = false;
+        }
+
+        async function showMoneyPattern() {
+            const taskId = 'money-pattern';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            updateTitle("💰 Shakila's Savings Pattern");
+            switchToScene('money-scene', taskId);
+            updateInfo("Understanding the savings progression...");
+            
+            await narrator.speak("Shakila's savings plan: 100, 150, 200, 250 rupees. Each year she increases her savings by exactly 50 rupees more than the previous year.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            updateInfo("First term (a) = ₹100, Common difference (d) = ₹50");
+            updateAnalysis("Savings Pattern: a = ₹100, d = ₹50. This arithmetic progression helps Shakila save systematically, with predictable growth each year.");
+            await narrator.speak("This is a beautiful example of how arithmetic progressions help us plan and save money systematically!");
+            
+            isPlaying = false;
+        }
+
+        async function showSalaryPattern() {
+            const taskId = 'salary-pattern';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(4);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            updateTitle("💼 Reena's Salary Progression");
+            switchToScene('salary-scene', taskId);
+            updateInfo("Examining salary increment pattern...");
+            
+            await narrator.speak("Reena's salary progression: 8000, 8500, 9000, 9500 rupees. She gets a fixed increment of 500 rupees every year.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            updateInfo("First term (a) = ₹8,000, Common difference (d) = ₹500");
+            updateAnalysis("Salary Pattern: a = ₹8,000, d = ₹500. This regular increment structure helps employees plan their finances and career growth.");
+            await narrator.speak("This predictable salary structure follows an arithmetic progression, making it easy to plan for the future!");
+            
+            isPlaying = false;
+        }
+
+        async function showDefinition() {
+            const taskId = 'definition';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(5);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            updateTitle("📚 Mathematical Definition");
+            switchToScene('definition-scene', taskId);
+            updateInfo("Learning the formal definition of AP...");
+            
+            await narrator.speak("An Arithmetic Progression is a sequence of numbers where each term is obtained by adding a fixed number to the previous term.");
+            await wait(3000);
+            if (!shouldContinue(taskId)) return;
+            
+            switchToScene('formula-scene', taskId);
+            updateInfo("Understanding the general form: a, a+d, a+2d, a+3d...");
+            await narrator.speak("The general form is a, a plus d, a plus 2d, a plus 3d, where a is the first term and d is the common difference.");
+            
+            updateAnalysis("Key Terms: First term (a) - the starting number; Common difference (d) - the fixed number added each time. This forms the foundation for all AP problems.");
+            
+            isPlaying = false;
+        }
+
+        async function resetAll() {
+            stopCurrentDemo();
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            await wait(50);
+            document.getElementById('welcome-scene').classList.add('visible');
+            
+            updateTitle("Discover Pattern Recognition");
+            updateInfo("Ready to explore patterns? Click any button below to begin!");
+            updateAnalysis("Patterns are everywhere around us! Arithmetic progressions help us understand and predict these regular sequences. Click any button above to explore different types of patterns and learn how to identify them.");
+            
+            setActiveButton(-1);
+        }
+
+        // Practice Functions
+        function checkAnswer(element, isCorrect) {
+            // Remove any existing classes
+            element.parentNode.querySelectorAll('.option').forEach(opt => {
+                opt.classList.remove('correct', 'incorrect');
+                opt.style.pointerEvents = 'none';
+            });
+            
+            // Add appropriate class
+            if (isCorrect) {
+                element.classList.add('correct');
+                if (currentNarrator) {
+                    currentNarrator.speak("Correct! Well done!");
+                }
+            } else {
+                element.classList.add('incorrect');
+                // Highlight the correct answer
+                element.parentNode.querySelectorAll('.option').forEach(opt => {
+                    if (opt.onclick.toString().includes('true')) {
+                        opt.classList.add('correct');
+                    }
+                });
+                if (currentNarrator) {
+                    currentNarrator.speak("That's not correct. Look for the highlighted correct answer.");
+                }
+            }
+            
+            // Re-enable after 3 seconds
+            setTimeout(() => {
+                element.parentNode.querySelectorAll('.option').forEach(opt => {
+                    opt.style.pointerEvents = 'auto';
+                    opt.classList.remove('correct', 'incorrect');
+                });
+            }, 3000);
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            document.getElementById('welcome-scene').classList.add('visible');
+            const narrator = createNewNarrator('initialization');
+            narrator.speak("Welcome to Arithmetic Progressions! Let's discover the amazing patterns that surround us in nature and daily life.");
+            updateInfo("Ready to explore patterns? Click any button below to begin!");
+        });
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            if (currentNarrator) {
+                currentNarrator.isEnabled = globalAudioEnabled;
+                if (!globalAudioEnabled) {
+                    currentNarrator.stop();
+                }
+            }
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+        });
+    </script>
+</body>
+</html>

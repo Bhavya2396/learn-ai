@@ -1,0 +1,2675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mid-point Theorem - Master Geometry</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+        }
+
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--accent-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .canvas-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .geometry-canvas {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .shape-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .activity-box {
+            background: rgba(67, 233, 123, 0.1);
+            border: 2px solid rgba(67, 233, 123, 0.5);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            max-width: 800px;
+        }
+
+        .theorem-box {
+            background: rgba(79, 172, 254, 0.1);
+            border: 2px solid rgba(79, 172, 254, 0.5);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            max-width: 800px;
+        }
+
+        .example-box {
+            background: rgba(250, 112, 154, 0.1);
+            border: 2px solid rgba(250, 112, 154, 0.5);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            max-width: 800px;
+        }
+
+        .value-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--text-accent);
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .measurement-box {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-title {
+            color: var(--text-accent);
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .interactive-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider {
+            width: 200px;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .quiz-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .question-box {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .option {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .option:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--text-accent);
+        }
+
+        .option.correct {
+            background: rgba(67, 233, 123, 0.2);
+            border-color: #43e97b;
+            color: #43e97b;
+        }
+
+        .option.incorrect {
+            background: rgba(255, 107, 107, 0.2);
+            border-color: #ff6b6b;
+            color: #ff6b6b;
+        }
+
+        /* Step indicator */
+        .step-indicator {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            transition: var(--transition);
+            border: 2px solid transparent;
+        }
+
+        .step.active {
+            background: var(--accent-gradient);
+            transform: scale(1.2);
+        }
+
+        .step.completed {
+            background: var(--success-gradient);
+        }
+
+        /* Question styles */
+        .question {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .question h3 {
+            margin-bottom: 15px;
+            color: var(--text-accent);
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Score display */
+        .score-display {
+            text-align: center;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            margin-top: 20px;
+        }
+
+        .score-display h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        /* Theory Cards Styles */
+        .theory-cards-section {
+            margin-top: 30px;
+            padding: 0 20px;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 1.8rem;
+            color: var(--text-accent);
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        .theory-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .theory-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow-primary);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theory-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent-gradient);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .theory-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(79, 172, 254, 0.5);
+            box-shadow: 0 15px 40px rgba(79, 172, 254, 0.2);
+        }
+
+        .theory-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-header h3 {
+            color: var(--text-accent);
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .card-number {
+            background: var(--accent-gradient);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .card-icon {
+            background: var(--success-gradient);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 1.2rem;
+        }
+
+        .card-content {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .card-content p {
+            margin-bottom: 15px;
+        }
+
+        .formula-box {
+            background: rgba(79, 172, 254, 0.1);
+            border: 1px solid rgba(79, 172, 254, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .formula-box p {
+            margin: 5px 0;
+            color: var(--text-primary);
+        }
+
+        .formula-box strong {
+            color: var(--text-accent);
+            font-size: 1.1rem;
+        }
+
+        .properties-list,
+        .applications-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .properties-list li,
+        .applications-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .properties-list li:before,
+        .applications-list li:before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--text-accent);
+            font-weight: bold;
+        }
+
+        .properties-list li:last-child,
+        .applications-list li:last-child {
+            border-bottom: none;
+        }
+
+        .proof-steps {
+            counter-reset: step-counter;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .proof-steps li {
+            counter-increment: step-counter;
+            padding: 10px 0;
+            padding-left: 40px;
+            position: relative;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .proof-steps li:before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 10px;
+            background: var(--accent-gradient);
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .proof-steps li:last-child {
+            border-bottom: none;
+        }
+
+        .facts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .fact-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .fact-label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .fact-value {
+            display: block;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-accent);
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 10px;
+                gap: 15px;
+            }
+            
+            .controls {
+                gap: 5px;
+                padding: 15px;
+            }
+            
+            .demo-btn {
+                padding: 8px 16px;
+                font-size: 0.85rem;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .demo-stage {
+                padding: 20px;
+                min-height: 300px;
+            }
+
+            .theory-cards-section {
+                padding: 0 10px;
+            }
+
+            .theory-cards-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .theory-card {
+                padding: 20px;
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+                margin-bottom: 20px;
+            }
+
+            .card-header h3 {
+                font-size: 1.1rem;
+            }
+
+            .facts-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Mid-point Theorem Mastery</h1>
+        <p>Chapter 8.2 - Exploring Triangle Mid-point Properties</p>
+    </header>
+
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="main-container">
+        <div class="demo-stage">
+            <div id="stage-content" class="stage-content active">
+                <h2 class="shape-title">Welcome to Mid-point Theorem Exploration!</h2>
+                <div class="value-display">Let's Discover!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Explore the fascinating properties of triangle mid-points and discover how they relate to the third side! 
+                    Choose a lesson below to begin your geometric journey!
+                </p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">Introduction</button>
+            <button class="demo-btn" data-demo="activity">Interactive Activity</button>
+            <button class="demo-btn" data-demo="theorem-8-8">Theorem 8.8</button>
+            <button class="demo-btn" data-demo="proof">Proof Exploration</button>
+            <button class="demo-btn" data-demo="theorem-8-9">Theorem 8.9 (Converse)</button>
+            <button class="demo-btn" data-demo="examples">Worked Examples</button>
+            <button class="demo-btn" data-demo="applications">Real-World Applications</button>
+            <button class="demo-btn" data-demo="quiz">Interactive Quiz</button>
+            <button class="demo-btn" data-demo="reset">Reset</button>
+        </div>
+
+        <!-- Theory Cards Section -->
+        <div class="theory-cards-section">
+            <h2 class="section-title">📚 Key Concepts & Theory</h2>
+            <div class="theory-cards-grid">
+                <!-- Card 1: Mid-point Theorem -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <h3>📐 Mid-point Theorem</h3>
+                        <span class="card-number">8.8</span>
+                    </div>
+                    <div class="card-content">
+                        <p><strong>Statement:</strong> The line segment joining the mid-points of any two sides of a triangle is parallel to the third side and equal to half of it.</p>
+                        <div class="formula-box">
+                            <p>If D and E are mid-points of AB and AC respectively,</p>
+                            <p><strong>then DE ∥ BC and DE = ½ BC</strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Converse Theorem -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <h3>🔄 Converse Theorem</h3>
+                        <span class="card-number">8.9</span>
+                    </div>
+                    <div class="card-content">
+                        <p><strong>Statement:</strong> The line drawn through the mid-point of one side of a triangle and parallel to another side bisects the third side.</p>
+                        <div class="formula-box">
+                            <p>If D is mid-point of AB and DE ∥ BC,</p>
+                            <p><strong>then E is mid-point of AC</strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Key Properties -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <h3>🔑 Key Properties</h3>
+                        <span class="card-icon">⭐</span>
+                    </div>
+                    <div class="card-content">
+                        <ul class="properties-list">
+                            <li>Mid-point line is <strong>parallel</strong> to third side</li>
+                            <li>Mid-point line is <strong>half the length</strong> of third side</li>
+                            <li>Works for <strong>any triangle</strong></li>
+                            <li>Creates <strong>similar triangles</strong></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Card 4: Applications -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <h3>🌍 Real Applications</h3>
+                        <span class="card-icon">🎯</span>
+                    </div>
+                    <div class="card-content">
+                        <ul class="applications-list">
+                            <li><strong>Architecture:</strong> Structural design</li>
+                            <li><strong>Computer Graphics:</strong> 3D modeling</li>
+                            <li><strong>Surveying:</strong> GPS triangulation</li>
+                            <li><strong>Engineering:</strong> Load distribution</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Card 5: Proof Method -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <h3>🔬 Proof Strategy</h3>
+                        <span class="card-icon">📝</span>
+                    </div>
+                    <div class="card-content">
+                        <ol class="proof-steps">
+                            <li>Extend EF to point D</li>
+                            <li>Join CD (construction)</li>
+                            <li>Prove △AEF ≅ △CDF</li>
+                            <li>Show BECD is parallelogram</li>
+                            <li>Conclude EF ∥ BC and EF = ½ BC</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Card 6: Quick Facts -->
+                <div class="theory-card">
+                    <div class="card-header">
+                        <h3>⚡ Quick Facts</h3>
+                        <span class="card-icon">💡</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="facts-grid">
+                            <div class="fact-item">
+                                <span class="fact-label">Ratio:</span>
+                                <span class="fact-value">1:2</span>
+                            </div>
+                            <div class="fact-item">
+                                <span class="fact-label">Angle:</span>
+                                <span class="fact-value">Equal</span>
+                            </div>
+                            <div class="fact-item">
+                                <span class="fact-label">Position:</span>
+                                <span class="fact-value">Parallel</span>
+                            </div>
+                            <div class="fact-item">
+                                <span class="fact-label">Triangles:</span>
+                                <span class="fact-value">4 Congruent</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state management
+        let currentTeacher = null;
+        let currentDemo = null;
+        let globalAudioEnabled = true;
+        let animationTimeouts = [];
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let currentRunId = 0;
+        let currentTaskId = null;
+        let activeChart = null;
+
+        // Teacher class for text-to-speech functionality
+        class Teacher {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.synthesis = window.speechSynthesis;
+                this.currentUtterance = null;
+            }
+
+            async speak(text, options = {}) {
+                if (!this.isEnabled || !this.synthesis) return;
+                
+                return new Promise((resolve) => {
+                    this.stop();
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = options.rate || 0.9;
+                    utterance.pitch = options.pitch || 1;
+                    utterance.volume = options.volume || 0.8;
+                    
+                    utterance.onend = () => {
+                        this.currentUtterance = null;
+                        resolve();
+                    };
+                    
+                    utterance.onerror = () => {
+                        this.currentUtterance = null;
+                        resolve();
+                    };
+                    
+                    this.currentUtterance = utterance;
+                    this.synthesis.speak(utterance);
+                });
+            }
+
+            stop() {
+                if (this.synthesis && this.currentUtterance) {
+                    this.synthesis.cancel();
+                    this.currentUtterance = null;
+                }
+            }
+
+            destroy() {
+                this.stop();
+                this.isEnabled = false;
+                this.synthesis = null;
+                this.currentUtterance = null;
+            }
+        }
+
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentTeacher = new Teacher();
+            currentTeacher.isEnabled = globalAudioEnabled;
+            return currentTeacher;
+        }
+
+        function createStageContent() {
+            const stage = document.querySelector('.demo-stage');
+            const existingContent = stage.querySelector('.stage-content');
+            if (existingContent) {
+                existingContent.remove();
+            }
+            
+            const content = document.createElement('div');
+            content.className = 'stage-content active';
+            content.id = 'stage-content';
+            stage.appendChild(content);
+            return content;
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            if (activeChart) {
+                activeChart.destroy();
+                activeChart = null;
+            }
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        // Canvas drawing functions
+        function drawTriangle(ctx, points, color = '#4facfe', lineWidth = 3) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            ctx.lineTo(points[1].x, points[1].y);
+            ctx.lineTo(points[2].x, points[2].y);
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        function drawPoint(ctx, x, y, label, color = '#ff6b6b', radius = 4) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Add label
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText(label, x + 8, y - 8);
+        }
+
+        function drawLine(ctx, x1, y1, x2, y2, color = '#43e97b', lineWidth = 2, dash = false) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            if (dash) {
+                ctx.setLineDash([5, 5]);
+            } else {
+                ctx.setLineDash([]);
+            }
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function calculateMidpoint(p1, p2) {
+            return {
+                x: (p1.x + p2.x) / 2,
+                y: (p1.y + p2.y) / 2
+            };
+        }
+
+        function calculateDistance(p1, p2) {
+            return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+        }
+
+        function calculateAngle(p1, vertex, p2) {
+            const angle1 = Math.atan2(p1.y - vertex.y, p1.x - vertex.x);
+            const angle2 = Math.atan2(p2.y - vertex.y, p2.x - vertex.x);
+            let angle = Math.abs(angle2 - angle1);
+            if (angle > Math.PI) angle = 2 * Math.PI - angle;
+            return angle * (180 / Math.PI);
+        }
+
+        // Interactive Activity Function
+        function createInteractiveTriangle() {
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="shape-title">Interactive Mid-point Activity</h2>
+                <div class="canvas-container">
+                    <canvas id="triangleCanvas" class="geometry-canvas" width="600" height="400"></canvas>
+                </div>
+                <div class="measurement-box">
+                    <div>EF Length: <span id="ef-length">0</span> units</div>
+                    <div>BC Length: <span id="bc-length">0</span> units</div>
+                    <div>Ratio EF/BC: <span id="ratio">0</span></div>
+                    <div>Angle AEF: <span id="angle-aef">0</span>°</div>
+                    <div>Angle ABC: <span id="angle-abc">0</span>°</div>
+                </div>
+                <p style="text-align: center; margin-top: 15px; color: var(--text-secondary);">
+                    Observe how EF is always half of BC and parallel to it!
+                </p>
+            `;
+
+            const canvas = document.getElementById('triangleCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Triangle vertices
+            const A = { x: 300, y: 50 };
+            const B = { x: 150, y: 300 };
+            const C = { x: 450, y: 300 };
+
+            function updateTriangle() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Calculate midpoints
+                const E = calculateMidpoint(A, B);
+                const F = calculateMidpoint(A, C);
+
+                // Draw triangle ABC
+                drawTriangle(ctx, [A, B, C], '#4facfe', 3);
+
+                // Draw points
+                drawPoint(ctx, A.x, A.y, 'A', '#ff6b6b');
+                drawPoint(ctx, B.x, B.y, 'B', '#ff6b6b');
+                drawPoint(ctx, C.x, C.y, 'C', '#ff6b6b');
+                drawPoint(ctx, E.x, E.y, 'E', '#43e97b');
+                drawPoint(ctx, F.x, F.y, 'F', '#43e97b');
+
+                // Draw midpoint line EF
+                drawLine(ctx, E.x, E.y, F.x, F.y, '#43e97b', 4);
+
+                // Draw base BC for comparison
+                drawLine(ctx, B.x, B.y, C.x, C.y, '#fa709a', 3);
+
+                // Calculate measurements
+                const efLength = calculateDistance(E, F);
+                const bcLength = calculateDistance(B, C);
+                const ratio = efLength / bcLength;
+                const angleAEF = calculateAngle(A, E, F);
+                const angleABC = calculateAngle(A, B, C);
+
+                // Update measurements
+                document.getElementById('ef-length').textContent = efLength.toFixed(1);
+                document.getElementById('bc-length').textContent = bcLength.toFixed(1);
+                document.getElementById('ratio').textContent = ratio.toFixed(3);
+                document.getElementById('angle-aef').textContent = angleAEF.toFixed(1);
+                document.getElementById('angle-abc').textContent = angleABC.toFixed(1);
+
+                // Highlight parallel lines with animation
+                gsap.to(canvas, {
+                    duration: 1,
+                    ease: "power2.inOut",
+                    repeat: -1,
+                    yoyo: true,
+                    onUpdate: function() {
+                        const alpha = this.progress();
+                        ctx.globalAlpha = 0.3 + 0.4 * alpha;
+                        drawLine(ctx, E.x, E.y, F.x, F.y, '#43e97b', 6);
+                        drawLine(ctx, B.x, B.y, C.x, C.y, '#fa709a', 6);
+                        ctx.globalAlpha = 1;
+                    }
+                });
+            }
+
+            updateTriangle();
+        }
+
+        // Main lesson functions
+        // Content functions for complete lesson (don't call stopCurrentDemo)
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="shape-title">What is the Mid-point Theorem?</h2>
+                <div class="value-display">A Geometric Discovery</div>
+                <p style="text-align: center; max-width: 800px; margin-top: 20px; font-size: 1.1rem;">
+                    The Mid-point Theorem is a fundamental result in geometry that connects the mid-points of triangle sides with fascinating properties.
+                </p>
+            `;
+
+            await teacher.speak("The Mid-point Theorem is a fundamental result in geometry that connects the mid-points of triangle sides with fascinating properties.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            if (!shouldContinue(taskId)) return;
+
+            // Show visual representation
+            content.innerHTML = `
+                <h2 class="shape-title">Mid-point Theorem Statement</h2>
+                <div class="theorem-box">
+                    <h3>Theorem 8.8: The Mid-point Theorem</h3>
+                    <p>The line segment joining the mid-points of any two sides of a triangle is parallel to the third side and equal to half of it.</p>
+                    <div class="formula">
+                        If D and E are mid-points of AB and AC respectively,<br>
+                        then DE ∥ BC and DE = ½ BC
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("The Mid-point Theorem states that the line segment joining the mid-points of any two sides of a triangle is parallel to the third side and equal to half of it.");
+        }
+
+        async function showActivityContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="shape-title">Interactive Discovery</h2>
+                <div class="value-display">Let's Explore!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Let's discover the Mid-point Theorem through interactive exploration!
+                </p>
+            `;
+
+            await teacher.speak("Let's discover the Mid-point Theorem through interactive exploration! We'll create a triangle and find its mid-points to see the amazing relationships.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Show the interactive triangle construction
+            content.innerHTML = `
+                <h2 class="shape-title">Step-by-Step Discovery</h2>
+                <div class="theorem-box">
+                    <h3>🔍 Discovery Process:</h3>
+                    <p><strong>Step 1:</strong> Draw any triangle ABC</p>
+                    <p><strong>Step 2:</strong> Find mid-points D and E of sides AB and AC</p>
+                    <p><strong>Step 3:</strong> Join D and E to form segment DE</p>
+                    <p><strong>Step 4:</strong> Observe: DE is parallel to BC and DE = ½ BC</p>
+                </div>
+            `;
+
+            await teacher.speak("Here's how we discover the theorem: First, we draw any triangle ABC. Then we find the mid-points D and E of sides AB and AC. When we join D and E, we discover that DE is parallel to BC and exactly half its length!");
+        }
+
+        async function showTheorem88Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="shape-title">Theorem 8.8: The Mid-point Theorem</h2>
+                <div class="theorem-box">
+                    <h3>📐 Formal Statement</h3>
+                    <p>The line segment joining the mid-points of any two sides of a triangle is parallel to the third side and equal to half of it.</p>
+                    <div class="formula">
+                        Given: Triangle ABC with D and E as mid-points of AB and AC<br>
+                        To Prove: DE ∥ BC and DE = ½ BC
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("Theorem 8.8 formally states that the line segment joining the mid-points of any two sides of a triangle is parallel to the third side and equal to half of it. This is a universal truth that works for any triangle!");
+        }
+
+        async function showProofContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="shape-title">Mathematical Proof</h2>
+                <div class="theorem-box">
+                    <h3>🔬 Proof of Mid-point Theorem</h3>
+                    <p><strong>Given:</strong> Triangle ABC, D is mid-point of AB, E is mid-point of AC</p>
+                    <p><strong>To Prove:</strong> DE ∥ BC and DE = ½ BC</p>
+                    <div class="formula">
+                        <strong>Proof:</strong><br>
+                        1. Join D to C and E to B<br>
+                        2. In triangles ADE and ABC, we have:<br>
+                        &nbsp;&nbsp;&nbsp;AD/AB = AE/AC = 1/2<br>
+                        3. By SAS similarity, ΔADE ~ ΔABC<br>
+                        4. Therefore, DE/BC = 1/2 and DE ∥ BC
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("The proof uses the concept of similar triangles. We show that triangle ADE is similar to triangle ABC with a ratio of 1:2, which proves both the parallel property and the half-length property.");
+        }
+
+        async function showTheorem89Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="shape-title">Theorem 8.9: Converse of Mid-point Theorem</h2>
+                <div class="theorem-box">
+                    <h3>🔄 The Converse</h3>
+                    <p>The line drawn through the mid-point of one side of a triangle and parallel to another side bisects the third side.</p>
+                    <div class="formula">
+                        Given: Triangle ABC, D is mid-point of AB, DE ∥ BC<br>
+                        To Prove: E is mid-point of AC
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("The converse of the Mid-point Theorem states that if we draw a line through the mid-point of one side parallel to another side, it will bisect the third side. This is equally important and useful!");
+        }
+
+        async function showExamplesContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="shape-title">Practical Applications</h2>
+                <div class="theorem-box">
+                    <h3>💡 Real-World Examples</h3>
+                    <p><strong>Example 1:</strong> Finding mid-points in construction and engineering</p>
+                    <p><strong>Example 2:</strong> Solving geometric problems efficiently</p>
+                    <div class="formula">
+                        The Mid-point Theorem helps us:<br>
+                        • Find unknown lengths quickly<br>
+                        • Prove lines are parallel<br>
+                        • Solve complex geometric problems
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("The Mid-point Theorem has many practical applications. It helps us find unknown lengths quickly, prove lines are parallel, and solve complex geometric problems efficiently. These applications show the power and versatility of this theorem!");
+        }
+
+        async function showApplicationsContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="chart-title">🌍 Real-World Applications of Mid-point Theorem 🌍</h2>
+                <div class="chart-container">
+                    <canvas id="applicationsChart" width="800" height="500"></canvas>
+                </div>
+                <div class="theorem-box" style="margin-top: 20px;">
+                    <h3>🎯 Where Mid-point Theorem is Used in Real Life</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                        <div style="background: rgba(79, 172, 254, 0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #4facfe;">
+                            <h4 style="color: #4facfe; margin-bottom: 8px;">🏗️ Architecture & Engineering</h4>
+                            <p style="font-size: 0.9rem;">Used in <strong>structural design</strong> and <strong>bridge construction</strong> for load distribution</p>
+                        </div>
+                        <div style="background: rgba(67, 233, 123, 0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #43e97b;">
+                            <h4 style="color: #43e97b; margin-bottom: 8px;">🎨 Computer Graphics</h4>
+                            <p style="font-size: 0.9rem;">Essential for <strong>3D modeling</strong> and <strong>animation software</strong> for mesh subdivision</p>
+                        </div>
+                        <div style="background: rgba(255, 107, 107, 0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #ff6b6b;">
+                            <h4 style="color: #ff6b6b; margin-bottom: 8px;">📐 Surveying & Mapping</h4>
+                            <p style="font-size: 0.9rem;">Used in <strong>land surveying</strong> and <strong>GPS triangulation</strong> for accurate measurements</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create Chart.js bar chart showing application frequency
+            setTimeout(() => {
+                // Clear any existing chart
+                if (activeChart) {
+                    activeChart.destroy();
+                    activeChart = null;
+                }
+
+                // Create Chart.js data structure for real-world applications
+                const applicationsData = {
+                    labels: ['Architecture', 'Computer Graphics', 'Surveying', 'Robotics', 'Game Development', 'CAD Software'],
+                    datasets: [{
+                        label: 'Usage Frequency (%)',
+                        data: [85, 92, 78, 65, 88, 95],
+                        backgroundColor: [
+                            'rgba(79, 172, 254, 0.8)',
+                            'rgba(67, 233, 123, 0.8)',
+                            'rgba(255, 107, 107, 0.8)',
+                            'rgba(254, 202, 87, 0.8)',
+                            'rgba(159, 122, 234, 0.8)',
+                            'rgba(255, 159, 243, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(79, 172, 254, 1)',
+                            'rgba(67, 233, 123, 1)',
+                            'rgba(255, 107, 107, 1)',
+                            'rgba(254, 202, 87, 1)',
+                            'rgba(159, 122, 234, 1)',
+                            'rgba(255, 159, 243, 1)'
+                        ],
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }]
+                };
+
+                // Create Chart.js bar chart
+                activeChart = new Chart(document.getElementById('applicationsChart').getContext('2d'), {
+                    type: 'bar',
+                    data: applicationsData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 2000,
+                            easing: 'easeInOutQuart'
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Mid-point Theorem: Real-World Application Frequency',
+                                color: 'white',
+                                font: {
+                                    size: 18,
+                                    weight: 'bold'
+                                }
+                            },
+                            legend: {
+                                display: true,
+                                labels: {
+                                    color: 'white',
+                                    font: {
+                                        size: 14
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                borderColor: 'rgba(255, 255, 255, 0.2)',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                padding: 12,
+                                titleFont: { size: 14, weight: 'bold' },
+                                bodyFont: { size: 12 },
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.parsed.y + '% of professionals use Mid-point Theorem';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Usage Frequency (%)',
+                                    color: 'white',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)',
+                                    lineWidth: 1
+                                },
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.8)',
+                                    font: { size: 12 },
+                                    stepSize: 20,
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Professional Fields',
+                                    color: 'white',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)',
+                                    lineWidth: 1
+                                },
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.8)',
+                                    font: { size: 12 }
+                                }
+                            }
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        }
+                    }
+                });
+                
+            }, 100);
+
+            await teacher.speak("Discover the incredible real-world impact of the Mid-point Theorem! This chart shows how frequently professionals use this theorem across different industries and applications.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            await teacher.speak("Notice that CAD Software leads with 95% usage - architects and engineers rely heavily on the Mid-point Theorem for precise geometric constructions. Computer Graphics follows closely at 92% for 3D modeling and animation!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            await teacher.speak("Game Development shows 88% usage for character modeling and level design. Even Robotics uses it 65% of the time for path planning and sensor positioning. The Mid-point Theorem is truly everywhere in our modern world!");
+        }
+
+        async function showCompleteLesson() {
+            const taskId = `complete-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            // Welcome message
+            const welcomeContent = createStageContent();
+            welcomeContent.innerHTML = `
+                <h2 class="shape-title">Complete Mid-point Theorem Lesson</h2>
+                <div class="value-display">Let's Learn Everything!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    We'll explore how mid-points of triangle sides create fascinating geometric relationships step by step.
+                </p>
+            `;
+
+            await teacher.speak("Welcome to the complete Mid-point Theorem lesson! We'll explore how mid-points of triangle sides create fascinating geometric relationships.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            // Introduction
+            await showIntroductionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            // Interactive Activity
+            await teacher.speak("Let's perform an interactive activity to discover this theorem ourselves!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            await showActivityContent(taskId);
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            // Theorem 8.8
+            await teacher.speak("Now let's learn the formal statement of the Mid-point Theorem!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            await showTheorem88Content(taskId);
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            // Proof
+            await teacher.speak("Let's explore the mathematical proof of this beautiful theorem!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            await showProofContent(taskId);
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            // Theorem 8.9
+            await teacher.speak("Now let's learn about the converse of the Mid-point Theorem!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            await showTheorem89Content(taskId);
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            // Examples
+            await teacher.speak("Let's see some practical examples of how these theorems work!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            await showExamplesContent(taskId);
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            // Applications
+            await teacher.speak("Finally, let's see where the Mid-point Theorem is used in real-world applications!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            await showApplicationsContent(taskId);
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+
+            // Final message
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="shape-title">Congratulations!</h2>
+                <div class="value-display">🎉 Lesson Complete! 🎉</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    You've mastered the Mid-point Theorem! Try the quiz to test your knowledge,
+                    or explore the interactive activity again!
+                </p>
+                <div class="theorem-box" style="margin-top: 30px;">
+                    <h3 style="color: var(--text-accent);">You've learned:</h3>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin: 10px 0;">✓ What the Mid-point Theorem states</li>
+                        <li style="margin: 10px 0;">✓ How to discover it through interactive exploration</li>
+                        <li style="margin: 10px 0;">✓ The mathematical proof behind it</li>
+                        <li style="margin: 10px 0;">✓ The converse theorem and its applications</li>
+                        <li style="margin: 10px 0;">✓ Real-world examples and problem-solving</li>
+                        <li style="margin: 10px 0;">✓ Professional applications across industries</li>
+                    </ul>
+                </div>
+            `;
+            
+            await teacher.speak("Congratulations! You've completed the full Mid-point Theorem lesson. You now understand what it states, how to prove it, how to apply it, and where it's used in the real world. Great job!");
+            
+            isPlaying = false;
+        }
+
+        async function showIntroduction() {
+            const taskId = 'introduction';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="shape-title">Introduction to Mid-point Theorem</h2>
+                <div class="theorem-box">
+                    <h3>What is the Mid-point Theorem?</h3>
+                    <p>The Mid-point Theorem reveals a beautiful relationship between the mid-points of two sides of a triangle and the third side.</p>
+                    <br>
+                    <h4>Key Discovery:</h4>
+                    <p>When you connect the mid-points of two sides of a triangle, you create a line segment that:</p>
+                    <ul style="margin: 15px 0; padding-left: 20px;">
+                        <li>Is parallel to the third side</li>
+                        <li>Is exactly half the length of the third side</li>
+                    </ul>
+                </div>
+                <div class="activity-box">
+                    <h3>🔍 Let's Explore This!</h3>
+                    <p>In any triangle ABC, if E and F are mid-points of sides AB and AC respectively, then:</p>
+                    <p style="text-align: center; font-size: 1.2rem; margin: 15px 0;"><strong>EF = ½ BC and EF ∥ BC</strong></p>
+                </div>
+            `;
+
+            await teacher.speak("Welcome to the Mid-point Theorem! This beautiful theorem shows that when you connect mid-points of two sides of a triangle, you create a line that's parallel to the third side and exactly half its length.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(4000);
+            await teacher.speak("This relationship holds true for any triangle, making it one of the most reliable tools in geometry!");
+            
+            isPlaying = false;
+        }
+
+        async function showActivity() {
+            const taskId = 'activity';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            // Clear stage immediately
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="shape-title">Interactive Activity</h2>
+                <div class="activity-box">
+                    <p>Let's discover the Mid-point Theorem through interactive exploration!</p>
+                </div>
+            `;
+
+            await teacher.speak("Let's perform an interactive activity to discover this theorem ourselves!");
+            if (!shouldContinue(taskId)) return;
+
+            createInteractiveTriangle();
+
+            await wait(2000);
+            await teacher.speak("Observe the measurements! Notice how EF is always exactly half of BC, and the angles show that these lines are parallel. Try mentally moving the triangle vertices - the relationship always holds!");
+            
+            isPlaying = false;
+        }
+
+        async function showTheorem88() {
+            const taskId = 'theorem88';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="shape-title">Theorem 8.8: The Mid-point Theorem</h2>
+                <div class="theorem-box">
+                    <h3>📐 Theorem 8.8</h3>
+                    <p style="font-size: 1.1rem; text-align: center; margin: 20px 0;">
+                        <strong>"The line segment joining the mid-points of two sides of a triangle is parallel to the third side."</strong>
+                    </p>
+                    <br>
+                    <h4>Mathematical Statement:</h4>
+                    <p>In triangle ABC, if E is the mid-point of AB and F is the mid-point of AC, then:</p>
+                    <ul style="margin: 15px 0; padding-left: 20px;">
+                        <li><strong>EF ∥ BC</strong> (EF is parallel to BC)</li>
+                        <li><strong>EF = ½ BC</strong> (EF is half the length of BC)</li>
+                    </ul>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="theoremCanvas" class="geometry-canvas" width="600" height="400"></canvas>
+                </div>
+            `;
+
+            // Draw theorem illustration
+            const canvas = document.getElementById('theoremCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const A = { x: 300, y: 80 };
+            const B = { x: 150, y: 320 };
+            const C = { x: 450, y: 320 };
+            const E = calculateMidpoint(A, B);
+            const F = calculateMidpoint(A, C);
+
+            // Draw triangle
+            drawTriangle(ctx, [A, B, C], '#4facfe', 3);
+            
+            // Draw points
+            drawPoint(ctx, A.x, A.y, 'A', '#ff6b6b');
+            drawPoint(ctx, B.x, B.y, 'B', '#ff6b6b');
+            drawPoint(ctx, C.x, C.y, 'C', '#ff6b6b');
+            drawPoint(ctx, E.x, E.y, 'E', '#43e97b');
+            drawPoint(ctx, F.x, F.y, 'F', '#43e97b');
+
+            // Animate the drawing of EF
+            gsap.fromTo('#theoremCanvas', {
+                opacity: 0.5
+            }, {
+                opacity: 1,
+                duration: 1,
+                ease: "power2.out"
+            });
+
+            setTimeout(() => {
+                drawLine(ctx, E.x, E.y, F.x, F.y, '#43e97b', 4);
+                drawLine(ctx, B.x, B.y, C.x, C.y, '#fa709a', 3);
+            }, 500);
+
+            await teacher.speak("Here's Theorem 8.8! When we connect the mid-points E and F of sides AB and AC, we get a line segment EF that is parallel to the third side BC and exactly half its length.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            await teacher.speak("This theorem is incredibly useful for solving many geometric problems and understanding triangle properties!");
+            
+            isPlaying = false;
+        }
+
+        async function showProof() {
+            const taskId = 'proof';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="shape-title">Proof of Theorem 8.8</h2>
+                <div class="theorem-box">
+                    <h3>🔍 Proof Strategy</h3>
+                    <p>We'll prove this using the congruence of triangles and properties of parallelograms.</p>
+                    <br>
+                    <h4>Given:</h4>
+                    <p>Triangle ABC with E as mid-point of AB and F as mid-point of AC</p>
+                    <br>
+                    <h4>To Prove:</h4>
+                    <p>EF ∥ BC and EF = ½ BC</p>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="proofCanvas" class="geometry-canvas" width="600" height="400"></canvas>
+                </div>
+                <div class="example-box">
+                    <h3>Proof Steps:</h3>
+                    <ol style="padding-left: 20px; line-height: 1.8;">
+                        <li>Extend EF to point D such that FD = EF</li>
+                        <li>Join CD (construction line)</li>
+                        <li>In triangles AEF and CDF: AF = CF (F is mid-point), ∠AFE = ∠CFD (vertically opposite), EF = FD (by construction)</li>
+                        <li>Therefore, △AEF ≅ △CDF (SAS congruence)</li>
+                        <li>So AE = CD and ∠EAF = ∠DCF</li>
+                        <li>Since AE = BE and AE = CD, we have BE = CD</li>
+                        <li>Also, ∠EAF = ∠DCF means AE ∥ CD</li>
+                        <li>Therefore, BECD is a parallelogram</li>
+                        <li>Hence, EF ∥ BC and EF = ½ ED = ½ BC</li>
+                    </ol>
+                </div>
+            `;
+
+            const canvas = document.getElementById('proofCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Draw proof diagram
+            const A = { x: 300, y: 80 };
+            const B = { x: 150, y: 300 };
+            const C = { x: 450, y: 300 };
+            const E = calculateMidpoint(A, B);
+            const F = calculateMidpoint(A, C);
+            const D = { x: F.x + (F.x - E.x), y: F.y + (F.y - E.y) };
+
+            // Draw triangle and construction
+            drawTriangle(ctx, [A, B, C], '#4facfe', 3);
+            drawLine(ctx, E.x, E.y, D.x, D.y, '#43e97b', 3);
+            drawLine(ctx, C.x, C.y, D.x, D.y, '#fa709a', 2, true);
+
+            // Draw points
+            drawPoint(ctx, A.x, A.y, 'A', '#ff6b6b');
+            drawPoint(ctx, B.x, B.y, 'B', '#ff6b6b');
+            drawPoint(ctx, C.x, C.y, 'C', '#ff6b6b');
+            drawPoint(ctx, E.x, E.y, 'E', '#43e97b');
+            drawPoint(ctx, F.x, F.y, 'F', '#43e97b');
+            drawPoint(ctx, D.x, D.y, 'D', '#fa709a');
+
+            await teacher.speak("Here's the proof of our theorem! We use a clever construction where we extend EF to point D, making FD equal to EF. Then we prove that triangles AEF and CDF are congruent, which leads us to conclude that BECD forms a parallelogram.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(4000);
+            await teacher.speak("Since BECD is a parallelogram, we know that EF is parallel to BC and EF equals half of BC. This completes our proof!");
+            
+            isPlaying = false;
+        }
+
+        async function showTheorem89() {
+            const taskId = 'theorem89';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="shape-title">Theorem 8.9: The Converse</h2>
+                <div class="theorem-box">
+                    <h3>📐 Theorem 8.9 (Converse of Theorem 8.8)</h3>
+                    <p style="font-size: 1.1rem; text-align: center; margin: 20px 0;">
+                        <strong>"The line drawn through the mid-point of one side of a triangle, parallel to another side, bisects the third side."</strong>
+                    </p>
+                    <br>
+                    <h4>Mathematical Statement:</h4>
+                    <p>In triangle ABC, if E is the mid-point of AB and line l passes through E parallel to BC, then l bisects AC at point F.</p>
+                    <br>
+                    <h4>Why is this important?</h4>
+                    <p>This converse allows us to find mid-points by drawing parallel lines, which is extremely useful in geometric constructions!</p>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="converseCanvas" class="geometry-canvas" width="600" height="400"></canvas>
+                </div>
+                <div class="activity-box">
+                    <h3>🎯 Key Insight</h3>
+                    <p>Both theorems work together: if you know two mid-points, you can find a parallel line, and if you know one mid-point and a parallel line, you can find another mid-point!</p>
+                </div>
+            `;
+
+            const canvas = document.getElementById('converseCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const A = { x: 300, y: 80 };
+            const B = { x: 150, y: 300 };
+            const C = { x: 450, y: 300 };
+            const E = calculateMidpoint(A, B);
+            const F = calculateMidpoint(A, C);
+
+            // Draw triangle
+            drawTriangle(ctx, [A, B, C], '#4facfe', 3);
+            
+            // Draw the parallel line through E
+            drawLine(ctx, E.x, E.y, F.x, F.y, '#43e97b', 4);
+            drawLine(ctx, B.x, B.y, C.x, C.y, '#fa709a', 3);
+
+            // Draw points
+            drawPoint(ctx, A.x, A.y, 'A', '#ff6b6b');
+            drawPoint(ctx, B.x, B.y, 'B', '#ff6b6b');
+            drawPoint(ctx, C.x, C.y, 'C', '#ff6b6b');
+            drawPoint(ctx, E.x, E.y, 'E', '#43e97b');
+            drawPoint(ctx, F.x, F.y, 'F', '#43e97b');
+
+            // Add parallel indicators
+            ctx.fillStyle = '#43e97b';
+            ctx.font = '12px Arial';
+            ctx.fillText('l ∥ BC', E.x + 20, E.y - 10);
+
+            await teacher.speak("This is the converse of our theorem! If we know that E is the mid-point of AB and we draw a line through E parallel to BC, then this line will automatically bisect AC at point F.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            await teacher.speak("The converse is equally important because it gives us a method to construct mid-points using parallel lines!");
+            
+            isPlaying = false;
+        }
+
+        async function showExamples() {
+            const taskId = 'examples';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="shape-title">Worked Examples</h2>
+                <div class="example-box">
+                    <h3>Example 1: Four Congruent Triangles</h3>
+                    <p><strong>Problem:</strong> In triangle ABC, D, E, and F are mid-points of sides AB, BC, and CA respectively. Show that triangle ABC is divided into four congruent triangles.</p>
+                    <br>
+                    <p><strong>Solution:</strong></p>
+                    <ul style="padding-left: 20px; line-height: 1.8;">
+                        <li>By Mid-point Theorem: DE ∥ AC, DF ∥ BC, EF ∥ AB</li>
+                        <li>Therefore, ADEF, BFDE, and DFCE are all parallelograms</li>
+                        <li>In parallelogram BFDE, diagonal DE divides it into △BDE ≅ △FED</li>
+                        <li>Similarly, △DAF ≅ △FED and △EFC ≅ △FED</li>
+                        <li>Hence, all four triangles are congruent!</li>
+                    </ul>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="exampleCanvas" class="geometry-canvas" width="600" height="400"></canvas>
+                </div>
+            `;
+
+            const canvas = document.getElementById('exampleCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Draw the four congruent triangles example
+            const A = { x: 300, y: 80 };
+            const B = { x: 180, y: 300 };
+            const C = { x: 420, y: 300 };
+            const D = calculateMidpoint(A, B);
+            const E = calculateMidpoint(B, C);
+            const F = calculateMidpoint(A, C);
+
+            // Draw main triangle
+            drawTriangle(ctx, [A, B, C], '#4facfe', 3);
+
+            // Draw mid-point connections
+            drawLine(ctx, D.x, D.y, E.x, E.y, '#43e97b', 2);
+            drawLine(ctx, E.x, E.y, F.x, F.y, '#43e97b', 2);
+            drawLine(ctx, F.x, F.y, D.x, D.y, '#43e97b', 2);
+
+            // Draw points
+            drawPoint(ctx, A.x, A.y, 'A', '#ff6b6b');
+            drawPoint(ctx, B.x, B.y, 'B', '#ff6b6b');
+            drawPoint(ctx, C.x, C.y, 'C', '#ff6b6b');
+            drawPoint(ctx, D.x, D.y, 'D', '#43e97b');
+            drawPoint(ctx, E.x, E.y, 'E', '#43e97b');
+            drawPoint(ctx, F.x, F.y, 'F', '#43e97b');
+
+            // Highlight the four triangles with different colors
+            setTimeout(() => {
+                // Triangle ADF
+                ctx.fillStyle = 'rgba(255, 107, 107, 0.2)';
+                ctx.beginPath();
+                ctx.moveTo(A.x, A.y);
+                ctx.lineTo(D.x, D.y);
+                ctx.lineTo(F.x, F.y);
+                ctx.closePath();
+                ctx.fill();
+
+                // Triangle BDE
+                ctx.fillStyle = 'rgba(67, 233, 123, 0.2)';
+                ctx.beginPath();
+                ctx.moveTo(B.x, B.y);
+                ctx.lineTo(D.x, D.y);
+                ctx.lineTo(E.x, E.y);
+                ctx.closePath();
+                ctx.fill();
+
+                // Triangle CEF
+                ctx.fillStyle = 'rgba(79, 172, 254, 0.2)';
+                ctx.beginPath();
+                ctx.moveTo(C.x, C.y);
+                ctx.lineTo(E.x, E.y);
+                ctx.lineTo(F.x, F.y);
+                ctx.closePath();
+                ctx.fill();
+
+                // Central triangle DEF
+                ctx.fillStyle = 'rgba(250, 112, 154, 0.2)';
+                ctx.beginPath();
+                ctx.moveTo(D.x, D.y);
+                ctx.lineTo(E.x, E.y);
+                ctx.lineTo(F.x, F.y);
+                ctx.closePath();
+                ctx.fill();
+            }, 1000);
+
+            await teacher.speak("Here's an important example! We see how connecting all three mid-points creates four congruent triangles. This is a beautiful application of the Mid-point Theorem!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(4000);
+            await teacher.speak("This example demonstrates the power and versatility of the Mid-point Theorem in creating geometric relationships!");
+            
+            isPlaying = false;
+        }
+
+        async function showApplications() {
+            const taskId = 'applications';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">🌍 Real-World Applications of Mid-point Theorem 🌍</h2>
+                <div class="chart-container">
+                    <canvas id="applicationsChart" width="800" height="500"></canvas>
+                </div>
+                <div class="theorem-box" style="margin-top: 20px;">
+                    <h3>🎯 Where Mid-point Theorem is Used in Real Life</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                        <div style="background: rgba(79, 172, 254, 0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #4facfe;">
+                            <h4 style="color: #4facfe; margin-bottom: 8px;">🏗️ Architecture & Engineering</h4>
+                            <p style="font-size: 0.9rem;">Used in <strong>structural design</strong> and <strong>bridge construction</strong> for load distribution</p>
+                        </div>
+                        <div style="background: rgba(67, 233, 123, 0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #43e97b;">
+                            <h4 style="color: #43e97b; margin-bottom: 8px;">🎨 Computer Graphics</h4>
+                            <p style="font-size: 0.9rem;">Essential for <strong>3D modeling</strong> and <strong>animation software</strong> for mesh subdivision</p>
+                        </div>
+                        <div style="background: rgba(255, 107, 107, 0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #ff6b6b;">
+                            <h4 style="color: #ff6b6b; margin-bottom: 8px;">📐 Surveying & Mapping</h4>
+                            <p style="font-size: 0.9rem;">Used in <strong>land surveying</strong> and <strong>GPS triangulation</strong> for accurate measurements</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create Chart.js bar chart showing application frequency
+            setTimeout(() => {
+                // Clear any existing chart
+                if (activeChart) {
+                    activeChart.destroy();
+                    activeChart = null;
+                }
+
+                // Create Chart.js data structure for real-world applications
+                const applicationsData = {
+                    labels: ['Architecture', 'Computer Graphics', 'Surveying', 'Robotics', 'Game Development', 'CAD Software'],
+                    datasets: [{
+                        label: 'Usage Frequency (%)',
+                        data: [85, 92, 78, 65, 88, 95],
+                        backgroundColor: [
+                            'rgba(79, 172, 254, 0.8)',
+                            'rgba(67, 233, 123, 0.8)',
+                            'rgba(255, 107, 107, 0.8)',
+                            'rgba(254, 202, 87, 0.8)',
+                            'rgba(159, 122, 234, 0.8)',
+                            'rgba(255, 159, 243, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(79, 172, 254, 1)',
+                            'rgba(67, 233, 123, 1)',
+                            'rgba(255, 107, 107, 1)',
+                            'rgba(254, 202, 87, 1)',
+                            'rgba(159, 122, 234, 1)',
+                            'rgba(255, 159, 243, 1)'
+                        ],
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }]
+                };
+
+                // Create Chart.js bar chart
+                activeChart = new Chart(document.getElementById('applicationsChart').getContext('2d'), {
+                    type: 'bar',
+                    data: applicationsData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 2000,
+                            easing: 'easeInOutQuart'
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Mid-point Theorem: Real-World Application Frequency',
+                                color: 'white',
+                                font: {
+                                    size: 18,
+                                    weight: 'bold'
+                                }
+                            },
+                            legend: {
+                                display: true,
+                                labels: {
+                                    color: 'white',
+                                    font: {
+                                        size: 14
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                borderColor: 'rgba(255, 255, 255, 0.2)',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                padding: 12,
+                                titleFont: { size: 14, weight: 'bold' },
+                                bodyFont: { size: 12 },
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.parsed.y + '% of professionals use Mid-point Theorem';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Usage Frequency (%)',
+                                    color: 'white',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)',
+                                    lineWidth: 1
+                                },
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.8)',
+                                    font: { size: 12 },
+                                    stepSize: 20,
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Professional Fields',
+                                    color: 'white',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)',
+                                    lineWidth: 1
+                                },
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.8)',
+                                    font: { size: 12 }
+                                }
+                            }
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        }
+                    }
+                });
+
+                
+            }, 100);
+
+            await teacher.speak("Discover the incredible real-world impact of the Mid-point Theorem! This chart shows how frequently professionals use this theorem across different industries and applications.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            await teacher.speak("Notice that CAD Software leads with 95% usage - architects and engineers rely heavily on the Mid-point Theorem for precise geometric constructions. Computer Graphics follows closely at 92% for 3D modeling and animation!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            await teacher.speak("Game Development shows 88% usage for character modeling and level design. Even Robotics uses it 65% of the time for path planning and sensor positioning. The Mid-point Theorem is truly everywhere in our modern world!");
+            
+            isPlaying = false;
+        }
+
+        async function showQuiz() {
+            const taskId = 'quiz';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            // Clear stage immediately
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="shape-title">Interactive Quiz</h2>
+                <div class="quiz-container">
+                    <p>Test your knowledge of the Mid-point Theorem!</p>
+                </div>
+            `;
+
+            let score = 0;
+            let currentQuestion = 0;
+
+            const questions = [
+                {
+                    question: "In triangle ABC, if E and F are mid-points of sides AB and AC respectively, and BC = 12 cm, then EF equals:",
+                    options: [
+                        "6 cm",
+                        "12 cm", 
+                        "3 cm",
+                        "24 cm"
+                    ],
+                    correct: 0
+                },
+                {
+                    question: "The Mid-point Theorem states that the line joining mid-points of two sides is:",
+                    options: [
+                        "Perpendicular to the third side",
+                        "Parallel to the third side",
+                        "Equal to the third side",
+                        "Bisects the third side at right angles"
+                    ],
+                    correct: 1
+                },
+                {
+                    question: "Which theorem allows us to find a mid-point using a parallel line?",
+                    options: [
+                        "Theorem 8.8 only",
+                        "Theorem 8.9 (Converse)",
+                        "Both theorems equally",
+                        "Neither theorem"
+                    ],
+                    correct: 1
+                },
+                {
+                    question: "If the line segment joining mid-points of two sides of a triangle is 8 cm, what is the length of the third side?",
+                    options: [
+                        "4 cm",
+                        "8 cm",
+                        "16 cm",
+                        "32 cm"
+                    ],
+                    correct: 2
+                },
+                {
+                    question: "In the Mid-point Theorem, the line joining mid-points is parallel to the third side and equal to:",
+                    options: [
+                        "One-third of the third side",
+                        "Half of the third side",
+                        "Two-thirds of the third side",
+                        "The full length of the third side"
+                    ],
+                    correct: 1
+                }
+            ];
+
+            async function showQuestion(index) {
+                if (!shouldContinue(taskId) || index >= questions.length) {
+                    showResults();
+                    return;
+                }
+
+                const q = questions[index];
+                const content = createStageContent();
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="shape-title">Mid-point Theorem Quiz</h2>
+                        <div class="step-indicator">
+                            ${questions.map((_, i) => `<div class="step ${i < index ? 'completed' : i === index ? 'active' : ''}">${i + 1}</div>`).join('')}
+                        </div>
+                        <div class="question">
+                            <h3>Question ${index + 1}: ${q.question}</h3>
+                            <div class="options">
+                                ${q.options.map((opt, i) => `
+                                    <div class="option" data-index="${i}">${String.fromCharCode(65 + i)}) ${opt}</div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                await teacher.speak(q.question);
+
+                // Add click handlers
+                const options = content.querySelectorAll('.option');
+                options.forEach(option => {
+                    option.addEventListener('click', async function() {
+                        const selectedIndex = parseInt(this.dataset.index);
+                        const isCorrect = selectedIndex === q.correct;
+
+                        if (isCorrect) {
+                            score++;
+                            this.classList.add('correct');
+                            await teacher.speak("Correct! Well done!");
+                        } else {
+                            this.classList.add('incorrect');
+                            options[q.correct].classList.add('correct');
+                            await teacher.speak(`Not quite. The correct answer is: ${String.fromCharCode(65 + q.correct)}) ${q.options[q.correct]}`);
+                        }
+
+                        // Disable further clicks
+                        options.forEach(opt => opt.style.pointerEvents = 'none');
+
+                        // Move to next question
+                        await wait(2000);
+                        currentQuestion++;
+                        showQuestion(currentQuestion);
+                    });
+                });
+            }
+
+            function showResults() {
+                const content = createStageContent();
+                const percentage = (score / questions.length * 100).toFixed(0);
+                
+                content.innerHTML = `
+                    <div class="score-display">
+                        <h2>Quiz Complete!</h2>
+                        <div class="value-display">${score} / ${questions.length}</div>
+                        <p>You scored ${percentage}%</p>
+                        <p style="margin-top: 20px;">
+                            ${percentage >= 80 ? "Excellent work! You've mastered the Mid-point Theorem! 🎉" :
+                              percentage >= 60 ? "Good job! Review the concepts you missed. 📚" :
+                              "Keep practicing! Try the lessons again to improve. 💪"}
+                        </p>
+                    </div>
+                `;
+
+                teacher.speak(`Quiz complete! You scored ${score} out of ${questions.length}. ${
+                    percentage >= 80 ? "Excellent work!" : 
+                    percentage >= 60 ? "Good job!" : 
+                    "Keep practicing!"
+                }`);
+
+                isPlaying = false;
+            }
+
+            await teacher.speak("Let's test your knowledge about the Mid-point Theorem! Answer each question by clicking on the correct option.");
+            await wait(1000);
+            
+            showQuestion(0);
+        }
+
+        // Content functions for complete lesson (don't call stopCurrentDemo)
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="shape-title">Introduction to Mid-point Theorem</h2>
+                <div class="theorem-box">
+                    <h3>What is the Mid-point Theorem?</h3>
+                    <p>The Mid-point Theorem reveals a beautiful relationship between the mid-points of two sides of a triangle and the third side.</p>
+                    <br>
+                    <h4>Key Discovery:</h4>
+                    <p>When you connect the mid-points of two sides of a triangle, you create a line segment that:</p>
+                    <ul style="margin: 15px 0; padding-left: 20px;">
+                        <li>Is parallel to the third side</li>
+                        <li>Is exactly half the length of the third side</li>
+                    </ul>
+                </div>
+                <div class="activity-box">
+                    <h3>🔍 Let's Explore This!</h3>
+                    <p>In any triangle ABC, if E and F are mid-points of sides AB and AC respectively, then:</p>
+                    <p style="text-align: center; font-size: 1.2rem; margin: 15px 0;"><strong>EF = ½ BC and EF ∥ BC</strong></p>
+                </div>
+            `;
+
+            await teacher.speak("Welcome to the Mid-point Theorem! This beautiful theorem shows that when you connect mid-points of two sides of a triangle, you create a line that's parallel to the third side and exactly half its length.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(4000);
+            await teacher.speak("This relationship holds true for any triangle, making it one of the most reliable tools in geometry!");
+        }
+
+        async function showActivityContent(taskId) {
+            const teacher = currentTeacher;
+            await teacher.speak("Let's perform an interactive activity to discover this theorem ourselves!");
+            if (!shouldContinue(taskId)) return;
+
+            createInteractiveTriangle();
+
+            await wait(2000);
+            await teacher.speak("Observe the measurements! Notice how EF is always exactly half of BC, and the angles show that these lines are parallel. Try mentally moving the triangle vertices - the relationship always holds!");
+        }
+
+        async function showTheorem88Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="shape-title">Theorem 8.8: The Mid-point Theorem</h2>
+                <div class="theorem-box">
+                    <h3>📐 Theorem 8.8</h3>
+                    <p style="font-size: 1.1rem; text-align: center; margin: 20px 0;">
+                        <strong>"The line segment joining the mid-points of two sides of a triangle is parallel to the third side."</strong>
+                    </p>
+                    <br>
+                    <h4>Mathematical Statement:</h4>
+                    <p>In triangle ABC, if E is the mid-point of AB and F is the mid-point of AC, then:</p>
+                    <ul style="margin: 15px 0; padding-left: 20px;">
+                        <li><strong>EF ∥ BC</strong> (EF is parallel to BC)</li>
+                        <li><strong>EF = ½ BC</strong> (EF is half the length of BC)</li>
+                    </ul>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="theoremCanvas" class="geometry-canvas" width="600" height="400"></canvas>
+                </div>
+            `;
+
+            // Draw theorem illustration
+            const canvas = document.getElementById('theoremCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const A = { x: 300, y: 80 };
+            const B = { x: 150, y: 320 };
+            const C = { x: 450, y: 320 };
+            const E = calculateMidpoint(A, B);
+            const F = calculateMidpoint(A, C);
+
+            // Draw triangle
+            drawTriangle(ctx, [A, B, C], '#4facfe', 3);
+            
+            // Draw points
+            drawPoint(ctx, A.x, A.y, 'A', '#ff6b6b');
+            drawPoint(ctx, B.x, B.y, 'B', '#ff6b6b');
+            drawPoint(ctx, C.x, C.y, 'C', '#ff6b6b');
+            drawPoint(ctx, E.x, E.y, 'E', '#43e97b');
+            drawPoint(ctx, F.x, F.y, 'F', '#43e97b');
+
+            // Animate the drawing of EF
+            gsap.fromTo('#theoremCanvas', {
+                opacity: 0.5
+            }, {
+                opacity: 1,
+                duration: 1,
+                ease: "power2.out"
+            });
+
+            setTimeout(() => {
+                drawLine(ctx, E.x, E.y, F.x, F.y, '#43e97b', 4);
+                drawLine(ctx, B.x, B.y, C.x, C.y, '#fa709a', 3);
+            }, 500);
+
+            await teacher.speak("Here's Theorem 8.8! When we connect the mid-points E and F of sides AB and AC, we get a line segment EF that is parallel to the third side BC and exactly half its length.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            await teacher.speak("This theorem is incredibly useful for solving many geometric problems and understanding triangle properties!");
+        }
+
+        async function showProofContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="shape-title">Proof of Theorem 8.8</h2>
+                <div class="theorem-box">
+                    <h3>🔍 Proof Strategy</h3>
+                    <p>We'll prove this using the congruence of triangles and properties of parallelograms.</p>
+                    <br>
+                    <h4>Given:</h4>
+                    <p>Triangle ABC with E as mid-point of AB and F as mid-point of AC</p>
+                    <br>
+                    <h4>To Prove:</h4>
+                    <p>EF ∥ BC and EF = ½ BC</p>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="proofCanvas" class="geometry-canvas" width="600" height="400"></canvas>
+                </div>
+                <div class="example-box">
+                    <h3>Proof Steps:</h3>
+                    <ol style="padding-left: 20px; line-height: 1.8;">
+                        <li>Extend EF to point D such that FD = EF</li>
+                        <li>Join CD (construction line)</li>
+                        <li>In triangles AEF and CDF: AF = CF (F is mid-point), ∠AFE = ∠CFD (vertically opposite), EF = FD (by construction)</li>
+                        <li>Therefore, △AEF ≅ △CDF (SAS congruence)</li>
+                        <li>So AE = CD and ∠EAF = ∠DCF</li>
+                        <li>Since AE = BE and AE = CD, we have BE = CD</li>
+                        <li>Also, ∠EAF = ∠DCF means AE ∥ CD</li>
+                        <li>Therefore, BECD is a parallelogram</li>
+                        <li>Hence, EF ∥ BC and EF = ½ ED = ½ BC</li>
+                    </ol>
+                </div>
+            `;
+
+            const canvas = document.getElementById('proofCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Draw proof diagram
+            const A = { x: 300, y: 80 };
+            const B = { x: 150, y: 300 };
+            const C = { x: 450, y: 300 };
+            const E = calculateMidpoint(A, B);
+            const F = calculateMidpoint(A, C);
+            const D = { x: F.x + (F.x - E.x), y: F.y + (F.y - E.y) };
+
+            // Draw triangle and construction
+            drawTriangle(ctx, [A, B, C], '#4facfe', 3);
+            drawLine(ctx, E.x, E.y, D.x, D.y, '#43e97b', 3);
+            drawLine(ctx, C.x, C.y, D.x, D.y, '#fa709a', 2, true);
+
+            // Draw points
+            drawPoint(ctx, A.x, A.y, 'A', '#ff6b6b');
+            drawPoint(ctx, B.x, B.y, 'B', '#ff6b6b');
+            drawPoint(ctx, C.x, C.y, 'C', '#ff6b6b');
+            drawPoint(ctx, E.x, E.y, 'E', '#43e97b');
+            drawPoint(ctx, F.x, F.y, 'F', '#43e97b');
+            drawPoint(ctx, D.x, D.y, 'D', '#fa709a');
+
+            await teacher.speak("Here's the proof of our theorem! We use a clever construction where we extend EF to point D, making FD equal to EF. Then we prove that triangles AEF and CDF are congruent, which leads us to conclude that BECD forms a parallelogram.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(4000);
+            await teacher.speak("Since BECD is a parallelogram, we know that EF is parallel to BC and EF equals half of BC. This completes our proof!");
+        }
+
+        async function showTheorem89Content(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="shape-title">Theorem 8.9: The Converse</h2>
+                <div class="theorem-box">
+                    <h3>📐 Theorem 8.9 (Converse of Theorem 8.8)</h3>
+                    <p style="font-size: 1.1rem; text-align: center; margin: 20px 0;">
+                        <strong>"The line drawn through the mid-point of one side of a triangle, parallel to another side, bisects the third side."</strong>
+                    </p>
+                    <br>
+                    <h4>Mathematical Statement:</h4>
+                    <p>In triangle ABC, if E is the mid-point of AB and line l passes through E parallel to BC, then l bisects AC at point F.</p>
+                    <br>
+                    <h4>Why is this important?</h4>
+                    <p>This converse allows us to find mid-points by drawing parallel lines, which is extremely useful in geometric constructions!</p>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="converseCanvas" class="geometry-canvas" width="600" height="400"></canvas>
+                </div>
+                <div class="activity-box">
+                    <h3>🎯 Key Insight</h3>
+                    <p>Both theorems work together: if you know two mid-points, you can find a parallel line, and if you know one mid-point and a parallel line, you can find another mid-point!</p>
+                </div>
+            `;
+
+            const canvas = document.getElementById('converseCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const A = { x: 300, y: 80 };
+            const B = { x: 150, y: 300 };
+            const C = { x: 450, y: 300 };
+            const E = calculateMidpoint(A, B);
+            const F = calculateMidpoint(A, C);
+
+            // Draw triangle
+            drawTriangle(ctx, [A, B, C], '#4facfe', 3);
+            
+            // Draw the parallel line through E
+            drawLine(ctx, E.x, E.y, F.x, F.y, '#43e97b', 4);
+            drawLine(ctx, B.x, B.y, C.x, C.y, '#fa709a', 3);
+
+            // Draw points
+            drawPoint(ctx, A.x, A.y, 'A', '#ff6b6b');
+            drawPoint(ctx, B.x, B.y, 'B', '#ff6b6b');
+            drawPoint(ctx, C.x, C.y, 'C', '#ff6b6b');
+            drawPoint(ctx, E.x, E.y, 'E', '#43e97b');
+            drawPoint(ctx, F.x, F.y, 'F', '#43e97b');
+
+            // Add parallel indicators
+            ctx.fillStyle = '#43e97b';
+            ctx.font = '12px Arial';
+            ctx.fillText('l ∥ BC', E.x + 20, E.y - 10);
+
+            await teacher.speak("This is the converse of our theorem! If we know that E is the mid-point of AB and we draw a line through E parallel to BC, then this line will automatically bisect AC at point F.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(3000);
+            await teacher.speak("The converse is equally important because it gives us a method to construct mid-points using parallel lines!");
+        }
+
+        async function showExamplesContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="shape-title">Worked Examples</h2>
+                <div class="example-box">
+                    <h3>Example 1: Four Congruent Triangles</h3>
+                    <p><strong>Problem:</strong> In triangle ABC, D, E, and F are mid-points of sides AB, BC, and CA respectively. Show that triangle ABC is divided into four congruent triangles.</p>
+                    <br>
+                    <p><strong>Solution:</strong></p>
+                    <ul style="padding-left: 20px; line-height: 1.8;">
+                        <li>By Mid-point Theorem: DE ∥ AC, DF ∥ BC, EF ∥ AB</li>
+                        <li>Therefore, ADEF, BFDE, and DFCE are all parallelograms</li>
+                        <li>In parallelogram BFDE, diagonal DE divides it into △BDE ≅ △FED</li>
+                        <li>Similarly, △DAF ≅ △FED and △EFC ≅ △FED</li>
+                        <li>Hence, all four triangles are congruent!</li>
+                    </ul>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="exampleCanvas" class="geometry-canvas" width="600" height="400"></canvas>
+                </div>
+            `;
+
+            const canvas = document.getElementById('exampleCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Draw the four congruent triangles example
+            const A = { x: 300, y: 80 };
+            const B = { x: 180, y: 300 };
+            const C = { x: 420, y: 300 };
+            const D = calculateMidpoint(A, B);
+            const E = calculateMidpoint(B, C);
+            const F = calculateMidpoint(A, C);
+
+            // Draw main triangle
+            drawTriangle(ctx, [A, B, C], '#4facfe', 3);
+
+            // Draw mid-point connections
+            drawLine(ctx, D.x, D.y, E.x, E.y, '#43e97b', 2);
+            drawLine(ctx, E.x, E.y, F.x, F.y, '#43e97b', 2);
+            drawLine(ctx, F.x, F.y, D.x, D.y, '#43e97b', 2);
+
+            // Draw points
+            drawPoint(ctx, A.x, A.y, 'A', '#ff6b6b');
+            drawPoint(ctx, B.x, B.y, 'B', '#ff6b6b');
+            drawPoint(ctx, C.x, C.y, 'C', '#ff6b6b');
+            drawPoint(ctx, D.x, D.y, 'D', '#43e97b');
+            drawPoint(ctx, E.x, E.y, 'E', '#43e97b');
+            drawPoint(ctx, F.x, F.y, 'F', '#43e97b');
+
+            // Highlight the four triangles with different colors
+            setTimeout(() => {
+                // Triangle ADF
+                ctx.fillStyle = 'rgba(255, 107, 107, 0.2)';
+                ctx.beginPath();
+                ctx.moveTo(A.x, A.y);
+                ctx.lineTo(D.x, D.y);
+                ctx.lineTo(F.x, F.y);
+                ctx.closePath();
+                ctx.fill();
+
+                // Triangle BDE
+                ctx.fillStyle = 'rgba(67, 233, 123, 0.2)';
+                ctx.beginPath();
+                ctx.moveTo(B.x, B.y);
+                ctx.lineTo(D.x, D.y);
+                ctx.lineTo(E.x, E.y);
+                ctx.closePath();
+                ctx.fill();
+
+                // Triangle CEF
+                ctx.fillStyle = 'rgba(79, 172, 254, 0.2)';
+                ctx.beginPath();
+                ctx.moveTo(C.x, C.y);
+                ctx.lineTo(E.x, E.y);
+                ctx.lineTo(F.x, F.y);
+                ctx.closePath();
+                ctx.fill();
+
+                // Central triangle DEF
+                ctx.fillStyle = 'rgba(250, 112, 154, 0.2)';
+                ctx.beginPath();
+                ctx.moveTo(D.x, D.y);
+                ctx.lineTo(E.x, E.y);
+                ctx.lineTo(F.x, F.y);
+                ctx.closePath();
+                ctx.fill();
+            }, 1000);
+
+            await teacher.speak("Here's an important example! We see how connecting all three mid-points creates four congruent triangles. This is a beautiful application of the Mid-point Theorem!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(4000);
+            await teacher.speak("This example demonstrates the power and versatility of the Mid-point Theorem in creating geometric relationships!");
+        }
+
+        function resetApplication() {
+            stopCurrentDemo();
+            
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="shape-title">Welcome to Mid-point Theorem Mastery!</h2>
+                <div class="value-display">Let's Explore!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Discover the fascinating properties of triangle mid-points and their relationship to the third side! 
+                    Choose a lesson below to begin your geometric journey!
+                </p>
+            `;
+            
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            
+            currentDemo = null;
+            
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to continue exploring the beautiful world of the Mid-point Theorem!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome to Mid-point Theorem Mastery! Choose any lesson to begin exploring the fascinating relationships between triangle mid-points and parallel lines!");
+            }, 500);
+            
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'activity':
+                            showActivity();
+                            break;
+                        case 'theorem-8-8':
+                            showTheorem88();
+                            break;
+                        case 'proof':
+                            showProof();
+                            break;
+                        case 'theorem-8-9':
+                            showTheorem89();
+                            break;
+                        case 'examples':
+                            showExamples();
+                            break;
+                        case 'applications':
+                            showApplications();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+            
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

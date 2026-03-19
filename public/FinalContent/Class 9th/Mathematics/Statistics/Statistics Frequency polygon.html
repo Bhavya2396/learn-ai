@@ -1,0 +1,2819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frequency Polygons - Master Data Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --polygon-gradient: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #e2e8f0;
+            --text-accent: #fbbf24;
+            --shadow-primary: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header - Compact */
+        .header {
+            text-align: center;
+            padding: 15px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: var(--polygon-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Layout */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Demo Stage */
+        .demo-stage {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+        }
+
+        /* Stage Content */
+        .stage-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .stage-content.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .demo-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        .demo-btn.active {
+            background: var(--polygon-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--polygon-gradient);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-primary);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Chart Containers */
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .chart-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto !important;
+        }
+
+        /* Data Table */
+        .data-table {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .data-table th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: 600;
+            color: var(--text-accent);
+        }
+
+        /* Interactive Elements */
+        .interactive-point {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--polygon-gradient);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            transition: var(--transition);
+            z-index: 10;
+        }
+
+        .interactive-point:hover {
+            transform: translate(-50%, -50%) scale(1.5);
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
+        }
+
+        .point-label {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            transform: translate(-50%, -150%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .interactive-point:hover .point-label {
+            opacity: 1;
+        }
+
+        /* Value Display */
+        .value-display {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--polygon-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        /* Step indicator */
+        .step-indicator {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            transition: var(--transition);
+            border: 2px solid transparent;
+        }
+
+        .step.active {
+            background: var(--polygon-gradient);
+            transform: scale(1.2);
+        }
+
+        .step.completed {
+            background: var(--success-gradient);
+        }
+
+        /* Comparison container */
+        .comparison-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* Quiz styles */
+        .quiz-container {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .question {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .question h3 {
+            margin-bottom: 15px;
+            color: var(--text-accent);
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option {
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .option:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .option.correct {
+            background: rgba(67, 233, 123, 0.2);
+            border-color: #43e97b;
+        }
+
+        .option.incorrect {
+            background: rgba(245, 87, 108, 0.2);
+            border-color: #f5576c;
+        }
+
+        /* Score display */
+        .score-display {
+            text-align: center;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            margin-top: 20px;
+        }
+
+        .score-display h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        /* Construction steps */
+        .construction-step {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            display: none;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .construction-step.active {
+            display: block;
+        }
+
+        .construction-step h4 {
+            color: var(--text-accent);
+            margin-bottom: 10px;
+        }
+
+        /* Formula display */
+        .formula {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            margin: 15px 0;
+            font-size: 1.1rem;
+        }
+
+        /* Loading animation */
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .loading {
+            animation: pulse 2s infinite;
+        }
+
+        /* Theory Cards */
+        .theory-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            margin-top: 20px;
+        }
+
+        .theory-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theory-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .theory-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--polygon-gradient);
+        }
+
+        .theory-card h3 {
+            color: var(--text-accent);
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .theory-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .theory-card .formula {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            margin: 10px 0;
+            font-size: 0.9rem;
+            color: var(--text-accent);
+        }
+
+        .theory-card .highlight {
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .comparison-container {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .demo-btn {
+                font-size: 0.85rem;
+                padding: 10px 20px;
+            }
+
+            .chart-container {
+                padding: 15px;
+            }
+
+            .theory-cards {
+                grid-template-columns: 1fr;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Frequency Polygons Mastery</h1>
+        <p>Learn to visualize continuous data with interactive demonstrations</p>
+    </header>
+
+    <div class="main-container">
+        <div class="demo-stage" id="demo-stage">
+            <div class="stage-content active">
+                <h2 class="chart-title">Welcome to Frequency Polygons!</h2>
+                <div class="value-display">Let's Begin!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Frequency polygons are powerful tools for visualizing continuous data distributions.
+                    Choose a lesson below to start your journey!
+                </p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="demo-btn" data-demo="complete">Complete Lesson</button>
+            <button class="demo-btn" data-demo="introduction">Introduction</button>
+            <button class="demo-btn" data-demo="construction">Step-by-Step Construction</button>
+            <button class="demo-btn" data-demo="histogram-polygon">From Histogram to Polygon</button>
+            <button class="demo-btn" data-demo="class-marks">Understanding Class-Marks</button>
+            <button class="demo-btn" data-demo="comparison">Comparing Distributions</button>
+            <button class="demo-btn" data-demo="quiz">Test Your Knowledge</button>
+            <button class="demo-btn" data-demo="builder">Create Your Own</button>
+            <button class="demo-btn" data-demo="reset">Reset</button>
+        </div>
+
+        <!-- Theory Cards -->
+        <div class="theory-cards">
+            <div class="theory-card">
+                <h3>📊 What are Frequency Polygons?</h3>
+                <p>A frequency polygon is a <span class="highlight">line graph</span> that connects points representing the frequencies of different classes or intervals.</p>
+                <p>It's created by plotting the <span class="highlight">class-marks</span> on the x-axis and their corresponding <span class="highlight">frequencies</span> on the y-axis, then connecting these points with straight lines.</p>
+                <div class="formula">
+                    Class-mark = (Upper limit + Lower limit) / 2
+                </div>
+            </div>
+
+            <div class="theory-card">
+                <h3>🔧 Key Properties</h3>
+                <p>• <span class="highlight">Always starts and ends at zero frequency</span> - This creates a closed polygon shape</p>
+                <p>• <span class="highlight">Area equals histogram area</span> - The area under the polygon is mathematically equivalent to the histogram</p>
+                <p>• <span class="highlight">Great for comparisons</span> - Multiple polygons can be overlaid to compare different datasets</p>
+                <p>• <span class="highlight">Smooth representation</span> - Provides a continuous view of data distribution</p>
+            </div>
+
+            <div class="theory-card">
+                <h3>📈 Construction Steps</h3>
+                <p><span class="highlight">Step 1:</span> Prepare your data with class intervals and frequencies</p>
+                <p><span class="highlight">Step 2:</span> Calculate class-marks for each interval</p>
+                <p><span class="highlight">Step 3:</span> Add zero-frequency classes before and after your data</p>
+                <p><span class="highlight">Step 4:</span> Plot points (class-mark, frequency) on the graph</p>
+                <p><span class="highlight">Step 5:</span> Connect all points with straight lines</p>
+            </div>
+
+            <div class="theory-card">
+                <h3>🎯 When to Use</h3>
+                <p>• <span class="highlight">Comparing distributions</span> - Multiple datasets on same graph</p>
+                <p>• <span class="highlight">Continuous data</span> - When data represents continuous measurements</p>
+                <p>• <span class="highlight">Trend analysis</span> - To see patterns and shapes in data</p>
+                <p>• <span class="highlight">Presentation</span> - Clean, professional appearance for reports</p>
+                <p>• <span class="highlight">Statistical analysis</span> - Foundation for more advanced statistical methods</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <script>
+        // Global Variables
+        let currentTeacher = null;
+        let currentDemo = null;
+        let globalAudioEnabled = true;
+        let charts = {};
+        let animationTimeouts = [];
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let currentRunId = 0;
+        let currentTaskId = null;
+
+        // Teacher Voice System
+        class TeacherVoice {
+            constructor() {
+                this.synth = window.speechSynthesis;
+                this.voice = null;
+                this.rate = 0.8;
+                this.pitch = 1.0;
+                this.volume = 0.9;
+                this.isEnabled = true;
+                this.currentUtterance = null;
+                this.isDestroyed = false;
+                this.setupVoice();
+            }
+
+            setupVoice() {
+                const loadVoices = () => {
+                    const voices = this.synth.getVoices();
+                    const femaleVoice = voices.find(voice => 
+                        voice.name.includes('Female') || 
+                        voice.name.includes('Samantha') ||
+                        voice.name.includes('Victoria') ||
+                        voice.name.includes('Google US English Female') ||
+                        voice.lang.includes('en')
+                    );
+                    this.voice = femaleVoice || voices[0];
+                };
+                loadVoices();
+                this.synth.onvoiceschanged = loadVoices;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !globalAudioEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.voice = this.voice;
+                        utterance.rate = this.rate;
+                        utterance.pitch = this.pitch;
+                        utterance.volume = this.volume;
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        this.synth.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                this.synth.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+            }
+        }
+
+        // State management functions
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentRunId++;
+            currentTaskId = null;
+            
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            clearStage();
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewTeacher(taskId = null) {
+            if (currentTeacher) {
+                currentTeacher.destroy();
+                currentTeacher = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentTeacher = new TeacherVoice();
+            currentTeacher.isEnabled = globalAudioEnabled;
+            return currentTeacher;
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        // Clear stage
+        function clearStage() {
+            const stage = document.getElementById('demo-stage');
+            stage.innerHTML = '';
+            
+            // Clear all timeouts
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            // Destroy all charts
+            Object.values(charts).forEach(chart => {
+                if (chart && chart.destroy) {
+                    chart.destroy();
+                }
+            });
+            charts = {};
+        }
+
+        // Create stage content
+        function createStageContent() {
+            clearStage();
+            const content = document.createElement('div');
+            content.className = 'stage-content active';
+            document.getElementById('demo-stage').appendChild(content);
+            return content;
+        }
+
+        // Utility function to create chart
+        function createChart(canvasId, type, data, options = {}) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return null;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Destroy existing chart if any
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+            
+            const defaultOptions = {
+                responsive: true,
+                maintainAspectRatio: true,
+                animation: {
+                    duration: 1000,
+                    easing: 'easeInOutQuart'
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: {
+                            color: 'white',
+                            font: {
+                                size: 14
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 10,
+                        cornerRadius: 10,
+                        titleFont: { size: 14 },
+                        bodyFont: { size: 12 }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.8)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.8)'
+                        }
+                    }
+                }
+            };
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: type,
+                data: data,
+                options: { ...defaultOptions, ...options }
+            });
+            
+            return charts[canvasId];
+        }
+
+        // Demo Functions
+
+        async function showIntroduction() {
+            const taskId = 'introduction';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            // Introduction content
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">What are Frequency Polygons?</h2>
+                <div class="value-display">A Visual Journey</div>
+                <p style="text-align: center; max-width: 800px; margin-top: 20px; font-size: 1.1rem;">
+                    Frequency polygons are line graphs that connect points representing the frequencies of different classes.
+                    They're perfect for showing data distributions and comparing multiple datasets!
+                </p>
+            `;
+
+            await teacher.speak("Welcome! Today we'll learn about frequency polygons - a powerful way to visualize continuous data.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            if (!shouldContinue(taskId)) return;
+
+            // Show visual representation
+            content.innerHTML = `
+                <h2 class="chart-title">Frequency Polygon Structure</h2>
+                <div class="chart-container">
+                    <canvas id="introChart" width="600" height="400"></canvas>
+                </div>
+                <div class="formula">
+                    Class-mark = (Upper limit + Lower limit) / 2
+                </div>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create example frequency polygon
+            const data = {
+                labels: ['25', '35', '45', '55', '65', '75'],
+                datasets: [{
+                    label: 'Frequency Polygon',
+                    data: [0, 5, 12, 8, 6, 0],
+                    borderColor: 'rgba(255, 107, 107, 1)',
+                    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                    tension: 0,
+                    fill: true,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: 'rgba(255, 107, 107, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            };
+
+            createChart('introChart', 'line', data, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Example Frequency Polygon',
+                        color: 'white',
+                        font: {
+                            size: 16
+                        }
+                    }
+                }
+            });
+
+            await teacher.speak("A frequency polygon connects the mid-points of class intervals, called class-marks, with their frequencies. Notice how it starts and ends at zero frequency.");
+
+            isPlaying = false;
+        }
+
+        async function showConstruction() {
+            const taskId = 'construction';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            // Step 1: Show data table
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Step-by-Step Construction</h2>
+                <div class="step-indicator">
+                    <div class="step active">1</div>
+                    <div class="step">2</div>
+                    <div class="step">3</div>
+                    <div class="step">4</div>
+                </div>
+                <div class="construction-step active">
+                    <h4>Step 1: Prepare the Data</h4>
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Class Interval</th>
+                                    <th>Frequency</th>
+                                    <th>Class-Mark</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dataTableBody">
+                                <tr><td>30-40</td><td>5</td><td>35</td></tr>
+                                <tr><td>40-50</td><td>12</td><td>45</td></tr>
+                                <tr><td>50-60</td><td>8</td><td>55</td></tr>
+                                <tr><td>60-70</td><td>6</td><td>65</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("Let's construct a frequency polygon step by step. First, we prepare our data with class intervals, frequencies, and calculate class-marks.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Step 2: Calculate class-marks with animation
+            const steps = content.querySelector('.step-indicator');
+            steps.children[0].classList.remove('active');
+            steps.children[0].classList.add('completed');
+            steps.children[1].classList.add('active');
+
+            content.innerHTML = `
+                <h2 class="chart-title">Step-by-Step Construction</h2>
+                <div class="step-indicator">
+                    <div class="step completed">1</div>
+                    <div class="step active">2</div>
+                    <div class="step">3</div>
+                    <div class="step">4</div>
+                </div>
+                <div class="construction-step active">
+                    <h4>Step 2: Add Zero Frequency Classes</h4>
+                    <p>Add imaginary classes before and after with zero frequency:</p>
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Class Interval</th>
+                                    <th>Frequency</th>
+                                    <th>Class-Mark</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="background: rgba(255, 107, 107, 0.2);"><td>20-30</td><td>0</td><td>25</td></tr>
+                                <tr><td>30-40</td><td>5</td><td>35</td></tr>
+                                <tr><td>40-50</td><td>12</td><td>45</td></tr>
+                                <tr><td>50-60</td><td>8</td><td>55</td></tr>
+                                <tr><td>60-70</td><td>6</td><td>65</td></tr>
+                                <tr style="background: rgba(255, 107, 107, 0.2);"><td>70-80</td><td>0</td><td>75</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("Next, we add imaginary classes with zero frequency before the first class and after the last class. This ensures our polygon starts and ends at the baseline.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Step 3: Plot points
+            const stepsEl = content.querySelector('.step-indicator');
+            stepsEl.children[1].classList.remove('active');
+            stepsEl.children[1].classList.add('completed');
+            stepsEl.children[2].classList.add('active');
+
+            content.innerHTML = `
+                <h2 class="chart-title">Step-by-Step Construction</h2>
+                <div class="step-indicator">
+                    <div class="step completed">1</div>
+                    <div class="step completed">2</div>
+                    <div class="step active">3</div>
+                    <div class="step">4</div>
+                </div>
+                <div class="construction-step active">
+                    <h4>Step 3: Plot the Points</h4>
+                    <div class="chart-container">
+                        <canvas id="constructionChart" width="600" height="400"></canvas>
+                    </div>
+                </div>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create scatter plot
+            const scatterData = {
+                labels: ['25', '35', '45', '55', '65', '75'],
+                datasets: [{
+                    label: 'Points (Class-mark, Frequency)',
+                    data: [0, 5, 12, 8, 6, 0],
+                    backgroundColor: 'rgba(255, 107, 107, 1)',
+                    borderColor: '#fff',
+                    borderWidth: 2,
+                    pointRadius: 8,
+                    pointHoverRadius: 10,
+                    type: 'scatter'
+                }]
+            };
+
+            createChart('constructionChart', 'scatter', scatterData, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Plotting Points',
+                        color: 'white'
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        title: {
+                            display: true,
+                            text: 'Class-marks',
+                            color: 'white'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Frequency',
+                            color: 'white'
+                        }
+                    }
+                }
+            });
+
+            await teacher.speak("Now we plot each point on the graph. The x-coordinate is the class-mark and the y-coordinate is the frequency.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Step 4: Connect points
+            const finalSteps = content.querySelector('.step-indicator');
+            finalSteps.children[2].classList.remove('active');
+            finalSteps.children[2].classList.add('completed');
+            finalSteps.children[3].classList.add('active');
+
+            content.innerHTML = `
+                <h2 class="chart-title">Step-by-Step Construction</h2>
+                <div class="step-indicator">
+                    <div class="step completed">1</div>
+                    <div class="step completed">2</div>
+                    <div class="step completed">3</div>
+                    <div class="step active">4</div>
+                </div>
+                <div class="construction-step active">
+                    <h4>Step 4: Connect the Points</h4>
+                    <div class="chart-container">
+                        <canvas id="finalChart" width="600" height="400"></canvas>
+                    </div>
+                </div>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create final frequency polygon
+            const polygonData = {
+                labels: ['25', '35', '45', '55', '65', '75'],
+                datasets: [{
+                    label: 'Frequency Polygon',
+                    data: [0, 5, 12, 8, 6, 0],
+                    borderColor: 'rgba(255, 107, 107, 1)',
+                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                    tension: 0,
+                    fill: true,
+                    pointRadius: 8,
+                    pointHoverRadius: 10,
+                    pointBackgroundColor: 'rgba(255, 107, 107, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            };
+
+            const chart = createChart('finalChart', 'line', polygonData, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Complete Frequency Polygon',
+                        color: 'white'
+                    }
+                },
+                animation: {
+                    duration: 2000,
+                    easing: 'easeOutQuart'
+                }
+            });
+
+            await teacher.speak("Finally, we connect all the points with straight lines to form the frequency polygon. Notice how it creates a closed shape with the x-axis!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            content.innerHTML += `
+                <div class="value-display" style="margin-top: 20px;">Construction Complete! 🎉</div>
+            `;
+
+            await teacher.speak("Excellent! You've successfully constructed a frequency polygon. Remember these four steps for any dataset!");
+
+            isPlaying = false;
+        }
+
+        async function showHistogramToPolygon() {
+            const taskId = 'histogram-polygon';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            // Show histogram first
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">From Histogram to Frequency Polygon</h2>
+                <div class="chart-container">
+                    <canvas id="histogramChart" width="600" height="400"></canvas>
+                </div>
+                <p style="text-align: center; margin-top: 20px;">
+                    Let's see how a frequency polygon relates to a histogram!
+                </p>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create histogram
+            const histogramData = {
+                labels: ['30-40', '40-50', '50-60', '60-70'],
+                datasets: [{
+                    label: 'Histogram',
+                    data: [5, 12, 8, 6],
+                    backgroundColor: 'rgba(79, 172, 254, 0.6)',
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    borderWidth: 2,
+                    barPercentage: 1.0,
+                    categoryPercentage: 1.0
+                }]
+            };
+
+            createChart('histogramChart', 'bar', histogramData, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Step 1: Start with a Histogram',
+                        color: 'white'
+                    }
+                }
+            });
+
+            await teacher.speak("Let's start with a histogram showing the frequency distribution of our data. Each bar represents a class interval.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Show midpoints
+            content.innerHTML = `
+                <h2 class="chart-title">Marking Mid-points</h2>
+                <div class="chart-container">
+                    <canvas id="midpointChart" width="600" height="400"></canvas>
+                </div>
+                <div class="formula">
+                    Mid-point of each bar = Class-mark
+                </div>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create histogram with midpoints
+            const midpointData = {
+                labels: ['30-40', '40-50', '50-60', '60-70'],
+                datasets: [{
+                    label: 'Histogram',
+                    data: [5, 12, 8, 6],
+                    backgroundColor: 'rgba(79, 172, 254, 0.6)',
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    borderWidth: 2,
+                    barPercentage: 1.0,
+                    categoryPercentage: 1.0,
+                    type: 'bar'
+                }, {
+                    label: 'Mid-points',
+                    data: [5, 12, 8, 6],
+                    borderColor: 'rgba(255, 107, 107, 1)',
+                    backgroundColor: 'rgba(255, 107, 107, 1)',
+                    pointRadius: 10,
+                    pointHoverRadius: 12,
+                    showLine: false,
+                    type: 'line'
+                }]
+            };
+
+            createChart('midpointChart', 'bar', midpointData, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Step 2: Mark Mid-points on Top of Bars',
+                        color: 'white'
+                    }
+                }
+            });
+
+            await teacher.speak("Next, we mark the mid-points at the top of each bar. These points will be connected to form our polygon.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Show complete transformation
+            content.innerHTML = `
+                <h2 class="chart-title">The Complete Transformation</h2>
+                <div class="chart-container">
+                    <canvas id="transformChart" width="600" height="400"></canvas>
+                </div>
+                <p style="text-align: center; margin-top: 20px; color: var(--text-accent);">
+                    The area under the frequency polygon equals the area of the histogram!
+                </p>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create combined chart
+            const transformData = {
+                labels: ['25', '35', '45', '55', '65', '75'],
+                datasets: [{
+                    label: 'Histogram',
+                    data: [null, 5, 12, 8, 6, null],
+                    backgroundColor: 'rgba(79, 172, 254, 0.3)',
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    borderWidth: 2,
+                    barPercentage: 0.8,
+                    type: 'bar'
+                }, {
+                    label: 'Frequency Polygon',
+                    data: [0, 5, 12, 8, 6, 0],
+                    borderColor: 'rgba(255, 107, 107, 1)',
+                    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                    tension: 0,
+                    fill: true,
+                    pointRadius: 8,
+                    pointBackgroundColor: 'rgba(255, 107, 107, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    type: 'line'
+                }]
+            };
+
+            createChart('transformChart', 'bar', transformData, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Histogram with Frequency Polygon Overlay',
+                        color: 'white'
+                    }
+                }
+            });
+
+            await teacher.speak("Here's the complete transformation! The frequency polygon connects the mid-points and extends to zero frequency points. Notice how the areas are equal - this is due to the properties of congruent triangles!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Show area explanation
+            content.innerHTML += `
+                <div class="data-table" style="margin-top: 20px;">
+                    <h3 style="color: var(--text-accent);">Why are the areas equal?</h3>
+                    <p style="margin-top: 10px;">
+                        The triangular areas cut off from the top corners of each bar are congruent to
+                        the triangular areas added between bars. This geometric property ensures the
+                        frequency polygon has the same area as the histogram!
+                    </p>
+                </div>
+            `;
+
+            await teacher.speak("The areas are equal because the triangular portions cut off from each bar are exactly compensated by the triangular areas added between bars. This is a beautiful mathematical property!");
+
+            isPlaying = false;
+        }
+
+        async function showClassMarks() {
+            const taskId = 'class-marks';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            // Example from the content
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Understanding Class-Marks</h2>
+                <div class="value-display">Cost of Living Index Example</div>
+                <div class="data-table">
+                    <h4>Weekly observations in a city:</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cost of Living Index</th>
+                                <th>Number of Weeks</th>
+                                <th>Class-Mark</th>
+                            </tr>
+                        </thead>
+                        <tbody id="classMarkTable">
+                            <tr><td>140-150</td><td>5</td><td class="calculating">?</td></tr>
+                            <tr><td>150-160</td><td>10</td><td class="calculating">?</td></tr>
+                            <tr><td>160-170</td><td>20</td><td class="calculating">?</td></tr>
+                            <tr><td>170-180</td><td>9</td><td class="calculating">?</td></tr>
+                            <tr><td>180-190</td><td>6</td><td class="calculating">?</td></tr>
+                            <tr><td>190-200</td><td>2</td><td class="calculating">?</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            await teacher.speak("Let's learn how to calculate class-marks. We'll use real data from a cost of living index study conducted over 52 weeks.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Calculate class-marks with animation
+            const tbody = document.getElementById('classMarkTable');
+            const rows = tbody.getElementsByTagName('tr');
+            const classMarks = [145, 155, 165, 175, 185, 195];
+
+            for (let i = 0; i < rows.length; i++) {
+                if (!shouldContinue(taskId)) return;
+                
+                const cells = rows[i].getElementsByTagName('td');
+                const interval = cells[0].textContent;
+                const [lower, upper] = interval.split('-').map(n => parseInt(n));
+                
+                // Show calculation
+                content.innerHTML = `
+                    <h2 class="chart-title">Calculating Class-Mark</h2>
+                    <div class="formula" style="font-size: 1.3rem;">
+                        For ${interval}: Class-mark = (${upper} + ${lower}) / 2 = ${(upper + lower) / 2}
+                    </div>
+                    <div class="data-table" style="margin-top: 20px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Cost of Living Index</th>
+                                    <th>Number of Weeks</th>
+                                    <th>Class-Mark</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${Array.from(rows).map((row, idx) => {
+                                    const cells = row.cells;
+                                    return `<tr>
+                                        <td>${cells[0].textContent}</td>
+                                        <td>${cells[1].textContent}</td>
+                                        <td class="${idx <= i ? '' : 'calculating'}">${idx <= i ? classMarks[idx] : '?'}</td>
+                                    </tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                await teacher.speak(`For the interval ${interval}, the class-mark is ${upper} plus ${lower}, divided by 2, which equals ${classMarks[i]}.`);
+                if (!shouldContinue(taskId)) return;
+                
+                await wait(1500);
+                if (!shouldContinue(taskId)) return;
+            }
+
+            // Show the frequency polygon
+            content.innerHTML = `
+                <h2 class="chart-title">Cost of Living Index - Frequency Polygon</h2>
+                <div class="chart-container">
+                    <canvas id="classMarkChart" width="600" height="400"></canvas>
+                </div>
+                <p style="text-align: center; margin-top: 20px;">
+                    Notice: We add points at 135 and 205 with zero frequency for closure
+                </p>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create frequency polygon
+            const polygonData = {
+                labels: ['135', '145', '155', '165', '175', '185', '195', '205'],
+                datasets: [{
+                    label: 'Cost of Living Index Distribution',
+                    data: [0, 5, 10, 20, 9, 6, 2, 0],
+                    borderColor: 'rgba(255, 107, 107, 1)',
+                    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                    tension: 0,
+                    fill: true,
+                    pointRadius: 8,
+                    pointHoverRadius: 10,
+                    pointBackgroundColor: 'rgba(255, 107, 107, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            };
+
+            createChart('classMarkChart', 'line', polygonData, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '52 Weeks of Cost of Living Data',
+                        color: 'white'
+                    }
+                },
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Number of Weeks',
+                            color: 'white'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Cost of Living Index (Class-marks)',
+                            color: 'white'
+                        }
+                    }
+                }
+            });
+
+            await teacher.speak("Here's our frequency polygon! Notice how we added zero-frequency points at 135 and 205 to complete the polygon. The peak at 165 shows that most weeks had a cost of living index between 160 and 170.");
+            
+            isPlaying = false;
+        }
+
+        async function showComparison() {
+            const taskId = 'comparison';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Comparing Two Class Sections</h2>
+                <div class="value-display">Which Section Performed Better?</div>
+                <p style="text-align: center; margin-bottom: 20px;">
+                    Frequency polygons are perfect for comparing distributions!
+                </p>
+            `;
+
+            await teacher.speak("One of the greatest advantages of frequency polygons is comparing multiple datasets. Let's compare test scores from two different class sections.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Show comparison data
+            content.innerHTML = `
+                <h2 class="chart-title">Test Scores Comparison</h2>
+                <div class="comparison-container">
+                    <div class="data-table">
+                        <h4>Section A</h4>
+                        <table>
+                            <thead>
+                                <tr><th>Marks</th><th>Students</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>0-20</td><td>2</td></tr>
+                                <tr><td>20-40</td><td>5</td></tr>
+                                <tr><td>40-60</td><td>12</td></tr>
+                                <tr><td>60-80</td><td>8</td></tr>
+                                <tr><td>80-100</td><td>3</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="data-table">
+                        <h4>Section B</h4>
+                        <table>
+                            <thead>
+                                <tr><th>Marks</th><th>Students</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>0-20</td><td>4</td></tr>
+                                <tr><td>20-40</td><td>8</td></tr>
+                                <tr><td>40-60</td><td>10</td></tr>
+                                <tr><td>60-80</td><td>6</td></tr>
+                                <tr><td>80-100</td><td>2</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("Here we have test scores from two sections. Section A has 30 students and Section B also has 30 students. Let's visualize this data.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Show comparison chart
+            content.innerHTML = `
+                <h2 class="chart-title">Visual Comparison</h2>
+                <div class="chart-container">
+                    <canvas id="comparisonChart" width="700" height="400"></canvas>
+                </div>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            const comparisonData = {
+                labels: ['-10', '10', '30', '50', '70', '90', '110'],
+                datasets: [{
+                    label: 'Section A',
+                    data: [0, 2, 5, 12, 8, 3, 0],
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                    tension: 0,
+                    fill: false,
+                    pointRadius: 8,
+                    pointBackgroundColor: 'rgba(79, 172, 254, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }, {
+                    label: 'Section B',
+                    data: [0, 4, 8, 10, 6, 2, 0],
+                    borderColor: 'rgba(255, 107, 107, 1)',
+                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                    tension: 0,
+                    fill: false,
+                    pointRadius: 8,
+                    pointBackgroundColor: 'rgba(255, 107, 107, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            };
+
+            createChart('comparisonChart', 'line', comparisonData, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Test Score Distribution by Section',
+                        color: 'white'
+                    }
+                },
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Number of Students',
+                            color: 'white'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Marks (Class-marks)',
+                            color: 'white'
+                        }
+                    }
+                }
+            });
+
+            await teacher.speak("Look at the frequency polygons! Section A's peak is at the 40-60 range, showing better performance. Section B's distribution is more spread out with lower scores overall.");
+
+            isPlaying = false;
+        }
+
+        async function showQuiz() {
+            const taskId = 'quiz';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            let score = 0;
+            let currentQuestion = 0;
+
+            const questions = [
+                {
+                    question: "What is the formula for calculating a class-mark?",
+                    options: [
+                        "Upper limit - Lower limit",
+                        "(Upper limit + Lower limit) / 2",
+                        "Upper limit × Lower limit",
+                        "Upper limit / 2"
+                    ],
+                    correct: 1
+                },
+                {
+                    question: "Why do frequency polygons start and end at zero frequency?",
+                    options: [
+                        "To make them look better",
+                        "To ensure the area equals the histogram area",
+                        "It's a random convention",
+                        "To save space on the graph"
+                    ],
+                    correct: 1
+                },
+                {
+                    question: "What connects the points in a frequency polygon?",
+                    options: [
+                        "Curved lines",
+                        "Dotted lines",
+                        "Straight line segments",
+                        "Bars"
+                    ],
+                    correct: 2
+                },
+                {
+                    question: "What is the main advantage of frequency polygons over histograms?",
+                    options: [
+                        "They use less ink",
+                        "They can compare multiple distributions easily",
+                        "They are always more accurate",
+                        "They don't need calculations"
+                    ],
+                    correct: 1
+                },
+                {
+                    question: "For the class interval 30-40, what is the class-mark?",
+                    options: [
+                        "30",
+                        "40",
+                        "35",
+                        "70"
+                    ],
+                    correct: 2
+                }
+            ];
+
+            async function showQuestion(index) {
+                if (!shouldContinue(taskId) || index >= questions.length) {
+                    showResults();
+                    return;
+                }
+
+                const q = questions[index];
+                const content = createStageContent();
+                content.innerHTML = `
+                    <div class="quiz-container">
+                        <h2 class="chart-title">Frequency Polygon Quiz</h2>
+                        <div class="step-indicator">
+                            ${questions.map((_, i) => `<div class="step ${i < index ? 'completed' : i === index ? 'active' : ''}">${i + 1}</div>`).join('')}
+                        </div>
+                        <div class="question">
+                            <h3>Question ${index + 1}: ${q.question}</h3>
+                            <div class="options">
+                                ${q.options.map((opt, i) => `
+                                    <div class="option" data-index="${i}">${opt}</div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                await teacher.speak(q.question);
+
+                // Add click handlers
+                const options = content.querySelectorAll('.option');
+                options.forEach(option => {
+                    option.addEventListener('click', async function() {
+                        const selectedIndex = parseInt(this.dataset.index);
+                        const isCorrect = selectedIndex === q.correct;
+
+                        if (isCorrect) {
+                            score++;
+                            this.classList.add('correct');
+                            await teacher.speak("Correct! Well done!");
+                        } else {
+                            this.classList.add('incorrect');
+                            options[q.correct].classList.add('correct');
+                            await teacher.speak(`Not quite. The correct answer is: ${q.options[q.correct]}`);
+                        }
+
+                        // Disable further clicks
+                        options.forEach(opt => opt.style.pointerEvents = 'none');
+
+                        // Move to next question
+                        await wait(2000);
+                        currentQuestion++;
+                        showQuestion(currentQuestion);
+                    });
+                });
+            }
+
+            function showResults() {
+                const content = createStageContent();
+                const percentage = (score / questions.length * 100).toFixed(0);
+                
+                content.innerHTML = `
+                    <div class="score-display">
+                        <h2>Quiz Complete!</h2>
+                        <div class="value-display">${score} / ${questions.length}</div>
+                        <p>You scored ${percentage}%</p>
+                        <p style="margin-top: 20px;">
+                            ${percentage >= 80 ? "Excellent work! You've mastered frequency polygons!" :
+                              percentage >= 60 ? "Good job! Review the concepts you missed." :
+                              "Keep practicing! Try the lessons again to improve."}
+                        </p>
+                    </div>
+                `;
+
+                teacher.speak(`Quiz complete! You scored ${score} out of ${questions.length}. ${
+                    percentage >= 80 ? "Excellent work!" : 
+                    percentage >= 60 ? "Good job!" : 
+                    "Keep practicing!"
+                }`);
+
+                isPlaying = false;
+            }
+
+            await teacher.speak("Let's test your knowledge about frequency polygons! Answer each question by clicking on the correct option.");
+            await wait(1000);
+            
+            showQuestion(0);
+        }
+
+        async function showBuilder() {
+            const taskId = 'builder';
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Create Your Own Frequency Polygon</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 1000px;">
+                    <div>
+                        <h3 style="color: var(--text-accent); margin-bottom: 15px;">Enter Your Data</h3>
+                        <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 10px;">
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px;">Title:</label>
+                                <input type="text" id="chartTitle" placeholder="e.g., Student Heights" 
+                                       style="width: 100%; padding: 8px; border-radius: 5px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white;">
+                            </div>
+                            <div id="dataInputs">
+                                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                    <label>Class Interval</label>
+                                    <label>Frequency</label>
+                                    <label>Action</label>
+                                </div>
+                            </div>
+                            <button onclick="addDataRow()" style="margin-top: 10px; padding: 8px 16px; background: var(--polygon-gradient); border: none; border-radius: 5px; color: white; cursor: pointer;">
+                                Add Row
+                            </button>
+                            <button onclick="generatePolygon()" style="margin-top: 10px; margin-left: 10px; padding: 8px 16px; background: var(--success-gradient); border: none; border-radius: 5px; color: white; cursor: pointer;">
+                                Generate Polygon
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="color: var(--text-accent); margin-bottom: 15px;">Your Frequency Polygon</h3>
+                        <div class="chart-container">
+                            <canvas id="userChart" width="400" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add initial rows
+            for (let i = 0; i < 3; i++) {
+                addDataRow();
+            }
+
+            await teacher.speak("Now it's your turn! Enter your own data to create a frequency polygon. Add class intervals and their frequencies, then click Generate Polygon to see the result.");
+
+            isPlaying = false;
+        }
+
+        function addDataRow() {
+            const container = document.getElementById('dataInputs');
+            const rowDiv = document.createElement('div');
+            rowDiv.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 10px;';
+            
+            rowDiv.innerHTML = `
+                <input type="text" class="interval-input" placeholder="e.g., 10-20" 
+                       style="padding: 8px; border-radius: 5px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white;">
+                <input type="number" class="frequency-input" placeholder="5" min="0"
+                       style="padding: 8px; border-radius: 5px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white;">
+                <button onclick="this.parentElement.remove()" style="padding: 8px; background: rgba(245, 87, 108, 0.5); border: none; border-radius: 5px; color: white; cursor: pointer;">
+                    Remove
+                </button>
+            `;
+            
+            container.appendChild(rowDiv);
+        }
+
+        function generatePolygon() {
+            const title = document.getElementById('chartTitle').value || 'My Frequency Polygon';
+            const intervals = document.querySelectorAll('.interval-input');
+            const frequencies = document.querySelectorAll('.frequency-input');
+            
+            const data = [];
+            const labels = [];
+            
+            // Add initial zero
+            labels.push('0');
+            data.push(0);
+            
+            // Process user data
+            intervals.forEach((interval, index) => {
+                if (interval.value && frequencies[index].value) {
+                    const [lower, upper] = interval.value.split('-').map(n => parseInt(n.trim()));
+                    if (!isNaN(lower) && !isNaN(upper)) {
+                        const classMark = (lower + upper) / 2;
+                        labels.push(classMark.toString());
+                        data.push(parseInt(frequencies[index].value));
+                    }
+                }
+            });
+            
+            // Add final zero
+            if (labels.length > 1) {
+                const lastMark = parseInt(labels[labels.length - 1]);
+                labels.push((lastMark + 10).toString());
+                data.push(0);
+            }
+            
+            // Create chart
+            const chartData = {
+                labels: labels,
+                datasets: [{
+                    label: title,
+                    data: data,
+                    borderColor: 'rgba(255, 107, 107, 1)',
+                    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                    tension: 0,
+                    fill: true,
+                    pointRadius: 8,
+                    pointBackgroundColor: 'rgba(255, 107, 107, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            };
+            
+            createChart('userChart', 'line', chartData);
+            
+            if (currentTeacher) {
+                currentTeacher.speak("Great job! Your frequency polygon is ready. Notice how it starts and ends at zero frequency.");
+            }
+        }
+
+        // Content functions for complete lesson (don't call stopCurrentDemo)
+        async function showIntroductionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="chart-title">What are Frequency Polygons?</h2>
+                <div class="value-display">A Visual Journey</div>
+                <p style="text-align: center; max-width: 800px; margin-top: 20px; font-size: 1.1rem;">
+                    Frequency polygons are line graphs that connect points representing the frequencies of different classes.
+                    They're perfect for showing data distributions and comparing multiple datasets!
+                </p>
+            `;
+
+            await teacher.speak("Welcome! Today we'll learn about frequency polygons - a powerful way to visualize continuous data.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(1500);
+            if (!shouldContinue(taskId)) return;
+
+            // Show visual representation
+            content.innerHTML = `
+                <h2 class="chart-title">Frequency Polygon Structure</h2>
+                <div class="chart-container">
+                    <canvas id="introChart" width="600" height="400"></canvas>
+                </div>
+                <div class="formula">
+                    Class-mark = (Upper limit + Lower limit) / 2
+                </div>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create example frequency polygon
+            const data = {
+                labels: ['25', '35', '45', '55', '65', '75'],
+                datasets: [{
+                    label: 'Frequency Polygon',
+                    data: [0, 5, 12, 8, 6, 0],
+                    borderColor: 'rgba(255, 107, 107, 1)',
+                    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                    tension: 0,
+                    fill: true,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: 'rgba(255, 107, 107, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            };
+
+            createChart('introChart', 'line', data, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Example Frequency Polygon',
+                        color: 'white',
+                        font: {
+                            size: 16
+                        }
+                    }
+                }
+            });
+
+            await teacher.speak("A frequency polygon connects the mid-points of class intervals, called class-marks, with their frequencies. Notice how it starts and ends at zero frequency.");
+        }
+
+        async function showConstructionContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            // Step 1: Show data table
+            content.innerHTML = `
+                <h2 class="chart-title">Step-by-Step Construction</h2>
+                <div class="step-indicator">
+                    <div class="step active">1</div>
+                    <div class="step">2</div>
+                    <div class="step">3</div>
+                    <div class="step">4</div>
+                </div>
+                <div class="construction-step active">
+                    <h4>Step 1: Prepare the Data</h4>
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Class Interval</th>
+                                    <th>Frequency</th>
+                                    <th>Class-Mark</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dataTableBody">
+                                <tr><td>30-40</td><td>5</td><td>35</td></tr>
+                                <tr><td>40-50</td><td>12</td><td>45</td></tr>
+                                <tr><td>50-60</td><td>8</td><td>55</td></tr>
+                                <tr><td>60-70</td><td>6</td><td>65</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("Let's construct a frequency polygon step by step. First, we prepare our data with class intervals, frequencies, and calculate class-marks.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Step 2: Calculate class-marks with animation
+            const steps = content.querySelector('.step-indicator');
+            steps.children[0].classList.remove('active');
+            steps.children[0].classList.add('completed');
+            steps.children[1].classList.add('active');
+
+            content.innerHTML = `
+                <h2 class="chart-title">Step-by-Step Construction</h2>
+                <div class="step-indicator">
+                    <div class="step completed">1</div>
+                    <div class="step active">2</div>
+                    <div class="step">3</div>
+                    <div class="step">4</div>
+                </div>
+                <div class="construction-step active">
+                    <h4>Step 2: Add Zero Frequency Classes</h4>
+                    <p>Add imaginary classes before and after with zero frequency:</p>
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Class Interval</th>
+                                    <th>Frequency</th>
+                                    <th>Class-Mark</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="background: rgba(255, 107, 107, 0.2);"><td>20-30</td><td>0</td><td>25</td></tr>
+                                <tr><td>30-40</td><td>5</td><td>35</td></tr>
+                                <tr><td>40-50</td><td>12</td><td>45</td></tr>
+                                <tr><td>50-60</td><td>8</td><td>55</td></tr>
+                                <tr><td>60-70</td><td>6</td><td>65</td></tr>
+                                <tr style="background: rgba(255, 107, 107, 0.2);"><td>70-80</td><td>0</td><td>75</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("Next, we add imaginary classes with zero frequency before the first class and after the last class. This ensures our polygon starts and ends at the baseline.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Step 3: Plot points
+            const stepsEl = content.querySelector('.step-indicator');
+            stepsEl.children[1].classList.remove('active');
+            stepsEl.children[1].classList.add('completed');
+            stepsEl.children[2].classList.add('active');
+
+            content.innerHTML = `
+                <h2 class="chart-title">Step-by-Step Construction</h2>
+                <div class="step-indicator">
+                    <div class="step completed">1</div>
+                    <div class="step completed">2</div>
+                    <div class="step active">3</div>
+                    <div class="step">4</div>
+                </div>
+                <div class="construction-step active">
+                    <h4>Step 3: Plot the Points</h4>
+                    <div class="chart-container">
+                        <canvas id="constructionChart" width="600" height="400"></canvas>
+                    </div>
+                </div>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create scatter plot
+            const scatterData = {
+                labels: ['25', '35', '45', '55', '65', '75'],
+                datasets: [{
+                    label: 'Points (Class-mark, Frequency)',
+                    data: [0, 5, 12, 8, 6, 0],
+                    backgroundColor: 'rgba(255, 107, 107, 1)',
+                    borderColor: '#fff',
+                    borderWidth: 2,
+                    pointRadius: 8,
+                    pointHoverRadius: 10,
+                    type: 'scatter'
+                }]
+            };
+
+            createChart('constructionChart', 'scatter', scatterData, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Plotting Points',
+                        color: 'white'
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        title: {
+                            display: true,
+                            text: 'Class-marks',
+                            color: 'white'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Frequency',
+                            color: 'white'
+                        }
+                    }
+                }
+            });
+
+            await teacher.speak("Now we plot each point on the graph. The x-coordinate is the class-mark and the y-coordinate is the frequency.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Step 4: Connect points
+            const finalSteps = content.querySelector('.step-indicator');
+            finalSteps.children[2].classList.remove('active');
+            finalSteps.children[2].classList.add('completed');
+            finalSteps.children[3].classList.add('active');
+
+            content.innerHTML = `
+                <h2 class="chart-title">Step-by-Step Construction</h2>
+                <div class="step-indicator">
+                    <div class="step completed">1</div>
+                    <div class="step completed">2</div>
+                    <div class="step completed">3</div>
+                    <div class="step active">4</div>
+                </div>
+                <div class="construction-step active">
+                    <h4>Step 4: Connect the Points</h4>
+                    <div class="chart-container">
+                        <canvas id="finalChart" width="600" height="400"></canvas>
+                    </div>
+                </div>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create final frequency polygon
+            const polygonData = {
+                labels: ['25', '35', '45', '55', '65', '75'],
+                datasets: [{
+                    label: 'Frequency Polygon',
+                    data: [0, 5, 12, 8, 6, 0],
+                    borderColor: 'rgba(255, 107, 107, 1)',
+                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                    tension: 0,
+                    fill: true,
+                    pointRadius: 8,
+                    pointHoverRadius: 10,
+                    pointBackgroundColor: 'rgba(255, 107, 107, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            };
+
+            const chart = createChart('finalChart', 'line', polygonData, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Complete Frequency Polygon',
+                        color: 'white'
+                    }
+                },
+                animation: {
+                    duration: 2000,
+                    easing: 'easeOutQuart'
+                }
+            });
+
+            await teacher.speak("Finally, we connect all the points with straight lines to form the frequency polygon. Notice how it creates a closed shape with the x-axis!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            content.innerHTML += `
+                <div class="value-display" style="margin-top: 20px;">Construction Complete! 🎉</div>
+            `;
+
+            await teacher.speak("Excellent! You've successfully constructed a frequency polygon. Remember these four steps for any dataset!");
+        }
+
+        async function showHistogramToPolygonContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            // Show histogram first
+            content.innerHTML = `
+                <h2 class="chart-title">From Histogram to Frequency Polygon</h2>
+                <div class="chart-container">
+                    <canvas id="histogramChart" width="600" height="400"></canvas>
+                </div>
+                <p style="text-align: center; margin-top: 20px;">
+                    Let's see how a frequency polygon relates to a histogram!
+                </p>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create histogram
+            const histogramData = {
+                labels: ['30-40', '40-50', '50-60', '60-70'],
+                datasets: [{
+                    label: 'Histogram',
+                    data: [5, 12, 8, 6],
+                    backgroundColor: 'rgba(79, 172, 254, 0.6)',
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    borderWidth: 2,
+                    barPercentage: 1.0,
+                    categoryPercentage: 1.0
+                }]
+            };
+
+            createChart('histogramChart', 'bar', histogramData, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Step 1: Start with a Histogram',
+                        color: 'white'
+                    }
+                }
+            });
+
+            await teacher.speak("Let's start with a histogram showing the frequency distribution of our data. Each bar represents a class interval.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Show midpoints
+            content.innerHTML = `
+                <h2 class="chart-title">Marking Mid-points</h2>
+                <div class="chart-container">
+                    <canvas id="midpointChart" width="600" height="400"></canvas>
+                </div>
+                <div class="formula">
+                    Mid-point of each bar = Class-mark
+                </div>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create histogram with midpoints
+            const midpointData = {
+                labels: ['30-40', '40-50', '50-60', '60-70'],
+                datasets: [{
+                    label: 'Histogram',
+                    data: [5, 12, 8, 6],
+                    backgroundColor: 'rgba(79, 172, 254, 0.6)',
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    borderWidth: 2,
+                    barPercentage: 1.0,
+                    categoryPercentage: 1.0,
+                    type: 'bar'
+                }, {
+                    label: 'Mid-points',
+                    data: [5, 12, 8, 6],
+                    borderColor: 'rgba(255, 107, 107, 1)',
+                    backgroundColor: 'rgba(255, 107, 107, 1)',
+                    pointRadius: 10,
+                    pointHoverRadius: 12,
+                    showLine: false,
+                    type: 'line'
+                }]
+            };
+
+            createChart('midpointChart', 'bar', midpointData, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Step 2: Mark Mid-points on Top of Bars',
+                        color: 'white'
+                    }
+                }
+            });
+
+            await teacher.speak("Next, we mark the mid-points at the top of each bar. These points will be connected to form our polygon.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Show complete transformation
+            content.innerHTML = `
+                <h2 class="chart-title">The Complete Transformation</h2>
+                <div class="chart-container">
+                    <canvas id="transformChart" width="600" height="400"></canvas>
+                </div>
+                <p style="text-align: center; margin-top: 20px; color: var(--text-accent);">
+                    The area under the frequency polygon equals the area of the histogram!
+                </p>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create combined chart
+            const transformData = {
+                labels: ['25', '35', '45', '55', '65', '75'],
+                datasets: [{
+                    label: 'Histogram',
+                    data: [null, 5, 12, 8, 6, null],
+                    backgroundColor: 'rgba(79, 172, 254, 0.3)',
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    borderWidth: 2,
+                    barPercentage: 0.8,
+                    type: 'bar'
+                }, {
+                    label: 'Frequency Polygon',
+                    data: [0, 5, 12, 8, 6, 0],
+                    borderColor: 'rgba(255, 107, 107, 1)',
+                    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                    tension: 0,
+                    fill: true,
+                    pointRadius: 8,
+                    pointBackgroundColor: 'rgba(255, 107, 107, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    type: 'line'
+                }]
+            };
+
+            createChart('transformChart', 'bar', transformData, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Histogram with Frequency Polygon Overlay',
+                        color: 'white'
+                    }
+                }
+            });
+
+            await teacher.speak("Here's the complete transformation! The frequency polygon connects the mid-points and extends to zero frequency points. Notice how the areas are equal - this is due to the properties of congruent triangles!");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Show area explanation
+            content.innerHTML += `
+                <div class="data-table" style="margin-top: 20px;">
+                    <h3 style="color: var(--text-accent);">Why are the areas equal?</h3>
+                    <p style="margin-top: 10px;">
+                        The triangular areas cut off from the top corners of each bar are congruent to
+                        the triangular areas added between bars. This geometric property ensures the
+                        frequency polygon has the same area as the histogram!
+                    </p>
+                </div>
+            `;
+
+            await teacher.speak("The areas are equal because the triangular portions cut off from each bar are exactly compensated by the triangular areas added between bars. This is a beautiful mathematical property!");
+        }
+
+        async function showClassMarksContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            // Example from the content
+            content.innerHTML = `
+                <h2 class="chart-title">Understanding Class-Marks</h2>
+                <div class="value-display">Cost of Living Index Example</div>
+                <div class="data-table">
+                    <h4>Weekly observations in a city:</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cost of Living Index</th>
+                                <th>Number of Weeks</th>
+                                <th>Class-Mark</th>
+                            </tr>
+                        </thead>
+                        <tbody id="classMarkTable">
+                            <tr><td>140-150</td><td>5</td><td class="calculating">?</td></tr>
+                            <tr><td>150-160</td><td>10</td><td class="calculating">?</td></tr>
+                            <tr><td>160-170</td><td>20</td><td class="calculating">?</td></tr>
+                            <tr><td>170-180</td><td>9</td><td class="calculating">?</td></tr>
+                            <tr><td>180-190</td><td>6</td><td class="calculating">?</td></tr>
+                            <tr><td>190-200</td><td>2</td><td class="calculating">?</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            await teacher.speak("Let's learn how to calculate class-marks. We'll use real data from a cost of living index study conducted over 52 weeks.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Calculate class-marks with animation
+            const tbody = document.getElementById('classMarkTable');
+            const rows = tbody.getElementsByTagName('tr');
+            const classMarks = [145, 155, 165, 175, 185, 195];
+
+            for (let i = 0; i < rows.length; i++) {
+                if (!shouldContinue(taskId)) return;
+                
+                const cells = rows[i].getElementsByTagName('td');
+                const interval = cells[0].textContent;
+                const [lower, upper] = interval.split('-').map(n => parseInt(n));
+                
+                // Show calculation
+                content.innerHTML = `
+                    <h2 class="chart-title">Calculating Class-Mark</h2>
+                    <div class="formula" style="font-size: 1.3rem;">
+                        For ${interval}: Class-mark = (${upper} + ${lower}) / 2 = ${(upper + lower) / 2}
+                    </div>
+                    <div class="data-table" style="margin-top: 20px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Cost of Living Index</th>
+                                    <th>Number of Weeks</th>
+                                    <th>Class-Mark</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${Array.from(rows).map((row, idx) => {
+                                    const cells = row.cells;
+                                    return `<tr>
+                                        <td>${cells[0].textContent}</td>
+                                        <td>${cells[1].textContent}</td>
+                                        <td class="${idx <= i ? '' : 'calculating'}">${idx <= i ? classMarks[idx] : '?'}</td>
+                                    </tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                await teacher.speak(`For the interval ${interval}, the class-mark is ${upper} plus ${lower}, divided by 2, which equals ${classMarks[i]}.`);
+                if (!shouldContinue(taskId)) return;
+                
+                await wait(1500);
+                if (!shouldContinue(taskId)) return;
+            }
+
+            // Show the frequency polygon
+            content.innerHTML = `
+                <h2 class="chart-title">Cost of Living Index - Frequency Polygon</h2>
+                <div class="chart-container">
+                    <canvas id="classMarkChart" width="600" height="400"></canvas>
+                </div>
+                <p style="text-align: center; margin-top: 20px;">
+                    Notice: We add points at 135 and 205 with zero frequency for closure
+                </p>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            // Create frequency polygon
+            const polygonData = {
+                labels: ['135', '145', '155', '165', '175', '185', '195', '205'],
+                datasets: [{
+                    label: 'Cost of Living Index Distribution',
+                    data: [0, 5, 10, 20, 9, 6, 2, 0],
+                    borderColor: 'rgba(255, 107, 107, 1)',
+                    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                    tension: 0,
+                    fill: true,
+                    pointRadius: 8,
+                    pointHoverRadius: 10,
+                    pointBackgroundColor: 'rgba(255, 107, 107, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            };
+
+            createChart('classMarkChart', 'line', polygonData, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '52 Weeks of Cost of Living Data',
+                        color: 'white'
+                    }
+                },
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Number of Weeks',
+                            color: 'white'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Cost of Living Index (Class-marks)',
+                            color: 'white'
+                        }
+                    }
+                }
+            });
+
+            await teacher.speak("Here's our frequency polygon! Notice how we added zero-frequency points at 135 and 205 to complete the polygon. The peak at 165 shows that most weeks had a cost of living index between 160 and 170.");
+        }
+
+        async function showComparisonContent(taskId) {
+            const teacher = currentTeacher;
+            const content = createStageContent();
+            
+            content.innerHTML = `
+                <h2 class="chart-title">Comparing Two Class Sections</h2>
+                <div class="value-display">Which Section Performed Better?</div>
+                <p style="text-align: center; margin-bottom: 20px;">
+                    Frequency polygons are perfect for comparing distributions!
+                </p>
+            `;
+
+            await teacher.speak("One of the greatest advantages of frequency polygons is comparing multiple datasets. Let's compare test scores from two different class sections.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Show comparison data
+            content.innerHTML = `
+                <h2 class="chart-title">Test Scores Comparison</h2>
+                <div class="comparison-container">
+                    <div class="data-table">
+                        <h4>Section A</h4>
+                        <table>
+                            <thead>
+                                <tr><th>Marks</th><th>Students</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>0-20</td><td>2</td></tr>
+                                <tr><td>20-40</td><td>5</td></tr>
+                                <tr><td>40-60</td><td>12</td></tr>
+                                <tr><td>60-80</td><td>8</td></tr>
+                                <tr><td>80-100</td><td>3</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="data-table">
+                        <h4>Section B</h4>
+                        <table>
+                            <thead>
+                                <tr><th>Marks</th><th>Students</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>0-20</td><td>4</td></tr>
+                                <tr><td>20-40</td><td>8</td></tr>
+                                <tr><td>40-60</td><td>10</td></tr>
+                                <tr><td>60-80</td><td>6</td></tr>
+                                <tr><td>80-100</td><td>2</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            await teacher.speak("Here we have test scores from two sections. Section A has 30 students and Section B also has 30 students. Let's visualize this data.");
+            if (!shouldContinue(taskId)) return;
+
+            await wait(2000);
+            if (!shouldContinue(taskId)) return;
+
+            // Show comparison chart
+            content.innerHTML = `
+                <h2 class="chart-title">Visual Comparison</h2>
+                <div class="chart-container">
+                    <canvas id="comparisonChart" width="700" height="400"></canvas>
+                </div>
+            `;
+
+            await wait(500);
+            if (!shouldContinue(taskId)) return;
+
+            const comparisonData = {
+                labels: ['-10', '10', '30', '50', '70', '90', '110'],
+                datasets: [{
+                    label: 'Section A',
+                    data: [0, 2, 5, 12, 8, 3, 0],
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                    tension: 0,
+                    fill: false,
+                    pointRadius: 8,
+                    pointBackgroundColor: 'rgba(79, 172, 254, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }, {
+                    label: 'Section B',
+                    data: [0, 4, 8, 10, 6, 2, 0],
+                    borderColor: 'rgba(255, 107, 107, 1)',
+                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                    tension: 0,
+                    fill: false,
+                    pointRadius: 8,
+                    pointBackgroundColor: 'rgba(255, 107, 107, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            };
+
+            createChart('comparisonChart', 'line', comparisonData, {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Test Score Distribution by Section',
+                        color: 'white'
+                    }
+                },
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Number of Students',
+                            color: 'white'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Marks (Class-marks)',
+                            color: 'white'
+                        }
+                    }
+                }
+            });
+
+            await teacher.speak("Look at the frequency polygons! Section A's peak is at the 40-60 range, showing better performance. Section B's distribution is more spread out with lower scores overall.");
+        }
+
+        async function showCompleteLesson() {
+            const taskId = `complete-${currentRunId}`;
+            stopCurrentDemo();
+            isPlaying = true;
+            
+            const teacher = createNewTeacher(taskId);
+            
+            // Welcome message
+            const welcomeContent = createStageContent();
+            welcomeContent.innerHTML = `
+                <h2 class="chart-title">Complete Frequency Polygons Lesson</h2>
+                <div class="value-display">Let's Master Everything!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    We'll go through all concepts step by step.
+                </p>
+            `;
+            
+            await teacher.speak("Welcome to the complete frequency polygons lesson! We'll cover everything from basics to advanced applications.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Introduction
+            await showIntroductionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Construction
+            await teacher.speak("Now let's learn how to construct a frequency polygon step by step.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showConstructionContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Histogram to Polygon
+            await teacher.speak("Let's see how frequency polygons relate to histograms.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showHistogramToPolygonContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Class Marks
+            await teacher.speak("Understanding class-marks is crucial for creating frequency polygons.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showClassMarksContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Comparison
+            await teacher.speak("One of the best features of frequency polygons is comparing distributions.");
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            await showComparisonContent(taskId);
+            if (!shouldContinue(taskId)) return;
+            
+            await wait(1000);
+            if (!shouldContinue(taskId)) return;
+            
+            // Final message
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Congratulations!</h2>
+                <div class="value-display">🎉 Lesson Complete! 🎉</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    You've mastered frequency polygons! Try the quiz to test your knowledge,
+                    or create your own polygon in the builder!
+                </p>
+                <div class="data-table" style="margin-top: 30px;">
+                    <h3 style="color: var(--text-accent);">You've learned:</h3>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin: 10px 0;">✓ What frequency polygons are</li>
+                        <li style="margin: 10px 0;">✓ How to calculate class-marks</li>
+                        <li style="margin: 10px 0;">✓ Step-by-step construction</li>
+                        <li style="margin: 10px 0;">✓ Relationship with histograms</li>
+                        <li style="margin: 10px 0;">✓ Comparing distributions</li>
+                    </ul>
+                </div>
+            `;
+            
+            await teacher.speak("Congratulations! You've completed the full frequency polygons lesson. You now know what they are, how to construct them, and their practical applications. Great job!");
+            
+            isPlaying = false;
+        }
+
+        function resetApplication() {
+            stopCurrentDemo();
+            
+            // Clear stage and show welcome
+            const content = createStageContent();
+            content.innerHTML = `
+                <h2 class="chart-title">Welcome to Frequency Polygons Mastery!</h2>
+                <div class="value-display">Let's Begin!</div>
+                <p style="text-align: center; max-width: 600px; margin-top: 20px;">
+                    Frequency polygons are powerful tools for visualizing continuous data distributions.
+                    Choose a lesson below to start your journey!
+                </p>
+            `;
+            
+            // Clear active button states
+            document.querySelectorAll('.demo-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Reset current demo
+            currentDemo = null;
+            
+            // Create new teacher and welcome message
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome back! Choose any lesson to continue your journey in data visualization!");
+            }, 500);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize teacher
+            const teacher = createNewTeacher();
+            setTimeout(() => {
+                teacher.speak("Welcome to Frequency Polygons Mastery! Choose any lesson to begin your journey into continuous data visualization!");
+            }, 500);
+            
+            // Button handlers
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Clear active states
+                    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const demo = this.getAttribute('data-demo');
+                    currentDemo = demo;
+                    
+                    switch(demo) {
+                        case 'complete':
+                            showCompleteLesson();
+                            break;
+                        case 'introduction':
+                            showIntroduction();
+                            break;
+                        case 'construction':
+                            showConstruction();
+                            break;
+                        case 'histogram-polygon':
+                            showHistogramToPolygon();
+                            break;
+                        case 'class-marks':
+                            showClassMarks();
+                            break;
+                        case 'comparison':
+                            showComparison();
+                            break;
+                        case 'quiz':
+                            showQuiz();
+                            break;
+                        case 'builder':
+                            showBuilder();
+                            break;
+                        case 'reset':
+                            resetApplication();
+                            break;
+                    }
+                });
+            });
+            
+            // Audio control
+            document.getElementById('mute-btn').addEventListener('click', function() {
+                globalAudioEnabled = !globalAudioEnabled;
+                this.classList.toggle('muted', !globalAudioEnabled);
+                
+                if (!globalAudioEnabled && currentTeacher) {
+                    currentTeacher.stop();
+                }
+                
+                if (currentTeacher) {
+                    currentTeacher.isEnabled = globalAudioEnabled;
+                }
+            });
+        });
+
+        // Make functions globally available for inline handlers
+        window.addDataRow = addDataRow;
+        window.generatePolygon = generatePolygon;
+    </script>
+</body>
+</html>

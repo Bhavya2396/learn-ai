@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elimination Method for Linear Equations</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(126, 87, 194, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(126, 87, 194, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3.2rem;
+            background: linear-gradient(45deg, #00ff88, #00bbff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .animation-stage {
+            background: linear-gradient(to bottom, #1a1a2e 0%, #16213e 100%);
+            border-radius: 25px;
+            height: 600px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            border: 4px solid rgba(0, 255, 136, 0.4);
+        }
+
+        .grid-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.3;
+        }
+
+        .stage-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            overflow: hidden;
+        }
+
+        .animation-scene {
+            display: none;
+            opacity: 0;
+            transition: opacity 1s ease;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 30px;
+            overflow: hidden;
+        }
+
+        .animation-scene.visible {
+            display: flex;
+            opacity: 1;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .welcome-scene {
+            text-align: center;
+        }
+
+        .welcome-title {
+            font-size: 2.5rem;
+            color: #00ff88;
+            margin-bottom: 20px;
+            animation: titleGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+            50% { text-shadow: 0 0 20px rgba(0, 255, 136, 0.8); }
+        }
+
+        .content-box {
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .step-container {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 187, 255, 0.1));
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            border-radius: 15px;
+            padding: 12px 18px;
+            margin: 6px 0;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideUp 0.5s ease forwards;
+        }
+
+        .step-container:nth-child(2) { animation-delay: 0.15s; }
+        .step-container:nth-child(3) { animation-delay: 0.3s; }
+        .step-container:nth-child(4) { animation-delay: 0.45s; }
+        .step-container:nth-child(5) { animation-delay: 0.6s; }
+
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .step-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #00ff88, #00bbff);
+            color: #1a1a2e;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            line-height: 32px;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 6px;
+        }
+
+        .step-title {
+            font-size: 1.1rem;
+            color: #00ff88;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .step-content {
+            font-size: 0.95rem;
+            line-height: 1.4;
+            color: #e2e8f0;
+        }
+
+        .equation-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            border-radius: 12px;
+            padding: 10px 15px;
+            margin: 8px 0;
+            font-size: 1.2rem;
+            font-family: 'Courier New', monospace;
+            color: #ffd700;
+        }
+
+        .highlight {
+            color: #00ff88;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .solution-box {
+            background: linear-gradient(135deg, rgba(255, 105, 180, 0.2), rgba(255, 215, 0, 0.2));
+            border: 3px solid rgba(255, 215, 0, 0.5);
+            border-radius: 20px;
+            padding: 18px;
+            margin: 12px 0;
+            text-align: center;
+            transform: scale(0);
+            animation: solutionPop 0.5s ease forwards 0.6s;
+        }
+
+        @keyframes solutionPop {
+            to { transform: scale(1); }
+        }
+
+        .solution-title {
+            font-size: 1.4rem;
+            color: #ffd700;
+            margin-bottom: 8px;
+        }
+
+        .solution-value {
+            font-size: 1.6rem;
+            color: #ff69b4;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+
+        .info-display {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 15px 20px;
+            text-align: center;
+            font-size: 1.1rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            backdrop-filter: blur(10px);
+            margin: 20px 0;
+            border: 2px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .info-display.visible {
+            opacity: 1;
+        }
+
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            color: #00ff88;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #764ba2, #667eea);
+            border: none;
+            color: white;
+            padding: 16px 28px;
+            border-radius: 35px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(118, 75, 162, 0.3);
+            min-width: 180px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(118, 75, 162, 0.4);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #00ff88, #00bbff);
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.4);
+        }
+
+        .analysis {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(0, 255, 136, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .analysis-title {
+            font-size: 1.6rem;
+            color: #00ff88;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .analysis-content {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            text-align: center;
+            color: #e2e8f0;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .animation-stage {
+                height: 500px;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Elimination Method</h1>
+            <p>Learn to solve linear equations by eliminating variables - a powerful algebraic technique!</p>
+        </div>
+
+        <div class="animation-stage">
+            <div class="grid-background"></div>
+            
+            <div class="stage-content">
+                <div class="animation-scene visible" id="welcome-scene">
+                    <div class="welcome-scene">
+                        <h2 class="welcome-title">The Elimination Method</h2>
+                        <p style="font-size: 1.3rem; color: #00bbff; line-height: 1.8;">
+                            Remove one variable by making coefficients equal,<br>
+                            then add or subtract equations!
+                        </p>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="method-steps">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.7rem; color: #ffd700; margin-bottom: 18px;">Four Steps to Success</h2>
+                        <div class="step-container">
+                            <div class="step-number">1</div>
+                            <div class="step-title">Make Coefficients Equal</div>
+                            <div class="step-content">
+                                Multiply equations to make one variable's coefficients equal
+                            </div>
+                        </div>
+                        <div class="step-container">
+                            <div class="step-number">2</div>
+                            <div class="step-title">Eliminate Variable</div>
+                            <div class="step-content">
+                                Add or subtract equations to eliminate that variable
+                            </div>
+                        </div>
+                        <div class="step-container">
+                            <div class="step-number">3</div>
+                            <div class="step-title">Solve</div>
+                            <div class="step-content">
+                                Solve the resulting equation in one variable
+                            </div>
+                        </div>
+                        <div class="step-container">
+                            <div class="step-number">4</div>
+                            <div class="step-title">Back-Substitute</div>
+                            <div class="step-content">
+                                Find the other variable using the original equation
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example8-problem">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.7rem; color: #00ff88; margin-bottom: 12px;">Example 8: Income & Savings Problem</h2>
+                        <p style="font-size: 1.05rem; margin-bottom: 12px; line-height: 1.6;">
+                            Income ratio = 9:7, Expenditure ratio = 4:3<br>
+                            Both save ₹2000 per month
+                        </p>
+                        <p style="font-size: 1rem; margin: 10px 0; color: #00bbff;">
+                            Let incomes be 9x and 7x, expenditures be 4y and 3y
+                        </p>
+                        <div class="equation-box">
+                            9x - 4y = 2000
+                        </div>
+                        <div class="equation-box">
+                            7x - 3y = 2000
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example8-step1">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.6rem; color: #00ff88; margin-bottom: 12px;">Step 1: Make y coefficients equal</h2>
+                        <p style="font-size: 1rem; margin-bottom: 10px;">Multiply equation 1 by 3, equation 2 by 4:</p>
+                        <div class="equation-box">
+                            27x - 12y = 6000
+                        </div>
+                        <div class="equation-box">
+                            28x - 12y = 8000
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example8-step2">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.6rem; color: #00ff88; margin-bottom: 12px;">Step 2: Eliminate y by subtraction</h2>
+                        <div class="equation-box">
+                            (28x - 12y) - (27x - 12y) = 8000 - 6000
+                        </div>
+                        <div class="equation-box">
+                            x = 2000
+                        </div>
+                        <p style="font-size: 1rem; margin: 10px 0;">Substitute x = 2000 into 9x - 4y = 2000:</p>
+                        <div class="equation-box">
+                            9(2000) - 4y = 2000
+                        </div>
+                        <div class="equation-box">
+                            18000 - 4y = 2000 → <span class="highlight">y = 4000</span>
+                        </div>
+                        <div class="solution-box">
+                            <div class="solution-title">Monthly Incomes</div>
+                            <div class="solution-value">
+                                ₹18,000 and ₹14,000
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example9-problem">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.7rem; color: #ff6b6b; margin-bottom: 12px;">Example 9: No Solution Case</h2>
+                        <p style="font-size: 1.05rem; margin-bottom: 12px;">
+                            Use elimination to solve:
+                        </p>
+                        <div class="equation-box">
+                            2x + 3y = 8
+                        </div>
+                        <div class="equation-box">
+                            4x + 6y = 7
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example9-solution">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.6rem; color: #ff6b6b; margin-bottom: 12px;">Solving by Elimination</h2>
+                        <p style="font-size: 1rem; margin-bottom: 10px;">Multiply equation 1 by 2:</p>
+                        <div class="equation-box">
+                            4x + 6y = 16
+                        </div>
+                        <div class="equation-box">
+                            4x + 6y = 7
+                        </div>
+                        <p style="font-size: 1rem; margin: 10px 0;">Subtract:</p>
+                        <div class="equation-box">
+                            (4x + 6y) - (4x + 6y) = 16 - 7
+                        </div>
+                        <div class="equation-box" style="color: #ff6b6b;">
+                            0 = 9 ✗ (False!)
+                        </div>
+                        <div class="solution-box" style="border-color: rgba(255, 107, 107, 0.5);">
+                            <div class="solution-title" style="color: #ff6b6b;">Result</div>
+                            <div class="solution-value" style="font-size: 1.4rem;">
+                                No Solution - Inconsistent!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example10-problem">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.7rem; color: #ffd700; margin-bottom: 12px;">Example 10: Two-Digit Number</h2>
+                        <p style="font-size: 1.05rem; margin-bottom: 12px; line-height: 1.6;">
+                            Number + Reversed = 66<br>
+                            Digits differ by 2
+                        </p>
+                        <p style="font-size: 1rem; margin: 10px 0; color: #00bbff;">
+                            Let digits be x (tens) and y (units)<br>
+                            Number = 10x + y, Reversed = 10y + x
+                        </p>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example10-equations">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.6rem; color: #00ff88; margin-bottom: 12px;">Setting up equations</h2>
+                        <p style="font-size: 1rem; margin-bottom: 10px;">From sum condition:</p>
+                        <div class="equation-box">
+                            (10x + y) + (10y + x) = 66
+                        </div>
+                        <div class="equation-box">
+                            11(x + y) = 66 → <span class="highlight">x + y = 6</span>
+                        </div>
+                        <p style="font-size: 1rem; margin: 10px 0;">Digits differ by 2:</p>
+                        <div class="equation-box">
+                            x - y = 2 OR y - x = 2
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animation-scene" id="example10-solution">
+                    <div class="content-box">
+                        <h2 style="font-size: 1.6rem; color: #00ff88; margin-bottom: 12px;">Finding both numbers</h2>
+                        <p style="font-size: 1rem; margin-bottom: 8px;"><strong>Case 1:</strong> x - y = 2</p>
+                        <div class="equation-box" style="font-size: 1.1rem;">
+                            x + y = 6, x - y = 2 → Add: 2x = 8 → x = 4, y = 2
+                        </div>
+                        <p style="font-size: 1rem; margin: 8px 0; color: #00ff88;">Number = 42</p>
+                        
+                        <p style="font-size: 1rem; margin: 12px 0 8px 0;"><strong>Case 2:</strong> y - x = 2</p>
+                        <div class="equation-box" style="font-size: 1.1rem;">
+                            x + y = 6, y - x = 2 → Add: 2y = 8 → y = 4, x = 2
+                        </div>
+                        <p style="font-size: 1rem; margin: 8px 0; color: #00ff88;">Number = 24</p>
+                        
+                        <div class="solution-box">
+                            <div class="solution-title">Two Numbers Found</div>
+                            <div class="solution-value">
+                                42 and 24
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-display visible" id="info-display">
+            Click any button below to explore the elimination method!
+        </div>
+
+        <div class="controls">
+            <div class="controls-title" id="lesson-title">Master the Elimination Method</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="playCompleteLesson()">📚 Complete Lesson</button>
+                <button class="demo-btn" onclick="showMethodSteps()">📋 Method Steps</button>
+                <button class="demo-btn" onclick="showExample8()">💰 Income Problem</button>
+                <button class="demo-btn" onclick="showExample9()">🚫 No Solution</button>
+                <button class="demo-btn" onclick="showExample10()">🔢 Digit Problem</button>
+                <button class="demo-btn" onclick="resetAll()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <div class="analysis">
+            <div class="analysis-title">🔑 Key Insight</div>
+            <div class="analysis-content" id="analysis-content">
+                The elimination method removes variables by making coefficients equal and then adding or subtracting equations - often simpler than substitution!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Narrator {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.95, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+            }
+        }
+
+        let globalAudioEnabled = true;
+        let currentNarrator = null;
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let currentTaskId = null;
+        let currentRunId = null;
+        let animationTimeouts = [];
+
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentTaskId = null;
+            
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            updateInfo("Click any button below to explore the elimination method!");
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null, runId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            if (runId !== null && currentRunId !== null && runId !== currentRunId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewNarrator(taskId = null, runId = null) {
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            if (runId !== null) {
+                currentRunId = runId;
+            }
+            currentNarrator = new Narrator();
+            return currentNarrator;
+        }
+
+        function switchToScene(sceneId, taskId = null, runId = null) {
+            if (!shouldContinue(taskId, runId)) return;
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            const timeout = setTimeout(() => {
+                if (!shouldContinue(taskId, runId)) return;
+                const scene = document.getElementById(sceneId);
+                if (scene) {
+                    scene.classList.add('visible');
+                }
+            }, 300);
+            
+            animationTimeouts.push(timeout);
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        function updateInfo(text) {
+            const info = document.getElementById('info-display');
+            info.textContent = text;
+            info.classList.add('visible');
+        }
+
+        function updateAnalysis(text) {
+            document.getElementById('analysis-content').textContent = text;
+        }
+
+        function updateTitle(title) {
+            document.getElementById('lesson-title').textContent = title;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        async function playCompleteLesson() {
+            const runId = Date.now();
+            const taskId = 'complete-lesson';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("📚 Complete Elimination Method");
+            updateInfo("Starting comprehensive lesson...");
+            
+            await narrator.speak("Welcome to the elimination method! This technique removes variables by making coefficients equal and then adding or subtracting.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('method-steps', taskId, runId);
+            updateInfo("Learning the four-step process");
+            await narrator.speak("The method has four steps: make coefficients equal, eliminate a variable, solve, and back-substitute.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example8-problem', taskId, runId);
+            updateInfo("Example 8: Income and savings");
+            await narrator.speak("Income ratio is 9 to 7, expenditure ratio is 4 to 3, and both save 2000 rupees per month.");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example8-step1', taskId, runId);
+            updateInfo("Making coefficients equal");
+            await narrator.speak("Multiply the first equation by 3 and the second by 4 to make both y coefficients equal to 12.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example8-step2', taskId, runId);
+            updateInfo("Eliminating y and solving");
+            await narrator.speak("Subtract to eliminate y. We get x equals 2000. Substituting back, y equals 4000. So the incomes are 18,000 and 14,000 rupees!");
+            await wait(3000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example9-problem', taskId, runId);
+            updateInfo("Inconsistent system example");
+            await narrator.speak("Now let's see what happens with an inconsistent system that has no solution.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example9-solution', taskId, runId);
+            updateInfo("Getting a false statement");
+            await narrator.speak("After elimination, we get 0 equals 9, which is false. This means no solution exists!");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+
+            // Example 10 full flow
+            switchToScene('example10-problem', taskId, runId);
+            updateInfo("Understanding the number problem");
+            await narrator.speak("A two-digit number plus its reverse equals 66. The digits differ by 2. Find the number!");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+
+            switchToScene('example10-equations', taskId, runId);
+            updateInfo("Setting up equations");
+            await narrator.speak("From the sum condition, we get x plus y equals 6. The digits differ by 2, giving two cases.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+
+            switchToScene('example10-solution', taskId, runId);
+            updateInfo("Finding both solutions");
+            await narrator.speak("Case 1: x minus y equals 2 gives us 42. Case 2: y minus x equals 2 gives us 24. Two numbers satisfy the conditions!");
+            updateAnalysis("Both 42 and 24 work: 42 + 24 = 66, and digits differ by 2 in each. Two valid answers!");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateInfo("Lesson complete! You've mastered elimination!");
+            updateAnalysis("You've learned to eliminate variables by making coefficients equal - a powerful technique for solving linear systems!");
+            
+            isPlaying = false;
+        }
+
+        async function showMethodSteps() {
+            const taskId = 'method';
+            const runId = Date.now();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("📋 The Four-Step Method");
+            switchToScene('method-steps', taskId, runId);
+            updateInfo("Understanding the elimination process");
+            
+            await narrator.speak("The elimination method follows four clear steps.");
+            await wait(2000);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            await narrator.speak("Make coefficients equal, eliminate one variable, solve the resulting equation, then back-substitute to find the other variable.");
+            
+            updateAnalysis("These four steps - equalize, eliminate, solve, and back-substitute - form the foundation of the elimination method!");
+            
+            isPlaying = false;
+        }
+
+        async function showExample8() {
+            const taskId = 'example8';
+            const runId = Date.now();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("💰 Example 8: Income Problem");
+            
+            switchToScene('example8-problem', taskId, runId);
+            updateInfo("Understanding the problem");
+            await narrator.speak("Income ratio is 9 to 7, expenditure ratio is 4 to 3, and both save 2000 rupees per month.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example8-step1', taskId, runId);
+            updateInfo("Step 1: Make y coefficients equal");
+            await narrator.speak("Multiply the first equation by 3 and the second by 4 to make both y coefficients equal to 12.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example8-step2', taskId, runId);
+            updateInfo("Step 2 & 3: Eliminate and solve");
+            await narrator.speak("Subtract to eliminate y. We get x equals 2000. Substituting back, y equals 4000. So the incomes are 18,000 and 14,000 rupees!");
+            
+            updateAnalysis("Solution verified: 18,000:14,000 = 9:7 and expenditures 16,000:12,000 = 4:3. Both save 2000 rupees!");
+            
+            isPlaying = false;
+        }
+
+        async function showExample9() {
+            const taskId = 'example9';
+            const runId = Date.now();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("🚫 Example 9: No Solution");
+            
+            switchToScene('example9-problem', taskId, runId);
+            updateInfo("Setting up the problem");
+            await narrator.speak("Let's solve 2x plus 3y equals 8, and 4x plus 6y equals 7.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example9-solution', taskId, runId);
+            updateInfo("Discovering inconsistency");
+            await narrator.speak("After multiplying and subtracting, we get 0 equals 9, which is impossible! This system has no solution.");
+            
+            updateAnalysis("When elimination gives a false statement like 0 = 9, the system is inconsistent with no solution!");
+            
+            isPlaying = false;
+        }
+
+        async function showExample10() {
+            const taskId = 'example10';
+            const runId = Date.now();
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(4);
+            
+            const narrator = createNewNarrator(taskId, runId);
+            
+            await resetAll();
+            if (!shouldContinue(taskId, runId)) return;
+            
+            updateTitle("🔢 Example 10: Digit Problem");
+            
+            switchToScene('example10-problem', taskId, runId);
+            updateInfo("Understanding the number problem");
+            await narrator.speak("A two-digit number plus its reverse equals 66. The digits differ by 2. Find the number!");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example10-equations', taskId, runId);
+            updateInfo("Setting up equations");
+            await narrator.speak("From the sum condition, we get x plus y equals 6. The digits differ by 2, giving two cases.");
+            await wait(2500);
+            if (!shouldContinue(taskId, runId)) return;
+            
+            switchToScene('example10-solution', taskId, runId);
+            updateInfo("Finding both solutions");
+            await narrator.speak("Case 1: x minus y equals 2 gives us 42. Case 2: y minus x equals 2 gives us 24. Two numbers satisfy the conditions!");
+            
+            updateAnalysis("Both 42 and 24 work: 42 + 24 = 66, and digits differ by 2 in each. Two valid answers!");
+            
+            isPlaying = false;
+        }
+
+        async function resetAll() {
+            if (currentNarrator) currentNarrator.stop();
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            await wait(50);
+            document.getElementById('welcome-scene').classList.add('visible');
+            
+            updateTitle("Master the Elimination Method");
+            updateInfo("Click any button below to explore the elimination method!");
+            updateAnalysis("The elimination method removes variables by making coefficients equal and then adding or subtracting equations - often simpler than substitution!");
+            
+            setActiveButton(-1);
+            
+            await wait(50);
+        }
+
+        window.addEventListener('load', () => {
+            document.getElementById('welcome-scene').classList.add('visible');
+            const narrator = createNewNarrator('initialization', Date.now());
+            narrator.speak("Welcome to the elimination method! Learn how to solve linear equations by eliminating variables.");
+        });
+
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            if (currentNarrator) {
+                currentNarrator.isEnabled = globalAudioEnabled;
+                if (!globalAudioEnabled) {
+                    currentNarrator.stop();
+                }
+            }
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+        });
+    </script>
+</body>
+</html>

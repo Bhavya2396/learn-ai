@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nature of Roots - Interactive Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(126, 87, 194, 0.9);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(126, 87, 194, 1);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3.2rem;
+            background: linear-gradient(45deg, #00ff88, #00bbff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Main Animation Stage */
+        .animation-stage {
+            background: linear-gradient(to bottom, #1a1a2e 0%, #16213e 100%);
+            border-radius: 25px;
+            height: 600px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            border: 4px solid rgba(0, 255, 136, 0.4);
+        }
+
+        /* Grid Background */
+        .grid-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.3;
+        }
+
+        /* Content Container inside stage */
+        .stage-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        /* Animation Scenes */
+        .animation-scene {
+            display: none;
+            opacity: 0;
+            transition: opacity 1s ease;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 40px;
+        }
+
+        .animation-scene.visible {
+            display: flex;
+            opacity: 1;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Welcome Scene */
+        .welcome-scene {
+            text-align: center;
+        }
+
+        .welcome-title {
+            font-size: 2.5rem;
+            color: #00ff88;
+            margin-bottom: 20px;
+            animation: titleGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+            50% { text-shadow: 0 0 20px rgba(0, 255, 136, 0.8); }
+        }
+
+        /* Quadratic Formula Scene */
+        .formula-content {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .formula-box {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 105, 180, 0.2));
+            border: 3px solid rgba(255, 215, 0, 0.6);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 30px 0;
+            transform: scale(0);
+            animation: formulaReveal 1s ease forwards;
+        }
+
+        @keyframes formulaReveal {
+            0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+            50% { transform: scale(1.1) rotate(2deg); opacity: 0.8; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .formula-display {
+            font-size: 2.5rem;
+            color: #ffd700;
+            font-family: 'Courier New', monospace;
+            margin: 25px 0;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        /* Discriminant Scene */
+        .discriminant-content {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .discriminant-visualization {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            border: 2px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .discriminant-formula {
+            font-size: 2rem;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 187, 255, 0.2));
+            border-radius: 15px;
+            border: 2px solid rgba(0, 255, 136, 0.5);
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 136, 0.3); }
+            50% { box-shadow: 0 0 25px rgba(0, 255, 136, 0.6); }
+        }
+
+        .cases-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .case-item {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.2), rgba(63, 81, 181, 0.2));
+            border: 2px solid rgba(33, 150, 243, 0.6);
+            border-radius: 15px;
+            padding: 20px;
+            opacity: 0;
+            transform: translateX(-100px);
+            animation: slideInCase 0.8s ease forwards;
+            transition: all 0.3s ease;
+        }
+
+        .case-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(33, 150, 243, 0.3);
+        }
+
+        .case-item:nth-child(1) { animation-delay: 0.3s; }
+        .case-item:nth-child(2) { animation-delay: 0.6s; }
+        .case-item:nth-child(3) { animation-delay: 0.9s; }
+
+        @keyframes slideInCase {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .case-condition {
+            font-size: 1.4rem;
+            color: #ffd700;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .case-result {
+            font-size: 1.2rem;
+            color: #ffffff;
+            margin-bottom: 15px;
+        }
+
+        .case-visual {
+            height: 60px;
+            border-radius: 10px;
+            margin-top: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .case-positive {
+            background: linear-gradient(135deg, #4caf50, #8bc34a);
+            animation: positiveWave 2s ease-in-out infinite;
+        }
+
+        .case-zero {
+            background: linear-gradient(135deg, #ff9800, #ffc107);
+            animation: zeroFlash 1.5s ease-in-out infinite;
+        }
+
+        .case-negative {
+            background: linear-gradient(135deg, #f44336, #e91e63);
+            animation: negativeShake 1s ease-in-out infinite;
+        }
+
+        .case-item:hover {
+            transform: translateY(-3px); /* Reduced hover effect */
+            box-shadow: 0 8px 20px rgba(33, 150, 243, 0.3); /* Reduced shadow */
+        }
+
+        .case-item:nth-child(1) { animation-delay: 0.3s; }
+        .case-item:nth-child(2) { animation-delay: 0.6s; }
+        .case-item:nth-child(3) { animation-delay: 0.9s; }
+
+        @keyframes slideInCase {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes zeroFlash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes negativeShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+
+        /* Interactive Calculator Scene */
+        .calculator-content {
+            width: 100%;
+            max-width: 800px;
+            margin: 25 auto;
+            text-align: center;
+        }
+
+        .calculator-box {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            border: 2px solid rgba(255, 215, 0, 0.4);
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .input-label {
+            font-size: 1.2rem;
+            color: #ffd700;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .coefficient-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(0, 255, 136, 0.5);
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 1.2rem;
+            color: white;
+            text-align: center;
+            width: 80px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .coefficient-input:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        .calculate-btn {
+            background: linear-gradient(135deg, #00ff88, #00bbff);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px 10px;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 255, 136, 0.4);
+        }
+
+        .result-display {
+            background: linear-gradient(135deg, rgba(255, 105, 180, 0.2), rgba(255, 215, 0, 0.2));
+            border: 2px solid rgba(255, 105, 180, 0.6);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: all 0.5s ease;
+        }
+
+        .discriminant-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .root-nature {
+            font-size: 1.4rem;
+            margin-bottom: 10px;
+        }
+
+        .root-values {
+            font-size: 1.2rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Examples Scene */
+        .examples-content {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .example-selector {
+            margin: 20px 0;
+        }
+
+        .example-btn {
+            background: linear-gradient(135deg, #764ba2, #667eea);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .example-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(118, 75, 162, 0.4);
+        }
+
+        .example-btn.active {
+            background: linear-gradient(135deg, #00ff88, #00bbff);
+        }
+
+        .example-display {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 20px;
+            padding: 25px;
+            margin: 20px 0;
+            border: 2px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .example-equation {
+            font-size: 1.8rem;
+            color: #ff69b4;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, rgba(255, 105, 180, 0.2), rgba(233, 30, 99, 0.2));
+            border-radius: 10px;
+            border: 2px solid rgba(255, 105, 180, 0.4);
+        }
+
+        .example-calculation {
+            background: linear-gradient(135deg, rgba(0, 187, 255, 0.2), rgba(33, 150, 243, 0.2));
+            border: 2px solid rgba(0, 187, 255, 0.4);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .example-result {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(76, 175, 80, 0.2));
+            border: 2px solid rgba(0, 255, 136, 0.4);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            color: #00ff88;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #764ba2, #667eea);
+            border: none;
+            color: white;
+            padding: 16px 28px;
+            border-radius: 35px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(118, 75, 162, 0.3);
+            min-width: 180px;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(118, 75, 162, 0.4);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #00ff88, #00bbff);
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.4);
+        }
+
+        /* Analysis Panel */
+        .analysis {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(0, 255, 136, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .analysis-title {
+            font-size: 1.6rem;
+            color: #00ff88;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .analysis-content {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            text-align: center;
+            color: #e2e8f0;
+        }
+
+        /* Info Display */
+        .info-display {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 15px 20px;
+            text-align: center;
+            font-size: 1.1rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+
+        .info-display.visible {
+            opacity: 1;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .animation-stage {
+                height: 500px;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .input-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .cases-container {
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Nature of Roots</h1>
+            <p>Discover how the discriminant reveals the nature of quadratic equation solutions!</p>
+        </div>
+
+        <!-- Main Animation Stage -->
+        <div class="animation-stage" id="animation-stage">
+            <div class="grid-background"></div>
+            
+            <!-- Stage Content Container -->
+            <div class="stage-content">
+                <!-- Welcome Scene -->
+                <div class="animation-scene visible" id="welcome-scene">
+                    <div class="welcome-scene">
+                        <h2 class="welcome-title">Explore the Nature of Roots!</h2>
+                        <p style="font-size: 1.3rem; color: #00bbff;">
+                            Learn how the discriminant determines whether<br>
+                            quadratic equations have real or complex solutions
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Quadratic Formula Scene -->
+                <div class="animation-scene" id="formula-scene">
+                    <div class="formula-content">
+                        <h2 style="font-size: 2rem; color: #00ff88; margin-bottom: 20px;">
+                            The Quadratic Formula
+                        </h2>
+                        <div class="formula-box">
+                            <p style="font-size: 1.3rem; margin-bottom: 20px; color: #ffffff;">
+                                The universal solution to any quadratic equation:
+                            </p>
+                            <div class="formula-display">
+                                x = (-b ± √(b² - 4ac)) / 2a
+                            </div>
+                            <p style="font-size: 1.2rem; margin-top: 20px; color: #00bbff;">
+                                The expression under the square root (b² - 4ac) is called the <strong style="color: #ffd700;">discriminant</strong>
+                            </p>
+                            <p style="font-size: 1.1rem; margin-top: 15px; color: #ffffff;">
+                                The discriminant determines the nature of the roots!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Discriminant Scene -->
+                <div class="animation-scene" id="discriminant-scene">
+                    <div class="discriminant-content">
+                        <h2 style="font-size: 2rem; color: #00ff88; margin-bottom: 20px;">
+                            Understanding the Discriminant
+                        </h2>
+                        <div class="discriminant-visualization">
+                            <div class="discriminant-formula">
+                                D = b² - 4ac
+                            </div>
+                            <div class="cases-container">
+                                <div class="case-item">
+                                    <div class="case-condition">If D > 0</div>
+                                    <div class="case-result">Two distinct real roots</div>
+                                    <p style="font-size: 0.8rem; color: #a5d6a7; margin-top: 5px;">The parabola crosses the x-axis at two points</p>
+                                </div>
+                                <div class="case-item">
+                                    <div class="case-condition">If D = 0</div>
+                                    <div class="case-result">Two equal real roots (one repeated root)</div>
+                                    <p style="font-size: 0.8rem; color: #ffcc80; margin-top: 5px;">The parabola touches the x-axis at exactly one point</p>
+                                </div>
+                                <div class="case-item">
+                                    <div class="case-condition">If D < 0</div>
+                                    <div class="case-result">No real roots (complex roots)</div>
+                                    <p style="font-size: 0.8rem; color: #ffcdd2; margin-top: 5px;">The parabola does not cross the x-axis</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Calculator Scene -->
+                <div class="animation-scene" id="calculator-scene">
+                    <div class="calculator-content">
+                        <h2 style="font-size: 1rem; color: #00ff88; margin-top: 35px;  margin-bottom: 10px;">
+                            Interactive Discriminant Calculator
+                        </h2>
+                        <div class="calculator-box">
+                            <p style="font-size: 1.3rem; color: #ffd700; margin-bottom: 20px;">
+                                Enter coefficients for ax² + bx + c = 0
+                            </p>
+                            <div class="input-grid">
+                                <div class="input-group">
+                                    <div class="input-label">a</div>
+                                    <input type="number" id="coeff-a" class="coefficient-input" value="1" step="any">
+                                </div>
+                                <div class="input-group">
+                                    <div class="input-label">b</div>
+                                    <input type="number" id="coeff-b" class="coefficient-input" value="0" step="any">
+                                </div>
+                                <div class="input-group">
+                                    <div class="input-label">c</div>
+                                    <input type="number" id="coeff-c" class="coefficient-input" value="0" step="any">
+                                </div>
+                            </div>
+                            <button class="calculate-btn" onclick="calculateDiscriminant()">Calculate Discriminant</button>
+                            <button class="calculate-btn" onclick="setExample(1)">Example 1</button>
+                            <button class="calculate-btn" onclick="setExample(2)">Example 2</button>
+                            <button class="calculate-btn" onclick="setExample(3)">Example 3</button>
+                            
+                            <div class="result-display" id="calculator-result">
+                                <div style="font-size: 1.2rem; color: #ffffff;">
+                                    Enter coefficients and click Calculate to see the discriminant and nature of roots
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Examples Scene -->
+                <div class="animation-scene" id="examples-scene">
+                    <div class="examples-content">
+                        <h2 style="font-size: 2rem; color: #00ff88; margin-bottom: 20px;">
+                            Worked Examples
+                        </h2>
+                        <div class="example-selector">
+                            <button class="example-btn active" onclick="selectRootExample(0)">No Real Roots</button>
+                            <button class="example-btn" onclick="selectRootExample(1)">Equal Roots</button>
+                            <button class="example-btn" onclick="selectRootExample(2)">Circular Park Problem</button>
+                        </div>
+                        <div class="example-display" id="root-example-display">
+                            <div class="example-equation">2x² - 4x + 3 = 0</div>
+                            <div class="example-calculation">
+                                <strong style="color: #00bbff;">Calculate discriminant:</strong><br>
+                                D = b² - 4ac = (-4)² - 4(2)(3) = 16 - 24 = -8
+                            </div>
+                            <div class="example-result" style="color: #f44336;">
+                                Since D = -8 < 0, this equation has no real roots
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Display -->
+            <div class="info-display visible" id="info-display">
+                Choose a topic below to explore the nature of quadratic roots!
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="lesson-title">Choose Your Exploration Path</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="showFormula()">📐 Quadratic Formula</button>
+                <button class="demo-btn" onclick="showDiscriminant()">🔍 Discriminant Cases</button>
+                <button class="demo-btn" onclick="showCalculator()">🧮 Interactive Calculator</button>
+                <button class="demo-btn" onclick="showExamples()">📚 Worked Examples</button>
+                <button class="demo-btn" onclick="resetAll()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Analysis Panel -->
+        <div class="analysis">
+            <div class="analysis-title">📊 Understanding Root Nature</div>
+            <div class="analysis-content" id="analysis-content">
+                The discriminant is the key to understanding quadratic equation behavior. It tells us not just how many real solutions exist, 
+                but also reveals the geometric relationship between the parabola and the x-axis. This fundamental concept connects algebra and geometry beautifully.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice System
+        class RootNarrator {
+            constructor() {
+                this.isEnabled = globalAudioEnabled;
+                this.currentUtterance = null;
+                this.settings = { rate: 0.95, pitch: 1.0, volume: 0.85 };
+                this.isDestroyed = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text || this.isDestroyed) return;
+                
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (this.isDestroyed) {
+                            resolve();
+                            return;
+                        }
+                        this.stop();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        Object.assign(utterance, this.settings);
+                        
+                        utterance.onend = resolve;
+                        utterance.onerror = resolve;
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+            }
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stop();
+                this.currentUtterance = null;
+                this.settings = null;
+            }
+        }
+
+        // Global state management
+        let globalAudioEnabled = true;
+        let currentNarrator = null;
+        let isPlaying = false;
+        let currentDemoAborted = false;
+        let currentTaskId = null;
+        let animationTimeouts = [];
+
+        // Examples data
+        const rootExamples = [
+            {
+                title: "No Real Roots",
+                equation: "2x² - 4x + 3 = 0",
+                calculation: "D = b² - 4ac = (-4)² - 4(2)(3) = 16 - 24 = -8",
+                result: "Since D = -8 < 0, this equation has no real roots",
+                resultColor: "#f44336",
+                a: 2, b: -4, c: 3
+            },
+            {
+                title: "Equal Roots",
+                equation: "3x² - 2x + 1/3 = 0",
+                calculation: "D = b² - 4ac = (-2)² - 4(3)(1/3) = 4 - 4 = 0",
+                result: "Since D = 0, this equation has two equal real roots: x = 1/3",
+                resultColor: "#ff9800",
+                a: 3, b: -2, c: 1/3
+            },
+            {
+                title: "Circular Park Problem",
+                equation: "x² - 10x + 21 = 0",
+                calculation: "D = b² - 4ac = (-10)² - 4(1)(21) = 100 - 84 = 16",
+                result: "Since D = 16 > 0, this equation has two distinct real roots: x = 3, x = 7",
+                resultColor: "#4caf50",
+                a: 1, b: -10, c: 21
+            }
+        ];
+
+        // Function to stop current demo
+        function stopCurrentDemo() {
+            currentDemoAborted = true;
+            currentTaskId = null;
+            
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            updateInfo("Choose a topic below to continue exploring!");
+            isPlaying = false;
+        }
+
+        function shouldContinue(taskId = null) {
+            if (taskId && currentTaskId && taskId !== currentTaskId) {
+                return false;
+            }
+            return !currentDemoAborted;
+        }
+
+        function createNewNarrator(taskId = null) {
+            if (currentNarrator) {
+                currentNarrator.destroy();
+                currentNarrator = null;
+            }
+            currentDemoAborted = false;
+            currentTaskId = taskId;
+            currentNarrator = new RootNarrator();
+            return currentNarrator;
+        }
+
+        function switchToScene(sceneId, taskId = null) {
+            if (!shouldContinue(taskId)) return;
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            const timeout = setTimeout(() => {
+                if (!shouldContinue(taskId)) return;
+                const scene = document.getElementById(sceneId);
+                if (scene) {
+                    scene.classList.add('visible');
+                }
+            }, 300);
+            
+            animationTimeouts.push(timeout);
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            document.getElementById('welcome-scene').classList.add('visible');
+            const narrator = createNewNarrator('initialization');
+            narrator.speak("Welcome to the Nature of Roots! Discover how the discriminant reveals whether quadratic equations have real or complex solutions.");
+            updateInfo("Choose a topic below to explore the nature of quadratic roots!");
+        });
+
+        // Show Formula
+        async function showFormula() {
+            const taskId = 'formula';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(0);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            await resetAll(false);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📐 Quadratic Formula");
+            switchToScene('formula-scene', taskId);
+            updateInfo("Understanding the quadratic formula and discriminant");
+            
+            await narrator.speak("The quadratic formula provides the solution to any quadratic equation. The key component is the discriminant: b squared minus 4ac.");
+            await wait(4000);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("The discriminant determines whether the square root will be real or complex, which tells us the nature of the roots.");
+            
+            updateAnalysis("The quadratic formula contains all the information needed to solve any quadratic equation. The discriminant (b² - 4ac) is the critical component that determines the nature of the solutions.");
+            
+            isPlaying = false;
+        }
+
+        // Show Discriminant
+        async function showDiscriminant() {
+            const taskId = 'discriminant';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(1);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            await resetAll(false);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🔍 Discriminant Analysis");
+            switchToScene('discriminant-scene', taskId);
+            
+            // Hide the info display for this scene to give more space
+            const infoDisplay = document.getElementById('info-display');
+            if (infoDisplay) {
+                infoDisplay.classList.remove('visible');
+            }
+            
+            await narrator.speak("The discriminant D equals b squared minus 4ac. There are three important cases to understand.");
+            await wait(3500);
+            if (!shouldContinue(taskId)) return;
+            
+            await narrator.speak("When D is positive, we get two distinct real roots. When D equals zero, we get one repeated root. When D is negative, we get complex roots.");
+            
+            updateAnalysis("The discriminant provides a complete classification of quadratic equation solutions. It connects the algebraic formula to the geometric behavior of parabolas on the coordinate plane.");
+            
+            isPlaying = false;
+        }
+
+        // Show Calculator
+        async function showCalculator() {
+            const taskId = 'calculator';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(2);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            await resetAll(false);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("🧮 Interactive Calculator");
+            switchToScene('calculator-scene', taskId);
+            updateInfo("Calculate discriminants and explore different cases");
+            
+            await narrator.speak("Use this interactive calculator to explore how different coefficients affect the discriminant and root nature. Try the example buttons or enter your own values.");
+            
+            updateAnalysis("Experimentation with the calculator helps build intuition about how coefficient values influence the discriminant and consequently the nature of roots.");
+            
+            isPlaying = false;
+        }
+
+        // Show Examples
+        async function showExamples() {
+            const taskId = 'examples';
+            stopCurrentDemo();
+            isPlaying = true;
+            setActiveButton(3);
+            
+            const narrator = createNewNarrator(taskId);
+            
+            await resetAll(false);
+            if (!shouldContinue(taskId)) return;
+            
+            updateTitle("📚 Worked Examples");
+            switchToScene('examples-scene', taskId);
+            updateInfo("Step-by-step solutions showing all three discriminant cases");
+            
+            await narrator.speak("These worked examples demonstrate each type of discriminant case with complete calculations and interpretations.");
+            
+            updateAnalysis("Working through concrete examples reinforces the theoretical understanding and shows how to apply discriminant analysis to solve real problems.");
+            
+            isPlaying = false;
+        }
+
+        // Calculator Functions
+        function calculateDiscriminant() {
+            const a = parseFloat(document.getElementById('coeff-a').value) || 0;
+            const b = parseFloat(document.getElementById('coeff-b').value) || 0;
+            const c = parseFloat(document.getElementById('coeff-c').value) || 0;
+            
+            if (a === 0) {
+                document.getElementById('calculator-result').innerHTML = `
+                    <div style="color: #f44336; font-size: 1.3rem;">
+                        Invalid: a cannot be zero in a quadratic equation!
+                    </div>
+                `;
+                return;
+            }
+            
+            const discriminant = b * b - 4 * a * c;
+            let nature, color, roots;
+            
+            if (discriminant > 0) {
+                nature = "Two distinct real roots";
+                color = "#4caf50";
+                const root1 = (-b + Math.sqrt(discriminant)) / (2 * a);
+                const root2 = (-b - Math.sqrt(discriminant)) / (2 * a);
+                roots = `x₁ = ${root1.toFixed(3)}, x₂ = ${root2.toFixed(3)}`;
+            } else if (discriminant === 0) {
+                nature = "Two equal real roots";
+                color = "#ff9800";
+                const root = -b / (2 * a);
+                roots = `x = ${root.toFixed(3)} (repeated)`;
+            } else {
+                nature = "No real roots (complex)";
+                color = "#f44336";
+                roots = "Complex roots: x = (-b ± i√|D|) / 2a";
+            }
+            
+            document.getElementById('calculator-result').innerHTML = `
+                <div class="discriminant-value" style="color: ${color};">
+                    D = ${discriminant.toFixed(2)}
+                </div>
+                <div class="root-nature" style="color: ${color};">
+                    ${nature}
+                </div>
+                <div class="root-values" style="color: #ffffff;">
+                    ${roots}
+                </div>
+            `;
+            
+            // Add voice feedback
+            if (currentNarrator) {
+                currentNarrator.speak(`The discriminant is ${discriminant.toFixed(2)}. This means the equation has ${nature.toLowerCase()}.`);
+            }
+        }
+
+        function setExample(exampleNum) {
+            const examples = [
+                { a: 2, b: -4, c: 3 },    // D < 0
+                { a: 3, b: -2, c: 0.333 }, // D = 0 (approximately)
+                { a: 1, b: -10, c: 21 }   // D > 0
+            ];
+            
+            const example = examples[exampleNum - 1];
+            document.getElementById('coeff-a').value = example.a;
+            document.getElementById('coeff-b').value = example.b;
+            document.getElementById('coeff-c').value = example.c;
+            
+            calculateDiscriminant();
+        }
+
+        // Example selection for worked examples
+        function selectRootExample(index) {
+            const example = rootExamples[index];
+            
+            // Update button states
+            document.querySelectorAll('.example-btn').forEach((btn, i) => {
+                btn.classList.remove('active');
+                if (i === index) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Update display
+            const display = document.getElementById('root-example-display');
+            display.innerHTML = `
+                <div class="example-equation">${example.equation}</div>
+                <div class="example-calculation">
+                    <strong style="color: #00bbff;">Calculate discriminant:</strong><br>
+                    ${example.calculation}
+                </div>
+                <div class="example-result" style="color: ${example.resultColor};">
+                    ${example.result}
+                </div>
+            `;
+            
+            // Add voice narration
+            if (currentNarrator) {
+                currentNarrator.speak(`${example.title}. For the equation ${example.equation.replace(/x²/g, 'x squared')}, ${example.result}`);
+            }
+        }
+
+        // Reset
+        async function resetAll(stopDemo = true) {
+            // Only stop current demos and audio if this is called from Reset button
+            if (stopDemo) {
+                stopCurrentDemo();
+            }
+            
+            // Clear any remaining timeouts
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            document.querySelectorAll('.animation-scene').forEach(scene => {
+                scene.classList.remove('visible');
+            });
+            
+            await wait(50);
+            document.getElementById('welcome-scene').classList.add('visible');
+            
+            updateTitle("Choose Your Exploration Path");
+            updateInfo("Choose a topic below to explore the nature of quadratic roots!");
+            updateAnalysis("The discriminant is the key to understanding quadratic equation behavior. It tells us not just how many real solutions exist, but also reveals the geometric relationship between the parabola and the x-axis. This fundamental concept connects algebra and geometry beautifully.");
+            
+            setActiveButton(-1);
+            
+            await wait(50);
+        }
+
+        // Helper Functions
+        function updateTitle(title) {
+            document.getElementById('lesson-title').textContent = title;
+        }
+
+        function updateInfo(text) {
+            const info = document.getElementById('info-display');
+            info.textContent = text;
+            info.classList.add('visible');
+        }
+
+        function updateAnalysis(text) {
+            document.getElementById('analysis-content').textContent = text;
+        }
+
+        function setActiveButton(index) {
+            document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => {
+                const timeout = setTimeout(resolve, ms);
+                animationTimeouts.push(timeout);
+            });
+        }
+
+        // Audio Control
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            globalAudioEnabled = !globalAudioEnabled;
+            if (currentNarrator) {
+                currentNarrator.isEnabled = globalAudioEnabled;
+                if (!globalAudioEnabled) {
+                    currentNarrator.stop();
+                }
+            }
+            document.getElementById('mute-btn').classList.toggle('muted', !globalAudioEnabled);
+        });
+    </script>
+</body>
+</html>

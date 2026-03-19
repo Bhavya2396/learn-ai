@@ -1,0 +1,2142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3.1 - Laws of Chemical Combination</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 25%, #3e6eb5 50%, #2a5298 75%, #1e3c72 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated particles background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(3px 3px at 10% 20%, rgba(255,255,255,0.3), transparent),
+                radial-gradient(2px 2px at 80% 60%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1px 1px at 45% 80%, rgba(255,255,255,0.4), transparent);
+            background-size: 300px 300px;
+            animation: particleFloat 45s linear infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        @keyframes particleFloat {
+            from { transform: translate(0, 0) rotate(0deg); }
+            to { transform: translate(-100px, -100px) rotate(360deg); }
+        }
+
+        /* Audio Control */
+        #audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5);
+        }
+
+        .control-btn.muted .unmute-icon { display: none; }
+        .control-btn:not(.muted) .mute-icon { display: none; }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            background: linear-gradient(45deg, #ffd89b, #19547b, #ffd89b);
+            background-size: 200% 200%;
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 700;
+            animation: gradientShift 5s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.95;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* Animation Stage */
+        .animation-stage {
+            background: linear-gradient(135deg, 
+                rgba(30, 60, 114, 0.95) 0%,
+                rgba(42, 82, 152, 0.95) 50%,
+                rgba(30, 60, 114, 0.95) 100%);
+            border-radius: 25px;
+            height: 650px;
+            position: relative;
+            margin: 40px 0;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.4),
+                inset 0 0 100px rgba(255, 216, 155, 0.1);
+            overflow: hidden;
+            border: 3px solid rgba(255, 216, 155, 0.3);
+        }
+
+        #animationCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: grab;
+        }
+
+        #animationCanvas:active {
+            cursor: grabbing;
+        }
+
+        /* Stage State Effects */
+        .animation-stage.ancient-state {
+            border-color: #ffd89b;
+            box-shadow: 0 25px 50px rgba(255, 216, 155, 0.3);
+        }
+
+        .animation-stage.experiment-state {
+            border-color: #667eea;
+            box-shadow: 0 25px 50px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Digital Scale Display */
+        .scale-display {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #000000, #1a1a1a);
+            border: 4px solid #333;
+            border-radius: 15px;
+            padding: 20px 40px;
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.8),
+                inset 0 0 20px rgba(0, 255, 0, 0.1);
+            display: none;
+            z-index: 10;
+        }
+
+        .scale-reading {
+            font-family: 'Courier New', monospace;
+            font-size: 3rem;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .scale-label {
+            font-size: 1rem;
+            color: #888;
+            text-align: center;
+            margin-top: 10px;
+            text-transform: uppercase;
+        }
+
+        /* Stage Info Overlay */
+        .stage-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px 20px;
+            border: 2px solid rgba(255, 216, 155, 0.3);
+            max-width: 350px;
+        }
+
+        .stage-info h3 {
+            font-size: 1.3rem;
+            color: #ffd89b;
+            margin-bottom: 8px;
+        }
+
+        .stage-info p {
+            font-size: 0.95rem;
+            color: #e2e8f0;
+            line-height: 1.4;
+        }
+
+        /* Formula Display */
+        .formula-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 15px 30px;
+            border: 2px solid rgba(255, 216, 155, 0.4);
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffd89b;
+            font-family: 'Courier New', monospace;
+            min-width: 300px;
+            text-align: center;
+            display: none;
+        }
+
+        /* Viewer Controls */
+        .viewer-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .view-btn {
+            width: 45px;
+            height: 45px;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(31, 41, 55, 0.9);
+            border: 2px solid rgba(255, 216, 155, 0.3);
+            color: white;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+        }
+
+        .view-btn:hover {
+            background: rgba(255, 216, 155, 0.3);
+            transform: scale(1.1);
+        }
+
+        .view-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: #ffd89b;
+        }
+
+        /* Control Panel */
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .controls-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            background: linear-gradient(45deg, #ffd89b, #764ba2);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 600;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .demo-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 16px 28px;
+            border-radius: 35px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            min-width: 200px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s;
+        }
+
+        .demo-btn:hover::before {
+            left: 100%;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5);
+        }
+
+        .demo-btn.active {
+            background: linear-gradient(135deg, #ffd89b, #19547b);
+            box-shadow: 0 8px 25px rgba(255, 216, 155, 0.4);
+        }
+
+        .demo-btn.loading {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-btn.loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: loadingShimmer 1.5s infinite;
+        }
+
+        .demo-btn:disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+            transform: none !important;
+        }
+
+        .demo-btn.queued {
+            opacity: 0.7;
+            position: relative;
+        }
+
+        .demo-btn.queued::before {
+            content: '⏳';
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 0.8rem;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .demo-btn.last-clicked {
+            position: relative;
+            box-shadow: 0 0 20px rgba(255, 216, 155, 0.6);
+            border: 2px solid #ffd89b;
+        }
+
+        .demo-btn.last-clicked::after {
+            content: '✓';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            font-size: 0.8rem;
+            background: #10b981;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes loadingShimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* Historical Info Box */
+        .history-box {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+            border-radius: 20px;
+            padding: 25px;
+            margin: 20px 0;
+            border: 2px solid rgba(255, 216, 155, 0.3);
+        }
+
+        .history-title {
+            font-size: 1.3rem;
+            color: #ffd89b;
+            margin-bottom: 15px;
+        }
+
+        .history-content {
+            font-size: 1.1rem;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        /* Data Panel */
+        .data-panel {
+            background: linear-gradient(135deg, 
+                rgba(0, 0, 0, 0.7),
+                rgba(30, 60, 114, 0.7));
+            border-radius: 25px;
+            padding: 35px;
+            margin: 35px 0;
+            border: 3px solid rgba(255, 216, 155, 0.3);
+            backdrop-filter: blur(15px);
+        }
+
+        .data-title {
+            font-size: 1.8rem;
+            background: linear-gradient(45deg, #ffd89b, #764ba2);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Mass Display */
+        .mass-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .mass-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .mass-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-5px);
+        }
+
+        .mass-label {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin-bottom: 10px;
+        }
+
+        .mass-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ffd89b;
+        }
+
+        .mass-unit {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin-left: 5px;
+        }
+
+        /* Timeline */
+        .timeline {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+            border: 2px solid rgba(255, 216, 155, 0.2);
+        }
+
+        .timeline-title {
+            font-size: 1.5rem;
+            color: #ffd89b;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .timeline-item {
+            display: flex;
+            margin: 20px 0;
+            align-items: center;
+        }
+
+        .timeline-date {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            min-width: 120px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .timeline-content {
+            margin-left: 20px;
+            flex: 1;
+            color: #e2e8f0;
+        }
+
+        /* Progress Indicator */
+        .progress-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 10px 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        /* Animation Status Indicator */
+        .animation-status {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 10px 15px;
+            color: #ffd89b;
+            font-size: 0.9rem;
+            display: none;
+            z-index: 1000;
+            border: 2px solid rgba(255, 216, 155, 0.3);
+        }
+
+        .animation-status.show {
+            display: block;
+        }
+
+
+        .progress-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .progress-dot.active {
+            background: linear-gradient(135deg, #ffd89b, #764ba2);
+            transform: scale(1.3);
+        }
+
+        .progress-dot.completed {
+            background: #10b981;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .animation-stage {
+                height: 400px;
+            }
+            
+            .demo-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .mass-display {
+                grid-template-columns: 1fr;
+            }
+
+            .scale-reading {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Control -->
+    <div id="audio-control">
+        <button id="mute-btn" class="control-btn">
+            <span class="unmute-icon">🔊</span>
+            <span class="mute-icon">🔇</span>
+        </button>
+        <button id="speed-btn" class="control-btn" title="Speed">
+            1x
+        </button>
+    </div>
+
+    <!-- Animation Status Indicator -->
+    <div id="animation-status" class="animation-status">
+        <span id="status-text">Animation running...</span>
+    </div>
+
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Chapter 3.1: Laws of Chemical Combination</h1>
+            <p>Journey from ancient philosophical ideas to modern scientific laws</p>
+        </div>
+
+        <!-- Historical Context -->
+        <div class="history-box">
+            <div class="history-title">📜 The Quest to Understand Matter</div>
+            <div class="history-content">
+                From ancient India's concept of "Parmanu" to Greece's "atoms," humanity has long sought to understand the fundamental nature of matter. This chapter bridges the philosophical insights of ancient thinkers with the experimental laws established by Lavoisier and Proust.
+            </div>
+        </div>
+
+        <!-- Animation Stage -->
+        <div class="animation-stage" id="stage">
+            <canvas id="animationCanvas"></canvas>
+            
+            <div class="stage-info" id="stageInfo">
+                <h3 id="infoTitle">Welcome to Chapter 3.1</h3>
+                <p id="infoText">Explore the journey from ancient philosophy to modern chemistry</p>
+            </div>
+
+            <div class="formula-display" id="formulaDisplay">
+                <!-- Formula will be displayed here -->
+            </div>
+
+            <!-- Scale Display -->
+            <div class="scale-display" id="scaleDisplay">
+                <div class="scale-reading" id="scaleReading">0.00 g</div>
+                <div class="scale-label">Digital Balance</div>
+            </div>
+
+            <div class="viewer-controls">
+                <button class="view-btn active" onclick="setViewMode('3d')" title="3D View">3D</button>
+                <button class="view-btn" onclick="setViewMode('top')" title="Top View">⬆</button>
+                <button class="view-btn" onclick="setViewMode('side')" title="Side View">➡</button>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-title" id="lesson-title">Explore the Chapter</div>
+            
+            <div class="demo-buttons">
+                <button class="demo-btn" onclick="activateButton(this); playCompleteStory()">📖 Complete Chapter</button>
+                <button class="demo-btn" onclick="activateButton(this); showAncientIdeas()">🏛️ Ancient Philosophy</button>
+                <button class="demo-btn" onclick="activateButton(this); showParmanuConcept()">⚛️ Parmanu Concept</button>
+                <button class="demo-btn" onclick="activateButton(this); showConservationExperiment()">⚖️ Conservation of Mass</button>
+                <button class="demo-btn" onclick="activateButton(this); resetAll()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline">
+            <div class="timeline-title">📅 Historical Timeline</div>
+            <div class="timeline-item">
+                <div class="timeline-date">500 BC</div>
+                <div class="timeline-content">
+                    <strong>Maharishi Kanad</strong> proposes "Parmanu" - indivisible particles of matter
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-date">500 BC</div>
+                <div class="timeline-content">
+                    <strong>Pakudha Katyayama</strong> elaborates that particles combine to form matter
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-date">500 BC</div>
+                <div class="timeline-content">
+                    <strong>Democritus & Leucippus</strong> introduce "atoms" (meaning indivisible)
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-date">18th Century</div>
+                <div class="timeline-content">
+                    <strong>Lavoisier & Proust</strong> establish experimental laws of chemical combination
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Panel -->
+        <div class="data-panel">
+            <div class="data-title">📊 Experimental Data</div>
+            
+            <!-- Mass Display -->
+            <div class="mass-display">
+                <div class="mass-card">
+                    <div class="mass-label">Initial Mass</div>
+                    <div class="mass-value" id="initialMass">0.00<span class="mass-unit">g</span></div>
+                </div>
+                <div class="mass-card">
+                    <div class="mass-label">Final Mass</div>
+                    <div class="mass-value" id="finalMass">0.00<span class="mass-unit">g</span></div>
+                </div>
+                <div class="mass-card">
+                    <div class="mass-label">Mass Change</div>
+                    <div class="mass-value" id="massChange">0.00<span class="mass-unit">g</span></div>
+                </div>
+            </div>
+
+            <div id="current-analysis" style="text-align: center; margin-top: 20px; font-size: 1.1rem; color: #e2e8f0;">
+                Ready to explore the journey from ancient philosophy to modern chemistry!
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="progress-indicator" id="progressIndicator" style="display: none;">
+        <div class="progress-dot" data-step="1"></div>
+        <div class="progress-dot" data-step="2"></div>
+        <div class="progress-dot" data-step="3"></div>
+        <div class="progress-dot" data-step="4"></div>
+        <div class="progress-dot" data-step="5"></div>
+        <div class="progress-dot" data-step="6"></div>
+    </div>
+
+    <script>
+        // Enhanced Voice System
+        class ChapterNarrator {
+            constructor() {
+                this.isEnabled = true;
+                this.rate = 1.0;
+                this.currentUtterance = null;
+                this.isSpeaking = false;
+                this.speechQueue = [];
+                this.isProcessingQueue = false;
+            }
+
+            async speak(text, delay = 0) {
+                if (!this.isEnabled || !text) return Promise.resolve();
+                
+                return new Promise((resolve) => {
+                    // Add to queue if already speaking
+                    if (this.isSpeaking) {
+                        this.speechQueue.push({ text, delay, resolve });
+                        this.processQueue();
+                        return;
+                    }
+                    
+                    setTimeout(() => {
+                        this.stop();
+                        this.isSpeaking = true;
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.rate = this.rate;
+                        utterance.pitch = 1.0;
+                        utterance.volume = 0.85;
+                        
+                        utterance.onend = () => {
+                            this.isSpeaking = false;
+                            this.currentUtterance = null;
+                            resolve();
+                            this.processQueue();
+                        };
+                        
+                        utterance.onerror = () => {
+                            this.isSpeaking = false;
+                            this.currentUtterance = null;
+                            resolve();
+                            this.processQueue();
+                        };
+                        
+                        this.currentUtterance = utterance;
+                        speechSynthesis.speak(utterance);
+                    }, delay);
+                });
+            }
+
+            async processQueue() {
+                if (this.isProcessingQueue || this.speechQueue.length === 0) return;
+                
+                this.isProcessingQueue = true;
+                
+                while (this.speechQueue.length > 0 && !this.isSpeaking) {
+                    const { text, delay, resolve } = this.speechQueue.shift();
+                    await this.speak(text, delay);
+                    resolve();
+                }
+                
+                this.isProcessingQueue = false;
+            }
+
+            stop() {
+                speechSynthesis.cancel();
+                this.currentUtterance = null;
+                this.isSpeaking = false;
+                this.speechQueue = [];
+            }
+
+            setSpeed(speed) {
+                this.rate = speed;
+            }
+
+            isCurrentlySpeaking() {
+                return this.isSpeaking;
+            }
+        }
+
+        // Global variables
+        let narrator = new ChapterNarrator();
+        let scene, camera, renderer;
+        let animationId;
+        let viewMode = '3d';
+        let isAnimating = false;
+        let currentAnimation = null;
+        let flask, ignitionTube, scale;
+        let parmanuParticles = [];
+        let isReacting = false;
+        
+        // Enhanced state management with immediate switching capability
+        let animationState = {
+            isRunning: false,
+            currentType: null,
+            queue: [],
+            isTransitioning: false,
+            allowInterrupt: true,
+            currentAnimationFunction: null
+        };
+        
+        let buttonStates = {
+            activeButton: null,
+            loadingButtons: new Set(),
+            disabledButtons: new Set(),
+            lastClickedButton: null
+        };
+
+        // Initialize Three.js
+        function initThreeJS() {
+            const canvas = document.getElementById('animationCanvas');
+            const container = document.getElementById('stage');
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = null;
+            
+            // Camera
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+            camera.position.set(0, 10, 25);
+            camera.lookAt(0, 0, 0);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: canvas, 
+                antialias: true,
+                alpha: true 
+            });
+            renderer.setSize(width, height);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftSoftShadowMap;
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 10);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            const pointLight = new THREE.PointLight(0xffd89b, 0.5, 100);
+            pointLight.position.set(-10, 10, -10);
+            scene.add(pointLight);
+            
+            // Setup controls
+            setupMouseControls();
+            
+            // Start animation loop
+            animate();
+        }
+
+        // Create Parmanu visualization
+        async function createParmanuVisualization() {
+            clearScene();
+            
+            // Create golden Parmanu particles
+            const particleCount = 20;
+            parmanuParticles = [];
+            
+            for (let i = 0; i < particleCount; i++) {
+                const size = Math.random() * 0.3 + 0.2;
+                const geometry = new THREE.SphereGeometry(size, 32, 32);
+                const material = new THREE.MeshPhongMaterial({
+                    color: 0xffd700,
+                    emissive: 0xffd700,
+                    emissiveIntensity: 0.3,
+                    shininess: 100
+                });
+                
+                const particle = new THREE.Mesh(geometry, material);
+                particle.position.set(
+                    (Math.random() - 0.5) * 15,
+                    (Math.random() - 0.5) * 10,
+                    (Math.random() - 0.5) * 10
+                );
+                
+                particle.userData = {
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.05,
+                        (Math.random() - 0.5) * 0.05,
+                        (Math.random() - 0.5) * 0.05
+                    )
+                };
+                
+                scene.add(particle);
+                parmanuParticles.push(particle);
+                
+                // Animate appearance
+                gsap.from(particle.scale, {
+                    duration: 1,
+                    delay: i * 0.1,
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                    ease: "elastic.out(1, 0.5)"
+                });
+            }
+        }
+
+        // Create dividing matter animation
+        async function createDividingMatterAnimation() {
+            clearScene();
+            
+            // Create large cube representing matter
+            const geometry = new THREE.BoxGeometry(6, 6, 6);
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x8b4513,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const cube = new THREE.Mesh(geometry, material);
+            scene.add(cube);
+            
+            // Animate division
+            await new Promise(resolve => {
+                gsap.to(cube.scale, {
+                    duration: 2,
+                    x: 0.5,
+                    y: 0.5,
+                    z: 0.5,
+                    ease: "power2.inOut",
+                    onComplete: () => {
+                        // Create smaller pieces
+                        for (let x = -1; x <= 1; x += 2) {
+                            for (let y = -1; y <= 1; y += 2) {
+                                for (let z = -1; z <= 1; z += 2) {
+                                    const smallGeometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+                                    const smallCube = new THREE.Mesh(smallGeometry, material.clone());
+                                    smallCube.position.set(x * 2, y * 2, z * 2);
+                                    scene.add(smallCube);
+                                    
+                                    gsap.from(smallCube.position, {
+                                        duration: 1,
+                                        x: 0,
+                                        y: 0,
+                                        z: 0,
+                                        ease: "power2.out"
+                                    });
+                                }
+                            }
+                        }
+                        scene.remove(cube);
+                        resolve();
+                    }
+                });
+            });
+        }
+
+        // Create ancient philosopher visualization
+        async function createPhilosopherVisualization() {
+            // Don't clear scene if sphere already exists
+            if (!scene.getObjectByName('philosophySphere')) {
+                clearScene();
+                
+                // Create single spherical shape representing ancient philosophy
+                const sphereGeometry = new THREE.SphereGeometry(4, 64, 64);
+                const sphereMaterial = new THREE.MeshPhongMaterial({
+                    color: 0xffd700,
+                    emissive: 0xffd700,
+                    emissiveIntensity: 0.15,
+                    shininess: 100,
+                    specular: 0xffffff
+                });
+                const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                sphere.name = 'philosophySphere';
+                scene.add(sphere);
+                
+                // Animate appearance
+                gsap.from(sphere.scale, {
+                    duration: 1.5,
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                    ease: "back.out(1.7)"
+                });
+                
+                // Add continuous rotation
+                gsap.to(sphere.rotation, {
+                    duration: 20,
+                    y: Math.PI * 2,
+                    repeat: -1,
+                    ease: "none"
+                });
+            }
+        }
+
+        // Create lab equipment for conservation experiment
+        function createLabEquipment() {
+            // Lab table
+            const tableGeometry = new THREE.BoxGeometry(35, 1, 25);
+            const tableMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x8b4513,
+                specular: 0x222222,
+                shininess: 30
+            });
+            const table = new THREE.Mesh(tableGeometry, tableMaterial);
+            table.position.y = -5;
+            table.receiveShadow = true;
+            scene.add(table);
+            
+            // Create balance/scale
+            createScale();
+            
+            // Create flask
+            createFlask();
+            
+            // Create ignition tube
+            createIgnitionTube();
+        }
+
+        // Create scale
+        function createScale() {
+            const scaleGroup = new THREE.Group();
+            
+            // Scale base
+            const baseGeometry = new THREE.BoxGeometry(10, 0.5, 6);
+            const baseMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x333333,
+                metalness: 0.5,
+                roughness: 0.5
+            });
+            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            base.castShadow = true;
+            base.receiveShadow = true;
+            scaleGroup.add(base);
+            
+            // Scale platform
+            const platformGeometry = new THREE.CylinderGeometry(4, 4, 0.3, 32);
+            const platformMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x666666,
+                metalness: 0.7,
+                roughness: 0.3
+            });
+            const platform = new THREE.Mesh(platformGeometry, platformMaterial);
+            platform.position.y = 0.6;
+            platform.castShadow = true;
+            scaleGroup.add(platform);
+            
+            scaleGroup.position.set(-12, -4, 0);
+            scaleGroup.name = 'scale';
+            scene.add(scaleGroup);
+            scale = scaleGroup;
+        }
+
+        // Create flask
+        function createFlask() {
+            const flaskGroup = new THREE.Group();
+            
+            // Flask body
+            const bodyGeometry = new THREE.CylinderGeometry(2, 3, 6, 32, 1, true);
+            const bodyMaterial = new THREE.MeshPhysicalMaterial({ 
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.3,
+                roughness: 0.1,
+                metalness: 0.1,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.1,
+                side: THREE.DoubleSide
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.castShadow = true;
+            flaskGroup.add(body);
+            
+            // Flask neck
+            const neckGeometry = new THREE.CylinderGeometry(0.8, 0.8, 3, 32);
+            const neck = new THREE.Mesh(neckGeometry, bodyMaterial);
+            neck.position.y = 4;
+            flaskGroup.add(neck);
+            
+            // Cork
+            const corkGeometry = new THREE.CylinderGeometry(1, 0.9, 1, 32);
+            const corkMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x8b4513
+            });
+            const cork = new THREE.Mesh(corkGeometry, corkMaterial);
+            cork.position.y = 5.5;
+            cork.name = 'cork';
+            flaskGroup.add(cork);
+            
+            // Solution in flask
+            const solutionGeometry = new THREE.CylinderGeometry(1.8, 2.8, 3, 32);
+            const solutionMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x1e90ff,
+                transparent: true,
+                opacity: 0.6
+            });
+            const solution = new THREE.Mesh(solutionGeometry, solutionMaterial);
+            solution.position.y = -1.5;
+            solution.name = 'solution';
+            flaskGroup.add(solution);
+            
+            flaskGroup.position.set(0, 0, 0);
+            flaskGroup.name = 'flask';
+            scene.add(flaskGroup);
+            flask = flaskGroup;
+        }
+
+        // Create ignition tube
+        function createIgnitionTube() {
+            const tubeGroup = new THREE.Group();
+            
+            // Tube body
+            const tubeGeometry = new THREE.CylinderGeometry(0.5, 0.5, 4, 32, 1, true);
+            const tubeMaterial = new THREE.MeshPhysicalMaterial({ 
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.3,
+                roughness: 0.1,
+                metalness: 0.1,
+                clearcoat: 1.0,
+                side: THREE.DoubleSide
+            });
+            const tube = new THREE.Mesh(tubeGeometry, tubeMaterial);
+            tube.castShadow = true;
+            tubeGroup.add(tube);
+            
+            // Solution in tube
+            const tubeSolutionGeometry = new THREE.CylinderGeometry(0.4, 0.4, 2, 32);
+            const tubeSolutionMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.7
+            });
+            const tubeSolution = new THREE.Mesh(tubeSolutionGeometry, tubeSolutionMaterial);
+            tubeSolution.position.y = -1;
+            tubeSolution.name = 'tubeSolution';
+            tubeGroup.add(tubeSolution);
+            
+            tubeGroup.position.set(0, 2, 0);
+            tubeGroup.rotation.z = Math.PI / 6;
+            tubeGroup.name = 'ignitionTube';
+            flask.add(tubeGroup);
+            ignitionTube = tubeGroup;
+        }
+
+        // Create precipitate particles
+        function createPrecipitateParticles() {
+            const particleCount = 100;
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const colors = [];
+            
+            for (let i = 0; i < particleCount; i++) {
+                positions.push(
+                    (Math.random() - 0.5) * 4,
+                    Math.random() * 3 - 3,
+                    (Math.random() - 0.5) * 4
+                );
+                
+                colors.push(1, 1, 1);
+            }
+            
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            
+            const material = new THREE.PointsMaterial({
+                size: 0.1,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const points = new THREE.Points(geometry, material);
+            points.name = 'precipitate';
+            return points;
+        }
+
+        // Animation functions for conservation experiment
+        async function animateWeighing(mass) {
+            return new Promise(resolve => {
+                // Move flask to scale
+                gsap.to(flask.position, {
+                    duration: 2,
+                    x: -12,
+                    y: -2,
+                    ease: "power2.inOut",
+                    onComplete: () => {
+                        // Animate scale reading from 0 to target mass
+                        animateScaleReading(0, mass);
+                        setTimeout(resolve, 2000);
+                    }
+                });
+            });
+        }
+
+        async function animateMixing() {
+            return new Promise(resolve => {
+                // Move flask back
+                gsap.to(flask.position, {
+                    duration: 1.5,
+                    x: 0,
+                    y: 0,
+                    ease: "power2.inOut",
+                    onComplete: () => {
+                        // Animate scale reading back to zero when flask is removed
+                        animateScaleReading(flask.position.x === -12 ? 26.56 : 0, 0);
+                    }
+                });
+                
+                // Tilt flask
+                gsap.to(flask.rotation, {
+                    duration: 1.5,
+                    z: -Math.PI / 4,
+                    ease: "power2.inOut",
+                    onComplete: () => {
+                        // Animate tube solution falling
+                        const tubeSol = ignitionTube.getObjectByName('tubeSolution');
+                        gsap.to(tubeSol.position, {
+                            duration: 1,
+                            y: -3,
+                            ease: "power2.in",
+                            onComplete: resolve
+                        });
+                    }
+                });
+            });
+        }
+
+        async function animateReaction() {
+            return new Promise(resolve => {
+                isReacting = true;
+                
+                // Change solution color
+                const solution = flask.getObjectByName('solution');
+                
+                gsap.to(solution.material.color, {
+                    duration: 2,
+                    r: 0,
+                    g: 0.8,
+                    b: 0.82,
+                    ease: "power2.inOut"
+                });
+                
+                // Add precipitate
+                const precipitate = createPrecipitateParticles();
+                flask.add(precipitate);
+                
+                gsap.from(precipitate.material, {
+                    duration: 2,
+                    opacity: 0,
+                    ease: "power2.in"
+                });
+                
+                // Straighten flask
+                gsap.to(flask.rotation, {
+                    duration: 1.5,
+                    z: 0,
+                    ease: "power2.inOut",
+                    onComplete: () => {
+                        isReacting = false;
+                        resolve();
+                    }
+                });
+            });
+        }
+
+        // Enhanced animation control functions with aggressive stopping
+        async function stopCurrentAnimation() {
+            // Kill all GSAP animations immediately
+            gsap.killTweensOf("*");
+            
+            // Stop all current animations
+            if (currentAnimation) {
+                currentAnimation = null;
+            }
+            isAnimating = false;
+            
+            // Reset animation state
+            animationState.isRunning = false;
+            animationState.currentType = null;
+            animationState.isTransitioning = false;
+            animationState.currentAnimationFunction = null;
+            
+            // Stop narration immediately
+            narrator.stop();
+            
+            // Clear any pending timeouts
+            if (window.animationTimeout) {
+                clearTimeout(window.animationTimeout);
+                window.animationTimeout = null;
+            }
+            
+            // Reset button states
+            clearButtonStates();
+            
+            // Hide status indicator
+            hideAnimationStatus();
+        }
+
+        async function startAnimation(type, animationFunction) {
+            // Allow immediate interruption of current animation
+            if (animationState.isRunning || animationState.isTransitioning) {
+                console.log(`Interrupting current animation for ${type}`);
+                showAnimationStatus(`Switching to: ${type} animation`);
+                
+                // Add smooth transition effect
+                const stage = document.getElementById('stage');
+                if (stage) {
+                    gsap.to(stage, {
+                        duration: 0.3,
+                        opacity: 0.7,
+                        scale: 0.98,
+                        ease: "power2.inOut",
+                        onComplete: () => {
+                            gsap.to(stage, {
+                                duration: 0.3,
+                                opacity: 1,
+                                scale: 1,
+                                ease: "power2.inOut"
+                            });
+                        }
+                    });
+                }
+                
+                // Stop current animation immediately
+                await stopCurrentAnimation();
+                
+                // Clear queue and start new animation
+                animationState.queue = [];
+            }
+
+            animationState.isRunning = true;
+            animationState.currentType = type;
+            animationState.isTransitioning = true;
+            animationState.currentAnimationFunction = animationFunction;
+            showAnimationStatus(`Running: ${type} animation`);
+
+            try {
+                await animationFunction();
+            } catch (error) {
+                console.error(`Animation ${type} failed:`, error);
+                showAnimationStatus(`Error in ${type} animation`);
+            } finally {
+                // Only reset if this is still the current animation
+                if (animationState.currentType === type) {
+                    animationState.isRunning = false;
+                    animationState.currentType = null;
+                    animationState.isTransitioning = false;
+                    animationState.currentAnimationFunction = null;
+                    hideAnimationStatus();
+                }
+            }
+        }
+
+        function canStartAnimation() {
+            return !animationState.isRunning && !animationState.isTransitioning;
+        }
+
+        // Complete Story - Enhanced with proper sequential flow
+        async function playCompleteStory() {
+            await startAnimation('complete', async () => {
+                // Auto-reset and prepare for complete story
+                await autoResetAndPrepare();
+                
+                isAnimating = true;
+                currentAnimation = 'complete';
+                
+                showProgress();
+                updateProgress(1);
+                
+                updateTitle("📖 Chapter 3.1: Complete Journey");
+                updateStageInfo("Complete Journey", "From ancient philosophy to modern chemistry");
+                
+                await narrator.speak("Welcome to Chapter 3.1! Let's explore how humanity's quest to understand matter evolved from ancient philosophy to modern science.");
+                
+                if (!isAnimating || currentAnimation !== 'complete') return;
+                
+                // Part 1: Ancient Ideas (without wrapper)
+                updateProgress(2);
+                await playAncientIdeasSequence();
+                
+                if (!isAnimating || currentAnimation !== 'complete') return;
+                
+                // Part 2: Parmanu Concept (without wrapper)
+                updateProgress(3);
+                await playParmanuConceptSequence();
+                
+                if (!isAnimating || currentAnimation !== 'complete') return;
+                
+                // Part 3: Transition narration
+                updateProgress(4);
+                await narrator.speak("By the 18th century, scientists began to distinguish between elements and compounds.");
+                
+                if (!isAnimating || currentAnimation !== 'complete') return;
+                
+                // Part 4: Conservation Experiment (without wrapper)
+                updateProgress(5);
+                await playConservationExperimentSequence();
+                
+                if (!isAnimating || currentAnimation !== 'complete') return;
+                
+                // Part 5: Conclusion
+                updateProgress(6);
+                await narrator.speak("This journey from philosophical ideas to experimental laws laid the foundation for modern chemistry!");
+                
+                hideProgress();
+                isAnimating = false;
+                enableAllButtons();
+            });
+        }
+
+        // Sequence functions for complete story (without animation wrappers)
+        async function playAncientIdeasSequence() {
+            updateTitle("🏛️ Ancient Philosophical Ideas");
+            updateStageInfo("Ancient Philosophy", "The birth of atomic theory");
+            document.getElementById('stage').classList.add('ancient-state');
+            
+            await narrator.speak("Around 500 BC, both Indian and Greek philosophers independently contemplated the nature of matter.");
+            
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            await createPhilosopherVisualization();
+            await narrator.speak("Indian philosopher Maharishi Kanad postulated that if we keep dividing matter, we will reach the smallest particles called Parmanu.");
+            
+            await wait(2000);
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            await narrator.speak("Pakudha Katyayama elaborated that these particles normally exist in combined forms, giving us various forms of matter.");
+            
+            await wait(2000);
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            await narrator.speak("Greek philosophers Democritus and Leucippus called these indivisible particles atoms, meaning indivisible.");
+            
+            document.getElementById('stage').classList.remove('ancient-state');
+            updateAnalysis("Ancient philosophers laid the conceptual foundation for atomic theory");
+        }
+
+        async function playParmanuConceptSequence() {
+            updateTitle("⚛️ The Concept of Parmanu");
+            updateStageInfo("Parmanu", "The smallest indivisible particles");
+            document.getElementById('stage').classList.add('ancient-state');
+            
+            await narrator.speak("Let's visualize the concept of Parmanu - the indivisible particles proposed by Maharishi Kanad.");
+            
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            await createDividingMatterAnimation();
+            await narrator.speak("If we keep dividing matter into smaller and smaller pieces...");
+            
+            await wait(2000);
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            await createParmanuVisualization();
+            await narrator.speak("We eventually reach Parmanu - particles that cannot be divided further. These combine to form all matter we see.");
+            
+            document.getElementById('stage').classList.remove('ancient-state');
+            updateAnalysis("Parmanu: The philosophical precursor to the modern atom");
+        }
+
+        async function playConservationExperimentSequence() {
+            updateTitle("⚖️ Law of Conservation of Mass");
+            updateStageInfo("Conservation of Mass", "Mass remains constant during chemical reactions");
+            document.getElementById('stage').classList.add('experiment-state');
+            
+            clearScene();
+            createLabEquipment();
+            
+            const initialMass = 26.56; // CuSO4 + Na2CO3 masses
+            
+            updateMassDisplay(initialMass, 0, 0);
+            showFormulaDisplay("CuSO₄ + Na₂CO₃ → ?");
+            
+            await narrator.speak("Antoine Lavoisier established the Law of Conservation of Mass through careful experimentation. Let's demonstrate this law.");
+            
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            // Show scale display with zero reading initially
+            document.getElementById('scaleDisplay').style.display = 'block';
+            updateScaleReading(0);
+            
+            await narrator.speak("First, we weigh the flask with both solutions before mixing.");
+            
+            // Animate weighing (scale will update when flask is placed)
+            await animateWeighing(initialMass);
+            
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            await narrator.speak("Now, let's mix the solutions by tilting the flask. The cork ensures no mass escapes.");
+            
+            // Animate mixing
+            await animateMixing();
+            
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            // Show reaction
+            await animateReaction();
+            
+            showFormulaDisplay("CuSO₄ + Na₂CO₃ → CuCO₃ + Na₂SO₄");
+            
+            await narrator.speak("A chemical reaction has occurred! Notice the precipitate formed. Now let's measure the mass again.");
+            
+            if (!isAnimating || currentAnimation !== 'complete') return;
+            
+            // Animate final weighing (scale will animate from 0 to mass)
+            await animateWeighing(initialMass);
+            
+            updateMassDisplay(initialMass, initialMass, 0);
+            updateScaleReading(initialMass);
+            
+            await narrator.speak("The mass remains exactly the same! This proves the Law of Conservation of Mass - mass can neither be created nor destroyed in a chemical reaction.");
+            
+            document.getElementById('stage').classList.remove('experiment-state');
+            updateAnalysis("Mass is conserved! Initial mass = Final mass = 26.56 g");
+        }
+
+        // Show Ancient Ideas - Enhanced with proper state management
+        async function showAncientIdeas() {
+            await startAnimation('ancient', async () => {
+                // Auto-reset and prepare for ancient ideas
+                await autoResetAndPrepare();
+                
+                isAnimating = true;
+                currentAnimation = 'ancient';
+                
+                updateTitle("🏛️ Ancient Philosophical Ideas");
+                updateStageInfo("Ancient Philosophy", "The birth of atomic theory");
+                document.getElementById('stage').classList.add('ancient-state');
+                
+                await narrator.speak("Around 500 BC, both Indian and Greek philosophers independently contemplated the nature of matter.");
+                
+                if (!isAnimating || currentAnimation !== 'ancient') return;
+                
+                await createPhilosopherVisualization();
+                await narrator.speak("Indian philosopher Maharishi Kanad postulated that if we keep dividing matter, we will reach the smallest particles called Parmanu.");
+                
+                await wait(2000);
+                if (!isAnimating || currentAnimation !== 'ancient') return;
+                
+                await narrator.speak("Pakudha Katyayama elaborated that these particles normally exist in combined forms, giving us various forms of matter.");
+                
+                await wait(2000);
+                if (!isAnimating || currentAnimation !== 'ancient') return;
+                
+                await narrator.speak("Greek philosophers Democritus and Leucippus called these indivisible particles atoms, meaning indivisible.");
+                
+                document.getElementById('stage').classList.remove('ancient-state');
+                updateAnalysis("Ancient philosophers laid the conceptual foundation for atomic theory");
+                isAnimating = false;
+                enableAllButtons();
+            });
+        }
+
+        // Show Parmanu Concept - Enhanced with proper state management
+        async function showParmanuConcept() {
+            await startAnimation('parmanu', async () => {
+                // Auto-reset and prepare for Parmanu concept
+                await autoResetAndPrepare();
+                
+                isAnimating = true;
+                currentAnimation = 'parmanu';
+                
+                updateTitle("⚛️ The Concept of Parmanu");
+                updateStageInfo("Parmanu", "The smallest indivisible particles");
+                document.getElementById('stage').classList.add('ancient-state');
+                
+                await narrator.speak("Let's visualize the concept of Parmanu - the indivisible particles proposed by Maharishi Kanad.");
+                
+                if (!isAnimating || currentAnimation !== 'parmanu') return;
+                
+                await createDividingMatterAnimation();
+                await narrator.speak("If we keep dividing matter into smaller and smaller pieces...");
+                
+                await wait(2000);
+                if (!isAnimating || currentAnimation !== 'parmanu') return;
+                
+                await createParmanuVisualization();
+                await narrator.speak("We eventually reach Parmanu - particles that cannot be divided further. These combine to form all matter we see.");
+                
+                document.getElementById('stage').classList.remove('ancient-state');
+                updateAnalysis("Parmanu: The philosophical precursor to the modern atom");
+                isAnimating = false;
+                enableAllButtons();
+            });
+        }
+
+        // Conservation of Mass Experiment - Enhanced with proper state management
+        async function showConservationExperiment() {
+            await startAnimation('conservation', async () => {
+                // Auto-reset and prepare for conservation experiment
+                await autoResetAndPrepare();
+                
+                clearScene();
+                createLabEquipment();
+                
+                isAnimating = true;
+                currentAnimation = 'conservation';
+                
+                updateTitle("⚖️ Law of Conservation of Mass");
+                updateStageInfo("Conservation of Mass", "Mass remains constant during chemical reactions");
+                document.getElementById('stage').classList.add('experiment-state');
+                
+                const initialMass = 26.56; // CuSO4 + Na2CO3 masses
+                
+                updateMassDisplay(initialMass, 0, 0);
+                showFormulaDisplay("CuSO₄ + Na₂CO₃ → ?");
+                
+                await narrator.speak("Antoine Lavoisier established the Law of Conservation of Mass through careful experimentation. Let's demonstrate this law.");
+                
+                if (!isAnimating || currentAnimation !== 'conservation') return;
+                
+                // Show scale display with zero reading initially
+                document.getElementById('scaleDisplay').style.display = 'block';
+                updateScaleReading(0);
+                
+                await narrator.speak("First, we weigh the flask with both solutions before mixing.");
+                
+                // Animate weighing (scale will update when flask is placed)
+                await animateWeighing(initialMass);
+                
+                if (!isAnimating || currentAnimation !== 'conservation') return;
+                
+                await narrator.speak("Now, let's mix the solutions by tilting the flask. The cork ensures no mass escapes.");
+                
+                // Animate mixing
+                await animateMixing();
+                
+                if (!isAnimating || currentAnimation !== 'conservation') return;
+                
+                // Show reaction
+                await animateReaction();
+                
+                showFormulaDisplay("CuSO₄ + Na₂CO₃ → CuCO₃ + Na₂SO₄");
+                
+                await narrator.speak("A chemical reaction has occurred! Notice the precipitate formed. Now let's measure the mass again.");
+                
+                if (!isAnimating || currentAnimation !== 'conservation') return;
+                
+                // Animate final weighing (scale will animate from 0 to mass)
+                await animateWeighing(initialMass);
+                
+                updateMassDisplay(initialMass, initialMass, 0);
+                updateScaleReading(initialMass);
+                
+                await narrator.speak("The mass remains exactly the same! This proves the Law of Conservation of Mass - mass can neither be created nor destroyed in a chemical reaction.");
+                
+                document.getElementById('stage').classList.remove('experiment-state');
+                updateAnalysis("Mass is conserved! Initial mass = Final mass = 26.56 g");
+                isAnimating = false;
+                enableAllButtons();
+            });
+        }
+
+        // Enhanced button activation function with immediate response
+        function activateButton(button) {
+            // Always allow button clicks - provide immediate feedback
+            buttonStates.lastClickedButton = button;
+            
+            // Clear previous button states
+            clearButtonStates();
+            
+            // Set new active button
+            buttonStates.activeButton = button;
+            button.classList.add('loading', 'last-clicked');
+            buttonStates.loadingButtons.add(button);
+            
+            // Immediate visual feedback
+            gsap.to(button, {
+                duration: 0.1,
+                scale: 0.95,
+                yoyo: true,
+                repeat: 1,
+                ease: "power2.inOut",
+                onComplete: () => {
+                    // Remove loading class and add active class
+                    button.classList.remove('loading');
+                    button.classList.add('active');
+                    buttonStates.loadingButtons.delete(button);
+                }
+            });
+
+            // Show immediate status feedback
+            const buttonText = button.textContent.trim();
+            showAnimationStatus(`Starting: ${buttonText}`);
+            
+            // Brief delay to show user feedback, then start animation
+            window.animationTimeout = setTimeout(() => {
+                // Check if this is still the last clicked button
+                if (buttonStates.lastClickedButton === button) {
+                    // Start the appropriate animation based on button
+                    startButtonAnimation(button);
+                }
+            }, 100);
+        }
+
+        // Function to start appropriate animation based on button clicked
+        function startButtonAnimation(button) {
+            const buttonText = button.textContent.trim();
+            
+            if (buttonText.includes('Complete Chapter')) {
+                playCompleteStory();
+            } else if (buttonText.includes('Ancient Philosophy')) {
+                showAncientIdeas();
+            } else if (buttonText.includes('Parmanu Concept')) {
+                showParmanuConcept();
+            } else if (buttonText.includes('Conservation of Mass')) {
+                showConservationExperiment();
+            } else if (buttonText.includes('Reset')) {
+                resetAll();
+            }
+        }
+
+        function clearButtonStates() {
+            // Clear all button states but keep buttons enabled
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.classList.remove('active', 'loading', 'queued', 'last-clicked');
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.title = '';
+            });
+            
+            buttonStates.activeButton = null;
+            buttonStates.loadingButtons.clear();
+            buttonStates.disabledButtons.clear();
+        }
+
+        function enableAllButtons() {
+            // All buttons are always enabled now
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.title = '';
+                btn.classList.remove('queued', 'last-clicked');
+            });
+            buttonStates.disabledButtons.clear();
+        }
+
+        // Auto-reset and prepare function for control buttons
+        async function autoResetAndPrepare() {
+            // Stop any current animation and narration
+            await stopCurrentAnimation();
+            
+            // Kill all GSAP animations
+            gsap.killTweensOf("*");
+            
+            // Reset all UI elements
+            document.getElementById('scaleDisplay').style.display = 'none';
+            document.getElementById('formulaDisplay').style.display = 'none';
+            document.getElementById('stage').classList.remove('ancient-state', 'experiment-state');
+            document.getElementById('progressIndicator').style.display = 'none';
+            
+            // Reset mass display
+            updateMassDisplay(0, 0, 0);
+            
+            // Reset analysis text
+            updateAnalysis("Preparing content...");
+            
+            // Reset stage info
+            updateStageInfo("Preparing...", "Loading content...");
+            
+            // Clear the 3D scene
+            clearScene();
+            
+            // Reset camera position
+            if (camera) {
+                gsap.set(camera.position, { x: 0, y: 10, z: 25 });
+                camera.lookAt(0, 0, 0);
+            }
+            
+            // Reset scene rotation
+            if (scene) {
+                gsap.set(scene.rotation, { x: 0, y: 0, z: 0 });
+            }
+            
+            // Reset view mode buttons
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('.view-btn[onclick="setViewMode(\'3d\')"]').classList.add('active');
+            viewMode = '3d';
+            
+            // Reset demo buttons
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.classList.remove('active', 'loading');
+            });
+            
+            // Small delay to ensure smooth transition
+            await wait(500);
+        }
+
+        // Helper functions
+        function clearScene() {
+            while(scene.children.length > 0) {
+                const child = scene.children[0];
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (child.material instanceof Array) {
+                        child.material.forEach(m => m.dispose());
+                    } else {
+                        child.material.dispose();
+                    }
+                }
+                scene.remove(child);
+            }
+            
+            // Re-add lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 10);
+            scene.add(directionalLight);
+        }
+
+        function updateMassDisplay(initial, final, change) {
+            document.getElementById('initialMass').innerHTML = `${initial.toFixed(2)}<span class="mass-unit">g</span>`;
+            document.getElementById('finalMass').innerHTML = `${final.toFixed(2)}<span class="mass-unit">g</span>`;
+            document.getElementById('massChange').innerHTML = `${change.toFixed(2)}<span class="mass-unit">g</span>`;
+        }
+
+        function updateScaleReading(mass) {
+            const display = document.getElementById('scaleReading');
+            if (display) {
+                display.textContent = `${mass.toFixed(2)} g`;
+            }
+        }
+
+        function animateScaleReading(fromMass, toMass) {
+            const display = document.getElementById('scaleReading');
+            if (display) {
+                const steps = 30;
+                const increment = (toMass - fromMass) / steps;
+                let step = 0;
+                
+                const interval = setInterval(() => {
+                    step++;
+                    const newValue = fromMass + (increment * step);
+                    display.textContent = `${newValue.toFixed(2)} g`;
+                    
+                    if (step >= steps) {
+                        clearInterval(interval);
+                        display.textContent = `${toMass.toFixed(2)} g`;
+                    }
+                }, 50);
+            }
+        }
+
+        function showFormulaDisplay(formula) {
+            const display = document.getElementById('formulaDisplay');
+            display.style.display = 'block';
+            display.textContent = formula;
+        }
+
+        function updateTitle(title) {
+            document.getElementById('lesson-title').textContent = title;
+        }
+
+        function updateAnalysis(text) {
+            document.getElementById('current-analysis').textContent = text;
+        }
+
+        function updateStageInfo(title, text) {
+            document.getElementById('infoTitle').textContent = title;
+            document.getElementById('infoText').textContent = text;
+        }
+
+        function setViewMode(mode) {
+            viewMode = mode;
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            switch(mode) {
+                case '3d':
+                    gsap.to(camera.position, {
+                        duration: 1,
+                        x: 0,
+                        y: 10,
+                        z: 25,
+                        ease: "power2.inOut"
+                    });
+                    break;
+                case 'top':
+                    gsap.to(camera.position, {
+                        duration: 1,
+                        x: 0,
+                        y: 30,
+                        z: 1,
+                        ease: "power2.inOut"
+                    });
+                    break;
+                case 'side':
+                    gsap.to(camera.position, {
+                        duration: 1,
+                        x: 30,
+                        y: 5,
+                        z: 0,
+                        ease: "power2.inOut"
+                    });
+                    break;
+            }
+            camera.lookAt(0, 0, 0);
+        }
+
+        async function resetAll() {
+            // Force stop all animations and clear queue
+            await stopCurrentAnimation();
+            animationState.queue = [];
+            gsap.killTweensOf("*");
+            
+            document.getElementById('scaleDisplay').style.display = 'none';
+            document.getElementById('formulaDisplay').style.display = 'none';
+            document.getElementById('stage').classList.remove('ancient-state', 'experiment-state');
+            document.getElementById('progressIndicator').style.display = 'none';
+            
+            clearScene();
+            
+            updateMassDisplay(0, 0, 0);
+            updateAnalysis("Ready to explore the journey from ancient philosophy to modern chemistry!");
+            updateTitle("Chapter 3.1 - Laws of Chemical Combination");
+            updateStageInfo("Welcome to Chapter 3.1", "Explore the journey from ancient philosophy to modern chemistry");
+            
+            // Reset camera position
+            if (camera) {
+                gsap.set(camera.position, { x: 0, y: 10, z: 25 });
+                camera.lookAt(0, 0, 0);
+            }
+            
+            // Reset scene rotation
+            if (scene) {
+                gsap.set(scene.rotation, { x: 0, y: 0, z: 0 });
+            }
+            
+            // Reset view mode buttons
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('.view-btn[onclick="setViewMode(\'3d\')"]').classList.add('active');
+            viewMode = '3d';
+            
+            // Reset all button states
+            clearButtonStates();
+            enableAllButtons();
+        }
+
+        function showProgress() {
+            document.getElementById('progressIndicator').style.display = 'flex';
+        }
+
+        function hideProgress() {
+            document.getElementById('progressIndicator').style.display = 'none';
+        }
+
+        function updateProgress(step) {
+            document.querySelectorAll('.progress-dot').forEach((dot, index) => {
+                if (index < step) {
+                    dot.classList.add('completed');
+                    dot.classList.remove('active');
+                } else if (index === step - 1) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active', 'completed');
+                }
+            });
+        }
+
+        function showAnimationStatus(text) {
+            const statusElement = document.getElementById('animation-status');
+            const statusText = document.getElementById('status-text');
+            statusText.textContent = text;
+            statusElement.classList.add('show');
+        }
+
+        function hideAnimationStatus() {
+            const statusElement = document.getElementById('animation-status');
+            statusElement.classList.remove('show');
+        }
+
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Setup mouse controls
+        function setupMouseControls() {
+            const canvas = renderer.domElement;
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            canvas.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+                
+                scene.rotation.y += deltaX * 0.01;
+                scene.rotation.x = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, scene.rotation.x + deltaY * 0.01));
+                
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                camera.position.z += e.deltaY * 0.01;
+                camera.position.z = Math.max(10, Math.min(50, camera.position.z));
+            });
+        }
+
+        // Animation loop
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            
+            // Animate Parmanu particles
+            parmanuParticles.forEach(particle => {
+                if (particle.userData.velocity) {
+                    particle.position.add(particle.userData.velocity);
+                    
+                    // Bounce off boundaries
+                    if (Math.abs(particle.position.x) > 8) particle.userData.velocity.x *= -1;
+                    if (Math.abs(particle.position.y) > 5) particle.userData.velocity.y *= -1;
+                    if (Math.abs(particle.position.z) > 5) particle.userData.velocity.z *= -1;
+                }
+            });
+            
+            // Animate precipitate particles falling
+            if (flask) {
+                const precipitate = flask.getObjectByName('precipitate');
+                if (precipitate && isReacting) {
+                    const positions = precipitate.geometry.attributes.position;
+                    for (let i = 0; i < positions.count; i++) {
+                        positions.setY(i, positions.getY(i) - 0.01);
+                        if (positions.getY(i) < -3) {
+                            positions.setY(i, 3);
+                        }
+                    }
+                    positions.needsUpdate = true;
+                }
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // Audio controls
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            narrator.isEnabled = !narrator.isEnabled;
+            document.getElementById('mute-btn').classList.toggle('muted', !narrator.isEnabled);
+            if (!narrator.isEnabled) {
+                narrator.stop();
+            }
+        });
+
+        let speedIndex = 2; // Start at 1x
+        const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
+        const speedLabels = ['0.5x', '0.75x', '1x', '1.25x', '1.5x', '2x'];
+        
+        document.getElementById('speed-btn').addEventListener('click', () => {
+            speedIndex = (speedIndex + 1) % speeds.length;
+            narrator.setSpeed(speeds[speedIndex]);
+            document.getElementById('speed-btn').textContent = speedLabels[speedIndex];
+        });
+
+        // Enhanced initialization function
+        function initialize() {
+            initThreeJS();
+            
+            // Ensure narrator is ready and start welcome message
+            setTimeout(() => {
+                if (narrator.isEnabled) {
+                    narrator.speak("Welcome to Chapter 3.1! Discover how ancient philosophical ideas about matter evolved into the fundamental laws of chemistry.");
+                }
+            }, 1000);
+        }
+
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            initialize();
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('stage');
+            if (camera && renderer) {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+        });
+    </script>
+</body>
+</html>
