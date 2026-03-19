@@ -84,7 +84,10 @@ export default function MessageStream() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Scroll within the container, not the whole page
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [chat?.messages, chat?.isTyping, chat?.revealIndex, chat?.allRevealed]);
 
   if (!chat) return null;

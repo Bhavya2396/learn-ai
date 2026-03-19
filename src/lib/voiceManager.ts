@@ -18,13 +18,51 @@
 type Lang = "en" | "hi" | "as";
 type Snapshot = { isSpeaking: boolean; activeId: string | null };
 
+function latexToSpeech(latex: string): string {
+  return latex
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "$1 over $2")
+    .replace(/\\sqrt\{([^}]+)\}/g, "square root of $1")
+    .replace(/\\sqrt/g, "square root of")
+    .replace(/\^2/g, " squared")
+    .replace(/\^3/g, " cubed")
+    .replace(/\^\{([^}]+)\}/g, " to the power of $1")
+    .replace(/\^(\w)/g, " to the power of $1")
+    .replace(/_\{([^}]+)\}/g, " sub $1")
+    .replace(/_(\w)/g, " sub $1")
+    .replace(/\\times/g, " times ")
+    .replace(/\\cdot/g, " times ")
+    .replace(/\\div/g, " divided by ")
+    .replace(/\\pm/g, " plus or minus ")
+    .replace(/\\approx/g, " approximately equals ")
+    .replace(/\\neq/g, " not equal to ")
+    .replace(/\\leq/g, " less than or equal to ")
+    .replace(/\\geq/g, " greater than or equal to ")
+    .replace(/\\rightarrow/g, " implies ")
+    .replace(/\\Delta/g, "delta ")
+    .replace(/\\alpha/g, "alpha")
+    .replace(/\\beta/g, "beta")
+    .replace(/\\gamma/g, "gamma")
+    .replace(/\\mu/g, "mu")
+    .replace(/\\lambda/g, "lambda")
+    .replace(/\\omega/g, "omega")
+    .replace(/\\pi/g, "pi")
+    .replace(/\\rho/g, "rho")
+    .replace(/\\sigma/g, "sigma")
+    .replace(/\\theta/g, "theta")
+    .replace(/\{|\}/g, " ")
+    .replace(/\\/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 export function cleanTextForTTS(text: string): string {
   return text
     .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/#{1,6}\s+/g, "")
     .replace(/`[^`]+`/g, "")
-    .replace(/\$\$[\s\S]+?\$\$/g, "formula")
-    .replace(/\$[^$\n]+\$/g, "formula")
+    // Convert LaTeX formulas to readable speech instead of just saying "formula"
+    .replace(/\$\$([^$]+)\$\$/g, (_, eq) => latexToSpeech(eq))
+    .replace(/\$([^$\n]+)\$/g, (_, eq) => latexToSpeech(eq))
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
     .replace(/[_~*]/g, "")
     // Strip all emoji (Unicode emoji ranges)
