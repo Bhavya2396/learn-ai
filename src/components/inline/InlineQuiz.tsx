@@ -32,10 +32,10 @@ export default function InlineQuiz({
   const [isComplete, setIsComplete] = useState(false);
 
   const question = questions[currentIdx];
-  const isCorrect = selectedAnswer?.[0] === question.correctOption;
+  const isCorrect = selectedAnswer === question.correctOption;
 
   const handleNext = () => {
-    const correct = selectedAnswer?.[0] === question.correctOption;
+    const correct = selectedAnswer === question.correctOption;
     const next = [
       ...results,
       { correct: !!correct, selected: selectedAnswer || "" },
@@ -208,7 +208,7 @@ export default function InlineQuiz({
             {question.options.map((opt) => {
               const letter = opt[0];
               const sel = selectedAnswer === opt;
-              const correct = letter === question.correctOption;
+              const correct = opt === question.correctOption;
               let bg = "rgba(255,255,255,0.04)";
               let border = "rgba(255,255,255,0.07)";
               if (isRevealed) {
