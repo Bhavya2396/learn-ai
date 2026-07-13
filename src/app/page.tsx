@@ -1,7 +1,9 @@
-"use client";
-
-import AppShell from "@/components/shell/AppShell";
+import Landing from "@/components/zoe/Landing";
 
 export default function Home() {
-  return <AppShell />;
+  return (
+    <div className="zoe-root">
+      <Landing />
+    </div>
+  );
 }

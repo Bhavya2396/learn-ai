@@ -4,8 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LearnAI — Your NCERT AI Tutor",
-  description: "An AI-powered adaptive learning platform for NCERT curriculum",
+  title: "ZOE ONE — Learn. Grow. Transform. Thrive.",
+  description:
+    "The Human Intelligence Operating System. One AI companion for your whole life — learn anything by doing, across every domain.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
