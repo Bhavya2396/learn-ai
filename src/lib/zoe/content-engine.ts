@@ -255,6 +255,21 @@ The PARENT grades it — you only emit accurate data. (Instruments can be live f
 they don't have to wait on beats.)
 
 RULES — MUST FOLLOW:
+0. ANIMATION-DRIVEN, NOT CLICK-DRIVEN (CRITICAL). The visual AUTO-PLAYS and teaches itself through
+   the beat-synced animation — the learner WATCHES, they do not have to click/tap/drag anything on the
+   canvas to make the explanation happen. So:
+   • NEVER write narration that instructs the learner to interact ("click the card", "tap each atom",
+     "drag the slider to see…", "select an option below"). If you catch yourself about to say "click",
+     instead SHOW it: animate the reveal automatically on the matching beat.
+   • Whatever a click WOULD have revealed, reveal it yourself over time — e.g. instead of "click each
+     element to see its symbol", auto-highlight each element in turn across the beats, drawing its symbol
+     as it lights up. Cycle/step through examples on a timer (like a great explainer video), using t and
+     the beat phase. This makes the animation RICHER, not poorer — put the effort you'd spend on click
+     handling into more expressive motion, staged reveals, and worked examples that play out visually.
+   • Do NOT add canvas pointer/click hit-testing for "explore" interactions — it is unreliable here.
+   • The ONE exception is experimentControls (sliders/toggles) handled via window.onExperiment (rule 11):
+     those are fine because ZOE renders them as real UI. But even then, the lesson must fully teach itself
+     with NO control touched — controls only let a curious learner poke further.
 1. Output ONE complete HTML doc: <!DOCTYPE html><html><head>…</head><body>…</body></html>.
 2. NEVER ES modules (import/export). Classic <script> only.
 3. 2D: use Canvas 2D + zoeStage + zoeDraw. 3D: load Three.js GLOBAL build
@@ -373,6 +388,8 @@ emit('ready');
 - Media sections (ai_image/ai_video): no interactiveCode; reference media by "mediaRef" in a beat.
 - NARRATION = BEATS: 3-7 per section, ONE idea each, 1-2 short spoken sentences, warm + direct,
   written to be HEARD aloud. They must line up with what your zoeRender reveals at that phase.
+  NEVER tell the learner to click/tap/drag/select anything — the animation shows it automatically
+  (see RULE 0). The beat DESCRIBES what is happening on screen; it never asks for an action.
 - Do NOT rely on "action" (legacy) — express the reveal through zoeRender(phase,pt) instead.
 
 STRICT JSON only. No prose outside the JSON.
@@ -411,6 +428,65 @@ so "no overlap" is a matter of geometry you fully control. Enforce a REGION layo
 - Because narration plays in ZOE's UI, do NOT also render long paragraphs on the canvas — show only
   short labels, numbers, formulas and the diagram. The spoken beat carries the words.
 - Mentally check at a 360px-wide phone: nothing clipped, nothing overlapping, nothing off the stage.`;
+
+/* Appended to EVERY generation — a gold-standard exemplar for DEPTH and animation
+   quality. It is NOT a structural template: our engine uses zoeStage + zoeDraw +
+   window.zoeRender(t,phase,pt,bt) and owns the flow/TTS/UI. The reference below
+   uses a DIFFERENT architecture (its own D library, its own RAF loops, its own
+   speech + sidebar) — do NOT copy any of that. Copy only the RIGOR: how deep,
+   how faithful, how animated, how physically accurate a single step should be. */
+const REFERENCE_STANDARD = `
+
+════ REFERENCE STANDARD — THE DEPTH BAR (MANDATORY QUALITY, read carefully) ════
+A step with this exact title + description was fed into a generator and produced the
+lesson excerpted below. THIS is the level of depth, faithfulness and animation quality
+expected from a title + description like the one you were given — treat it as the bar,
+with ZERO tolerance for shallower or vaguer output.
+
+INPUT THAT PRODUCED IT →
+  Title:       "Sound Needs a Medium"
+  Description: The bell-jar experiment (NCERT Fig 10.7): an electric bell rings inside a
+               sealed glass jar; as air is pumped out the sound fades to silence though the
+               hammer is still visibly striking; letting air back in restores the sound —
+               proving sound needs a material medium. Plus: why space is silent and
+               astronauts must use radios (electromagnetic waves need no medium).
+
+WHAT "GOLD STANDARD" MEANT FOR THAT OUTPUT (match ALL of these) →
+1. DOMAIN-SPECIFIC DRAWING, NOT GENERIC SHAPES. It authored a purpose-built primitive that
+   draws the ACTUAL apparatus part-by-part from the real figure — glass dome, base plate,
+   tripod, the electric bell with a swinging striker, air molecules whose COUNT scales with
+   an airLevel, red vacuum tube, power wires, sound-wave rings. Every part reproduced
+   deliberately. (In OUR engine you build this the same way with zoeDraw inside zoeRender —
+   never a generic bouncing ball, never a vague blob.)
+     // e.g. the reference's apparatus primitive header:
+     //   bellJar(cx, baseY, {airLevel 0..1, ringing, showSound, t, labels}) → draws the
+     //   full Fig-10.7 setup; molecule count = round(airLevel*28); sound-wave intensity
+     //   scales with airLevel; striker swings via sin(t/90). Faithful to the source figure.
+2. MULTI-PHASE, TIME-DRIVEN SIMULATION OF THE REAL PROCESS. The core animation ran a 4-phase
+   cycle — full air → pumping out (airLevel 1→0.05) → near-vacuum (silent, hammer still
+   visibly striking) → air back in (0→1) — with a LIVE dashboard (air % bar, sound % bar via
+   a pow(airLevel,0.7) curve, bell-state, audible?). The animation demonstrates the physics;
+   it is not decoration. (In OUR engine: drive these phases off the narration beats — phase
+   0..N — and off t; read experiment globals if the learner can pump the air themselves.)
+3. FAITHFUL TO THE SOURCE FIGURE + NUMBERS. Exact NCERT labels ("To vacuum pump", "Electric
+   bell", "To power supply"), the exact apparatus layout, the exact conclusion. It reproduced
+   the figure — it did not draw a loose lookalike. Do the same with any figure you are given.
+4. PARAGRAPH-DEEP, PHYSICALLY ACCURATE NARRATION. Each spoken beat was a real explanation with
+   the actual mechanism — e.g. "The bell's hammer is striking at full force the whole time —
+   that's why you can SEE it ringing — but the vibration only travels outward if there are air
+   molecules to receive the push and pass it along; remove the air and there are no carriers
+   left, so the sound disappears. The bell didn't change. The medium did." Not "sound needs
+   air." Explain the WHY, correctly, every time.
+5. RIGOROUS ANTI-OVERLAP LAYOUT. Reserved vertical bands, word-wrapped panels sized to fit,
+   leader lines, commented pixel math so nothing ever collides. (Our LAYOUT CONTRACT above is
+   the same discipline — hold to it exactly.)
+6. REAL ASSESSMENT. Each section ended in a genuine MCQ whose explanation re-taught the
+   mechanism in depth (not a trivial recall check).
+
+USE IT LIKE THIS: reproduce that DEPTH, FIDELITY, and ANIMATED-PHYSICS quality inside OUR
+architecture (zoeStage/zoeDraw/zoeRender, narration = beats, our UI owns TTS + flow). Do NOT
+import its D library, its own requestAnimationFrame loops, its speech engine, its sidebar, or
+its full-page multi-screen shell. Match the substance, not the scaffolding.`;
 
 /* Appended to the GENERATOR system prompt when a step is document-grounded. */
 const GENERATOR_FAITHFUL = `
@@ -483,9 +559,19 @@ ${faithful
 
   try {
     // Interactive code is hard → Claude Opus 4.8 (reasoning tier)
-    const system = GENERATOR_SYSTEM + LAYOUT_CONTRACT + (faithful ? GENERATOR_FAITHFUL : "");
+    const system = GENERATOR_SYSTEM + LAYOUT_CONTRACT + REFERENCE_STANDARD + (faithful ? GENERATOR_FAITHFUL : "");
+    console.log(
+      `[generateLesson] "${req.step.title}" → generating with REFERENCE STANDARD ` +
+      `(ref ${REFERENCE_STANDARD.length} chars, system ${system.length} chars, ` +
+      `faithful=${faithful}, sections=${plan.sections.length})`,
+    );
     const raw = await genText(system, user, "reasoning", faithful ? 0.5 : 0.7, 32000);
     const parsed = parseJson<Omit<LessonContent, "plan" | "media">>(raw);
+    const codeSections = parsed?.sections?.filter((s) => s.interactiveCode && s.interactiveCode.trim().length >= 500).length ?? 0;
+    console.log(
+      `[generateLesson] "${req.step.title}" ← got ${parsed?.sections?.length ?? 0} sections ` +
+      `(${codeSections} with interactive code), raw ${raw.length} chars`,
+    );
     if (parsed?.sections?.length) {
       const cleaned = {
         ...parsed,
@@ -587,6 +673,7 @@ export async function verifyAndRepairLesson(
    ════════════════════════════════════════════════════════════════════════ */
 
 export async function generateFullLesson(req: ContentRequest): Promise<LessonContent> {
+  console.log(`[generateFullLesson] START "${req.step.title}" (faithful=${!!req.source?.faithful})`);
   const plan = await planLesson(req);
   // Media (Gemini) and lesson code (Opus) both depend only on the plan → run in parallel
   const [media, lesson] = await Promise.all([

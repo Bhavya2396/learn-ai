@@ -138,9 +138,13 @@ export async function orVision(opts: {
 }
 
 /* ── Document helper — read a PDF/text file with text context ────────────────
- * Claude reads the document natively via OpenRouter. We attach the free
- * "pdf-text" parser so text-based documents are extracted cheaply; scanned
- * PDFs degrade gracefully (little text) rather than failing.
+ * Claude reads the document via OpenRouter's file-parser plugin. Choose the
+ * parsing engine per call:
+ *   • "mistral-ocr" — real OCR (Mistral). Handles SCANNED / image PDFs and
+ *     extracts figures. Billed by OpenRouter at ~$2 / 1,000 pages. This is the
+ *     default here because document ingestion must work on scanned material.
+ *   • "pdf-text"    — free, text-layer only. Fails on scanned/image PDFs.
+ *   • "native"      — defer to the model's own file support.
  */
 export async function orDocument(opts: {
   system: string;
@@ -151,6 +155,7 @@ export async function orDocument(opts: {
   model?: string;
   json?: boolean;
   maxTokens?: number;
+  engine?: "pdf-text" | "mistral-ocr" | "native";
 }): Promise<string> {
   const dataUrl = opts.fileData.startsWith("data:")
     ? opts.fileData
@@ -160,7 +165,7 @@ export async function orDocument(opts: {
     json: opts.json,
     maxTokens: opts.maxTokens,
     temperature: 0.1,
-    plugins: [{ id: "file-parser", pdf: { engine: "pdf-text" } }],
+    plugins: [{ id: "file-parser", pdf: { engine: opts.engine ?? "mistral-ocr" } }],
     messages: [
       { role: "system", content: opts.system },
       {

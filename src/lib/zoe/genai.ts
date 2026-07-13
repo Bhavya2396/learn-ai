@@ -8,8 +8,9 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
-import { orChat, orDocument, hasOpenRouterKey } from "./openrouter";
-import type { SourceSection, SourceFigure, FigureKind } from "./content-types";
+import { orChat, hasOpenRouterKey } from "./openrouter";
+import { runMistralOcr, ocrToMarkdown, hasMistralKey } from "./mistral-ocr";
+import type { SourceSection } from "./content-types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY || "" });
 
@@ -77,11 +78,12 @@ export async function genText(
 }
 
 /* ── Document extraction (PDF → faithful outline) ──────────────────────────
- * Gemini reads the uploaded document natively (PDFs, and any format the
- * multimodal model accepts) and returns a structure that mirrors the document
- * EXACTLY — its own title, whether it ships a table of contents, and a nested
- * outline in reading order. We do NOT invent or summarise here; fidelity is the
- * whole point (the learning path must follow the document without deviation).
+ * OpenRouter parses the uploaded document with the Mistral OCR engine (scanned
+ * and image PDFs included; figures captured as descriptions), then Claude maps
+ * it into a structure that mirrors the document EXACTLY — its own title,
+ * whether it ships a table of contents, and a nested outline in reading order.
+ * We do NOT invent or summarise here; fidelity is the whole point (the learning
+ * path must follow the document without deviation).
  */
 
 export interface ExtractedDocument {
@@ -103,104 +105,267 @@ export interface ExtractedDocument {
    * rather than inventing or stretching material.
    */
   sections?: SourceSection[];
+  /**
+   * The nested topic→subtopic structure (topic = phase, subtopic = step). The
+   * journey is built DIRECTLY from this in code — no separate architect call —
+   * so step count stays faithful to what was extracted (no padding).
+   */
+  topics?: ExtractedTopic[];
 }
 
-const MAX_SECTION_CONTENT = 2200;   // cap per-section text so storage stays lean
-const MAX_FIGURES_PER_SECTION = 6;
+// Descriptions are meant to be full/context-complete, so this cap is generous;
+// it exists only as a safety bound, not to trim real teaching content.
+const MAX_SECTION_CONTENT = 12000;
 const MAX_SECTIONS = 60;
 
-const EXTRACT_SYSTEM = `ROLE: FAITHFUL DOCUMENT MAPPER. You read a source document and reproduce its STRUCTURE and SUBSTANCE with total fidelity.
+/* ── Topic extraction tuning (see the "portable recipe") ───────────────────
+ * The core fix for "every line becomes a topic": we do NOT ask the model to
+ * faithfully list every heading. Instead we chunk the OCR text and run an
+ * anti-padding extraction where the topic count is a CEILING, not a target,
+ * then merge/dedupe/cap across chunks.
+ */
+const CHUNK_CHAR_LIMIT = 40000;        // paragraph-bounded chunk size
+const CHUNK_OVERLAP_CHARS = 2000;      // carry the tail of each chunk into the next
+const MAX_TOPICS_PER_DOCUMENT = 8;     // global target (matches the recipe)
+const TOPIC_OVERSHOOT_TOLERANCE = 2;   // allow slight overshoot vs truncating good topics
 
-You do NOT teach, summarise creatively, editorialise, reorder, add, or remove anything.
-Your job: reveal exactly how this document is organised AND capture what each part actually contains — in its own words, order, and figures.
+const MAX_SUBTOPICS_PER_TOPIC = 3;   // ceiling; most topics need just 1
 
-STEPS:
-1. Find the document's real TITLE (cover page / first major heading). Use it verbatim. Never invent one.
-2. Determine whether the document itself has a TABLE OF CONTENTS / INDEX / CONTENTS page. Set "hasIndex".
-   - If it HAS one: your outline MUST follow that table of contents exactly (same units, same order, same names).
-   - If it does NOT: derive the outline by walking the document top-to-bottom, capturing every heading /
-     chapter / section / numbered unit IN THE ORDER THEY APPEAR. Cover the WHOLE document, start to finish.
-3. Produce a nested markdown "outline":
-   - "# " top-level parts/chapters, "## " sections, "### " sub-sections/topics.
-   - Preserve the document's own numbering and heading wording. Do not merge or skip units.
-4. Produce "sections": for EACH leaf section in the outline, capture its REAL substance faithfully:
-   - "heading": the section's own heading (verbatim).
-   - "path": its number/path if present (e.g. "4.3").
-   - "content": the section's actual teaching substance — definitions, key statements, formulas
-     (write formulas in readable inline math), worked examples with their steps, rules. Be FAITHFUL and
-     COMPACT: capture what's really there, do not embellish, do not pad. If a section is short in the
-     document, keep it short here. Never invent content that isn't in the document.
-   - "figures": EVERY figure/diagram/graph/chart/table/photo that appears in this section. For each:
-       • "kind": one of "diagram" | "chart" | "equation" | "table" | "photo".
-         - "diagram" = schematic/geometry/labelled drawing (circuits, geometry, biology labels, flow).
-         - "chart" = plotted graph/bar/pie with data.
-         - "equation" = a displayed formula shown as a figure.
-         - "table" = tabular data.
-         - "photo" = a real photograph or complex raster image.
-       • "caption": the figure's caption/label if any (verbatim).
-       • "description": a PRECISE, redraw-ready description — every shape, axis, arrow, part, relationship,
-         position, and what it demonstrates. Enough that an artist could recreate it without seeing it.
-       • "labels": ALL text labels appearing in/around the figure (verbatim array).
-       • "values": for charts/tables, the actual numbers/data points as text.
-   - Fidelity of figures matters: for diagrams/charts/equations/tables, describe them EXACTLY so they can be
-     redrawn as vector graphics. For photos, describe faithfully but mark kind="photo".
-
-Return STRICT JSON only:
-{ "title": string, "hasIndex": boolean, "outline": string, "topicCount": number,
-  "sections": [ { "heading": string, "path"?: string, "content": string,
-                  "figures"?: [ { "kind": string, "caption"?: string, "description": string,
-                                  "labels"?: [string], "values"?: string } ] } ] }`;
-
-const FIGURE_KINDS: FigureKind[] = ["diagram", "chart", "equation", "table", "photo"];
-
-function cleanFigure(f: unknown): SourceFigure | null {
-  if (!f || typeof f !== "object") return null;
-  const o = f as Record<string, unknown>;
-  const description = typeof o.description === "string" ? o.description.trim() : "";
-  if (!description) return null;
-  const kind = FIGURE_KINDS.includes(o.kind as FigureKind) ? (o.kind as FigureKind) : "diagram";
-  const labels = Array.isArray(o.labels)
-    ? o.labels.filter((l): l is string => typeof l === "string").slice(0, 24)
-    : undefined;
-  return {
-    kind,
-    caption: typeof o.caption === "string" ? o.caption.trim() : undefined,
-    description: description.slice(0, 700),
-    labels: labels?.length ? labels : undefined,
-    values: typeof o.values === "string" ? o.values.slice(0, 600) : undefined,
-  };
+/** A concrete sub-part of a topic — becomes one journey STEP. */
+export interface ExtractedSubtopic {
+  title: string;
+  description: string;
 }
 
-function cleanSections(raw: unknown): SourceSection[] | undefined {
-  if (!Array.isArray(raw)) return undefined;
-  const out: SourceSection[] = [];
-  for (const s of raw.slice(0, MAX_SECTIONS)) {
-    if (!s || typeof s !== "object") continue;
-    const o = s as Record<string, unknown>;
-    const heading = typeof o.heading === "string" ? o.heading.trim() : "";
-    const content = typeof o.content === "string" ? o.content.trim() : "";
-    if (!heading && !content) continue;
-    const figures = Array.isArray(o.figures)
-      ? o.figures.map(cleanFigure).filter((f): f is SourceFigure => !!f).slice(0, MAX_FIGURES_PER_SECTION)
-      : undefined;
-    out.push({
-      heading: heading || "Section",
-      path: typeof o.path === "string" ? o.path.trim() : undefined,
-      content: content.slice(0, MAX_SECTION_CONTENT),
-      figures: figures?.length ? figures : undefined,
-    });
+/**
+ * One extracted teachable topic. `description` is the full teaching substance
+ * (also used as section content). `subtopics` are its concrete sub-parts — the
+ * topic becomes a journey PHASE and each subtopic a STEP.
+ */
+export interface ExtractedTopic {
+  title: string;
+  description: string;
+  subtopics: ExtractedSubtopic[];
+}
+
+const EXTRACT_SYSTEM = `You are an expert educational content designer. You are given the full text (or a chunk of the full text) of an educational document — a textbook chapter, research paper, lecture notes, study material, or any structured learning resource. It is NOT restricted to any specific grade or curriculum. Figures in the text appear inline as lines like "> FIGURE (id): <description>" — treat those as part of the material.
+
+Your job is to identify the actual independent, teachable topics that exist in this text — no more, no fewer. Each topic must be self-contained: a learner could be taught that single topic on its own.
+
+ CRITICAL RULE — DO NOT PAD:
+The number {max_topics_for_this_chunk} is a HARD CEILING, NOT A TARGET. Return ONLY the genuinely distinct topics actually taught in the text.
+- A 1-page article on a single concept → usually 1 topic.
+- A 2–3 page text on a single theme → usually 1–3 topics.
+- A 10-page chapter covering multiple distinct concepts → 4–8 topics.
+- If the text contains one teachable idea, return ONE topic. Do NOT split a single coherent topic into artificial sub-topics to fill the quota.
+- Never invent topics. Never duplicate. A single line or heading is NOT a topic. Distinctness and substance matter far more than quantity.
+
+Additional rules:
+1. Topics must be DISTINCT — no near-duplicates, no alternate phrasings, no items that are sub-parts of another listed topic.
+2. Each topic must include:
+   - "title": a short, descriptive topic name (3–10 words). Avoid chapter/section numbers or document-specific labels.
+   - "description": THE MOST IMPORTANT FIELD. This is NOT a short summary — it is the FULL, SELF-CONTAINED teaching substance of the topic, and it will be the ONLY record of this topic (the original document is discarded afterwards). So it MUST capture EVERYTHING needed to teach the topic without ever seeing the source again — DO NOT LOSE A SINGLE PIECE OF CONTEXT. Include, in the document's own order: every definition, key statement, rule, and nuance; ALL formulas/equations (readable inline math) with what each symbol means; EVERY worked example WITH its full steps and result; all conditions, exceptions, and edge cases; and a faithful description of what each figure/diagram/table shows (from the "> FIGURE (...)" lines) with its data/labels. Be thorough and long where the material is rich — length is expected and encouraged; a rich topic's description can be many paragraphs. Be faithful: capture what is actually there, never invent, never embellish, never reference "section X". Missing content is a FAILURE; a shorter description that drops detail is WRONG.
+   - "subtopics": nested sub-parts of the topic. A TOPIC IS ALREADY A COMPLETE, SELF-CONTAINED LESSON — subtopics are NOT a way to "chunk" or "split up" the topic to pad the count. Decide the count from the MATERIAL, not from any target (neither high nor low):
+       • INCLUDE subtopics when EITHER holds:
+         (a) THE DOCUMENT ITSELF NESTS THEM. If the topic is a numbered unit like "1.2" and the source has explicit sub-units under it ("1.2.1", "1.2.2", ...), mirror exactly those sub-units — same units, same order, same names. Do NOT invent nesting the document doesn't have, but do NOT omit nesting the document clearly DOES have.
+         (b) THE TOPIC IS GENUINELY TOO LARGE to teach as one unit and clearly breaks into distinct teachable parts.
+       • OMIT them (return []) when the topic is a single coherent unit that neither nests in the source nor is too large.
+     Let the document decide: capture the sub-units that genuinely exist — do not force splits, and do not collapse real sub-units either. Up to ${MAX_SUBTOPICS_PER_TOPIC} maximum (a hard ceiling). NEVER split one coherent idea into fake subtopics. A single line or sentence is NOT a subtopic.
+     Each subtopic has: "title" (3–8 words) and "description" (a faithful, self-contained account of just that sub-part's substance — same no-context-lost standard as the topic description, scoped to this sub-part). Every subtopic's material must already be present in the topic's own description.
+3. Only return topics substantively present in THIS chunk's text.
+
+ Return STRICT JSON only (no markdown, no code fences, no prose):
+{ "document_title": "<short title summarizing the document or chunk>",
+  "topics": [ { "title": "<topic title>",
+               "description": "<FULL, context-complete teaching substance — long where rich, missing nothing>",
+               "subtopics": [ /* usually EMPTY []; include only if the document nests sub-units or the topic is too large */ ] } ] }`;
+
+/* ── Chunking (Step 2 of the recipe) ───────────────────────────────────────
+ * EQUAL-SIZED chunking. CHUNK_CHAR_LIMIT (40k) is a DIVISOR, not a chunk size:
+ *   num_chunks = ceil(len / 40000);  target = ceil(len / num_chunks)
+ * so a 90k doc → 3 chunks of ~30k each (NOT 40k+40k+10k). Equal-sized chunks
+ * give equal-sized topic pools, which is what makes the ceil(MAX / num_chunks)
+ * per-chunk budget fair.
+ *
+ * Then each chunk gets ~CHUNK_OVERLAP_CHARS of overlap on BOTH ends (the tail of
+ * the previous chunk + the head of the next) so a topic straddling a boundary
+ * keeps full context. The prompt is told about this overlap so the model does
+ * not mistake overlapped material for new topics; title dedupe drops repeats.
+ */
+
+/** Split into paragraphs: blank-line boundaries, or single newlines if none. */
+function splitParagraphs(text: string): string[] {
+  const byBlank = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  if (byBlank.length > 1) return byBlank;
+  return text.split(/\n/).map((p) => p.trim()).filter(Boolean);
+}
+
+/** Hard-split a paragraph larger than `target` so it can't blow out a chunk. */
+function hardSplit(para: string, target: number): string[] {
+  if (para.length <= target) return [para];
+  const out: string[] = [];
+  for (let i = 0; i < para.length; i += target) out.push(para.slice(i, i + target));
+  return out;
+}
+
+/** Base (non-overlapping) equal-sized chunks. */
+function baseChunks(text: string, limit = CHUNK_CHAR_LIMIT): string[] {
+  const len = text.length;
+  if (len <= limit) return [text];
+
+  const numChunks = Math.ceil(len / limit);
+  const target = Math.ceil(len / numChunks);
+
+  // Paragraphs, with any oversized paragraph hard-split down to <= target.
+  const paras = splitParagraphs(text).flatMap((p) => hardSplit(p, target));
+
+  const chunks: string[] = [];
+  let cur: string[] = [];
+  let curLen = 0;
+  for (const p of paras) {
+    if (curLen + p.length + 2 > target && cur.length) {
+      chunks.push(cur.join("\n\n"));
+      cur = [];
+      curLen = 0;
+    }
+    cur.push(p);
+    curLen += p.length + 2;
   }
-  return out.length ? out : undefined;
+  if (cur.length) chunks.push(cur.join("\n\n"));
+  return chunks.length ? chunks : [text];
 }
 
-function normalizeExtracted(parsed: ExtractedDocument | null): ExtractedDocument | null {
-  if (!parsed || !parsed.outline?.trim()) return null;
+/** Equal-sized chunks with ~overlap chars of context on both ends. */
+function chunkText(text: string, limit = CHUNK_CHAR_LIMIT, overlap = CHUNK_OVERLAP_CHARS): string[] {
+  const base = baseChunks(text, limit);
+  if (base.length <= 1 || overlap <= 0) return base;
+
+  return base.map((chunk, i) => {
+    const before = i > 0 ? base[i - 1].slice(-overlap) : "";
+    const after = i < base.length - 1 ? base[i + 1].slice(0, overlap) : "";
+    return [before, chunk, after].filter(Boolean).join("\n\n");
+  });
+}
+
+const normTitle = (t: string) => (t || "").trim().toLowerCase().split(/\s+/).join(" ");
+
+/** One anti-padding extraction call over a single chunk. */
+async function extractTopicsFromChunk(chunk: string, perChunkCap: number, overlapped: boolean): Promise<{ documentTitle: string; topics: ExtractedTopic[] }> {
+  const overlapNote = overlapped
+    ? `\n\nNOTE: This is one chunk of a larger document. It includes roughly ${CHUNK_OVERLAP_CHARS} characters of OVERLAP from the neighbouring chunks at the START and END — that material belongs to adjacent chunks. Use it only for context; extract a topic ONLY if its substance is genuinely centred in THIS chunk, not in the overlapping margins.`
+    : "";
+  const user = `Identify the genuinely distinct, independent teachable topics in the following text. Return ONLY as many as actually exist (could be 1, could be a few, up to a maximum of ${perChunkCap}). Do NOT pad to reach the ceiling.${overlapNote}\n\nText:\n'''${chunk}'''`;
+  const raw = await orChat({
+    system: EXTRACT_SYSTEM.replace("{max_topics_for_this_chunk}", String(perChunkCap)),
+    user,
+    model: "base",
+    temperature: 0.1,
+    // Descriptions are meant to be full/context-complete, so allow long output.
+    maxTokens: 32000,
+    json: true,
+  });
+  const parsed = parseJson<{ document_title?: string; topics?: unknown }>(raw);
+  const topics: ExtractedTopic[] = [];
+  if (parsed && Array.isArray(parsed.topics)) {
+    for (const t of parsed.topics) {
+      if (!t || typeof t !== "object") continue;
+      const o = t as Record<string, unknown>;
+      const title = typeof o.title === "string" ? o.title.trim() : "";
+      if (!title) continue;
+      const description = typeof o.description === "string" ? o.description.trim() : "";
+      // Subtopics: anti-padding cap; fall back to the topic itself as one step.
+      const subs: ExtractedSubtopic[] = [];
+      if (Array.isArray(o.subtopics)) {
+        for (const s of o.subtopics) {
+          if (subs.length >= MAX_SUBTOPICS_PER_TOPIC) break;
+          if (!s || typeof s !== "object") continue;
+          const so = s as Record<string, unknown>;
+          const st = typeof so.title === "string" ? so.title.trim() : "";
+          if (!st) continue;
+          subs.push({ title: st, description: typeof so.description === "string" ? so.description.trim() : "" });
+        }
+      }
+      if (!subs.length) subs.push({ title, description });
+      topics.push({ title, description, subtopics: subs });
+    }
+  }
+  return { documentTitle: parsed?.document_title?.trim() || "", topics };
+}
+
+/**
+ * Steps 2–4: chunk → per-chunk budgeted anti-padding extraction → merge, dedupe
+ * by normalized title, enforce a global cap. Returns deduped topics + a title.
+ */
+async function extractTopics(text: string): Promise<{ title: string; topics: ExtractedTopic[] }> {
+  const chunks = chunkText(text);
+  const overlapped = chunks.length > 1; // single-chunk docs carry no overlap
+  const perChunkCap = Math.max(1, Math.ceil(MAX_TOPICS_PER_DOCUMENT / chunks.length));
+  const aggregateCap = MAX_TOPICS_PER_DOCUMENT + TOPIC_OVERSHOOT_TOLERANCE;
+
+  const aggregated: ExtractedTopic[] = [];
+  const seen = new Set<string>();
+  let docTitle = "";
+
+  for (const chunk of chunks) {
+    if (aggregated.length >= aggregateCap) break; // cap reached — skip remaining chunks
+    let result: { documentTitle: string; topics: ExtractedTopic[] };
+    try {
+      result = await extractTopicsFromChunk(chunk, perChunkCap, overlapped);
+    } catch (e) {
+      console.error("[extractTopics] chunk failed, skipping:", e);
+      continue;
+    }
+    if (!docTitle && result.documentTitle) docTitle = result.documentTitle;
+
+    let added = 0;
+    for (const topic of result.topics) {
+      if (added >= perChunkCap) break;              // per-chunk fair share
+      if (aggregated.length >= aggregateCap) break; // global ceiling
+      const key = normTitle(topic.title);
+      if (!key || seen.has(key)) continue;          // cross-chunk dedupe
+      seen.add(key);
+      aggregated.push(topic);
+      added++;
+    }
+  }
+
+  return { title: docTitle, topics: aggregated };
+}
+
+/**
+ * Map deduped topics onto the app's existing ExtractedDocument shape WITHOUT
+ * changing any fields: each topic becomes a section (title→heading,
+ * description→content) and the outline is built from the topic titles. The
+ * journey architect + lesson flow consume this exactly as before.
+ */
+function topicsToExtracted(title: string, topics: ExtractedTopic[]): ExtractedDocument | null {
+  if (!topics.length) return null;
+
+  // One section PER SUBTOPIC (steps are taught from these), so lesson-source
+  // matching works at step granularity. Heading carries "Topic › Subtopic" for
+  // faithful matching; content is the subtopic's own substance.
+  const sections: SourceSection[] = [];
+  const outlineLines: string[] = [];
+  for (const t of topics) {
+    outlineLines.push(`# ${t.title}`);
+    for (const s of t.subtopics) {
+      outlineLines.push(`## ${s.title}`);
+      if (sections.length >= MAX_SECTIONS) continue;
+      const singleton = t.subtopics.length === 1 && normTitle(s.title) === normTitle(t.title);
+      sections.push({
+        heading: singleton ? t.title : `${t.title} › ${s.title}`,
+        content: (s.description || t.description).slice(0, MAX_SECTION_CONTENT),
+      });
+    }
+  }
+
   return {
-    title: parsed.title?.trim() || "Untitled document",
-    hasIndex: !!parsed.hasIndex,
-    outline: parsed.outline.trim(),
-    topicCount: typeof parsed.topicCount === "number" ? parsed.topicCount : 0,
-    sections: cleanSections(parsed.sections),
+    title: title || "Untitled document",
+    hasIndex: false,
+    outline: outlineLines.join("\n"),
+    topicCount: topics.length,
+    sections,
+    topics,
   };
 }
 
@@ -208,51 +373,53 @@ export async function extractDocument(
   base64: string,
   mimeType: string,
 ): Promise<ExtractedDocument | null> {
-  const instruction = `${EXTRACT_SYSTEM}\n\nMap this document now. Remember: total fidelity, whole document, its own order. Respond with VALID JSON only.`;
-
-  // Prefer Claude Sonnet via OpenRouter (the configured base — reads PDFs natively).
-  if (hasOpenRouterKey()) {
-    try {
-      const raw = await orDocument({
-        system: EXTRACT_SYSTEM,
-        text: "Map this document now. Remember: total fidelity, whole document, its own order. Respond with VALID JSON only.",
-        fileData: base64,
-        mimeType: mimeType || "application/pdf",
-        fileName: "document.pdf",
-        model: "base",
-        json: true,
-        maxTokens: 32000,
-      });
-      const ok = normalizeExtracted(parseJson<ExtractedDocument>(raw));
-      if (ok) return ok;
-      console.error("[extractDocument] OpenRouter returned no usable outline, trying Gemini");
-    } catch (e) {
-      console.error("[extractDocument] OpenRouter failed, trying Gemini:", e);
-    }
+  // Two-stage, two-provider pipeline:
+  //   1. Mistral OCR (direct API) reads the document — page markdown PLUS a
+  //      vision-model description of every figure (bbox_annotation). Handles
+  //      scanned/image PDFs and actually "sees" the figures.
+  //   2. Claude (via OpenRouter) structures that clean OCR text into the app's
+  //      faithful outline + per-section schema. It works from text only, so no
+  //      images are re-sent and no PDF is re-processed downstream.
+  if (!hasMistralKey()) {
+    console.error("[extractDocument] MISTRAL_API_KEY not set — cannot OCR document");
+    return null;
+  }
+  if (!hasOpenRouterKey()) {
+    console.error("[extractDocument] OPENROUTER_API_KEY not set — cannot structure document");
+    return null;
   }
 
-  // Fallback: native Gemini multimodal (requires GOOGLE_API_KEY + credit).
-  if (process.env.GOOGLE_API_KEY) {
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [
-          { inlineData: { data: base64, mimeType: mimeType || "application/pdf" } },
-          { text: instruction },
-        ],
-        config: {
-          temperature: 0.1,
-          responseMimeType: "application/json",
-          maxOutputTokens: 32000,
-        },
-      });
-      return normalizeExtracted(parseJson<ExtractedDocument>(response.text ?? ""));
-    } catch (e) {
-      console.error("[extractDocument] Gemini failed:", e);
+  // ── Stage 1: OCR + figure descriptions ──
+  let ocrMarkdown: string;
+  try {
+    const ocr = await runMistralOcr(base64, mimeType || "application/pdf");
+    if (!ocr) {
+      console.error("[extractDocument] Mistral OCR returned no pages");
+      return null;
     }
+    ocrMarkdown = ocrToMarkdown(ocr);
+    if (!ocrMarkdown.trim()) {
+      console.error("[extractDocument] OCR produced empty text");
+      return null;
+    }
+  } catch (e) {
+    console.error("[extractDocument] Mistral OCR failed:", e);
+    return null;
   }
 
-  return null;
+  // ── Stage 2: chunk → anti-padding topic extraction → merge/dedupe/cap ──
+  // This is the fix for over-splitting: instead of asking Claude to faithfully
+  // list every heading (which turned single lines into topics), we extract only
+  // genuinely distinct, teachable topics with a hard per-chunk/global ceiling.
+  try {
+    const { title, topics } = await extractTopics(ocrMarkdown);
+    const ok = topicsToExtracted(title, topics);
+    if (!ok) console.error("[extractDocument] extraction returned no topics");
+    return ok;
+  } catch (e) {
+    console.error("[extractDocument] topic extraction failed:", e);
+    return null;
+  }
 }
 
 /* ── JSON parsing helper ───────────────────────────────────────────────── */

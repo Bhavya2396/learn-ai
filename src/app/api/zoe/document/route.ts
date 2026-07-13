@@ -1,21 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractDocument } from "@/lib/zoe/genai";
 import { architectFromDocument } from "@/lib/zoe/hats";
+import { journeyFromTopics } from "@/lib/zoe/journey";
 
 /**
  * Document-first entry point. Two shapes:
  *
- *   1. EXTRACT + ARCHITECT (first pass)
+ *   1. EXTRACT + BUILD (first pass)
  *      { fileData: base64, mimeType, fileName }
- *      → reads the document, then builds a path that follows it exactly.
- *      → returns { journey, title, area, hasIndex, outline, topicCount }
+ *      → reads the document (OCR + topic/subtopic extraction), then builds the
+ *        journey DIRECTLY from the extracted topics (topic = phase, subtopic =
+ *        step). No architect LLM call — step count stays faithful, no padding.
+ *      → returns { journey, title, area, hasIndex, outline, topicCount, sections }
  *
  *   2. RE-ARCHITECT (preview tweak — no re-upload)
  *      { outline, title, hasIndex?, area?, tweak }
- *      → rebuilds the path from the already-extracted outline.
+ *      → rebuilds the path from the already-extracted outline (# topic /
+ *        ## subtopic), honouring the tweak.
  *      → returns { journey, title, area, hasIndex, outline }
  *
- * Never throws to the client — degrades to the Architect's hand-written fallback.
+ * Never throws to the client — degrades to a hand-written fallback.
  */
 
 export const runtime = "nodejs";
@@ -60,9 +64,11 @@ export async function POST(req: NextRequest) {
       ? doc.title
       : fileName.replace(/\.[^.]+$/, "") || doc.title;
 
-    const { journey } = await architectFromDocument({
-      title, outline: doc.outline, hasIndex: doc.hasIndex, area, tweak,
-    });
+    // Build the journey directly from the extracted topic→subtopic structure.
+    // Fall back to the LLM architect only if topics are somehow absent.
+    const journey = doc.topics?.length
+      ? journeyFromTopics(title, doc.topics)
+      : (await architectFromDocument({ title, outline: doc.outline, hasIndex: doc.hasIndex, area, tweak })).journey;
 
     return NextResponse.json({
       journey,

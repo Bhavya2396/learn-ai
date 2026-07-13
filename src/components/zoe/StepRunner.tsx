@@ -17,7 +17,7 @@ import type { ContentBlock, MentorResponse, OptimizerResponse, JourneyMutation }
 import type { JourneyStep, MasteryBreakdown, StepThread, ZotStream } from "@/lib/zoe/types";
 import type { LessonContent, LessonSource, SourceSection, AspirationSource } from "@/lib/zoe/content-types";
 import { flatSteps } from "@/lib/zoe/journey";
-import { getCachedLesson, getLesson, storeLesson } from "@/lib/zoe/lesson-cache";
+import { getCachedLesson, getLesson, storeLesson, invalidateLesson } from "@/lib/zoe/lesson-cache";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -76,8 +76,21 @@ export default function StepRunner({
   const [loadStage, setLoadStage] = useState<string>("planning");
   const [loadMsg, setLoadMsg] = useState("Thinking about the best way to teach this...");
   const [completed, setCompleted] = useState(false);
+  // Bumped by "Regenerate" to force a fresh lesson (bypasses + clears the cache).
+  const [regenNonce, setRegenNonce] = useState(0);
   const startedLogged = useRef(false);
   const stepStartTime = useRef(Date.now());
+
+  const regenerate = useCallback(async () => {
+    await invalidateLesson(step.id);   // clear memory + IndexedDB for this step
+    setLessonContent(null);
+    setContent(null);
+    setCompleted(false);
+    setLoading(true);
+    setLoadStage("planning");
+    setLoadMsg("Regenerating this lesson from scratch...");
+    setRegenNonce((n) => n + 1);        // re-runs the load effect (force mode)
+  }, [step.id]);
 
   const [mastery, setMastery] = useState<MasteryBreakdown>(
     step.masteryBreakdown ?? { comprehension: null, application: null, depth: null, confidence: null, retention: null }
@@ -104,19 +117,24 @@ export default function StepRunner({
       startedLogged.current = true;
       logEvent({ type: "step_started", summary: `Started "${step.title}" toward becoming ${aspirationTitle}.`, aspirationId, area, stepId: step.id, importance: 0.4, tags: ["step", step.kind] });
     }
+    // On a forced regenerate (regenNonce > 0) we skip every cache and generate fresh.
+    const forceRegen = regenNonce > 0;
+
     (async () => {
       // Memory cache already populated via lazy initial state — nothing to do
-      if (getCachedLesson(step.id)) { setLoading(false); return; }
+      if (!forceRegen && getCachedLesson(step.id)) { setLoading(false); return; }
 
       setLoading(true);
       setLoadStage("planning");
-      setLoadMsg("Thinking about the best way to teach this...");
+      setLoadMsg(forceRegen ? "Regenerating this lesson from scratch..." : "Thinking about the best way to teach this...");
 
-      // Check IDB for a lesson that survived a page refresh
-      const cached = await getLesson(step.id);
-      if (cached) {
-        if (!cancelled) { setLessonContent(cached); setLoading(false); }
-        return;
+      // Check IDB for a lesson that survived a page refresh (skipped when forcing)
+      if (!forceRegen) {
+        const cached = await getLesson(step.id);
+        if (cached) {
+          if (!cancelled) { setLessonContent(cached); setLoading(false); }
+          return;
+        }
       }
 
       const snapForSource = getBrainSnapshot();
@@ -223,7 +241,7 @@ export default function StepRunner({
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step.id]);
+  }, [step.id, regenNonce]);
 
   const runOptimizer = useCallback(async (sentiment: "positive" | "struggle") => {
     try {
@@ -312,6 +330,16 @@ export default function StepRunner({
     setCompleted(true);
   };
 
+  const handleLessonComplete = useCallback((scores: { comprehension: number | null; application: number | null }) => {
+    const updated: MasteryBreakdown = {
+      ...mastery,
+      comprehension: scores.comprehension ?? mastery.comprehension,
+      application: scores.application ?? mastery.application,
+    };
+    setMastery(updated);
+    complete("positive", undefined, updated);
+  }, [mastery, complete]);
+
   const compositeScore = computeMastery(mastery);
 
   if (completed) {
@@ -339,25 +367,25 @@ export default function StepRunner({
     );
   }
 
-  const handleLessonComplete = useCallback((scores: { comprehension: number | null; application: number | null }) => {
-    const updated: MasteryBreakdown = {
-      ...mastery,
-      comprehension: scores.comprehension ?? mastery.comprehension,
-      application: scores.application ?? mastery.application,
-    };
-    setMastery(updated);
-    complete("positive", undefined, updated);
-  }, [mastery, complete]);
-
   // Content Engine path: rich multimodal lesson
   if (lessonContent && !loading && !completed) {
     return (
-      <LessonPlayer
-        lesson={lessonContent}
-        stepTitle={step.title}
-        onBack={onBack}
-        onComplete={handleLessonComplete}
-      />
+      <>
+        <LessonPlayer
+          lesson={lessonContent}
+          stepTitle={step.title}
+          onBack={onBack}
+          onComplete={handleLessonComplete}
+        />
+        <button
+          onClick={regenerate}
+          title="Regenerate this lesson (clears its cache and rebuilds)"
+          className="fixed bottom-4 right-4 z-[200] inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-bold shadow-lg backdrop-blur"
+          style={{ background: "var(--z-surface-2, rgba(0,0,0,0.55))", color: "var(--z-ink-1, #fff)", border: "1px solid var(--z-line, rgba(255,255,255,0.15))" }}
+        >
+          <RefreshCw className="w-3.5 h-3.5" /> Regenerate
+        </button>
+      </>
     );
   }
 

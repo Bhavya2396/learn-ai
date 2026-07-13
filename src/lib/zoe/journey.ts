@@ -114,6 +114,57 @@ export function normalizeJourney(raw: RawJourney): Journey {
   };
 }
 
+/* ── Document journeys built directly from extracted topics ────────────────
+ * When a journey comes from an uploaded document, the topic→subtopic structure
+ * IS the journey structure — topic = phase, subtopic = step. We build it in
+ * code (no architect LLM call, so the step count exactly matches what was
+ * extracted; no padding) and reuse normalizeJourney for ids/mermaid/tiers.
+ */
+
+/** Minimal shape of an extracted topic (see genai.ts ExtractedTopic). */
+export interface TopicForJourney {
+  title: string;
+  description: string;
+  subtopics: { title: string; description: string }[];
+}
+
+const STEP_MINUTES = 15;
+
+export function journeyFromTopics(
+  docTitle: string,
+  topics: TopicForJourney[],
+): Journey {
+  const total = topics.length || 1;
+  const raw: RawJourney = {
+    headline: docTitle.split(/\s+/).slice(0, 6).join(" ") || "Your journey",
+    summary: `A faithful path through ${docTitle}.`,
+    startingPoint: `The beginning of ${docTitle}.`,
+    destination: `You understand all of ${docTitle}, end to end.`,
+    rationale: [],
+    phases: topics.map((t, ti) => {
+      const subs = t.subtopics.length ? t.subtopics : [{ title: t.title, description: t.description }];
+      const steps = subs.map((s, si) => ({
+        title: s.title,
+        summary: (s.description || "").split(/\s+/).slice(0, 12).join(" "),
+        // A topic with real subtopics ends on a milestone checkpoint; a single-
+        // step topic (no subtopics) is just the lesson itself, not a checkpoint.
+        kind: subs.length > 1 && si === subs.length - 1 ? "milestone" : "concept",
+        minutes: STEP_MINUTES,
+        // Difficulty rises gradually across the document.
+        difficulty: Math.min(5, Math.max(1, Math.round(1 + (ti / total) * 4))),
+        prerequisites: si > 0 ? [`p${ti}s${si - 1}`] : ti > 0 ? [`p${ti - 1}s0`] : [],
+      }));
+      return {
+        title: t.title,
+        timeframe: "",
+        why: t.description.split(/\s+/).slice(0, 20).join(" "),
+        steps,
+      };
+    }),
+  };
+  return normalizeJourney(raw);
+}
+
 /** All steps, flattened, in order — handy for "next step" logic. */
 export function flatSteps(journey: Journey): { phaseIdx: number; step: JourneyStep }[] {
   const out: { phaseIdx: number; step: JourneyStep }[] = [];
