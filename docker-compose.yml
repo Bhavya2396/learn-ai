@@ -1,0 +1,52 @@
+# ============================================================================
+# ZOE — local stack: Postgres (with pgvector) + the Next.js app.
+#
+#   docker compose up -d db        # just the database
+#   docker compose up --build      # database + app
+#
+# The db image (pgvector/pgvector) ships the `vector` extension. The schema is
+# NOT auto-applied — run migrations explicitly once the db is up:
+#   npm run db:migrate
+# ============================================================================
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: zoe-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-zoe}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zoe}
+      POSTGRES_DB: ${POSTGRES_DB:-zoe}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - zoe-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zoe} -d ${POSTGRES_DB:-zoe}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zoe-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Talk to the db service over the compose network.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-zoe}:${POSTGRES_PASSWORD:-zoe}@db:5432/${POSTGRES_DB:-zoe}
+      PGSSL: disable
+      # AI provider keys — supply via a .env file next to this compose file.
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      NODE_ENV: production
+    ports:
+      - "${APP_PORT:-3000}:3000"
+
+volumes:
+  zoe-db-data:
