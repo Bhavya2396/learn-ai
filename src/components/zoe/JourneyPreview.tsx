@@ -143,7 +143,7 @@ export default function JourneyPreview({
               placeholder="More hands-on, faster pace, deeper on X…"
               className="z-center-input !h-auto w-full max-w-xs mx-auto mt-6 resize-none"
               style={{ color: "var(--z-ink)" }} />
-            <button onClick={() => { if (feedback.trim()) onTweak(feedback.trim()); }} disabled={!feedback.trim()}
+            <button onClick={() => { if (feedback.trim()) onTweak?.(feedback.trim()); }} disabled={!feedback.trim()}
               className="z-btn z-btn-brand mt-8 !py-4 !px-10 !text-[16px]">
               Rebuild <Send className="w-4 h-4" />
             </button>
