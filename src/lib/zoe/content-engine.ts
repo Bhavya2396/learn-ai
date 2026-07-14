@@ -194,108 +194,66 @@ export async function generateMedia(prompts: MediaPrompt[]): Promise<MediaAsset[
    STAGE 3 — LESSON GENERATOR
    ════════════════════════════════════════════════════════════════════════ */
 
-const GENERATOR_SYSTEM = `ROLE: LESSON GENERATOR. You produce narrated, beat-synced interactive lessons — the
-feel of a great teacher DRAWING on a board WHILE they explain, one idea at a time.
+const GENERATOR_SYSTEM = `ROLE: LESSON GENERATOR. You produce narrated, beat-synced VISUAL lessons — like a great
+teacher DRAWING an accurate diagram while explaining, one idea at a time. Output narration +
+one animated 2D-canvas visual per section + an exercise. The lesson is WATCHED, not operated:
+it auto-plays. NO interactivity (no clicks, taps, sliders, or graded input in the visual).
 
-You receive a LessonPlan + media assets. Output narration + one self-contained interactive
-visual per section + an exercise.
+HOW BEATS WORK
+"narration" is an array of BEATS (short spoken lines, one idea each). You author ONE function
+the engine calls every frame:  window.zoeRender(t, phase, pt, bt)
+  • phase = current beat index (0-based).   • pt = 0..1 progress through this beat (use appear()).
+  • t = ms since section start (ambient motion).   • bt = ms since this beat started.
+zoeRender is PURE: clear and redraw the whole frame every call; don't accumulate reveal state.
 
-══════════════════════════════════════════════════════════════
-  THE DELIVERY MODEL — BEATS (read this twice)
-══════════════════════════════════════════════════════════════
-A section's "narration" array is a list of BEATS — short spoken lines (one idea each).
-The player SPEAKS them one at a time; as each beat plays, your visual must REVEAL the
-matching part of the picture, in sync. You do NOT wire buttons for this — instead you author
-ONE render function that the ZOE engine calls every frame:
+THE 4 THINGS THAT MAKE A LESSON GOOD (in priority order):
+1) EXACT SYNC. narration[i] describes EXACTLY what the screen reveals at phase i — write them
+   together. Every beat reveals a NEW element (never plays over an unchanged screen). Earlier
+   phases' elements stay visible. narration.length === the number of phases zoeRender handles.
+2) DEPTH + ACCURACY. Draw the REAL thing being taught (its actual parts, correct proportions,
+   correct values/labels) — never a generic placeholder. If SOURCE MATERIAL/figures give labels,
+   numbers, or formulas, reproduce them EXACTLY. Correct-but-plain beats flashy-but-wrong. phase 0
+   is already a full accurate picture, not a lone title.
+3) ANIMATE — EVERY SECTION IS A MOVING VISUAL, NOT A STATIC SLIDESHOW. Bring each new element in
+   with appear(pt,...); and beyond reveals, make the concept MOVE: animate the actual thing the
+   topic describes — a value rising/falling, a process stepping through, an object travelling, a
+   quantity being measured, a diagram assembling, a flow moving along its path, a graph plotting.
+   Use t for continuous life (drift, pulse, flow) and pt for the beat's action. The motion must
+   demonstrate the concept (not random particles). A section that never moves is a failure.
+4) CLEAN LAYOUT (see LAYOUT below) — nothing overlaps, positions are computed, everything fits.
 
-  window.zoeRender = function(t, phase, pt, bt) { ... redraw the WHOLE frame ... }
+TOOLKIT (injected — do NOT redefine):
+- zoeStage(canvas,1000,625) → fixed 1000×625 stage, auto-scaled to any screen (this is your
+  responsiveness — just author in W/H units, no media queries needed). Returns {W,H,...}.
+- var draw = zoeDraw(ctx,S); methods (all safe): draw.clear(); draw.bg(top,bot);
+  draw.text(s,x,y,{size,color,weight,align,glow,alpha}); draw.pill(s,x,y,{size,color,bg,stroke});
+  draw.rect(x,y,w,h,{fill,stroke,lineWidth,radius,alpha}); draw.line(x1,y1,x2,y2,{color,width,dash});
+  draw.arrow(x1,y1,x2,y2,{color,width,head}); draw.circle(x,y,r,{fill,stroke,glow}); draw.dot(x,y,r,color,glow);
+  draw.numberLine(x0,x1,y,{min,max,step}); draw.axes(ox,oy,len,{w,h,xLabel,yLabel}).
+  You may also use raw ctx (paths, curves, gradients) to draw the real figure part-by-part.
+- appear(pt,start,end) → eased 0..1 reveal.   ZC → palette (ZC.gold/amber/cream/dim/line/good/bad/cool/violet).
 
-  • phase = index of the CURRENT beat (0 = first narration line, 1 = second, …).
-  • pt    = smooth 0..1 progress THROUGH the current beat (perfect for appear()).
-  • t     = ms since the section started  (use for ambient motion: pulsing, drift).
-  • bt    = ms since THIS beat started.
+LAYOUT — NO OVERLAPS, COMPUTED POSITIONS (this is where lessons currently break):
+- Reserve space BEFORE drawing. Title in top band (y<H*0.12), diagram in the middle, short
+  captions in bottom band (y>H*0.86). Never draw text/box on top of another element. If a big
+  container holds sub-items, give the container its OWN vertical span and place the sub-items
+  BELOW/inside it with a clear gap — never let them overlap the container.
+- COMPUTE even layouts, never eyeball. For N items of width itemW across [cx0..cx1]:
+    var gap=((cx1-cx0)-N*itemW)/(N+1);  var xOf=i=>cx0+gap+i*(itemW+gap);   // equal gaps + margins
+  Same-role items share the same size and gap; a column shares one x; a row shares one y; leftover
+  space splits equally into left/right margins so the group is centred and symmetric.
+- Labels over artwork go on a draw.pill(); keep clear gaps; use a short leader line if needed.
+- Don't render long paragraphs on canvas (the spoken beat carries the words) — only short labels,
+  numbers, formulas, and the diagram.
 
-So: beat/phase 0 draws the setup; when phase reaches 1, reveal the next element; use
-appear(pt,0,0.6) to fade/slide each new element in as its line is spoken. The number of
-beats in "narration" = the number of phases your zoeRender handles (0 … narration.length-1).
-Everything must also look right at pt=1 for every phase (the frame holds after a beat ends).
+HARD RULES:
+- ONE complete HTML doc (<!DOCTYPE html>…). Classic <script> only (no import/export).
+- 2D ONLY — Canvas 2D + zoeStage + zoeDraw (+ raw ctx). Do NOT load Three.js or any library.
+- Define window.zoeRender(t,phase,pt,bt); do NOT write your own RAF loop. Call emit('ready') at end.
+- No pointer/click handlers, buttons, onExperiment/onReset, or emit('submission').
+- Canvas CSS only: canvas{display:block;touch-action:none}. Resize: window.addEventListener('resize',()=>{S=zoeStage(c,1000,625);}).
 
-zoeRender MUST be a pure function of (t,phase,pt): CLEAR and redraw everything each call.
-Do NOT accumulate state across frames for the reveal (ambient particles are fine).
-
-══════════════════════════════════════════════════════════════
-  THE TOOLKIT (all injected — do NOT redefine)
-══════════════════════════════════════════════════════════════
-- zoeStage(canvas, W, H) → fixed reference stage, scaled-to-fit, HiDPI. Author ALL coords as
-  CONSTANTS in W×H space (use 1000×625). Returns {W,H,...}. Call once + on resize.
-- var draw = zoeDraw(ctx, S); → drawing kit bound to your ctx + stage. Methods (all safe):
-    draw.clear();  draw.bg(topColor, botColor);
-    draw.text(str,x,y,{size,color,weight,align,glow,alpha});
-    draw.pill(str,x,y,{size,color,bg,stroke});   // label on a padded chip — legible over art
-    draw.rect(x,y,w,h,{fill,stroke,lineWidth,radius,alpha});
-    draw.line(x1,y1,x2,y2,{color,width,dash,alpha});
-    draw.arrow(x1,y1,x2,y2,{color,width,head});
-    draw.circle(x,y,r,{fill,stroke,lineWidth,glow});  draw.dot(x,y,r,color,glow);
-    var px = draw.numberLine(x0,x1,y,{min,max,step,color}); // returns v→x mapper
-    draw.axes(ox,oy,len,{w,h,xLabel,yLabel,color});
-- appear(pt, start, end) → eased 0..1 reveal. Use it to bring each element in on its beat.
-- ZC → palette object: ZC.bg, ZC.gold, ZC.amber, ZC.earth, ZC.cream, ZC.ink, ZC.dim, ZC.line,
-  ZC.good, ZC.bad, ZC.cool, ZC.violet.
-- window.__zoe_safe_bottom → px reserved at the bottom for ZOE's UI (stage already accounts for it).
-
-══════════════════════════════════════════════════════════════
-  INTERACTIVE EVALUATION — the sandbox can GRADE the learner
-══════════════════════════════════════════════════════════════
-When a section has an "evaluation", the learner DOES something (plays a chord, draws a wave,
-builds a circuit, writes code). Add a clear Submit/Check button and emit their action:
-  emit('submission', { payload: <structured data>, label: <short human summary> });
-  • Guitar chord: { payload:{frets:[{string:5,fret:3},{string:4,fret:2}],notes:['C','E','G']}, label:'C major' }
-  • Rhythm:       { payload:{pattern:[1,0,0,1,0,1,0,0],bpm:90}, label:'Tapped a pattern' }
-The PARENT grades it — you only emit accurate data. (Instruments can be live from phase 0;
-they don't have to wait on beats.)
-
-RULES — MUST FOLLOW:
-0. ANIMATION-DRIVEN, NOT CLICK-DRIVEN (CRITICAL). The visual AUTO-PLAYS and teaches itself through
-   the beat-synced animation — the learner WATCHES, they do not have to click/tap/drag anything on the
-   canvas to make the explanation happen. So:
-   • NEVER write narration that instructs the learner to interact ("click the card", "tap each atom",
-     "drag the slider to see…", "select an option below"). If you catch yourself about to say "click",
-     instead SHOW it: animate the reveal automatically on the matching beat.
-   • Whatever a click WOULD have revealed, reveal it yourself over time — e.g. instead of "click each
-     element to see its symbol", auto-highlight each element in turn across the beats, drawing its symbol
-     as it lights up. Cycle/step through examples on a timer (like a great explainer video), using t and
-     the beat phase. This makes the animation RICHER, not poorer — put the effort you'd spend on click
-     handling into more expressive motion, staged reveals, and worked examples that play out visually.
-   • Do NOT add canvas pointer/click hit-testing for "explore" interactions — it is unreliable here.
-   • The ONE exception is experimentControls (sliders/toggles) handled via window.onExperiment (rule 11):
-     those are fine because ZOE renders them as real UI. But even then, the lesson must fully teach itself
-     with NO control touched — controls only let a curious learner poke further.
-1. Output ONE complete HTML doc: <!DOCTYPE html><html><head>…</head><body>…</body></html>.
-2. NEVER ES modules (import/export). Classic <script> only.
-3. 2D: use Canvas 2D + zoeStage + zoeDraw. 3D: load Three.js GLOBAL build
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-   and use the global THREE (never the module build).
-4. Define window.zoeRender(t,phase,pt,bt) — the ZOE engine runs the RAF loop and clocks for you.
-   Do NOT write your own requestAnimationFrame draw loop for the reveal; just author zoeRender.
-5. Call emit('ready') at the end of init.
-6. RESERVED BANDS (zero overlap): title in the top band (y < H*0.12); the drawing in the middle;
-   captions/labels in the bottom band (y > H*0.86). Put labels over artwork on a draw.pill().
-   Before placing a label near shapes, keep clear space or use a short leader line.
-7. Fonts/positions are CONSTANTS in stage units (e.g. size:22) — they scale automatically.
-8. Canvas CSS: only  canvas{display:block;touch-action:none}  — zoeStage owns real sizing.
-9. RESIZE: window.addEventListener('resize', function(){ S = zoeStage(c,1000,625); }); nothing else.
-10. MOBILE: all input via Pointer Events (pointerdown/move/up), canvas.style.touchAction='none'.
-11. Experiments: define window.onExperiment(id,value) and window.onReset() — have them set globals
-    that zoeRender reads (do NOT fight the beat reveal). Tap targets ≥ ~64×48 stage units.
-12. onBeat(phase) is OPTIONAL — a hook fired when a beat starts (e.g. to trigger a one-shot sound
-    or physics kick). Prefer expressing everything through zoeRender(phase,pt).
-
-══════════════════════════════════════════════════════════════
-  TEMPLATE A — 2D beat-synced canvas (canvas_animation, graph_interactive,
-                interactive_instrument, diagram_animated)  — 4 beats
-══════════════════════════════════════════════════════════════
-This matches narration = 4 beats. Note how each phase reveals its element with appear(pt,...):
-
+TEMPLATE (narration = 4 beats; note phase 0 is already a full picture, each phase adds one thing):
 <!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f0d0a;overflow:hidden}canvas{display:block;touch-action:none}</style>
@@ -305,188 +263,43 @@ This matches narration = 4 beats. Note how each phase reveals its element with a
 var c=document.getElementById('c'), ctx=c.getContext('2d');
 var S=zoeStage(c,1000,625), W=S.W, H=S.H, draw=zoeDraw(ctx,S);
 window.addEventListener('resize',function(){ S=zoeStage(c,1000,625); });
-
-var speedFactor=1; // experiment-controlled global read inside zoeRender
-
 window.zoeRender=function(t,phase,pt,bt){
   draw.clear(); draw.bg('#161009','#0d0b08');
   draw.text('Average Speed = distance ÷ time', W/2, H*0.08, {size:26,color:ZC.gold,weight:'800'});
-
-  // road + markers (present from beat 0, fading in)
+  // phase 0: full road + markers already drawn
   var roadY=H*0.55, x0=W*0.12, x1=W*0.88, a0=(phase===0)?appear(pt,0,0.6):1;
   draw.rect(x0,roadY,x1-x0,10,{fill:'rgba(250,245,235,0.18)',alpha:a0});
   var pxOf=function(m){return x0+(m/80)*(x1-x0);};
   for(var m=0;m<=80;m+=20){ draw.line(pxOf(m),roadY+10,pxOf(m),roadY+20,{color:ZC.dim,alpha:a0});
     draw.text(m+' m',pxOf(m),roadY+34,{size:13,color:ZC.dim,alpha:a0}); }
-
-  // beat 1: the car drives 0→80 across its whole beat
-  var carM = phase<1 ? 0 : (phase===1 ? appear(pt,0.05,0.95)*80 : 80);
-  var carX = pxOf(carM) + Math.sin(t*0.004)*0; // (ambient hook if wanted)
+  // beat 1: car drives 0→80
+  var carM=phase<1?0:(phase===1?appear(pt,0.05,0.95)*80:80), carX=pxOf(carM);
   draw.rect(carX-22,roadY-24,44,22,{fill:ZC.amber,radius:6});
-  draw.circle(carX-12,roadY-2,5,{fill:'#2a2018'}); draw.circle(carX+12,roadY-2,5,{fill:'#2a2018'});
   if(phase>=1) draw.pill(Math.round(carM)+' m', carX, roadY-42, {size:14,color:ZC.cream});
-
   // beat 2: the division
-  if(phase>=2){ var a2=(phase===2)?appear(pt,0,0.55):1;
-    draw.text('80 m ÷ 10 s', W/2, H*0.78, {size:24,color:ZC.cream,weight:'800',alpha:a2}); }
+  if(phase>=2){ var a2=(phase===2)?appear(pt,0,0.55):1; draw.text('80 m ÷ 10 s', W/2, H*0.78, {size:24,color:ZC.cream,weight:'800',alpha:a2}); }
   // beat 3: the answer
-  if(phase>=3){ var a3=appear(pt,0,0.55);
-    draw.text('= 8 m/s', W/2, H*0.90, {size:30,color:ZC.gold,weight:'800',glow:14,alpha:a3}); }
+  if(phase>=3){ var a3=appear(pt,0,0.55); draw.text('= 8 m/s', W/2, H*0.90, {size:30,color:ZC.gold,weight:'800',glow:14,alpha:a3}); }
 };
-
-window.onExperiment=function(id,v){ if(id==='speed') speedFactor=parseFloat(v); };
-window.onReset=function(){ speedFactor=1; };
 emit('ready');
 </script>
 </body></html>
 
-══════════════════════════════════════════════════════════════
-  TEMPLATE B — Three.js 3D (3d_simulation) — beat-driven via zoeRender
-══════════════════════════════════════════════════════════════
-<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f0d0a;overflow:hidden}canvas{display:block;touch-action:none}</style>
-</head><body>
-<canvas id="c"></canvas>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-var SAFE=window.__zoe_safe_bottom||0, W=innerWidth, H=innerHeight-SAFE;
-var c=document.getElementById('c'); c.style.width=W+'px'; c.style.height=H+'px';
-var renderer=new THREE.WebGLRenderer({canvas:c,antialias:true,alpha:true});
-renderer.setSize(W,H); renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
-var scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(45,W/H,0.1,1000);
-camera.position.set(0,2,8);
-scene.add(new THREE.AmbientLight(0x404040,0.9));
-var lt=new THREE.DirectionalLight(0xffffff,1); lt.position.set(5,10,5); scene.add(lt);
-var mesh=new THREE.Mesh(new THREE.SphereGeometry(1,32,32),new THREE.MeshPhongMaterial({color:0xF6C863,emissive:0x3d2a00}));
-scene.add(mesh);
-window.addEventListener('resize',function(){ SAFE=window.__zoe_safe_bottom||0; W=innerWidth;H=innerHeight-SAFE;
-  c.style.width=W+'px';c.style.height=H+'px'; renderer.setSize(W,H); camera.aspect=W/H; camera.updateProjectionMatrix(); });
-
-// zoeRender drives BOTH the beat state and the render() call each frame:
-window.zoeRender=function(t,phase,pt,bt){
-  mesh.rotation.y=t*0.0006;
-  if(phase>=1) mesh.material.color.lerp(new THREE.Color(0xE9A23B), 0.05); // beat 1: warm up
-  if(phase>=2) mesh.scale.setScalar(1 + appear(pt,0,1)*0.6);              // beat 2: grow
-  renderer.render(scene,camera);
-};
-var drag=false,lx=0,ly=0;
-c.addEventListener('pointerdown',function(e){drag=true;lx=e.clientX;ly=e.clientY;});
-c.addEventListener('pointermove',function(e){ if(!drag)return; mesh.rotation.y+=(e.clientX-lx)*0.01; mesh.rotation.x+=(e.clientY-ly)*0.01; lx=e.clientX;ly=e.clientY;});
-c.addEventListener('pointerup',function(){drag=false;});
-window.onExperiment=function(id,v){ if(id==='scale') mesh.scale.setScalar(parseFloat(v)); };
-window.onReset=function(){ mesh.scale.set(1,1,1); mesh.material.color.set(0xF6C863); };
-emit('ready');
-</script>
-</body></html>
-
-══════════════════════════════════════════════════════════════
-  OUTPUT FORMAT
-══════════════════════════════════════════════════════════════
-- Interactive sections: ≥ 200 lines of REAL, subject-specific code. Animate the ACTUAL concept —
-  never a generic ball. The reveal must track the beats (phase 0…N-1 = narration 0…N-1).
-- Media sections (ai_image/ai_video): no interactiveCode; reference media by "mediaRef" in a beat.
-- NARRATION = BEATS: 3-7 per section, ONE idea each, 1-2 short spoken sentences, warm + direct,
-  written to be HEARD aloud. They must line up with what your zoeRender reveals at that phase.
-  NEVER tell the learner to click/tap/drag/select anything — the animation shows it automatically
-  (see RULE 0). The beat DESCRIBES what is happening on screen; it never asks for an action.
-- Do NOT rely on "action" (legacy) — express the reveal through zoeRender(phase,pt) instead.
-
-STRICT JSON only. No prose outside the JSON.
-
+OUTPUT — STRICT JSON only, no prose outside it:
+- Every section has a substantial ANIMATED visual (≥180 lines of real, accurate drawing code for
+  the actual topic — it moves and demonstrates the concept, never a static slideshow).
+- 3-7 beats/section, one idea each, 1-2 short spoken sentences, warm + direct, each matching its phase.
 Schema:
 { "sections": [{ "title": string, "hookQuestion": string,
-                  "narration": [{ "text": string, "action"?: string, "mediaRef"?: string }],
-                  "interactiveCode"?: string,
-                  "mediaRefs"?: [string],
-                  "experimentControls": [{ "id": string, "label": string,
-                    "type": "slider"|"toggle"|"select",
-                    "min"?: number, "max"?: number, "step"?: number,
-                    "options"?: [string], "defaultValue": any }],
-                  "evaluation"?: { "challenge": string, "successCriteria": string,
-                    "submissionShape": string, "skill": string } }],
-  "exercise": { "type": "mcq"|"build"|"predict"|"code", "prompt": string,
-                "options"?: [string], "correctIndex"?: number,
-                "explanation": string, "hints"?: [string] },
+                  "narration": [{ "text": string }],
+                  "interactiveCode": string,
+                  "experimentControls": [] }],
+  "exercise": { "type": "mcq"|"predict", "prompt": string,
+                "options"?: [string], "correctIndex"?: number, "explanation": string },
   "summary": string }
+("interactiveCode" is a legacy field name — it holds your non-interactive VISUAL canvas HTML.
+Always populate it for every section.)`;
 
-Add "evaluation" to AT LEAST ONE section when the skill is performable (music, art, code,
-construction, physical technique) — make the sandbox a place the learner DOES the thing and gets graded.`;
-
-/* Appended to EVERY generation — the drawing, text, labels and controls must never collide. */
-const LAYOUT_CONTRACT = `
-
-════ LAYOUT CONTRACT — ZERO OVERLAPS (MANDATORY, EVERY VISUAL) ════
-You draw in the FIXED stage (1000×625 via zoeStage) — coordinates are constants that auto-scale,
-so "no overlap" is a matter of geometry you fully control. Enforce a REGION layout in stage units:
-- TOP band (y < H*0.12): the title ONLY. BOTTOM band (y > H*0.86): the caption/label ONLY.
-- CENTER (0.12H … 0.86H): the drawing ONLY. Never lay HUD text directly on moving/filled shapes.
-- Labels that must sit over artwork go on a draw.pill() (padded chip) so they stay legible; keep a
-  clear gap from neighbours, and use a short draw.line() leader to point at the target if needed.
-- Anchor persistent labels to fixed points; do not let them jitter frame-to-frame.
-- Controls/legend: one tidy padded row inside a reserved band — never covering the drawing.
-- Because narration plays in ZOE's UI, do NOT also render long paragraphs on the canvas — show only
-  short labels, numbers, formulas and the diagram. The spoken beat carries the words.
-- Mentally check at a 360px-wide phone: nothing clipped, nothing overlapping, nothing off the stage.`;
-
-/* Appended to EVERY generation — a gold-standard exemplar for DEPTH and animation
-   quality. It is NOT a structural template: our engine uses zoeStage + zoeDraw +
-   window.zoeRender(t,phase,pt,bt) and owns the flow/TTS/UI. The reference below
-   uses a DIFFERENT architecture (its own D library, its own RAF loops, its own
-   speech + sidebar) — do NOT copy any of that. Copy only the RIGOR: how deep,
-   how faithful, how animated, how physically accurate a single step should be. */
-const REFERENCE_STANDARD = `
-
-════ REFERENCE STANDARD — THE DEPTH BAR (MANDATORY QUALITY, read carefully) ════
-A step with this exact title + description was fed into a generator and produced the
-lesson excerpted below. THIS is the level of depth, faithfulness and animation quality
-expected from a title + description like the one you were given — treat it as the bar,
-with ZERO tolerance for shallower or vaguer output.
-
-INPUT THAT PRODUCED IT →
-  Title:       "Sound Needs a Medium"
-  Description: The bell-jar experiment (NCERT Fig 10.7): an electric bell rings inside a
-               sealed glass jar; as air is pumped out the sound fades to silence though the
-               hammer is still visibly striking; letting air back in restores the sound —
-               proving sound needs a material medium. Plus: why space is silent and
-               astronauts must use radios (electromagnetic waves need no medium).
-
-WHAT "GOLD STANDARD" MEANT FOR THAT OUTPUT (match ALL of these) →
-1. DOMAIN-SPECIFIC DRAWING, NOT GENERIC SHAPES. It authored a purpose-built primitive that
-   draws the ACTUAL apparatus part-by-part from the real figure — glass dome, base plate,
-   tripod, the electric bell with a swinging striker, air molecules whose COUNT scales with
-   an airLevel, red vacuum tube, power wires, sound-wave rings. Every part reproduced
-   deliberately. (In OUR engine you build this the same way with zoeDraw inside zoeRender —
-   never a generic bouncing ball, never a vague blob.)
-     // e.g. the reference's apparatus primitive header:
-     //   bellJar(cx, baseY, {airLevel 0..1, ringing, showSound, t, labels}) → draws the
-     //   full Fig-10.7 setup; molecule count = round(airLevel*28); sound-wave intensity
-     //   scales with airLevel; striker swings via sin(t/90). Faithful to the source figure.
-2. MULTI-PHASE, TIME-DRIVEN SIMULATION OF THE REAL PROCESS. The core animation ran a 4-phase
-   cycle — full air → pumping out (airLevel 1→0.05) → near-vacuum (silent, hammer still
-   visibly striking) → air back in (0→1) — with a LIVE dashboard (air % bar, sound % bar via
-   a pow(airLevel,0.7) curve, bell-state, audible?). The animation demonstrates the physics;
-   it is not decoration. (In OUR engine: drive these phases off the narration beats — phase
-   0..N — and off t; read experiment globals if the learner can pump the air themselves.)
-3. FAITHFUL TO THE SOURCE FIGURE + NUMBERS. Exact NCERT labels ("To vacuum pump", "Electric
-   bell", "To power supply"), the exact apparatus layout, the exact conclusion. It reproduced
-   the figure — it did not draw a loose lookalike. Do the same with any figure you are given.
-4. PARAGRAPH-DEEP, PHYSICALLY ACCURATE NARRATION. Each spoken beat was a real explanation with
-   the actual mechanism — e.g. "The bell's hammer is striking at full force the whole time —
-   that's why you can SEE it ringing — but the vibration only travels outward if there are air
-   molecules to receive the push and pass it along; remove the air and there are no carriers
-   left, so the sound disappears. The bell didn't change. The medium did." Not "sound needs
-   air." Explain the WHY, correctly, every time.
-5. RIGOROUS ANTI-OVERLAP LAYOUT. Reserved vertical bands, word-wrapped panels sized to fit,
-   leader lines, commented pixel math so nothing ever collides. (Our LAYOUT CONTRACT above is
-   the same discipline — hold to it exactly.)
-6. REAL ASSESSMENT. Each section ended in a genuine MCQ whose explanation re-taught the
-   mechanism in depth (not a trivial recall check).
-
-USE IT LIKE THIS: reproduce that DEPTH, FIDELITY, and ANIMATED-PHYSICS quality inside OUR
-architecture (zoeStage/zoeDraw/zoeRender, narration = beats, our UI owns TTS + flow). Do NOT
-import its D library, its own requestAnimationFrame loops, its speech engine, its sidebar, or
-its full-page multi-screen shell. Match the substance, not the scaffolding.`;
 
 /* Appended to the GENERATOR system prompt when a step is document-grounded. */
 const GENERATOR_FAITHFUL = `
@@ -494,9 +307,9 @@ const GENERATOR_FAITHFUL = `
 ════ FAITHFUL / DOCUMENT MODE ════
 SOURCE MATERIAL is provided in the user message. This lesson MUST faithfully teach it:
 - Narration conveys the source's ACTUAL definitions, statements, formulas and worked-example steps — accurately, in ZOE's warm voice, WITHOUT adding facts that aren't in the source.
-- Reproduce EACH provided figure faithfully as interactive SVG/canvas:
+- Reproduce EACH provided figure faithfully as an animated 2D canvas visual (zoeDraw/ctx):
   • Use the EXACT labels and values given. Recreate the described geometry / parts / arrows / axes precisely.
-  • "diagram"/"equation" → draw with Canvas 2D or inline SVG. "chart"/"table" → plot the exact values.
+  • "diagram"/"equation" → draw it part-by-part with Canvas 2D. "chart"/"table" → plot/lay out the exact values.
   • Do NOT draw a loose approximation and do NOT substitute a generic demo. Match the description.
   • "photo": you cannot redraw a photograph exactly — instead render a CLEAN LABELLED SCHEMATIC of what it depicts and note it represents the photo. Never present a fake image as the real one.
 - Proportional depth ONLY: no invented sections, tangents, or "fun facts" beyond the source. If the source section is short, keep the lesson short.`;
@@ -554,16 +367,15 @@ Duration: ~${req.step.minutes} minutes
 ${req.profileSummary ? `Learner: ${req.profileSummary}` : ""}${sourceBlock(req.source)}
 
 ${faithful
-  ? "Generate the full lesson STRICTLY from the source material above. Teach exactly what it says, reproduce its figures faithfully as interactive SVG/canvas, and keep depth proportional — invent nothing."
-  : "Generate the full lesson content now. Make interactive code RICH and DETAILED — this is the core of the learning experience. Use the media asset IDs in narration steps where relevant."}`;
+  ? "Generate the full lesson STRICTLY from the source material above. Teach exactly what it says, reproduce its figures faithfully as an accurate animated 2D canvas visual (exact labels/values), keep narration exactly synced to each phase, and keep depth proportional — invent nothing."
+  : "Generate the full visual lesson now. For each section, draw the ACTUAL topic accurately as an auto-playing 2D canvas animation with narration exactly synced to each phase — depth and correctness over decoration, no empty/title-only frames, no interactivity."}`;
 
   try {
-    // Interactive code is hard → Claude Opus 4.8 (reasoning tier)
-    const system = GENERATOR_SYSTEM + LAYOUT_CONTRACT + REFERENCE_STANDARD + (faithful ? GENERATOR_FAITHFUL : "");
+    // Visual (canvas) generation is hard → Claude Opus 4.8 (reasoning tier)
+    const system = GENERATOR_SYSTEM + (faithful ? GENERATOR_FAITHFUL : "");
     console.log(
-      `[generateLesson] "${req.step.title}" → generating with REFERENCE STANDARD ` +
-      `(ref ${REFERENCE_STANDARD.length} chars, system ${system.length} chars, ` +
-      `faithful=${faithful}, sections=${plan.sections.length})`,
+      `[generateLesson] "${req.step.title}" → generating visual lesson ` +
+      `(system ${system.length} chars, faithful=${faithful}, sections=${plan.sections.length})`,
     );
     const raw = await genText(system, user, "reasoning", faithful ? 0.5 : 0.7, 32000);
     const parsed = parseJson<Omit<LessonContent, "plan" | "media">>(raw);

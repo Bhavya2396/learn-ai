@@ -278,9 +278,29 @@ export default function LessonPlayer({ lesson, stepTitle, onBack, onComplete }: 
 
   return (
     <div
-      className="relative w-full overflow-hidden rounded-[26px]"
-      style={{ height: "calc(100svh - 120px)", minHeight: 520, background: "#0f0d0a" }}
+      // Full-bleed: escape the app's 520px mobile column so the visual fills the
+      // whole screen edge-to-edge (with small margins) on any device. `fixed`
+      // breaks out of the centered parent; insets give the small breathing margin.
+      className="fixed z-[100] overflow-hidden rounded-[26px]"
+      style={{
+        top: 16, bottom: 16,
+        left: "max(16px, env(safe-area-inset-left))",
+        right: "max(16px, env(safe-area-inset-right))",
+        maxWidth: 1400, marginInline: "auto",
+        background: "#0f0d0a",
+      }}
     >
+      {/* Persistent back button — always visible (the auto-hiding header's back
+          button disappears, so this guarantees a way out of the full-bleed player). */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onBack(); }}
+        aria-label="Back to journey"
+        className="zoe-haptic absolute top-3 left-3 z-[60] w-9 h-9 rounded-full grid place-items-center flex-shrink-0"
+        style={{ background: "rgba(20,16,12,0.6)", backdropFilter: "blur(12px)", color: "#FAF5EB", border: "1px solid rgba(255,255,255,0.14)" }}
+      >
+        <ArrowLeft className="w-4 h-4" />
+      </button>
+
       {/* ════ VISUAL LAYER — absolute inset-0, fills the full box ════ */}
       <div className="absolute inset-0" onClick={revealHeader}>
         <AnimatePresence mode="wait">
@@ -384,13 +404,8 @@ export default function LessonPlayer({ lesson, stepTitle, onBack, onComplete }: 
             transition={{ duration: 0.25, ease: EASE }}
             className="absolute top-0 inset-x-0 z-30 px-3 pt-3 pb-2 flex items-center gap-2"
           >
-            <button
-              onClick={(e) => { e.stopPropagation(); onBack(); }}
-              className="zoe-haptic w-9 h-9 rounded-full grid place-items-center flex-shrink-0"
-              style={{ background: "rgba(20,16,12,0.55)", backdropFilter: "blur(12px)", color: "#FAF5EB" }}
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
+            {/* Spacer where the persistent back button sits, so the progress bar clears it. */}
+            <div className="w-9 h-9 flex-shrink-0" aria-hidden />
 
             <div className="flex-1 flex gap-1.5">
               {lesson.sections.map((s, i) => (

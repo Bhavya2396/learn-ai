@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Plus, Check, X, Play, Mic, ChevronRight, User } from "lucide-react";
+import { ArrowRight, Plus, Check, X, Play, Mic, ChevronRight, User, FileText, Sparkle, Upload } from "lucide-react";
 import MobileShell from "./MobileShell";
 import LivingBackground from "./LivingBackground";
 import ZoeOrb from "./ZoeOrb";
@@ -17,6 +17,7 @@ import { useAmbience } from "@/lib/zoe/ambience";
 import { journeyProgress, normalizeJourney, currentSkillTier, type RawJourney } from "@/lib/zoe/journey";
 import { AREA_META, areaMeta, type Aspiration, type Journey, type LifeArea, type ZoeProfile } from "@/lib/zoe/types";
 import type { ArchitectResponse, ProfileDraft } from "@/lib/zoe/hats-types";
+import type { SourceSection } from "@/lib/zoe/content-types";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 const AREA_ORDER: LifeArea[] = ["career", "entrepreneurship", "craft", "health", "mindset", "money", "sustainability", "knowledge"];
@@ -44,6 +45,7 @@ export default function Home() {
   const ledger = useZoeBrain((s) => s.ledger);
   const addAspiration = useZoeBrain((s) => s.addAspiration);
   const setJourney = useZoeBrain((s) => s.setJourney);
+  const setAspirationSource = useZoeBrain((s) => s.setAspirationSource);
   const setActiveAspiration = useZoeBrain((s) => s.setActiveAspiration);
 
   const streak = useMemo(() => getStreakDays(events), [events]);
@@ -120,6 +122,7 @@ export default function Home() {
 
   return (
     <MobileShell
+      dock={!adding}
       right={
         <Link href="/profile" className="w-9 h-9 rounded-full grid place-items-center flex-shrink-0 zoe-haptic" style={{ background: "var(--z-surface)" }}>
           <User className="w-4 h-4" style={{ color: "var(--z-ink-2)" }} />
@@ -274,9 +277,11 @@ export default function Home() {
             seedTitle={seed}
             onResearch={() => pulse("thinking", 6000)}
             onClose={() => setAdding(false)}
-            onCreate={(title, area, why, journey) => {
+            onCreate={(title, area, why, journey, sections) => {
               const id = addAspiration({ title, area, why });
               setJourney(id, journey);
+              // Document-sourced goals carry their sections so lessons stay faithful.
+              if (sections?.length) setAspirationSource(id, { title, sections });
               setAdding(false);
               pulse("success", 2600);
               router.push(`/journey/${id}`);
@@ -383,24 +388,30 @@ function BehavioralSnap({ profile, mastery }: { profile: ZoeProfile; mastery: nu
 }
 
 /* ── Add goal — full-screen overlay ────────────────────── */
-type AddPhase = "input" | "loading" | "preview";
+type AddPhase = "choose" | "input" | "pdf" | "loading" | "preview";
 const LOADING_STEPS = ["Shaping the path…", "Picking your first step…"];
+const DOC_LOADING_STEPS = ["Reading your document…", "Mapping the topics…", "Building your path…"];
+const DOC_AREA: LifeArea = "knowledge";
 
 function AddGoal({
   profile, onClose, onCreate, onResearch, seedTitle = "",
 }: {
   profile: ProfileDraft; onClose: () => void;
-  onCreate: (title: string, area: LifeArea, why: string | undefined, journey: Journey) => void;
+  onCreate: (title: string, area: LifeArea, why: string | undefined, journey: Journey, sections?: SourceSection[]) => void;
   onResearch?: () => void; seedTitle?: string;
 }) {
-  const [phase, setPhase] = useState<AddPhase>("input");
+  // If the dashboard seeded a title (e.g. from Ask), skip the chooser into scratch.
+  const [phase, setPhase] = useState<AddPhase>(seedTitle ? "input" : "choose");
   const [title, setTitle] = useState(seedTitle);
   const [area, setArea] = useState<LifeArea>("craft");
   const [journey, setJourney] = useState<Journey | null>(null);
+  const [sections, setSections] = useState<SourceSection[]>([]);
   const [ridx, setRidx] = useState(0);
+  const [loadingSteps, setLoadingSteps] = useState<string[]>(LOADING_STEPS);
+  const [pdfError, setPdfError] = useState("");
 
   const build = async () => {
-    setPhase("loading"); setRidx(0); onResearch?.();
+    setLoadingSteps(LOADING_STEPS); setPhase("loading"); setRidx(0); onResearch?.();
     const timer = setInterval(() => setRidx((i) => Math.min(i + 1, LOADING_STEPS.length - 1)), 750);
     const started = Date.now();
     try {
@@ -414,21 +425,74 @@ function AddGoal({
       const data: ArchitectResponse = await res.json();
       const j = normalizeJourney((data.journey ?? {}) as RawJourney);
       const minDwell = LOADING_STEPS.length * 750;
-      setTimeout(() => { clearInterval(timer); setJourney(j); setPhase("preview"); }, Math.max(0, minDwell - (Date.now() - started)));
+      setTimeout(() => { clearInterval(timer); setSections([]); setJourney(j); setPhase("preview"); }, Math.max(0, minDwell - (Date.now() - started)));
     } catch {
       clearInterval(timer); setPhase("input");
     }
   };
 
+  // PDF path: OCR + topic extraction + journey (built server-side from topics).
+  const docBuild = async (base64: string, mimeType: string, fileName: string) => {
+    setLoadingSteps(DOC_LOADING_STEPS); setPhase("loading"); setRidx(0); onResearch?.();
+    const timer = setInterval(() => setRidx((i) => Math.min(i + 1, DOC_LOADING_STEPS.length - 1)), 1500);
+    try {
+      const res = await fetch("/api/zoe/document", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileData: base64, mimeType, fileName, area: DOC_AREA }),
+      });
+      if (!res.ok) throw new Error("document failed");
+      const data = await res.json();
+      const j = normalizeJourney((data.journey ?? {}) as RawJourney);
+      const docTitle = (data.title as string) || fileName.replace(/\.[^.]+$/, "") || "Your document";
+      clearInterval(timer);
+      setTitle(docTitle);
+      setArea((data.area as LifeArea) || DOC_AREA);
+      setSections(Array.isArray(data.sections) ? (data.sections as SourceSection[]) : []);
+      setJourney(j);
+      setPhase("preview");
+    } catch {
+      clearInterval(timer);
+      setPdfError("Couldn't read that document. Please try another.");
+      setPhase("pdf");
+    }
+  };
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50" style={{ background: "var(--z-bg)" }}>
+      className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--z-canvas)" }}>
       <div className="relative min-h-full">
         <button onClick={onClose} className="absolute top-5 right-5 z-20 w-9 h-9 rounded-full glass-soft flex items-center justify-center zoe-haptic" style={{ color: "var(--z-ink-2)" }}>
           <X className="w-4 h-4" />
         </button>
 
         <AnimatePresence mode="wait">
+          {phase === "choose" && (
+            <motion.div key="choose" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="min-h-[100svh] flex flex-col items-center justify-center px-7 text-center">
+              <h1 className="zoe-display text-[clamp(1.9rem,6.5vw,2.9rem)] leading-[1.1]" style={{ color: "var(--z-ink)" }}>
+                Create a new goal
+              </h1>
+              <p className="mt-4 text-[15px] font-medium max-w-xs" style={{ color: "var(--z-ink-2)" }}>
+                Describe what you want to become — or bring your own material.
+              </p>
+              <div className="mt-9 w-full max-w-sm flex flex-col gap-3">
+                <ChooserCard
+                  icon={<Sparkle className="w-5 h-5" />}
+                  title="Create a journey"
+                  sub="Tell ZOE your goal and it builds the path."
+                  onClick={() => { setPdfError(""); setPhase("input"); }}
+                  primary
+                />
+                <ChooserCard
+                  icon={<FileText className="w-5 h-5" />}
+                  title="Upload a document"
+                  sub="A PDF, text, or Word file — your path follows it exactly."
+                  onClick={() => { setPdfError(""); setPhase("pdf"); }}
+                />
+              </div>
+            </motion.div>
+          )}
+
           {phase === "input" && (
             <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="min-h-[100svh] flex flex-col items-center justify-center px-7 text-center">
@@ -466,7 +530,7 @@ function AddGoal({
               <ZoeOrb size={48} className="mb-5" />
               <h2 className="zoe-display text-[clamp(1.6rem,5vw,2.2rem)]" style={{ color: "var(--z-ink)" }}>One moment</h2>
               <div className="mt-5 space-y-2 text-left max-w-xs">
-                {LOADING_STEPS.map((s, i) => (
+                {loadingSteps.map((s, i) => (
                   <div key={s} className="flex items-center gap-3" style={{ opacity: i <= ridx ? 1 : 0.3 }}>
                     <span className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{ background: i < ridx ? "var(--z-accent)" : i === ridx ? "var(--z-accent-soft)" : "var(--z-surface-2)" }}>
@@ -479,15 +543,118 @@ function AddGoal({
             </motion.div>
           )}
 
+          {phase === "pdf" && (
+            <motion.div key="pdf" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="min-h-[100svh] flex flex-col items-center justify-center px-7 text-center">
+              <PdfPicker error={pdfError} onError={setPdfError} onFile={docBuild} />
+              <button onClick={() => { setPdfError(""); setPhase("choose"); }}
+                className="mt-6 text-[13.5px] font-bold" style={{ color: "var(--z-ink-3)" }}>
+                ← Back
+              </button>
+            </motion.div>
+          )}
+
           {phase === "preview" && journey && (
             <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <JourneyPreview journey={journey} profile={profile}
-                onAccept={() => onCreate(title.trim(), area, undefined, journey)}
-                onTweak={build} />
+                onAccept={() => onCreate(title.trim(), area, undefined, journey, sections)}
+                onTweak={sections.length ? undefined : build} />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
     </motion.div>
+  );
+}
+
+/* ── Chooser card (PDF vs scratch) ─────────────────────── */
+function ChooserCard({
+  icon, title, sub, onClick, primary,
+}: { icon: React.ReactNode; title: string; sub: string; onClick: () => void; primary?: boolean }) {
+  return (
+    <motion.button
+      initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ ease: EASE }}
+      onClick={onClick}
+      className="w-full text-left rounded-3xl px-5 py-4 flex items-center gap-4 transition-transform duration-150 active:translate-y-0.5"
+      style={primary
+        ? { background: "var(--z-accent)", color: "var(--z-on-brand)", boxShadow: "0 4px 0 var(--z-accent-edge)" }
+        : { background: "var(--z-surface)", color: "var(--z-ink)", border: "1.5px solid var(--z-line-2)", boxShadow: "0 3px 0 var(--z-line-2)" }}
+    >
+      <span className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+        style={{ background: primary ? "rgba(255,255,255,0.20)" : "var(--z-surface-2)" }}>
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[16px] font-extrabold leading-tight">{title}</span>
+        <span className="block text-[12.5px] font-medium mt-0.5 leading-snug" style={{ opacity: primary ? 0.88 : 0.72 }}>{sub}</span>
+      </span>
+      <ArrowRight className="w-4.5 h-4.5 flex-shrink-0 opacity-70" />
+    </motion.button>
+  );
+}
+
+/* ── PDF picker — reads a file to base64, hands it up ───── */
+function PdfPicker({
+  error, onError, onFile,
+}: {
+  error?: string;
+  onError: (msg: string) => void;
+  onFile: (base64: string, mimeType: string, fileName: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [picked, setPicked] = useState("");
+
+  const accept = ".pdf,.txt,.md,.markdown,.doc,.docx,application/pdf,text/plain";
+
+  const handle = (file?: File | null) => {
+    if (!file) return;
+    const okType = file.type === "application/pdf"
+      || file.type.startsWith("text/")
+      || /\.(pdf|txt|md|markdown|docx?)$/i.test(file.name);
+    if (!okType) { onError("That format isn't supported yet. Try a PDF, text, or Word file."); return; }
+    if (file.size > 25 * 1024 * 1024) { onError("That file is over 25 MB — try a lighter document."); return; }
+    onError(""); setPicked(file.name);
+    const reader = new FileReader();
+    reader.onerror = () => onError("Couldn't read that file. Please try again.");
+    reader.onload = (e) => {
+      const result = (e.target?.result as string) || "";
+      const base64 = result.split(",")[1] || "";
+      const mimeType = result.split(";")[0].replace("data:", "") || file.type || "application/pdf";
+      if (!base64) { onError("That file looked empty. Please try another."); return; }
+      onFile(base64, mimeType, file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="w-full max-w-sm flex flex-col items-center">
+      <h1 className="zoe-display text-[clamp(1.9rem,6.5vw,2.9rem)] leading-[1.1] mb-2 text-center" style={{ color: "var(--z-ink)" }}>
+        Bring your<br />own material
+      </h1>
+      <p className="text-[14px] font-medium mb-7 max-w-xs text-center" style={{ color: "var(--z-ink-2)" }}>
+        Upload a document and ZOE builds a path that follows it exactly — its own order, nothing invented.
+      </p>
+
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => { e.preventDefault(); setDragOver(false); handle(e.dataTransfer.files?.[0]); }}
+        className="w-full rounded-3xl px-6 py-9 flex flex-col items-center gap-3 transition-colors"
+        style={{ background: "var(--z-surface)", border: `2px dashed ${dragOver ? "var(--z-accent)" : "var(--z-line-2)"}` }}
+      >
+        <span className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "var(--z-surface-2)" }}>
+          {picked ? <FileText className="w-6 h-6" style={{ color: "var(--z-accent-edge)" }} /> : <Upload className="w-6 h-6" style={{ color: "var(--z-accent-edge)" }} />}
+        </span>
+        <span className="text-[15px] font-bold" style={{ color: "var(--z-ink)" }}>{picked || "Tap to choose a file"}</span>
+        <span className="text-[12.5px] font-medium" style={{ color: "var(--z-ink-3)" }}>PDF, text, or Word · up to 25 MB</span>
+      </button>
+      <input ref={inputRef} type="file" accept={accept} className="hidden"
+        onChange={(e) => handle(e.target.files?.[0])} />
+
+      {error && <p className="mt-4 text-[13px] font-semibold" style={{ color: "var(--z-bad, #d9534f)" }}>{error}</p>}
+    </div>
   );
 }

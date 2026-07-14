@@ -60,15 +60,17 @@ export default function JourneyView({ id }: { id: string }) {
   }
 
   return (
-    <MobileShell right={
+    <MobileShell dock={!openStep} header={!openStep} right={
       <span className="z-chip flex items-center gap-1.5" style={{ background: `${meta.color}22`, color: meta.color }}>
         <AreaIcon area={aspiration.area as AreaKey} size={14} color={meta.color} />
         {meta.label}
       </span>
     }>
-      <Link href="/home" className="inline-flex items-center gap-1.5 text-[13.5px] font-bold mb-2" style={{ color: "var(--z-ink-2)" }}>
-        <ArrowLeft className="w-4 h-4" /> Home
-      </Link>
+      {!openStep && (
+        <Link href="/home" className="inline-flex items-center gap-1.5 text-[13.5px] font-bold mb-2" style={{ color: "var(--z-ink-2)" }}>
+          <ArrowLeft className="w-4 h-4" /> Home
+        </Link>
+      )}
       <main className="relative z-10">
         {openStep ? (
           <StepRunner

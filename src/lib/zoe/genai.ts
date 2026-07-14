@@ -299,37 +299,54 @@ async function extractTopicsFromChunk(chunk: string, perChunkCap: number, overla
 async function extractTopics(text: string): Promise<{ title: string; topics: ExtractedTopic[] }> {
   const chunks = chunkText(text);
   const overlapped = chunks.length > 1; // single-chunk docs carry no overlap
+  // Per-chunk ceiling passed to the PROMPT (anti-padding guidance only) — it is
+  // NOT used to truncate results. The prompt already keeps each chunk restrained.
   const perChunkCap = Math.max(1, Math.ceil(MAX_TOPICS_PER_DOCUMENT / chunks.length));
-  const aggregateCap = MAX_TOPICS_PER_DOCUMENT + TOPIC_OVERSHOOT_TOLERANCE;
 
+  console.log(`[extractTopics] ${chunks.length} chunk(s), perChunkCap=${perChunkCap}, running in parallel...`);
+
+  // Run all chunk extractions IN PARALLEL — latency ≈ the slowest single chunk
+  // rather than the sum. A failed chunk resolves to null and is skipped.
+  const results = await Promise.all(
+    chunks.map((chunk, i) => {
+      const cs = Date.now();
+      return extractTopicsFromChunk(chunk, perChunkCap, overlapped)
+        .then((r) => {
+          console.log(`[extractTopics] chunk ${i + 1}/${chunks.length} done in ${Date.now() - cs}ms — ${r.topics.length} topics`);
+          return r;
+        })
+        .catch((e) => {
+          console.error(`[extractTopics] chunk ${i + 1}/${chunks.length} failed in ${Date.now() - cs}ms, skipping:`, e);
+          return null;
+        });
+    }),
+  );
+
+  // Merge EVERY chunk's topics in order — no chunk is skipped and no per-chunk
+  // truncation. We only drop TRUE duplicates (same normalized title). This
+  // collects the full distinct set so no document context is lost.
   const aggregated: ExtractedTopic[] = [];
   const seen = new Set<string>();
   let docTitle = "";
 
-  for (const chunk of chunks) {
-    if (aggregated.length >= aggregateCap) break; // cap reached — skip remaining chunks
-    let result: { documentTitle: string; topics: ExtractedTopic[] };
-    try {
-      result = await extractTopicsFromChunk(chunk, perChunkCap, overlapped);
-    } catch (e) {
-      console.error("[extractTopics] chunk failed, skipping:", e);
-      continue;
-    }
+  for (const result of results) {
+    if (!result) continue;
     if (!docTitle && result.documentTitle) docTitle = result.documentTitle;
-
-    let added = 0;
     for (const topic of result.topics) {
-      if (added >= perChunkCap) break;              // per-chunk fair share
-      if (aggregated.length >= aggregateCap) break; // global ceiling
       const key = normTitle(topic.title);
-      if (!key || seen.has(key)) continue;          // cross-chunk dedupe
+      if (!key || seen.has(key)) continue; // dedupe only — real duplicates
       seen.add(key);
       aggregated.push(topic);
-      added++;
     }
   }
 
-  return { title: docTitle, topics: aggregated };
+  // SOFT cap: target MAX_TOPICS_PER_DOCUMENT but allow overshoot up to
+  // +TOPIC_OVERSHOOT_TOLERANCE before trimming, so a topic-rich document isn't
+  // cut exactly at the target. Only the tail beyond the soft ceiling is dropped.
+  const softCap = MAX_TOPICS_PER_DOCUMENT + TOPIC_OVERSHOOT_TOLERANCE;
+  const topics = aggregated.length > softCap ? aggregated.slice(0, softCap) : aggregated;
+
+  return { title: docTitle, topics };
 }
 
 /**
@@ -389,15 +406,23 @@ export async function extractDocument(
     return null;
   }
 
+  const t0 = Date.now();
+  console.log(`[extractDocument] START — ${(base64.length / 1024).toFixed(0)}KB base64, mime=${mimeType || "application/pdf"}`);
+
   // ── Stage 1: OCR + figure descriptions ──
   let ocrMarkdown: string;
   try {
+    const ocrStart = Date.now();
     const ocr = await runMistralOcr(base64, mimeType || "application/pdf");
     if (!ocr) {
       console.error("[extractDocument] Mistral OCR returned no pages");
       return null;
     }
     ocrMarkdown = ocrToMarkdown(ocr);
+    console.log(
+      `[extractDocument] OCR done in ${Date.now() - ocrStart}ms — ` +
+      `${ocr.pagesProcessed} pages, ${ocrMarkdown.length} chars of markdown`,
+    );
     if (!ocrMarkdown.trim()) {
       console.error("[extractDocument] OCR produced empty text");
       return null;
@@ -412,9 +437,15 @@ export async function extractDocument(
   // list every heading (which turned single lines into topics), we extract only
   // genuinely distinct, teachable topics with a hard per-chunk/global ceiling.
   try {
+    const extractStart = Date.now();
     const { title, topics } = await extractTopics(ocrMarkdown);
+    console.log(
+      `[extractDocument] topic extraction done in ${Date.now() - extractStart}ms — ` +
+      `${topics.length} topics, ${topics.reduce((n, t) => n + t.subtopics.length, 0)} subtopics total`,
+    );
     const ok = topicsToExtracted(title, topics);
     if (!ok) console.error("[extractDocument] extraction returned no topics");
+    console.log(`[extractDocument] TOTAL ${Date.now() - t0}ms`);
     return ok;
   } catch (e) {
     console.error("[extractDocument] topic extraction failed:", e);

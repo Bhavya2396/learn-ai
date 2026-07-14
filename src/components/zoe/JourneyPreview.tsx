@@ -30,7 +30,7 @@ export default function JourneyPreview({
   journey, profile, onAccept, onTweak,
 }: {
   journey: Journey; profile?: ProfileDraft | null;
-  onAccept: () => void; onTweak: (feedback: string) => void;
+  onAccept: () => void; onTweak?: (feedback: string) => void;
 }) {
   const cards: Card[] = [
     { kind: "headline" },
@@ -123,9 +123,11 @@ export default function JourneyPreview({
               <button onClick={onAccept} className="z-btn z-btn-brand justify-center !py-4 !text-[16px]">
                 Start <ArrowRight className="w-4.5 h-4.5" />
               </button>
-              <button onClick={() => { setDir(1); setIdx(total); }} className="z-btn z-btn-ghost justify-center !py-3.5">
-                <Pencil className="w-4 h-4" /> Adjust
-              </button>
+              {onTweak && (
+                <button onClick={() => { setDir(1); setIdx(total); }} className="z-btn z-btn-ghost justify-center !py-3.5">
+                  <Pencil className="w-4 h-4" /> Adjust
+                </button>
+              )}
             </div>
           </motion.div>
         )}

@@ -377,14 +377,17 @@ export default function StepRunner({
           onBack={onBack}
           onComplete={handleLessonComplete}
         />
-        <button
-          onClick={regenerate}
-          title="Regenerate this lesson (clears its cache and rebuilds)"
-          className="fixed bottom-4 right-4 z-[200] inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-bold shadow-lg backdrop-blur"
-          style={{ background: "var(--z-surface-2, rgba(0,0,0,0.55))", color: "var(--z-ink-1, #fff)", border: "1px solid var(--z-line, rgba(255,255,255,0.15))" }}
-        >
-          <RefreshCw className="w-3.5 h-3.5" /> Regenerate
-        </button>
+        {/* Dev-only tool: hidden in production. Set NEXT_PUBLIC_SHOW_REGENERATE=true to force-show. */}
+        {(process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_SHOW_REGENERATE === "true") && (
+          <button
+            onClick={regenerate}
+            title="Regenerate this lesson (clears its cache and rebuilds)"
+            className="fixed bottom-4 right-4 z-[200] inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-bold shadow-lg backdrop-blur"
+            style={{ background: "var(--z-surface-2, rgba(0,0,0,0.55))", color: "var(--z-ink-1, #fff)", border: "1px solid var(--z-line, rgba(255,255,255,0.15))" }}
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Regenerate
+          </button>
+        )}
       </>
     );
   }

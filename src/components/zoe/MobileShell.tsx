@@ -18,11 +18,13 @@ export default function MobileShell({
   right,
   topTitle,
   dock = true,
+  header = true,
 }: {
   children: React.ReactNode;
   right?: React.ReactNode;
   topTitle?: React.ReactNode;
   dock?: boolean;
+  header?: boolean;
 }) {
   const ledger = useZoeBrain((s) => s.ledger);
   const totalZot = useMemo(() => ledger.reduce((sum, e) => sum + e.amount, 0), [ledger]);
@@ -33,8 +35,9 @@ export default function MobileShell({
       <LivingBackground />
 
       <div className="zoe-app">
+        {header && (
         <header className="zoe-topbar">
-          <Link href="/home" className="flex items-center gap-2.5 zoe-haptic">
+          <Link href="/" className="flex items-center gap-2.5 zoe-haptic">
             <ZoeOrb size={30} mood={mood} sparks={false} />
             <span className="text-[16px] font-extrabold tracking-tight" style={{ color: "var(--z-ink)" }}>
               {topTitle ?? "ZOE"}
@@ -55,6 +58,7 @@ export default function MobileShell({
             {right}
           </div>
         </header>
+        )}
 
         {children}
       </div>

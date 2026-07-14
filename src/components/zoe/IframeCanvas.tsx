@@ -43,6 +43,16 @@ window.addEventListener('error',function(e){
 });
 window.addEventListener('load',function(){
   __zoeStartLoop();
+  // Re-stage after layout settles: if zoeStage ran before the iframe had a size,
+  // the canvas was born tiny/blank. Firing 'resize' re-runs the lesson's own
+  // resize handler (S=zoeStage(...)) with correct dimensions. A couple of passes
+  // across animation frames covers slow layout without any change to generated code.
+  var __restage=function(){ try{ window.dispatchEvent(new Event('resize')); }catch(_){}
+    };
+  requestAnimationFrame(function(){ __restage();
+    requestAnimationFrame(__restage); });
+  setTimeout(__restage, 120);
+  setTimeout(__restage, 400);
   setTimeout(function(){
     if(!__zoe_ready){ __zoe_ready=true; emit('ready'); }
   }, 400);
@@ -86,7 +96,17 @@ window.zoeStage=function(el,refW,refH){
   refW=refW||1000; refH=refH||625;
   var sb=window.__zoe_safe_bottom||0;
   var dpr=window.devicePixelRatio||1;
-  var SW=window.innerWidth, SH=Math.max(1,window.innerHeight-sb);
+  // Viewport can be 0 on the very first paint (iframe not laid out yet). Fall
+  // back to the canvas's own box, then to a sane minimum, so the canvas is NEVER
+  // born 0-sized (which renders blank until a later resize). __zoeStartLoop also
+  // re-stages once layout settles.
+  var SW=window.innerWidth, SH=window.innerHeight-sb;
+  if(SW<2||SH<2){
+    var pr=(el.parentElement||el).getBoundingClientRect();
+    if(pr.width>2){ SW=pr.width; }
+    if(pr.height>2){ SH=pr.height-sb; }
+  }
+  SW=Math.max(2,SW||0); SH=Math.max(2,SH||0);
   el.width=Math.floor(SW*dpr); el.height=Math.floor(SH*dpr);
   el.style.width=SW+'px'; el.style.height=SH+'px';
   var ctx=el.getContext('2d');
