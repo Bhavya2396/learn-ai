@@ -94,7 +94,7 @@ export async function orChat(opts: OrChatOptions): Promise<string> {
     headers: {
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "https://zoe.one",
+      "HTTP-Referer": "https://zoe.calance.ai",
       "X-Title": "ZOE",
     },
     body: JSON.stringify(body),

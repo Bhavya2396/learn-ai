@@ -13,7 +13,7 @@
 import type { RawJourney } from "./journey";
 import type { TeachingStyle } from "./types";
 
-export type Hat = "profiler" | "architect" | "mentor" | "optimizer" | "companion";
+export type Hat = "profiler" | "architect" | "mentor" | "optimizer" | "companion" | "discover";
 
 /* ── Shared question shapes (used by the Profiler) ───────────────────────── */
 export type QuestionType = "single" | "multi" | "scale" | "text";
@@ -32,6 +32,47 @@ export interface QA {
   id: string;
   question: string;
   answer: string;
+}
+
+/* ── Discover: adaptive MCQ tree for new-goal planning ───────────────────────
+ * One LLM call pregenerates a BRANCHING tree of single-choice questions. Each
+ * option can lead to a follow-up question (a nested node) or end the path. The
+ * client walks the tree by the user's answers, collecting a QA[] to feed the
+ * Architect. Anti-padded: only as many questions as add real planning signal,
+ * hard max 5 deep on any path.
+ */
+export interface DiscoverOption {
+  /** The answer text shown on the MCQ button. */
+  label: string;
+  /** Follow-up question triggered by picking this option; null/absent = end. */
+  next?: DiscoverNode | null;
+}
+
+export interface DiscoverNode {
+  id: string;
+  /** The question prompt. */
+  question: string;
+  /** 2-4 mutually exclusive single-choice options. */
+  options: DiscoverOption[];
+}
+
+export interface DiscoverRequest {
+  hat: "discover";
+  aspiration: { title: string; area: string };
+  memoryContext?: string;
+  /**
+   * CONTINUATION mode: when the user typed a CUSTOM answer the pregenerated tree
+   * couldn't branch on, we regenerate the rest of the path. `answered` is the
+   * Q&A so far (including the custom one); `remaining` is how many MORE questions
+   * are allowed on this path so the 5-question total is never exceeded.
+   */
+  answered?: QA[];
+  remaining?: number;
+}
+
+export interface DiscoverResponse {
+  /** Root of the question tree; null if no useful questions (goal fully clear). */
+  root: DiscoverNode | null;
 }
 
 /** A draft profile the Profiler synthesises; maps onto DiscoveryInput.profile. */

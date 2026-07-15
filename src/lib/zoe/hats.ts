@@ -9,6 +9,7 @@
 import { genText, parseJson, hasTextKey as hasKey } from "./genai";
 import type {
   ArchitectRequest, ArchitectResponse, CompanionRequest, CompanionResponse,
+  DiscoverRequest, DiscoverResponse, DiscoverNode, DiscoverOption,
   DocumentArchitectRequest,
   MentorRequest, MentorResponse,
   OptimizerRequest, OptimizerResponse, ProfileDraft,
@@ -215,6 +216,110 @@ function fallbackJourney(title: string): ArchitectResponse {
       ],
     },
   };
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   HAT — DISCOVER : adaptive MCQ tree to niche-down a new goal
+   One Gemini 2.5 Flash call pregenerates a BRANCHING tree of single-choice
+   questions. The client walks it by the user's answers; the collected Q&A is
+   fed to the Architect so the plan is tailored, not generic.
+   ════════════════════════════════════════════════════════════════════════ */
+const DISCOVER_MAX_DEPTH = 5;    // hard ceiling on questions along ANY path
+const DISCOVER_MAX_OPTIONS = 4;
+const DISCOVER_MIN_DEPTH = 3;    // aim for at least this many questions per path
+
+const DISCOVER_SYSTEM = `ROLE: GOAL DISCOVERY. A person just said what they want to BECOME. Before we design their
+learning path, you pregenerate a short, BRANCHING multiple-choice questionnaire that pins down
+exactly what KIND of journey they need — their level, focus, context, and intent — so the path
+can be tailored, not generic.
+
+OUTPUT A DECISION TREE (single-choice questions). Each option may lead to ONE follow-up question
+(a nested node) or END the path. Different answers lead down different branches — a beginner and
+an expert get different follow-ups. The client walks the tree by the user's answers.
+
+🎯 HOW MANY QUESTIONS (target ${DISCOVER_MIN_DEPTH}-4 per path):
+- Along EVERY path, ask ${DISCOVER_MIN_DEPTH} to 4 questions — that is the normal range. Reach the
+  full ${DISCOVER_MAX_DEPTH} when the goal is broad and a 5th question still adds real planning
+  signal. Do NOT stop at 1-2: that's too few to tailor a good path.
+- ${DISCOVER_MAX_DEPTH} is the HARD CEILING (never exceed it). Only return fewer than
+  ${DISCOVER_MIN_DEPTH} if the goal is genuinely trivial/one-dimensional (rare) — or "root": null
+  if truly nothing would improve the plan.
+- Anti-filler: every question must genuinely change how the path is designed (level, focus,
+  sub-goal, context, time, intended outcome). NEVER pad with vague fluff ("favourite colour",
+  "how motivated are you") — but DO ask the ${DISCOVER_MIN_DEPTH}-4 substantive questions that
+  clearly help. There are almost always ${DISCOVER_MIN_DEPTH}+ things worth knowing.
+
+QUESTION QUALITY:
+- Each question: a clear prompt + 2-${DISCOVER_MAX_OPTIONS} DISTINCT single-choice options.
+- Options are concrete and mutually exclusive. Cover the real range of answers (e.g. levels:
+  "Complete beginner" / "Know some basics" / "Fairly experienced").
+- Prioritise questions that most change the plan: current level, specific sub-goal/focus, why/context,
+  time available, preferred outcome. Word them warmly and briefly.
+
+Return STRICT JSON only (no prose, no markdown):
+{ "root": {
+    "id": "q1",
+    "question": "<prompt>",
+    "options": [
+      { "label": "<answer>", "next": { "id":"q2a", "question":"...", "options":[ {"label":"...", "next": null } ] } },
+      { "label": "<answer>", "next": null }
+    ]
+  } }
+Return { "root": null } if no question would meaningfully improve the plan.`;
+
+/**
+ * Clean + depth-cap the raw tree so a malformed/oversized tree can't break the
+ * walker. `maxDepth` = how many question levels are allowed from here down (used
+ * both for the initial tree and for a shorter continuation sub-tree).
+ */
+function cleanDiscoverNode(raw: unknown, depth: number, maxDepth: number, seq: { n: number }): DiscoverNode | null {
+  if (depth >= maxDepth || !raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const question = typeof o.question === "string" ? o.question.trim() : "";
+  if (!question) return null;
+  const rawOpts = Array.isArray(o.options) ? o.options : [];
+  const options: DiscoverOption[] = [];
+  for (const ro of rawOpts.slice(0, DISCOVER_MAX_OPTIONS)) {
+    if (!ro || typeof ro !== "object") continue;
+    const oo = ro as Record<string, unknown>;
+    const label = typeof oo.label === "string" ? oo.label.trim() : "";
+    if (!label) continue;
+    // Depth-cap follow-ups; anything past the ceiling simply ends the path.
+    const next = cleanDiscoverNode(oo.next, depth + 1, maxDepth, seq);
+    options.push({ label, next: next ?? null });
+  }
+  if (options.length < 2) return null; // a single-option "question" is not a question
+  return { id: `q${depth}_${++seq.n}`, question, options };
+}
+
+export async function discover(req: DiscoverRequest): Promise<DiscoverResponse> {
+  if (!hasKey()) return { root: null };
+
+  // CONTINUATION mode: the user typed a custom answer, so regenerate the rest of
+  // the path from the answers so far, bounded by how many questions remain.
+  const isContinuation = !!req.answered?.length;
+  const remaining = isContinuation
+    ? Math.max(0, Math.min(DISCOVER_MAX_DEPTH, req.remaining ?? (DISCOVER_MAX_DEPTH - req.answered!.length)))
+    : DISCOVER_MAX_DEPTH;
+
+  if (isContinuation && remaining <= 0) return { root: null }; // budget spent → stop asking
+
+  const answeredBlock = isContinuation
+    ? `\n\nThey have ALREADY answered these (one included a CUSTOM typed answer):\n${transcriptBlock(req.answered!)}\n\nContinue the discovery: based on ALL of the above (especially the custom answer), generate the NEXT questions only — the remaining path from here. Ask at most ${remaining} more question(s). Do NOT repeat anything already asked. If nothing more is worth asking, return "root": null.`
+    : `\n\nPregenerate the adaptive multiple-choice discovery tree now.`;
+
+  const user = `They want to become: "${req.aspiration.title}" (area: ${req.aspiration.area}).${mem(req.memoryContext)}${answeredBlock}
+
+Respond with VALID JSON only.`;
+  try {
+    const raw = await genText(DISCOVER_SYSTEM, user, "gemini-2.5-flash", 0.6, 4096);
+    const parsed = parseJson<{ root?: unknown }>(raw);
+    const root = parsed ? cleanDiscoverNode(parsed.root, 0, remaining, { n: 0 }) : null;
+    return { root };
+  } catch (e) {
+    console.error("[discover] failed:", e);
+    return { root: null };
+  }
 }
 
 export async function architect(req: ArchitectRequest): Promise<ArchitectResponse> {

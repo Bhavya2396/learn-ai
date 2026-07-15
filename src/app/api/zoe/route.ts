@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { architect, companion, mentor, optimizer, profilerNext, profilerSynthesize } from "@/lib/zoe/hats";
+import { architect, companion, discover, mentor, optimizer, profilerNext, profilerSynthesize } from "@/lib/zoe/hats";
 import type {
-  ArchitectRequest, CompanionRequest, MentorRequest, OptimizerRequest, ProfilerNextRequest, ProfilerSynthesizeRequest,
+  ArchitectRequest, CompanionRequest, DiscoverRequest, MentorRequest, OptimizerRequest, ProfilerNextRequest, ProfilerSynthesizeRequest,
 } from "@/lib/zoe/hats-types";
 
 /**
@@ -28,6 +28,8 @@ export async function POST(req: NextRequest) {
         }
         return NextResponse.json(await profilerNext(body as unknown as ProfilerNextRequest));
       }
+      case "discover":
+        return NextResponse.json(await discover(body as unknown as DiscoverRequest));
       case "architect":
         return NextResponse.json(await architect(body as unknown as ArchitectRequest));
       case "mentor":
