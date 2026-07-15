@@ -73,7 +73,7 @@ async function main() {
       pick = parseInt(raw, 10);
     }
 
-    const chosen = node.options[pick - 1];
+    const chosen: DiscoverOption = node.options[pick - 1];
     answers.push({ id: node.id, question: node.question, answer: chosen.label });
     node = chosen.next ?? null;
   }
