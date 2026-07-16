@@ -17,7 +17,7 @@ import type { ContentBlock, MentorResponse, OptimizerResponse, JourneyMutation }
 import type { JourneyStep, MasteryBreakdown, StepThread, ZotStream } from "@/lib/zoe/types";
 import type { LessonContent, LessonSource, SourceSection, AspirationSource } from "@/lib/zoe/content-types";
 import { flatSteps } from "@/lib/zoe/journey";
-import { getCachedLesson, getLesson, storeLesson, invalidateLesson } from "@/lib/zoe/lesson-cache";
+import { getCachedLesson, getLesson, storeLesson, invalidateLesson } from "@/lib/zoe/lesson-store";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -82,7 +82,7 @@ export default function StepRunner({
   const stepStartTime = useRef(Date.now());
 
   const regenerate = useCallback(async () => {
-    await invalidateLesson(step.id);   // clear memory + IndexedDB for this step
+    await invalidateLesson(step.id);   // delete the stored lesson (memory + Postgres)
     setLessonContent(null);
     setContent(null);
     setCompleted(false);

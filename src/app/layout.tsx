@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/lib/auth/AuthProvider";
+import SyncBanner from "@/components/zoe/SyncBanner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -27,9 +29,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           enableSystem
           disableTransitionOnChange={false}
         >
-          <TooltipProvider delay={300}>
-            {children}
-          </TooltipProvider>
+          <AuthProvider>
+            <SyncBanner />
+            <TooltipProvider delay={300}>
+              {children}
+            </TooltipProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

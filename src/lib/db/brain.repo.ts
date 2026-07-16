@@ -19,15 +19,35 @@ import type {
   Aspiration, MemoryEvent, TokenEntry, ZoeBrainState, ZoeIdentity, ZoeProfile,
 } from "@/lib/zoe/types";
 
-/** Ensure a user row exists; returns nothing. Call before saving a brain. */
-export async function ensureUser(userId: string, email?: string): Promise<void> {
+/** The Firebase profile fields we persist onto the users row. */
+export interface UserProfile {
+  email?: string | null;
+  displayName?: string | null;
+  photoUrl?: string | null;
+  provider?: string | null;
+}
+
+/**
+ * Ensure a user row exists (keyed by Firebase uid) and refresh their profile +
+ * last_login_at. Idempotent upsert — call on sign-in and before saving a brain.
+ */
+export async function ensureUser(userId: string, profile: UserProfile = {}): Promise<void> {
   const now = Date.now();
   await pool.query(
-    `INSERT INTO users (id, email, created_at, updated_at)
-     VALUES ($1, $2, $3, $3)
-     ON CONFLICT (id) DO UPDATE SET email = COALESCE(EXCLUDED.email, users.email),
-                                    updated_at = EXCLUDED.updated_at`,
-    [userId, email ?? null, now],
+    `INSERT INTO users (id, email, display_name, photo_url, provider,
+                        created_at, updated_at, last_login_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $6, $6)
+     ON CONFLICT (id) DO UPDATE SET
+       email         = COALESCE(EXCLUDED.email, users.email),
+       display_name  = COALESCE(EXCLUDED.display_name, users.display_name),
+       photo_url     = COALESCE(EXCLUDED.photo_url, users.photo_url),
+       provider      = COALESCE(EXCLUDED.provider, users.provider),
+       updated_at    = EXCLUDED.updated_at,
+       last_login_at = EXCLUDED.last_login_at`,
+    [
+      userId, profile.email ?? null, profile.displayName ?? null,
+      profile.photoUrl ?? null, profile.provider ?? null, now,
+    ],
   );
 }
 
@@ -41,7 +61,7 @@ export async function ensureUser(userId: string, email?: string): Promise<void> 
 export async function loadBrain(userId: string): Promise<ZoeBrainState | null> {
   const [identity, profile, aspirations, events, ledger, active] = await Promise.all([
     pool.query(
-      `SELECT id, name, age_group, locale, created_at, last_active_at
+      `SELECT id, name, age_group, locale, starter, created_at, last_active_at
          FROM zoe_identity WHERE user_id = $1`,
       [userId],
     ),
@@ -82,6 +102,7 @@ export async function loadBrain(userId: string): Promise<ZoeBrainState | null> {
     name: idr.name,
     ageGroup: idr.age_group,
     locale: idr.locale,
+    starter: idr.starter ?? undefined,
     createdAt: Number(idr.created_at),
     lastActiveAt: Number(idr.last_active_at),
   };
@@ -199,15 +220,15 @@ async function saveIdentityTx(
   }
   await client.query(
     `INSERT INTO zoe_identity
-       (user_id, id, name, age_group, locale, created_at, last_active_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+       (user_id, id, name, age_group, locale, starter, created_at, last_active_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      ON CONFLICT (user_id) DO UPDATE SET
        id = EXCLUDED.id, name = EXCLUDED.name, age_group = EXCLUDED.age_group,
-       locale = EXCLUDED.locale, created_at = EXCLUDED.created_at,
-       last_active_at = EXCLUDED.last_active_at`,
+       locale = EXCLUDED.locale, starter = EXCLUDED.starter,
+       created_at = EXCLUDED.created_at, last_active_at = EXCLUDED.last_active_at`,
     [
       userId, identity.id, identity.name, identity.ageGroup, identity.locale,
-      identity.createdAt, identity.lastActiveAt,
+      JSON.stringify(identity.starter ?? {}), identity.createdAt, identity.lastActiveAt,
     ],
   );
 }

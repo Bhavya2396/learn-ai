@@ -8,7 +8,10 @@ import MobileShell from "./MobileShell";
 import LivingBackground from "./LivingBackground";
 import ZoeOrb from "./ZoeOrb";
 import { ProgressRing, RadarChart, StreakVis, MiniBar, PulseOrb } from "./ZoeGraphics";
+import { useRouter } from "next/navigation";
 import { useZoeBrain } from "@/lib/zoe/brain";
+import { useAuth } from "@/lib/auth/AuthProvider";
+import { flushBrainNow } from "@/lib/zoe/brain-sync";
 import { getStreakDays } from "@/lib/zoe/memory";
 import { journeyProgress } from "@/lib/zoe/journey";
 import type { BehavioralMetrics, CognitiveStyle, DnaDimension, ZotStream } from "@/lib/zoe/types";
@@ -21,6 +24,15 @@ const STREAM_COLOR: Record<ZotStream, string> = { learn: "#F0A91E", teach: "#7C5
 export default function ProfileView() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  const { signOut } = useAuth();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    // Push any pending changes to Postgres before clearing local state.
+    await flushBrainNow();
+    await signOut();
+    router.replace("/login");
+  };
 
   const identity = useZoeBrain((s) => s.identity);
   const profile = useZoeBrain((s) => s.profile);
@@ -205,6 +217,14 @@ export default function ProfileView() {
           </div>
         )}
       </Section>
+
+      <button
+        onClick={handleSignOut}
+        className="mt-6 w-full rounded-2xl px-5 py-3.5 text-[14px] font-bold transition-transform duration-150 active:translate-y-0.5"
+        style={{ background: "var(--z-surface)", color: "var(--z-ink-2)", border: "1.5px solid var(--z-line-2)" }}
+      >
+        Sign out
+      </button>
 
       <div className="h-8" />
     </MobileShell>

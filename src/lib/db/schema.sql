@@ -29,11 +29,18 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 -- ── Accounts ────────────────────────────────────────────────────────────────
 -- Root of the multi-tenant model. Everything below FKs to users(id).
+-- `id` is the Firebase Auth uid (identity comes from Google sign-in). The
+-- profile columns mirror the Firebase user profile; last_login_at is stamped
+-- each session start.
 CREATE TABLE IF NOT EXISTS users (
-  id          TEXT PRIMARY KEY,
-  email       TEXT UNIQUE,
-  created_at  BIGINT NOT NULL,
-  updated_at  BIGINT NOT NULL
+  id            TEXT PRIMARY KEY,
+  email         TEXT UNIQUE,
+  display_name  TEXT,
+  photo_url     TEXT,
+  provider      TEXT,
+  created_at    BIGINT NOT NULL,
+  updated_at    BIGINT NOT NULL,
+  last_login_at BIGINT
 );
 
 -- ── Identity (ZoeIdentity) ──────────────────────────────────────────────────
@@ -44,6 +51,7 @@ CREATE TABLE IF NOT EXISTS zoe_identity (
   name            TEXT NOT NULL,
   age_group       TEXT NOT NULL,
   locale          TEXT NOT NULL DEFAULT 'en',
+  starter         JSONB NOT NULL DEFAULT '{}'::jsonb,  -- StarterFacts (age/role/time), reused per goal
   created_at      BIGINT NOT NULL,
   last_active_at  BIGINT NOT NULL
 );
@@ -134,7 +142,7 @@ CREATE INDEX IF NOT EXISTS token_ledger_user_ts_idx ON token_ledger (user_id, ts
 -- generated lesson content keyed by step id. Optional to use server-side, but
 -- included so the whole persistence story can move to PG. Scoped per user so a
 -- user's generated content is theirs.
-CREATE TABLE IF NOT EXISTS lesson_cache (
+CREATE TABLE IF NOT EXISTS lessons (
   step_id     TEXT NOT NULL,
   user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   content     JSONB NOT NULL,                 -- LessonContent

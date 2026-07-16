@@ -34,18 +34,24 @@ export interface QA {
   answer: string;
 }
 
-/* ── Discover: adaptive MCQ tree for new-goal planning ───────────────────────
- * One LLM call pregenerates a BRANCHING tree of single-choice questions. Each
- * option can lead to a follow-up question (a nested node) or end the path. The
- * client walks the tree by the user's answers, collecting a QA[] to feed the
- * Architect. Anti-padded: only as many questions as add real planning signal,
- * hard max 5 deep on any path.
+/* ── Discover: adaptive MCQ graph for new-goal planning ──────────────────────
+ * One LLM call pregenerates a BRANCHING questionnaire as a directed graph (DAG)
+ * of single-choice questions: nodes are stored ONCE in a flat map and options
+ * point to the next node BY ID. This lets different options — even across
+ * different questions — converge on the SAME follow-up (a shared tail), which a
+ * nested tree cannot express without duplicating whole subtrees. The client
+ * walks the graph by the user's answers, collecting a QA[] to feed the
+ * Architect. Anti-padded: only as many questions as add real planning signal.
  */
 export interface DiscoverOption {
   /** The answer text shown on the MCQ button. */
   label: string;
-  /** Follow-up question triggered by picking this option; null/absent = end. */
-  next?: DiscoverNode | null;
+  /**
+   * Id of the follow-up question in `nodes`, or null to END the path here.
+   * Multiple options (in this or other questions) may share the same id — that
+   * is how paths converge.
+   */
+  next: string | null;
 }
 
 export interface DiscoverNode {
@@ -56,23 +62,31 @@ export interface DiscoverNode {
   options: DiscoverOption[];
 }
 
+/** The pregenerated question graph: a root id + every reachable node by id. */
+export interface DiscoverGraph {
+  /** Id (in `nodes`) of the first question to ask. */
+  root: string;
+  /** Every question, keyed by id. Options reference these ids via `next`. */
+  nodes: Record<string, DiscoverNode>;
+}
+
 export interface DiscoverRequest {
   hat: "discover";
   aspiration: { title: string; area: string };
   memoryContext?: string;
   /**
-   * CONTINUATION mode: when the user typed a CUSTOM answer the pregenerated tree
-   * couldn't branch on, we regenerate the rest of the path. `answered` is the
-   * Q&A so far (including the custom one); `remaining` is how many MORE questions
-   * are allowed on this path so the 5-question total is never exceeded.
+   * CONTINUATION mode: when the user typed a CUSTOM answer the pregenerated
+   * graph couldn't branch on, we regenerate the rest of the path. `answered` is
+   * the Q&A so far (including the custom one); `remaining` is how many MORE
+   * questions are allowed so the total is never exceeded.
    */
   answered?: QA[];
   remaining?: number;
 }
 
 export interface DiscoverResponse {
-  /** Root of the question tree; null if no useful questions (goal fully clear). */
-  root: DiscoverNode | null;
+  /** The question graph; null if no useful questions (goal fully clear). */
+  graph: DiscoverGraph | null;
 }
 
 /** A draft profile the Profiler synthesises; maps onto DiscoveryInput.profile. */
@@ -121,6 +135,8 @@ export interface ArchitectRequest {
   aspiration: { title: string; area: string; why?: string };
   profile?: Partial<ProfileDraft>;
   transcript?: QA[];
+  /** Person-level starter facts (age/role/time) — passed on EVERY goal. */
+  starter?: import("./types").StarterFacts;
   tweak?: string;
   memoryContext?: string;
 }

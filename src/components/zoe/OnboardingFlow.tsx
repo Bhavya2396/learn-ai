@@ -28,6 +28,7 @@ import { AreaIcon, type AreaKey } from "./illustrations";
 import JourneyPreview from "./JourneyPreview";
 import DiscoverQuestions from "./DiscoverQuestions";
 import { useZoeBrain, getBrainSnapshot } from "@/lib/zoe/brain";
+import { useAuth } from "@/lib/auth/AuthProvider";
 import { buildMemoryContext, getStreakDays, daysSince } from "@/lib/zoe/memory";
 import { useAmbience } from "@/lib/zoe/ambience";
 import { normalizeJourney, type RawJourney } from "@/lib/zoe/journey";
@@ -54,11 +55,11 @@ const ROLES: { label: string; icon: React.ReactNode }[] = [
 const AREA_ORDER: LifeArea[] = ["career", "entrepreneurship", "craft", "health", "mindset", "money", "sustainability", "knowledge"];
 
 type Basics = { name: string; ageGroup: string; role: string; area: LifeArea | ""; aspiration: string };
-type Phase = "boot" | "welcomeBack" | "intro" | "name" | "age" | "role" | "area" | "aspiration" | "discover" | "adaptive" | "pdf" | "researching" | "preview" | "ready" | "failed";
+type Phase = "boot" | "welcomeBack" | "intro" | "age" | "role" | "area" | "aspiration" | "discover" | "adaptive" | "pdf" | "researching" | "preview" | "ready" | "failed";
 type Mode = "new" | "evolve";
 type Route = "guided" | "pdf";
 
-const SCRIPT: Phase[] = ["intro", "name", "age", "role", "area", "aspiration"];
+const SCRIPT: Phase[] = ["intro", "age", "role", "area", "aspiration"];
 
 // No profiler in onboarding now — the Architect works from the discovery Q&A
 // alone, so we hand it an empty profile draft (just satisfies the type).
@@ -121,6 +122,13 @@ export default function OnboardingFlow() {
   const resetBrain = useZoeBrain((s) => s.reset);
   const setBase = useAmbience((s) => s.setBase);
   const pulse = useAmbience((s) => s.pulse);
+  const { user } = useAuth();
+
+  // Name comes from Firebase auth now — seed it into basics (no name question).
+  useEffect(() => {
+    const authName = user?.displayName?.trim() || user?.email?.split("@")[0] || "";
+    if (authName) setBasics((b) => (b.name ? b : { ...b, name: authName }));
+  }, [user]);
 
   const alive = useRef(true);
   const started = useRef(false);
@@ -196,6 +204,7 @@ export default function OnboardingFlow() {
       body: JSON.stringify({
         hat: "architect", aspiration: { title: b.aspiration, area: b.area || "other" },
         profile, transcript: tx, tweak,
+        starter: { ageGroup: b.ageGroup, role: b.role },
         memoryContext: buildMemoryContext(getBrainSnapshot(), `${b.aspiration} ${tweak || ""}`),
       }),
     });
@@ -359,7 +368,7 @@ export default function OnboardingFlow() {
     }
     const p = profileDraft;
     commitDiscovery({
-      identity: { name: basics.name, ageGroup: basics.ageGroup },
+      identity: { name: basics.name, ageGroup: basics.ageGroup, starter: { ageGroup: basics.ageGroup, role: basics.role } },
       profile: {
         summary: p?.summary, motivations: p?.motivations, cognitiveStyle: p?.cognitiveStyle,
         timeAvailability: p?.timeAvailability, emotionalBaseline: p?.emotionalBaseline,
@@ -421,23 +430,16 @@ export default function OnboardingFlow() {
                 icon={<Sparkle className="w-5 h-5" />}
                 title="Guide me"
                 sub="ZOE gets to know you, then builds your path."
-                onClick={() => { setRoute("guided"); setPhase("name"); }}
+                onClick={() => { setRoute("guided"); setPhase("age"); }}
                 primary
               />
               <EntryCard
                 icon={<FileText className="w-5 h-5" />}
                 title="Start from a document"
                 sub="Upload a PDF — your path follows it exactly."
-                onClick={() => { setRoute("pdf"); setPhase("name"); }}
+                onClick={() => { setRoute("pdf"); setPhase("pdf"); }}
               />
             </div>
-          </Screen>
-        )}
-
-        {/* ── Name ───────────────────────────────────────── */}
-        {phase === "name" && (
-          <Screen key="name">
-            <NameScreen onNext={(name) => { setBasics((b) => ({ ...b, name })); pulse("success", 800); setPhase(route === "pdf" ? "pdf" : "age"); }} />
           </Screen>
         )}
 
@@ -457,7 +459,7 @@ export default function OnboardingFlow() {
         {/* ── Age ────────────────────────────────────────── */}
         {phase === "age" && (
           <Screen key="age">
-            <BigQuestion question={`Nice to meet you, ${basics.name}.`} sub="How old are you?" />
+            <BigQuestion question={basics.name ? `Nice to meet you, ${basics.name}.` : "Let's begin."} sub="How old are you?" />
             <Pills options={AGE_GROUPS.map((a) => ({ label: a }))} onPick={(v) => { setBasics((b) => ({ ...b, ageGroup: v })); pulse("success", 800); setPhase("role"); }} />
           </Screen>
         )}
@@ -658,28 +660,6 @@ function Pills({
         </motion.button>
       ))}
     </div>
-  );
-}
-
-/** Name input — big centered. */
-function NameScreen({ onNext }: { onNext: (v: string) => void }) {
-  const [name, setName] = useState("");
-  return (
-    <>
-      <h1 className="zoe-display text-[clamp(2rem,7vw,3.2rem)] leading-[1.1] mb-8" style={{ color: "var(--z-ink)" }}>
-        What should<br />I call you?
-      </h1>
-      <input
-        autoFocus value={name} onChange={(e) => setName(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) onNext(name.trim()); }}
-        placeholder="Your name"
-        className="z-center-input"
-        style={{ color: "var(--z-ink)" }}
-      />
-      <button onClick={() => name.trim() && onNext(name.trim())} disabled={!name.trim()} className="z-btn z-btn-brand mt-8 !py-4 !px-12 !text-[16px]">
-        Continue <ArrowRight className="w-4 h-4" />
-      </button>
-    </>
   );
 }
 

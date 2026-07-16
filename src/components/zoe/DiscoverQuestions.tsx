@@ -4,18 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Waveform } from "./ZoeGraphics";
-import type { DiscoverResponse, DiscoverNode, DiscoverOption, QA } from "@/lib/zoe/hats-types";
+import type { DiscoverResponse, DiscoverGraph, DiscoverNode, DiscoverOption, QA } from "@/lib/zoe/hats-types";
 
 /**
- * Adaptive goal-discovery MCQ. Fetches a pregenerated branching question tree
- * for a goal, walks it (single-choice), and lets the user type a CUSTOM answer
- * on any question — which regenerates the rest of the path. Collects QA[] and
- * hands them back so the caller can feed them to the Architect.
+ * Adaptive goal-discovery MCQ. Fetches a pregenerated question GRAPH (DAG) for a
+ * goal, walks it single-choice (options point to the next question by id, so
+ * different answers can converge on shared follow-ups), and lets the user type a
+ * CUSTOM answer on any question — which regenerates the rest of the path.
+ * Collects QA[] and hands them back so the caller can feed them to the Architect.
  *
  * Shared by the dashboard "create goal" flow and onboarding.
  */
 
-const DISCOVER_MAX = 5; // must match server DISCOVER_MAX_DEPTH
+const DISCOVER_MAX = 8; // must match server DISCOVER_MAX_DEPTH
 
 export default function DiscoverQuestions({
   title,
@@ -32,26 +33,29 @@ export default function DiscoverQuestions({
   /** Called when there are no useful questions (or discovery fails). */
   onSkip: () => void;
 }) {
-  const [node, setNode] = useState<DiscoverNode | null>(null);
+  const [graph, setGraph] = useState<DiscoverGraph | null>(null);
+  const [nodeId, setNodeId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<QA[]>([]);
-  const [loading, setLoading] = useState(true);   // initial tree fetch
+  const [loading, setLoading] = useState(true);   // initial graph fetch
   const [regen, setRegen] = useState(false);      // regenerating after a custom answer
   const [customOpen, setCustomOpen] = useState(false);
   const [customText, setCustomText] = useState("");
   const started = useRef(false);
 
+  const node: DiscoverNode | null = graph && nodeId ? graph.nodes[nodeId] ?? null : null;
+
   const post = (body: Record<string, unknown>) =>
     fetch("/api/zoe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       .then((r) => r.json() as Promise<DiscoverResponse>);
 
-  // Fetch the initial tree once.
+  // Fetch the initial graph once.
   useEffect(() => {
     if (started.current) return;
     started.current = true;
     (async () => {
       try {
         const data = await post({ hat: "discover", aspiration: { title, area }, memoryContext });
-        if (data.root) { setNode(data.root); setLoading(false); }
+        if (data.graph?.nodes[data.graph.root]) { setGraph(data.graph); setNodeId(data.graph.root); setLoading(false); }
         else onSkip();
       } catch {
         onSkip();
@@ -62,10 +66,11 @@ export default function DiscoverQuestions({
 
   const reset = () => { setCustomOpen(false); setCustomText(""); };
 
-  const advance = async (all: QA[], next: DiscoverNode | null, wasCustom: boolean) => {
+  const advance = async (all: QA[], nextId: string | null, wasCustom: boolean) => {
     reset();
-    if (next) { setAnswers(all); setNode(next); return; }
-    // No pregenerated branch. Custom answer + budget left → regenerate the rest.
+    // Follow the reference into the current graph.
+    if (nextId && graph?.nodes[nextId]) { setAnswers(all); setNodeId(nextId); return; }
+    // No pregenerated follow-up. Custom answer + budget left → regenerate the rest.
     if (wasCustom && all.length < DISCOVER_MAX) {
       setRegen(true);
       try {
@@ -74,7 +79,9 @@ export default function DiscoverQuestions({
           answered: all, remaining: DISCOVER_MAX - all.length, memoryContext,
         });
         setRegen(false);
-        if (data.root) { setAnswers(all); setNode(data.root); return; }
+        if (data.graph?.nodes[data.graph.root]) {
+          setAnswers(all); setGraph(data.graph); setNodeId(data.graph.root); return;
+        }
       } catch { setRegen(false); }
     }
     onComplete(all); // path ended (or budget spent)
@@ -82,7 +89,7 @@ export default function DiscoverQuestions({
 
   const pick = (opt: DiscoverOption) => {
     if (!node) return;
-    void advance([...answers, { id: node.id, question: node.question, answer: opt.label }], opt.next ?? null, false);
+    void advance([...answers, { id: node.id, question: node.question, answer: opt.label }], opt.next, false);
   };
 
   const submitCustom = () => {
@@ -102,7 +109,7 @@ export default function DiscoverQuestions({
   }
 
   return (
-    <motion.div key={node.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+    <motion.div key={`${answers.length}_${node.id}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
       className="min-h-[100svh] flex flex-col items-center justify-center px-7 text-center">
       <span className="z-eyebrow mb-4">A couple of quick things</span>
       <h1 className="zoe-display text-[clamp(1.6rem,5.5vw,2.5rem)] leading-[1.15] max-w-md" style={{ color: "var(--z-ink)" }}>

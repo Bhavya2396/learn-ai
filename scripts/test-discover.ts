@@ -1,12 +1,12 @@
 /**
- * Interactive test harness for the DISCOVER hat (adaptive MCQ tree).
+ * Interactive test harness for the DISCOVER hat (adaptive MCQ graph).
  *
  * It calls the REAL discover() helper from src/lib/zoe/hats.ts — same prompt,
  * same Gemini 2.5 Flash call (falls back to Claude via OpenRouter if no
- * GOOGLE_API_KEY), same cleanDiscoverNode sanitizer + depth cap. Then it walks
- * the pregenerated tree in the terminal: it prints each question, you pick an
- * option, and it follows the branch until the path ends, then prints the
- * collected Q&A exactly as it would be fed to the Architect.
+ * GOOGLE_API_KEY), same cleanDiscoverGraph sanitizer + depth/node caps. Then it
+ * walks the pregenerated GRAPH in the terminal: it prints each question, you
+ * pick an option, follows the referenced next node until the path ends, then
+ * prints the collected Q&A exactly as it would be fed to the Architect.
  *
  * Run:  npx tsx scripts/test-discover.ts
  *   or: npx tsx scripts/test-discover.ts "become a jazz guitarist" craft
@@ -44,26 +44,27 @@ async function main() {
 
   console.log(c.dim(`\n→ Calling discover() for "${title}" (area: ${area}) ...\n`));
   const t0 = Date.now();
-  const { root } = await discover({ hat: "discover", aspiration: { title, area } });
-  console.log(c.dim(`← tree generated in ${Date.now() - t0}ms\n`));
+  const { graph } = await discover({ hat: "discover", aspiration: { title, area } });
+  console.log(c.dim(`← graph generated in ${Date.now() - t0}ms`));
 
-  if (!root) {
-    console.log(c.yellow("The model returned NO questions (goal already clear enough to plan). root = null."));
+  if (!graph) {
+    console.log(c.yellow("The model returned NO questions (goal already clear enough to plan). graph = null."));
     console.log(c.dim("→ In the app this means: skip questions, go straight to the Architect.\n"));
     rl.close();
     return;
   }
+  console.log(c.dim(`  ${Object.keys(graph.nodes).length} distinct question node(s), root = ${graph.root}\n`));
 
-  // ── Walk the tree exactly like AddGoal does ──
+  // ── Walk the graph exactly like DiscoverQuestions does (follow next ids) ──
   const answers: QA[] = [];
-  let node: DiscoverNode | null = root;
+  let node: DiscoverNode | null = graph.nodes[graph.root] ?? null;
   let step = 0;
 
   while (node) {
     step++;
-    console.log(c.bold(`\nQ${step}. ${node.question}`));
+    console.log(c.bold(`\nQ${step}. ${node.question}`) + c.dim(`  [${node.id}]`));
     node.options.forEach((o: DiscoverOption, i: number) => {
-      const leads = o.next ? c.dim("  → has follow-up") : c.dim("  → ends here");
+      const leads = o.next ? c.dim(`  → ${o.next}`) : c.dim("  → ends here");
       console.log(`  ${c.cyan(String(i + 1))}) ${o.label}${leads}`);
     });
 
@@ -75,11 +76,11 @@ async function main() {
 
     const chosen: DiscoverOption = node.options[pick - 1];
     answers.push({ id: node.id, question: node.question, answer: chosen.label });
-    node = chosen.next ?? null;
+    node = chosen.next ? graph.nodes[chosen.next] ?? null : null;
   }
 
   console.log(c.bold("\n=== Path complete ===\n"));
-  console.log(c.dim(`${answers.length} question(s) answered (hard cap is 5).\n`));
+  console.log(c.dim(`${answers.length} question(s) answered (hard cap is 8).\n`));
   console.log(c.bold("Collected Q&A (this is the `transcript` fed to the Architect):"));
   console.log(JSON.stringify(answers, null, 2));
   console.log();

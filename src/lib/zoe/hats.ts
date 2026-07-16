@@ -9,7 +9,7 @@
 import { genText, parseJson, hasTextKey as hasKey } from "./genai";
 import type {
   ArchitectRequest, ArchitectResponse, CompanionRequest, CompanionResponse,
-  DiscoverRequest, DiscoverResponse, DiscoverNode, DiscoverOption,
+  DiscoverRequest, DiscoverResponse, DiscoverGraph, DiscoverNode, DiscoverOption,
   DocumentArchitectRequest,
   MentorRequest, MentorResponse,
   OptimizerRequest, OptimizerResponse, ProfileDraft,
@@ -224,76 +224,123 @@ function fallbackJourney(title: string): ArchitectResponse {
    questions. The client walks it by the user's answers; the collected Q&A is
    fed to the Architect so the plan is tailored, not generic.
    ════════════════════════════════════════════════════════════════════════ */
-const DISCOVER_MAX_DEPTH = 5;    // hard ceiling on questions along ANY path
+const DISCOVER_MAX_DEPTH = 8;    // hard ceiling on questions along ANY path
 const DISCOVER_MAX_OPTIONS = 4;
-const DISCOVER_MIN_DEPTH = 3;    // aim for at least this many questions per path
+const DISCOVER_MIN_DEPTH = 7;    // aim for this many questions per path
+const DISCOVER_MAX_NODES = 24;   // total distinct questions in the graph (budget guard)
+const DISCOVER_PSYCH = "2-3";    // how many questions must be psychometric
 
 const DISCOVER_SYSTEM = `ROLE: GOAL DISCOVERY. A person just said what they want to BECOME. Before we design their
-learning path, you pregenerate a short, BRANCHING multiple-choice questionnaire that pins down
-exactly what KIND of journey they need — their level, focus, context, and intent — so the path
-can be tailored, not generic.
+learning path, you pregenerate a short, adaptive multiple-choice questionnaire that pins down
+exactly what KIND of journey they need — their level, focus, context, intent, AND how their mind
+works — so the path can be tailored, not generic.
 
-OUTPUT A DECISION TREE (single-choice questions). Each option may lead to ONE follow-up question
-(a nested node) or END the path. Different answers lead down different branches — a beginner and
-an expert get different follow-ups. The client walks the tree by the user's answers.
+OUTPUT A DIRECTED GRAPH (not a nested tree). Store every question ONCE in a flat "nodes" map keyed
+by id. Each option points to the next question BY ID via "next" (or null to END). This lets
+DIFFERENT options — even from different questions — converge on the SAME follow-up question. Reuse
+ids for shared follow-ups instead of repeating a question. The client walks the graph from "root".
 
-🎯 HOW MANY QUESTIONS (target ${DISCOVER_MIN_DEPTH}-4 per path):
-- Along EVERY path, ask ${DISCOVER_MIN_DEPTH} to 4 questions — that is the normal range. Reach the
-  full ${DISCOVER_MAX_DEPTH} when the goal is broad and a 5th question still adds real planning
-  signal. Do NOT stop at 1-2: that's too few to tailor a good path.
-- ${DISCOVER_MAX_DEPTH} is the HARD CEILING (never exceed it). Only return fewer than
-  ${DISCOVER_MIN_DEPTH} if the goal is genuinely trivial/one-dimensional (rare) — or "root": null
-  if truly nothing would improve the plan.
-- Anti-filler: every question must genuinely change how the path is designed (level, focus,
-  sub-goal, context, time, intended outcome). NEVER pad with vague fluff ("favourite colour",
-  "how motivated are you") — but DO ask the ${DISCOVER_MIN_DEPTH}-4 substantive questions that
-  clearly help. There are almost always ${DISCOVER_MIN_DEPTH}+ things worth knowing.
+🎯 HOW MANY QUESTIONS (target ${DISCOVER_MIN_DEPTH}-${DISCOVER_MAX_DEPTH} along the path a user walks):
+- The path a user actually answers should be ${DISCOVER_MIN_DEPTH} to ${DISCOVER_MAX_DEPTH} questions. ${DISCOVER_MAX_DEPTH} is the HARD CEILING.
+- Keep the graph COMPACT: at most ${DISCOVER_MAX_NODES} total nodes. Achieve depth by CHAINING questions
+  (mostly linear), and BRANCH only at 1-2 pivotal points (e.g. current level) where the follow-ups
+  genuinely differ. Everywhere else, options should share the same "next" id so paths reconverge.
+  Do NOT build a fully-branching tree — that wastes space and risks truncation.
+- Anti-filler: every question must genuinely change how the path is designed. NEVER pad with fluff.
+
+🧠 PSYCHOMETRIC QUESTIONS — include ${DISCOVER_PSYCH} of them, woven into the flow (these reveal HOW the
+mind works, so the plan matches their thinking — not just WHAT they want):
+- Use SCENARIOS with a trade-off (revealed preference), not "rate yourself". Examples:
+  • "You have 30 min: practice what you're bad at, or polish what you're good at?" (mastery vs performance)
+  • "When you're stuck, do you step back and think, or try things until something works?" (reflective vs active)
+  • "New topic: do you want the big picture first, or a concrete example to start?" (global vs sequential / abstract vs concrete)
+- These count toward the ${DISCOVER_MIN_DEPTH}-${DISCOVER_MAX_DEPTH} total. Put them where they read naturally.
+
+The remaining questions scope the GOAL: current level, specific sub-goal/focus, why/context,
+time available, intended outcome.
 
 QUESTION QUALITY:
-- Each question: a clear prompt + 2-${DISCOVER_MAX_OPTIONS} DISTINCT single-choice options.
-- Options are concrete and mutually exclusive. Cover the real range of answers (e.g. levels:
-  "Complete beginner" / "Know some basics" / "Fairly experienced").
-- Prioritise questions that most change the plan: current level, specific sub-goal/focus, why/context,
-  time available, preferred outcome. Word them warmly and briefly.
+- Each question: a clear, warm, brief prompt + 2-${DISCOVER_MAX_OPTIONS} DISTINCT, concrete, mutually-exclusive options.
+- Cover the real range (e.g. levels: "Complete beginner" / "Know some basics" / "Fairly experienced").
 
-Return STRICT JSON only (no prose, no markdown):
-{ "root": {
-    "id": "q1",
-    "question": "<prompt>",
-    "options": [
-      { "label": "<answer>", "next": { "id":"q2a", "question":"...", "options":[ {"label":"...", "next": null } ] } },
-      { "label": "<answer>", "next": null }
-    ]
+Return STRICT JSON only (no prose, no markdown). Shape:
+{ "root": "q1",
+  "nodes": {
+    "q1": { "id": "q1", "question": "<prompt>", "options": [
+      { "label": "<answer>", "next": "q2" },
+      { "label": "<answer>", "next": "q2" }        // two options → SAME follow-up (convergence)
+    ] },
+    "q2": { "id": "q2", "question": "...", "options": [ { "label": "...", "next": null } ] }
   } }
 Return { "root": null } if no question would meaningfully improve the plan.`;
 
 /**
- * Clean + depth-cap the raw tree so a malformed/oversized tree can't break the
- * walker. `maxDepth` = how many question levels are allowed from here down (used
- * both for the initial tree and for a shorter continuation sub-tree).
+ * Validate + bound the raw question GRAPH so a malformed/oversized/cyclic graph
+ * can't break the walker. Produces a clean {root, nodes} DAG-by-reference:
+ *  - each node needs a non-empty question and >= 2 valid options;
+ *  - an option's `next` must resolve to a real node, else it's coerced to null (ends path);
+ *  - `maxDepth` caps the LONGEST answer path (BFS from root with visited-guard —
+ *    a `next` that would exceed the cap is coerced to null, which also breaks cycles);
+ *  - unreachable nodes are dropped; total nodes are capped at DISCOVER_MAX_NODES.
+ * Returns null if the graph has no usable root question.
  */
-function cleanDiscoverNode(raw: unknown, depth: number, maxDepth: number, seq: { n: number }): DiscoverNode | null {
-  if (depth >= maxDepth || !raw || typeof raw !== "object") return null;
-  const o = raw as Record<string, unknown>;
-  const question = typeof o.question === "string" ? o.question.trim() : "";
-  if (!question) return null;
-  const rawOpts = Array.isArray(o.options) ? o.options : [];
-  const options: DiscoverOption[] = [];
-  for (const ro of rawOpts.slice(0, DISCOVER_MAX_OPTIONS)) {
-    if (!ro || typeof ro !== "object") continue;
-    const oo = ro as Record<string, unknown>;
-    const label = typeof oo.label === "string" ? oo.label.trim() : "";
-    if (!label) continue;
-    // Depth-cap follow-ups; anything past the ceiling simply ends the path.
-    const next = cleanDiscoverNode(oo.next, depth + 1, maxDepth, seq);
-    options.push({ label, next: next ?? null });
+function cleanDiscoverGraph(raw: unknown, maxDepth: number): DiscoverGraph | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const rootId = typeof r.root === "string" ? r.root.trim() : "";
+  const rawNodes = r.nodes && typeof r.nodes === "object" ? (r.nodes as Record<string, unknown>) : null;
+  if (!rootId || !rawNodes || !rawNodes[rootId]) return null;
+
+  // Pass 1 — parse each raw node into a clean node keyed by id (options keep
+  // raw `next` ids for now; we resolve/validate references in pass 2).
+  const parsed = new Map<string, DiscoverNode>();
+  for (const [id, rawNode] of Object.entries(rawNodes)) {
+    if (!rawNode || typeof rawNode !== "object") continue;
+    const o = rawNode as Record<string, unknown>;
+    const question = typeof o.question === "string" ? o.question.trim() : "";
+    if (!question) continue;
+    const rawOpts = Array.isArray(o.options) ? o.options : [];
+    const options: DiscoverOption[] = [];
+    for (const ro of rawOpts.slice(0, DISCOVER_MAX_OPTIONS)) {
+      if (!ro || typeof ro !== "object") continue;
+      const oo = ro as Record<string, unknown>;
+      const label = typeof oo.label === "string" ? oo.label.trim() : "";
+      if (!label) continue;
+      const next = typeof oo.next === "string" && oo.next.trim() ? oo.next.trim() : null;
+      options.push({ label, next });
+    }
+    if (options.length < 2) continue; // a single-option "question" is not a question
+    parsed.set(id, { id, question, options });
   }
-  if (options.length < 2) return null; // a single-option "question" is not a question
-  return { id: `q${depth}_${++seq.n}`, question, options };
+  if (!parsed.has(rootId)) return null;
+
+  // Pass 2 — BFS from root. Keep only reachable nodes; enforce depth cap and
+  // node cap; coerce any option whose target is missing / over-depth / would
+  // exceed the node budget to null (ends the path there, also breaking cycles).
+  const kept = new Map<string, DiscoverNode>();
+  const queue: { id: string; depth: number }[] = [{ id: rootId, depth: 1 }];
+  const enqueued = new Set<string>([rootId]);
+  while (queue.length) {
+    const { id, depth } = queue.shift()!;
+    const node = parsed.get(id);
+    if (!node) continue;
+    const options = node.options.map((opt) => {
+      if (!opt.next) return { ...opt };
+      const target = parsed.get(opt.next);
+      const overDepth = depth + 1 > maxDepth;
+      const overBudget = !kept.has(opt.next) && !enqueued.has(opt.next) && kept.size + enqueued.size >= DISCOVER_MAX_NODES;
+      if (!target || overDepth || overBudget) return { ...opt, next: null };
+      if (!enqueued.has(opt.next)) { enqueued.add(opt.next); queue.push({ id: opt.next, depth: depth + 1 }); }
+      return { ...opt };
+    });
+    kept.set(id, { ...node, options });
+  }
+
+  return kept.has(rootId) ? { root: rootId, nodes: Object.fromEntries(kept) } : null;
 }
 
 export async function discover(req: DiscoverRequest): Promise<DiscoverResponse> {
-  if (!hasKey()) return { root: null };
+  if (!hasKey()) return { graph: null };
 
   // CONTINUATION mode: the user typed a custom answer, so regenerate the rest of
   // the path from the answers so far, bounded by how many questions remain.
@@ -302,23 +349,25 @@ export async function discover(req: DiscoverRequest): Promise<DiscoverResponse> 
     ? Math.max(0, Math.min(DISCOVER_MAX_DEPTH, req.remaining ?? (DISCOVER_MAX_DEPTH - req.answered!.length)))
     : DISCOVER_MAX_DEPTH;
 
-  if (isContinuation && remaining <= 0) return { root: null }; // budget spent → stop asking
+  if (isContinuation && remaining <= 0) return { graph: null }; // budget spent → stop asking
 
   const answeredBlock = isContinuation
-    ? `\n\nThey have ALREADY answered these (one included a CUSTOM typed answer):\n${transcriptBlock(req.answered!)}\n\nContinue the discovery: based on ALL of the above (especially the custom answer), generate the NEXT questions only — the remaining path from here. Ask at most ${remaining} more question(s). Do NOT repeat anything already asked. If nothing more is worth asking, return "root": null.`
-    : `\n\nPregenerate the adaptive multiple-choice discovery tree now.`;
+    ? `\n\nThey have ALREADY answered these (one included a CUSTOM typed answer):\n${transcriptBlock(req.answered!)}\n\nContinue the discovery: based on ALL of the above (especially the custom answer), generate the NEXT questions only — the remaining path from here as a fresh graph (its own "root"). Ask at most ${remaining} more question(s). Do NOT repeat anything already asked. If nothing more is worth asking, return "root": null.`
+    : `\n\nPregenerate the adaptive multiple-choice discovery graph now.`;
 
   const user = `They want to become: "${req.aspiration.title}" (area: ${req.aspiration.area}).${mem(req.memoryContext)}${answeredBlock}
 
 Respond with VALID JSON only.`;
   try {
-    const raw = await genText(DISCOVER_SYSTEM, user, "gemini-2.5-flash", 0.6, 4096);
-    const parsed = parseJson<{ root?: unknown }>(raw);
-    const root = parsed ? cleanDiscoverNode(parsed.root, 0, remaining, { n: 0 }) : null;
-    return { root };
+    // Graph is compact (<= DISCOVER_MAX_NODES nodes), but give generous headroom
+    // so a valid graph is never truncated mid-JSON.
+    const raw = await genText(DISCOVER_SYSTEM, user, "gemini-2.5-flash", 0.6, 8192);
+    const parsed = parseJson<unknown>(raw);
+    const graph = cleanDiscoverGraph(parsed, remaining);
+    return { graph };
   } catch (e) {
     console.error("[discover] failed:", e);
-    return { root: null };
+    return { graph: null };
   }
 }
 
@@ -326,7 +375,20 @@ export async function architect(req: ArchitectRequest): Promise<ArchitectRespons
   if (!hasKey()) return fallbackJourney(req.aspiration.title);
   const tweak = req.tweak ? `\n\nThey reviewed a previous version and asked you to adjust it: "${req.tweak}". Honour this.` : "";
   const profile = req.profile ? `\n\nWhat you know about them:\n${JSON.stringify(req.profile)}` : "";
-  const user = `Aspiration: "${req.aspiration.title}" (area: ${req.aspiration.area})${req.aspiration.why ? `, because: ${req.aspiration.why}` : ""}.${profile}${req.transcript?.length ? `\n\nTheir own words:\n${transcriptBlock(req.transcript)}` : ""}${mem(req.memoryContext)}${tweak}
+  const starterBits = [
+    req.starter?.ageGroup && `age group ${req.starter.ageGroup}`,
+    req.starter?.role && `they are a ${req.starter.role}`,
+    req.starter?.timeAvailability && `about ${req.starter.timeAvailability} available`,
+  ].filter(Boolean);
+  const starter = starterBits.length
+    ? `\n\nAbout them (use this to set pacing, time per step, tone, and examples): ${starterBits.join("; ")}.`
+    : "";
+  // The transcript carries their goal-scoping AND psychometric answers — USE the
+  // psychometric ones to pick pace/depth/modality/examples, not just the topic.
+  const psychNote = req.transcript?.length
+    ? `\n\nIMPORTANT: some answers above reveal HOW their mind works (scenario/trade-off answers). Derive the plan's pace, depth, and step style from those, not only from what they want to learn.`
+    : "";
+  const user = `Aspiration: "${req.aspiration.title}" (area: ${req.aspiration.area})${req.aspiration.why ? `, because: ${req.aspiration.why}` : ""}.${starter}${profile}${req.transcript?.length ? `\n\nTheir own words:\n${transcriptBlock(req.transcript)}` : ""}${psychNote}${mem(req.memoryContext)}${tweak}
 
 Design their journey now.`;
   try {

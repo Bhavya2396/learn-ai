@@ -13,16 +13,22 @@ import {
 import { sql } from "drizzle-orm";
 import { vector } from "drizzle-orm/pg-core";
 import type {
-  BehavioralMetrics, CognitiveStyle, DnaDimension, Journey, TeachingStyle,
+  BehavioralMetrics, CognitiveStyle, DnaDimension, Journey, StarterFacts, TeachingStyle,
 } from "@/lib/zoe/types";
 import type { AspirationSource, LessonContent } from "@/lib/zoe/content-types";
 
 /* ── Accounts ─────────────────────────────────────────────────────────────── */
+// `id` is the Firebase Auth uid. Profile fields (display_name/photo_url/
+// provider) come from the Google sign-in; last_login_at is stamped each session.
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
   email: text("email").unique(),
+  displayName: text("display_name"),
+  photoUrl: text("photo_url"),
+  provider: text("provider"),
   createdAt: bigint("created_at", { mode: "number" }).notNull(),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  lastLoginAt: bigint("last_login_at", { mode: "number" }),
 });
 
 /* ── Identity (ZoeIdentity) ───────────────────────────────────────────────── */
@@ -32,6 +38,9 @@ export const zoeIdentity = pgTable("zoe_identity", {
   name: text("name").notNull(),
   ageGroup: text("age_group").notNull(),
   locale: text("locale").notNull().default("en"),
+  // Starter facts (age/role/time) captured once, reused by the Architect on
+  // every goal. Stored as a whole object (read/written together).
+  starter: jsonb("starter").$type<StarterFacts>().notNull().default(sql`'{}'::jsonb`),
   createdAt: bigint("created_at", { mode: "number" }).notNull(),
   lastActiveAt: bigint("last_active_at", { mode: "number" }).notNull(),
 });
@@ -115,9 +124,9 @@ export const tokenLedger = pgTable(
   (t) => [index("token_ledger_user_ts_idx").on(t.userId, t.ts.desc())],
 );
 
-/* ── Lesson cache (LessonContent) ─────────────────────────────────────────── */
-export const lessonCache = pgTable(
-  "lesson_cache",
+/* ── Lessons — durable per-user generated lesson content (LessonContent) ───── */
+export const lessons = pgTable(
+  "lessons",
   {
     stepId: text("step_id").notNull(),
     userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -135,4 +144,4 @@ export type ProfileRow = typeof zoeProfile.$inferSelect;
 export type AspirationRow = typeof aspirations.$inferSelect;
 export type MemoryEventRow = typeof memoryEvents.$inferSelect;
 export type TokenEntryRow = typeof tokenLedger.$inferSelect;
-export type LessonCacheRow = typeof lessonCache.$inferSelect;
+export type LessonRow = typeof lessons.$inferSelect;

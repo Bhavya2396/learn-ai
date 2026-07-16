@@ -1,0 +1,1 @@
+ALTER TABLE "zoe_identity" ADD COLUMN "starter" jsonb DEFAULT '{}'::jsonb NOT NULL;

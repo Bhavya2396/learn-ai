@@ -11,11 +11,25 @@
  * migrate to Postgres + pgvector later with no shape change.
  */
 
+/**
+ * Person-level facts captured once at the very start (before the first goal),
+ * then reused by the Architect on EVERY goal so plans stay grounded in who they
+ * are — not re-asked per goal. `ageGroup` is duplicated onto identity for
+ * backwards compatibility; this object is the canonical starter set.
+ */
+export interface StarterFacts {
+  ageGroup?: string;        // e.g. "25–34"
+  role?: string;            // e.g. "Working professional"
+  timeAvailability?: string; // e.g. "~30 min/day"
+}
+
 export interface ZoeIdentity {
   id: string;
   name: string;
   ageGroup: string;
   locale: string; // BCP-47-ish: "en", "hi", ...
+  /** Starter facts reused across all goals (age/role/time). */
+  starter?: StarterFacts;
   createdAt: number;
   lastActiveAt: number;
 }

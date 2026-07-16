@@ -2,21 +2,22 @@
 
 /**
  * The ZOE Brain store — the single source of truth for who the user is and
- * everything ZOE remembers across ALL of their aspirations. Persisted locally
- * (survives refresh); swap the storage adapter for a backend later with no
- * changes here.
+ * everything ZOE remembers across ALL of their aspirations.
+ *
+ * Persistence is SERVER-SIDE (Postgres, keyed by the signed-in Firebase uid) —
+ * NOTHING is stored in the browser. The store starts empty, is hydrated from
+ * the server after sign-in (see brain-sync.ts / hydrateFromServer), and every
+ * mutation is pushed back to the server via a debounced sync. Signing out
+ * resets the store to empty.
  */
 
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import { generateId } from "@/lib/utils";
-import { localStorageAdapter, ZOE_STORAGE_KEY } from "./storage";
 import { getStreakDays } from "./memory";
-import { normalizeJourney, type RawJourney } from "./journey";
 import type {
   Aspiration, AspirationStatus, BehavioralMetrics, DnaDimension, Journey, LifeArea,
   MemoryEvent, MemoryType, Sentiment, StepStatus, TeachingStyle, TokenEntry,
-  ZoeProfile, ZotStream, ZoeIdentity,
+  ZoeBrainState, ZoeProfile, ZotStream, ZoeIdentity,
 } from "./types";
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -44,7 +45,7 @@ interface LogInput {
 }
 
 export interface DiscoveryInput {
-  identity: { name: string; ageGroup: string; locale?: string };
+  identity: { name: string; ageGroup: string; locale?: string; starter?: import("./types").StarterFacts };
   profile: {
     summary?: string;
     motivations?: string[];
@@ -63,6 +64,8 @@ export interface DiscoveryInput {
 
 interface BrainActions {
   touch: () => void;
+  /** Set/merge the person-level starter facts (age/role/time) on identity. */
+  setStarter: (starter: import("./types").StarterFacts) => void;
   commitDiscovery: (input: DiscoveryInput) => string;
   addAspiration: (a: { title: string; area: LifeArea; why?: string }) => string;
   setJourney: (aspirationId: string, journey: Journey) => void;
@@ -79,6 +82,10 @@ interface BrainActions {
   awardTokens: (stream: ZotStream, amount: number, reason: string) => void;
   forgetEvent: (id: string) => void;
   reset: () => void;
+  /** Replace the whole brain with server-loaded state (used on sign-in). */
+  hydrate: (state: ZoeBrainState | null) => void;
+  /** Mark the store as hydrated (server load finished, even if empty). */
+  setHydrated: (hydrated: boolean) => void;
 }
 
 interface BrainStore extends BrainActions {
@@ -144,8 +151,7 @@ function reflowJourney(journey: Journey): Journey {
 }
 
 export const useZoeBrain = create<BrainStore>()(
-  persist(
-    (set, get) => ({
+  (set, get) => ({
       version: 2,
       hydrated: false,
       identity: null,
@@ -161,14 +167,27 @@ export const useZoeBrain = create<BrainStore>()(
         set({ identity: { ...id, lastActiveAt: Date.now() } });
       },
 
+      setStarter: (starter) => {
+        const now = Date.now();
+        const id = get().identity;
+        // If identity exists, merge onto it; otherwise stash a minimal identity
+        // carrying the starter facts so they survive until commitDiscovery.
+        set({
+          identity: id
+            ? { ...id, starter: { ...id.starter, ...starter }, lastActiveAt: now }
+            : { id: generateId(), name: "", ageGroup: starter.ageGroup ?? "", locale: "en", starter, createdAt: now, lastActiveAt: now },
+        });
+      },
+
       commitDiscovery: (input) => {
         const now = Date.now();
         const existing = get().identity;
         const identity: ZoeIdentity = existing
-          ? { ...existing, name: input.identity.name, ageGroup: input.identity.ageGroup, lastActiveAt: now }
+          ? { ...existing, name: input.identity.name, ageGroup: input.identity.ageGroup,
+              starter: input.identity.starter ?? existing.starter, lastActiveAt: now }
           : {
               id: generateId(), name: input.identity.name, ageGroup: input.identity.ageGroup,
-              locale: input.identity.locale || "en", createdAt: now, lastActiveAt: now,
+              locale: input.identity.locale || "en", starter: input.identity.starter, createdAt: now, lastActiveAt: now,
             };
 
         const profile = buildProfile(input.profile, now);
@@ -380,91 +399,23 @@ export const useZoeBrain = create<BrainStore>()(
 
       forgetEvent: (id) => set((s) => ({ events: s.events.filter((e) => e.id !== id) })),
 
-      reset: () => set({ identity: null, profile: null, aspirations: [], activeAspirationId: null, events: [], ledger: [] }),
+      reset: () => set({ identity: null, profile: null, aspirations: [], activeAspirationId: null, events: [], ledger: [], hydrated: true }),
+
+      hydrate: (state) =>
+        set({
+          version: state?.version ?? 2,
+          identity: state?.identity ?? null,
+          profile: state?.profile ?? null,
+          aspirations: state?.aspirations ?? [],
+          activeAspirationId: state?.activeAspirationId ?? null,
+          events: state?.events ?? [],
+          ledger: state?.ledger ?? [],
+          hydrated: true,
+        }),
+
+      setHydrated: (hydrated) => set({ hydrated }),
     }),
-    {
-      name: ZOE_STORAGE_KEY,
-      version: 2,
-      storage: createJSONStorage(() => localStorageAdapter),
-      partialize: (s) => ({
-        version: s.version, identity: s.identity, profile: s.profile,
-        aspirations: s.aspirations, activeAspirationId: s.activeAspirationId,
-        events: s.events, ledger: s.ledger,
-      }),
-      migrate: (persisted, fromVersion) => migrateBrain(persisted, fromVersion),
-      onRehydrateStorage: () => (state) => {
-        if (state) state.hydrated = true;
-      },
-    }
-  )
 );
-
-/* ── v1 → v2 migration ───────────────────────────────────────────────────── */
-const KIND_FROM_LEGACY: Record<string, string> = { lesson: "concept", sim: "practice", project: "project", assessment: "challenge" };
-
-function migrateBrain(persisted: unknown, fromVersion: number): Partial<BrainStore> {
-  if (!persisted || typeof persisted !== "object") return {};
-  const s = persisted as Record<string, unknown>;
-  if (fromVersion >= 2) return s as Partial<BrainStore>;
-
-  // v1 shape: { identity, dna, plan, events, ledger }
-  const now = Date.now();
-  const dna = s.dna as
-    | { aspiration?: string; domains?: string[]; goals?: string[]; motivations?: string[]; learningStyles?: string[]; timeAvailability?: string; emotionalBaseline?: string; dimensions?: DnaDimension[] }
-    | null;
-  const plan = s.plan as
-    | { headline?: string; summary?: string; reasoning?: string[]; path?: { phase: string; timeframe: string; why: string; modules: { title: string; type: string; minutes: number }[] }[]; firstStep?: { title: string } }
-    | null;
-
-  const profile: ZoeProfile | null = dna
-    ? {
-        summary: "",
-        motivations: dna.motivations ?? [],
-        cognitiveStyle: { abstractVsConcrete: 0, activeVsReflective: 0, sequentialVsGlobal: 0, verbalVsVisual: 0, socialVsSolo: 0 },
-        timeAvailability: dna.timeAvailability,
-        emotionalBaseline: dna.emotionalBaseline,
-        strengths: [],
-        growthEdges: [],
-        dimensions: (dna.dimensions ?? []).map((d) => ({ ...d, confidence: 0.2, source: "self-report" as const, history: [{ ts: now, value: d.value }] })),
-        behavioral: { ...DEFAULT_BEHAVIORAL, updatedAt: now },
-        teaching: { ...DEFAULT_TEACHING, updatedAt: now },
-        updatedAt: now,
-      }
-    : null;
-
-  const aspirations: Aspiration[] = [];
-  let activeAspirationId: string | null = null;
-  if (dna?.aspiration || plan) {
-    const raw: RawJourney = {
-      headline: plan?.headline ?? `Become ${dna?.aspiration ?? "your best self"}`,
-      summary: plan?.summary ?? "",
-      rationale: plan?.reasoning ?? [],
-      phases: (plan?.path ?? []).map((ph) => ({
-        title: ph.phase,
-        timeframe: ph.timeframe,
-        why: ph.why,
-        steps: ph.modules.map((m) => ({ title: m.title, summary: "", kind: KIND_FROM_LEGACY[m.type] ?? "concept", minutes: m.minutes })),
-      })),
-    };
-    const journey = normalizeJourney(raw);
-    const asp: Aspiration = {
-      id: generateId(), title: dna?.aspiration ?? plan?.headline ?? "My aspiration",
-      area: "knowledge", createdAt: now, updatedAt: now, status: "active", journey,
-    };
-    aspirations.push(asp);
-    activeAspirationId = asp.id;
-  }
-
-  return {
-    version: 2,
-    identity: (s.identity as ZoeIdentity) ?? null,
-    profile,
-    aspirations,
-    activeAspirationId,
-    events: (s.events as MemoryEvent[]) ?? [],
-    ledger: (s.ledger as TokenEntry[]) ?? [],
-  };
-}
 
 /* ── Reactive selectors (hooks) ───────────────────────────────────────────── */
 export const useHasProfile = () => useZoeBrain((s) => !!s.identity && !!s.profile);

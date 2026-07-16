@@ -423,6 +423,8 @@ function AddGoal({
         body: JSON.stringify({
           hat: "architect", aspiration: { title, area }, profile,
           transcript: transcript.length ? transcript : undefined,
+          // Person-level starter facts (age/role/time) — reused on every goal.
+          starter: getBrainSnapshot().identity?.starter,
           memoryContext: buildMemoryContext(getBrainSnapshot(), title),
         }),
       });
