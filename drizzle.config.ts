@@ -1,5 +1,8 @@
-import "dotenv/config";
 import { defineConfig } from "drizzle-kit";
+
+// Load .env when present (local dev). In the production container the env comes
+// from the runtime (compose) and dotenv isn't installed — so this is optional.
+try { require("dotenv/config"); } catch { /* no dotenv in prod image */ }
 
 /**
  * Drizzle Kit config — used for generating/pushing migrations from
