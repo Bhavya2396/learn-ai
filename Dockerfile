@@ -20,6 +20,8 @@ COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 # Now the source. (.dockerignore keeps node_modules/.next/.git out of context.)
 COPY . .
+# Run DB migrations right after install (needs DATABASE_URL reachable at build).
+RUN npm run db:migrate
 ENV NEXT_TELEMETRY_DISABLED=1
 # NEXT_PUBLIC_* are inlined into the client bundle at build time (passed from
 # compose build.args).
@@ -50,18 +52,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# drizzle-kit + esbuild + config + migration SQL so the container can migrate
-# the live DB on startup.
-COPY --from=builder /app/node_modules/drizzle-kit ./node_modules/drizzle-kit
-COPY --from=builder /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
-COPY --from=builder /app/node_modules/esbuild ./node_modules/esbuild
-COPY --from=builder /app/node_modules/@esbuild ./node_modules/@esbuild
-COPY --from=builder /app/node_modules/.bin/drizzle-kit ./node_modules/.bin/drizzle-kit
-COPY --chown=nextjs:nodejs package.json drizzle.config.ts ./
-COPY --chown=nextjs:nodejs src/lib/db ./src/lib/db
-
 USER nextjs
 EXPOSE 3000
 
-# Migrate the live DB, then serve. DB is reachable at runtime (not build time).
-CMD ["sh", "-c", "npm run db:migrate && node server.js"]
+# server.js is emitted by Next's standalone output.
+CMD ["node", "server.js"]
