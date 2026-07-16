@@ -1,14 +1,12 @@
 # ============================================================================
 # ZOE — local stack: Postgres (with pgvector) + the Next.js app.
 #
-#   docker compose up -d db              # just the database
-#   docker compose run --rm migrate      # apply DB migrations (one-off)
-#   docker compose up -d --build app     # start the app
+#   docker compose up -d db          # just the database
+#   docker compose up -d --build     # database + app
 #
-# The db image (pgvector/pgvector) ships the `vector` extension. The schema is
-# NOT auto-applied and is NOT baked into the app image — run the `migrate`
-# service explicitly against the live db (once per deploy, BEFORE the app):
-#   docker compose run --rm migrate
+# The db image (pgvector/pgvector) ships the `vector` extension. Apply the
+# schema once after the db is up (from the host, after `npm ci`):
+#   npm run db:migrate
 # ============================================================================
 
 services:
@@ -29,21 +27,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-
-  # One-off migration runner. `docker compose run --rm migrate` applies pending
-  # migrations against the live db, then exits. Run it before starting `app`.
-  migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: migrate
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-zoe}:${POSTGRES_PASSWORD:-zoe}@db:5432/${POSTGRES_DB:-zoe}
-      PGSSL: disable
-    restart: "no"
 
   app:
     build:

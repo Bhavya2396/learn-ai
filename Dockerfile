@@ -7,25 +7,22 @@
 # ships only the compiled server + its traced node_modules — small and fast.
 # ============================================================================
 
-# ── deps: install dependencies ─────────────────────────────────────────────
-FROM node:24-alpine AS deps
+# ── builder: install deps + build (one stage — no node_modules shuffling) ──
+# Keeping install + build in ONE stage avoids copying the 1.2GB node_modules
+# between stages (that COPY alone was ~2 min). The npm cache mount makes repeat
+# `npm ci` near-instant. Only the tiny standalone output leaves this stage.
+FROM node:24-alpine AS builder
 WORKDIR /app
 # libc compat for native addons (e.g. pg) on Alpine.
 RUN apk add --no-cache libc6-compat
+# Install first, on package files only, so the layer caches unless deps change.
 COPY package.json package-lock.json ./
-RUN npm ci
-
-# ── builder: build the app ─────────────────────────────────────────────────
-FROM node:24-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+RUN --mount=type=cache,target=/root/.npm npm ci
+# Now the source. (.dockerignore keeps node_modules/.next/.git out of context.)
 COPY . .
-# DATABASE_URL is not needed at build time; the client throws only at runtime.
 ENV NEXT_TELEMETRY_DISABLED=1
-# IMPORTANT: NEXT_PUBLIC_* vars are inlined into the CLIENT bundle at BUILD time
-# (not read at runtime). The Firebase client config MUST be present here or the
-# browser ships with no Firebase config and Google sign-in won't work. Pass them
-# as build args (docker build --build-arg / compose build.args), e.g.:
+# NEXT_PUBLIC_* are inlined into the client bundle at build time (passed from
+# compose build.args).
 ARG NEXT_PUBLIC_FIREBASE_API_KEY
 ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
 ARG NEXT_PUBLIC_FIREBASE_PROJECT_ID
@@ -57,23 +54,4 @@ USER nextjs
 EXPOSE 3000
 
 # server.js is emitted by Next's standalone output.
-# NOTE: migrations are NOT run here — they must run against the LIVE database at
-# deploy time, not baked into the image. Use the `migrate` stage below (wired as
-# a one-off `migrate` service in docker-compose.yml). The app just serves.
 CMD ["node", "server.js"]
-
-# ── migrate: one-off DB migration runner ───────────────────────────────────
-# A separate, tiny image that has drizzle-kit + the config + the migration SQL.
-# Run it ONCE per deploy against the live DB (with DATABASE_URL in the env),
-# BEFORE starting/upgrading the app:
-#   docker compose run --rm migrate
-# It exits when migrations are applied; it does not serve anything.
-FROM node:24-alpine AS migrate
-WORKDIR /app
-RUN apk add --no-cache libc6-compat
-# node_modules (incl. drizzle-kit) + only the files migrate needs.
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json drizzle.config.ts ./
-COPY src/lib/db ./src/lib/db
-ENV NODE_ENV=production
-CMD ["npm", "run", "db:migrate"]
