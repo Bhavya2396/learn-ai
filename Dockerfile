@@ -50,11 +50,12 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Migrations: bundle drizzle-orm + drizzle-kit + the migration SQL + config so
-# the image can migrate the live DB itself. Run before starting the app:
-#   docker compose run --rm app npm run db:migrate
-COPY --from=builder /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
+# drizzle-kit + esbuild + config + migration SQL so the container can migrate
+# the live DB on startup.
 COPY --from=builder /app/node_modules/drizzle-kit ./node_modules/drizzle-kit
+COPY --from=builder /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
+COPY --from=builder /app/node_modules/esbuild ./node_modules/esbuild
+COPY --from=builder /app/node_modules/@esbuild ./node_modules/@esbuild
 COPY --from=builder /app/node_modules/.bin/drizzle-kit ./node_modules/.bin/drizzle-kit
 COPY --chown=nextjs:nodejs package.json drizzle.config.ts ./
 COPY --chown=nextjs:nodejs src/lib/db ./src/lib/db
@@ -62,5 +63,5 @@ COPY --chown=nextjs:nodejs src/lib/db ./src/lib/db
 USER nextjs
 EXPOSE 3000
 
-# server.js is emitted by Next's standalone output.
-CMD ["node", "server.js"]
+# Migrate the live DB, then serve. DB is reachable at runtime (not build time).
+CMD ["sh", "-c", "npm run db:migrate && node server.js"]
