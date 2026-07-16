@@ -11,12 +11,13 @@ import ZoeOrb from "./ZoeOrb";
 import { ProgressRing, RadarChart, StreakVis, MiniBar, PulseOrb, Waveform, SkillPathVis } from "./ZoeGraphics";
 import { AreaIcon, type AreaKey } from "./illustrations";
 import JourneyPreview from "./JourneyPreview";
+import DiscoverQuestions from "./DiscoverQuestions";
 import { useZoeBrain, getBrainSnapshot } from "@/lib/zoe/brain";
 import { buildMemoryContext, getStreakDays } from "@/lib/zoe/memory";
 import { useAmbience } from "@/lib/zoe/ambience";
 import { journeyProgress, normalizeJourney, currentSkillTier, type RawJourney } from "@/lib/zoe/journey";
 import { AREA_META, areaMeta, type Aspiration, type Journey, type LifeArea, type ZoeProfile } from "@/lib/zoe/types";
-import type { ArchitectResponse, ProfileDraft, DiscoverResponse, DiscoverNode, DiscoverOption, QA } from "@/lib/zoe/hats-types";
+import type { ArchitectResponse, ProfileDraft, QA } from "@/lib/zoe/hats-types";
 import type { SourceSection } from "@/lib/zoe/content-types";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -391,7 +392,6 @@ function BehavioralSnap({ profile, mastery }: { profile: ZoeProfile; mastery: nu
 type AddPhase = "choose" | "input" | "discover" | "pdf" | "loading" | "preview";
 const LOADING_STEPS = ["Shaping the path…", "Picking your first step…"];
 const DOC_LOADING_STEPS = ["Reading your document…", "Mapping the topics…", "Building your path…"];
-const DISCOVER_STEPS = ["Getting to know your goal…"];
 const DOC_AREA: LifeArea = "knowledge";
 
 function AddGoal({
@@ -410,77 +410,10 @@ function AddGoal({
   const [ridx, setRidx] = useState(0);
   const [loadingSteps, setLoadingSteps] = useState<string[]>(LOADING_STEPS);
   const [pdfError, setPdfError] = useState("");
-  // Adaptive discovery: the pregenerated MCQ tree, current node, collected answers.
-  const [discNode, setDiscNode] = useState<DiscoverNode | null>(null);
-  const [discAnswers, setDiscAnswers] = useState<QA[]>([]);
-  const [customText, setCustomText] = useState("");   // the "Other" free-text input
-  const [customOpen, setCustomOpen] = useState(false); // whether the custom input is showing
-  const [discRegen, setDiscRegen] = useState(false);   // regenerating the continuation
+  // After title/area, show the adaptive discovery questions (own component).
+  const startDiscover = () => { setPhase("discover"); };
 
-  const DISCOVER_MAX = 5; // must match server DISCOVER_MAX_DEPTH
-
-  // Step 1 → after title/area: fetch the adaptive MCQ tree, then walk it.
-  const startDiscover = async () => {
-    setLoadingSteps(DISCOVER_STEPS); setPhase("loading"); setRidx(0); onResearch?.();
-    try {
-      const res = await fetch("/api/zoe", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          hat: "discover", aspiration: { title, area },
-          memoryContext: buildMemoryContext(getBrainSnapshot(), title),
-        }),
-      });
-      const data: DiscoverResponse = await res.json();
-      setDiscAnswers([]); setCustomOpen(false); setCustomText("");
-      if (data.root) { setDiscNode(data.root); setPhase("discover"); }
-      else { build([]); } // no useful questions → straight to architect
-    } catch {
-      build([]); // discovery failed → don't block goal creation
-    }
-  };
-
-  // Advance after recording an answer: follow the tree, or (custom) regenerate
-  // the rest of the path, or build if we're out of tree/budget.
-  const advanceDiscover = async (answers: QA[], next: DiscoverNode | null, wasCustom: boolean) => {
-    setCustomOpen(false); setCustomText("");
-    if (next) { setDiscAnswers(answers); setDiscNode(next); return; }
-    // No pregenerated branch. If the answer was custom AND we still have budget,
-    // regenerate the continuation from what they typed; else go to the architect.
-    if (wasCustom && answers.length < DISCOVER_MAX) {
-      setDiscRegen(true);
-      try {
-        const res = await fetch("/api/zoe", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            hat: "discover", aspiration: { title, area },
-            answered: answers, remaining: DISCOVER_MAX - answers.length,
-            memoryContext: buildMemoryContext(getBrainSnapshot(), title),
-          }),
-        });
-        const data: DiscoverResponse = await res.json();
-        setDiscRegen(false);
-        setDiscAnswers(answers);
-        if (data.root) { setDiscNode(data.root); return; }
-      } catch { setDiscRegen(false); }
-    }
-    build(answers); // branch ended (or budget spent) → architect with everything
-  };
-
-  // Pick a pregenerated option.
-  const answerDiscover = (opt: DiscoverOption) => {
-    if (!discNode) return;
-    const qa: QA = { id: discNode.id, question: discNode.question, answer: opt.label };
-    void advanceDiscover([...discAnswers, qa], opt.next ?? null, false);
-  };
-
-  // Submit a custom typed answer (triggers continuation regeneration).
-  const answerCustom = () => {
-    if (!discNode || !customText.trim()) return;
-    const qa: QA = { id: discNode.id, question: discNode.question, answer: customText.trim() };
-    void advanceDiscover([...discAnswers, qa], null, true);
-  };
-
-  const build = async (transcript: QA[] = discAnswers) => {
+  const build = async (transcript: QA[] = []) => {
     setLoadingSteps(LOADING_STEPS); setPhase("loading"); setRidx(0); onResearch?.();
     const timer = setInterval(() => setRidx((i) => Math.min(i + 1, LOADING_STEPS.length - 1)), 750);
     const started = Date.now();
@@ -594,53 +527,11 @@ function AddGoal({
             </motion.div>
           )}
 
-          {phase === "discover" && discNode && (
-            <motion.div key={discNode.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="min-h-[100svh] flex flex-col items-center justify-center px-7 text-center">
-              {discRegen ? (
-                <>
-                  <Waveform bars={5} size={48} className="mb-4" />
-                  <p className="text-[15px] font-semibold" style={{ color: "var(--z-ink-2)" }}>Thinking about that…</p>
-                </>
-              ) : (
-                <>
-                  <span className="z-eyebrow mb-4">A couple of quick things</span>
-                  <h1 className="zoe-display text-[clamp(1.6rem,5.5vw,2.5rem)] leading-[1.15] max-w-md" style={{ color: "var(--z-ink)" }}>
-                    {discNode.question}
-                  </h1>
-                  <div className="mt-8 w-full max-w-sm flex flex-col gap-2.5">
-                    {discNode.options.map((opt, i) => (
-                      <button key={i} onClick={() => answerDiscover(opt)}
-                        className="w-full text-left rounded-2xl px-5 py-4 text-[15px] font-bold transition-transform duration-150 active:translate-y-0.5"
-                        style={{ background: "var(--z-surface)", color: "var(--z-ink)", border: "1.5px solid var(--z-line-2)", boxShadow: "0 3px 0 var(--z-line-2)" }}>
-                        {opt.label}
-                      </button>
-                    ))}
-
-                    {/* "Other" — type your own answer; regenerates the rest of the path. */}
-                    {!customOpen ? (
-                      <button onClick={() => setCustomOpen(true)}
-                        className="w-full text-left rounded-2xl px-5 py-4 text-[15px] font-bold transition-transform duration-150 active:translate-y-0.5"
-                        style={{ background: "transparent", color: "var(--z-ink-2)", border: "1.5px dashed var(--z-line-2)" }}>
-                        + Something else…
-                      </button>
-                    ) : (
-                      <div className="flex flex-col gap-2.5">
-                        <textarea autoFocus value={customText} onChange={(e) => setCustomText(e.target.value)} rows={2}
-                          placeholder="Type your own answer…"
-                          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); answerCustom(); } }}
-                          className="z-center-input !h-auto w-full resize-none text-left !px-5 !py-3.5"
-                          style={{ color: "var(--z-ink)" }} />
-                        <button onClick={answerCustom} disabled={!customText.trim()}
-                          className="z-btn z-btn-brand justify-center !py-3.5">
-                          Continue <ArrowRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </motion.div>
+          {phase === "discover" && (
+            <DiscoverQuestions key="discover" title={title} area={area}
+              memoryContext={buildMemoryContext(getBrainSnapshot(), title)}
+              onComplete={(answers) => build(answers)}
+              onSkip={() => build([])} />
           )}
 
           {phase === "loading" && (

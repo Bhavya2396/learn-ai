@@ -26,6 +26,7 @@ import ZoeOrb from "./ZoeOrb";
 import { SparkBurst } from "./ZoeGraphics";
 import { AreaIcon, type AreaKey } from "./illustrations";
 import JourneyPreview from "./JourneyPreview";
+import DiscoverQuestions from "./DiscoverQuestions";
 import { useZoeBrain, getBrainSnapshot } from "@/lib/zoe/brain";
 import { buildMemoryContext, getStreakDays, daysSince } from "@/lib/zoe/memory";
 import { useAmbience } from "@/lib/zoe/ambience";
@@ -53,11 +54,15 @@ const ROLES: { label: string; icon: React.ReactNode }[] = [
 const AREA_ORDER: LifeArea[] = ["career", "entrepreneurship", "craft", "health", "mindset", "money", "sustainability", "knowledge"];
 
 type Basics = { name: string; ageGroup: string; role: string; area: LifeArea | ""; aspiration: string };
-type Phase = "boot" | "welcomeBack" | "intro" | "name" | "age" | "role" | "area" | "aspiration" | "adaptive" | "pdf" | "researching" | "preview" | "ready" | "failed";
+type Phase = "boot" | "welcomeBack" | "intro" | "name" | "age" | "role" | "area" | "aspiration" | "discover" | "adaptive" | "pdf" | "researching" | "preview" | "ready" | "failed";
 type Mode = "new" | "evolve";
 type Route = "guided" | "pdf";
 
 const SCRIPT: Phase[] = ["intro", "name", "age", "role", "area", "aspiration"];
+
+// No profiler in onboarding now — the Architect works from the discovery Q&A
+// alone, so we hand it an empty profile draft (just satisfies the type).
+const EMPTY_PROFILE: ProfileDraft = { summary: "", motivations: [], strengths: [], growthEdges: [], dimensions: [] };
 
 const RESEARCH_STEPS = [
   "Reading your answers…",
@@ -198,6 +203,22 @@ export default function OnboardingFlow() {
     return normalizeJourney((data.journey ?? {}) as RawJourney);
   };
 
+  // Onboarding new-goal build: discovery answers → Architect directly (no profiler).
+  // Mirrors the "add a goal" flow: the discover Q&A is the transcript.
+  const buildFromDiscovery = async (tx: QA[]) => {
+    setResearchSteps(RESEARCH_STEPS);
+    beginResearchAnim();
+    const ts = Date.now();
+    try {
+      setTranscript(tx);
+      const j = await architectJourney(basics, EMPTY_PROFILE, tx);
+      settle(ts, () => { setJourneyState(j); setPhase("preview"); });
+    } catch {
+      if (researchTimer.current) clearInterval(researchTimer.current);
+      setPhase("failed");
+    }
+  };
+
   const startDiscovery = async (tx: QA[], b: Basics) => {
     setResearchSteps(RESEARCH_STEPS);
     beginResearchAnim();
@@ -290,8 +311,8 @@ export default function OnboardingFlow() {
 
   const onTweak = (feedback: string) => {
     if (route === "pdf") { reArchitectDocument(feedback); return; }
-    if (!profileDraft) { startDiscovery(transcript, basics); return; }
-    reArchitect(basics, profileDraft, transcript, feedback);
+    // No profiler in the new flow → re-architect from the discovery transcript.
+    reArchitect(basics, profileDraft ?? EMPTY_PROFILE, transcript, feedback);
   };
 
   const evolve = () => {
@@ -465,20 +486,21 @@ export default function OnboardingFlow() {
           <Screen key="aspiration">
             <AspirationScreen onNext={(aspiration) => {
               const b = { ...basics, aspiration };
-              setBasics(b); setPhase("adaptive");
-              fetchNextAdaptive(seedTranscript(b), b);
+              setBasics(b); setPhase("discover");
             }} />
           </Screen>
         )}
 
-        {/* ── Adaptive profiler ──────────────────────────── */}
-        {phase === "adaptive" && (
-          <Screen key={`adaptive-${transcript.length}`}>
-            {loadingQ && !adaptiveQ ? (
-              <ThinkingDots />
-            ) : adaptiveQ ? (
-              <AdaptiveScreen question={adaptiveQ} insight={adaptiveInsight} onAnswer={answerAdaptive} />
-            ) : null}
+        {/* ── Goal discovery (adaptive MCQ tree) — same component as "add a goal" ── */}
+        {phase === "discover" && (
+          <Screen key="discover">
+            <DiscoverQuestions
+              title={basics.aspiration}
+              area={basics.area || "other"}
+              memoryContext={buildMemoryContext(getBrainSnapshot(), basics.aspiration)}
+              onComplete={(answers) => buildFromDiscovery([...seedTranscript(basics), ...answers])}
+              onSkip={() => buildFromDiscovery(seedTranscript(basics))}
+            />
           </Screen>
         )}
 
@@ -527,7 +549,7 @@ export default function OnboardingFlow() {
                   } else if (profileDraft) {
                     reArchitect(basics, profileDraft, transcript);
                   } else {
-                    startDiscovery(transcript, basics);
+                    buildFromDiscovery(transcript);
                   }
                 }}
                 className="z-btn z-btn-brand !py-4 !px-10 !text-[16px] w-full"
