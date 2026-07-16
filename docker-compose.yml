@@ -1,12 +1,14 @@
 # ============================================================================
 # ZOE — local stack: Postgres (with pgvector) + the Next.js app.
 #
-#   docker compose up -d db        # just the database
-#   docker compose up --build      # database + app
+#   docker compose up -d db              # just the database
+#   docker compose run --rm migrate      # apply DB migrations (one-off)
+#   docker compose up -d --build app     # start the app
 #
 # The db image (pgvector/pgvector) ships the `vector` extension. The schema is
-# NOT auto-applied — run migrations explicitly once the db is up:
-#   npm run db:migrate
+# NOT auto-applied and is NOT baked into the app image — run the `migrate`
+# service explicitly against the live db (once per deploy, BEFORE the app):
+#   docker compose run --rm migrate
 # ============================================================================
 
 services:
@@ -28,10 +30,32 @@ services:
       timeout: 5s
       retries: 10
 
+  # One-off migration runner. `docker compose run --rm migrate` applies pending
+  # migrations against the live db, then exits. Run it before starting `app`.
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrate
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-zoe}:${POSTGRES_PASSWORD:-zoe}@db:5432/${POSTGRES_DB:-zoe}
+      PGSSL: disable
+    restart: "no"
+
   app:
     build:
       context: .
       dockerfile: Dockerfile
+      # NEXT_PUBLIC_* must be present at BUILD time (inlined into the browser
+      # bundle). Supply them via the same .env file.
+      args:
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY:-}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:-}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID:-}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID:-}
     container_name: zoe-app
     restart: unless-stopped
     depends_on:
@@ -45,6 +69,15 @@ services:
       GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      # Firebase — client config (public) + admin service account (secret).
+      NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY:-}
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:-}
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID:-}
+      NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID:-}
+      FIREBASE_SERVICE_ACCOUNT: ${FIREBASE_SERVICE_ACCOUNT:-}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL:-}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY:-}
       NODE_ENV: production
     ports:
       - "${APP_PORT:-3000}:3000"
