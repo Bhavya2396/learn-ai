@@ -20,7 +20,9 @@ COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 # Now the source. (.dockerignore keeps node_modules/.next/.git out of context.)
 COPY . .
-# Run DB migrations right after install (needs DATABASE_URL reachable at build).
+# Run DB migrations right after install. DATABASE_URL comes from compose
+# build.args and must be reachable during the build.
+ARG DATABASE_URL
 RUN npm run db:migrate
 ENV NEXT_TELEMETRY_DISABLED=1
 # NEXT_PUBLIC_* are inlined into the client bundle at build time (passed from
